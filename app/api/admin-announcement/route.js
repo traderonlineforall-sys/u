@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
+import { enforceSameOrigin, requireUserSession, noStore } from "../../../lib/server/auth.js";
 import { requireAdminPassword, getServiceSupabase } from "../../../lib/server/admin.js";
+
+function j(body, init){
+  return noStore(NextResponse.json(body, init));
+}
 
 function parseAnnouncementText(raw){
   const text = String(raw || "");
@@ -39,11 +44,11 @@ export async function GET(){
     .order("created_at", { ascending: false })
     .limit(1);
 
-  if(error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if(error) return j({ error: error.message }, { status: 500 });
   const row = Array.isArray(data) && data[0] ? data[0] : null;
 
   const parsed = parseAnnouncementText(row?.text || "");
-  return NextResponse.json({
+  return j({
     text: parsed.text,
     envelope_text: parsed.envelope_text,
     urgent_text: parsed.urgent_text,
@@ -55,7 +60,7 @@ export async function GET(){
 export async function POST(req){
   const body = await req.json().catch(()=> ({}));
   const chk = requireAdminPassword(body);
-  if(!chk.ok) return NextResponse.json({ error: chk.error }, { status: 401 });
+  if(!chk.ok) return j({ error: chk.error }, { status: 401 });
 
   // Accept both the old {text} and the new fields.
   const envelope_text = String(body?.envelope_text ?? "");
@@ -75,7 +80,7 @@ export async function POST(req){
 
   text = String(text || "").trim();
   if(!text){
-    return NextResponse.json({ error: "Announcement text is empty." }, { status: 400 });
+    return j({ error: "Announcement text is empty." }, { status: 400 });
   }
 
   const supabase = getServiceSupabase();
@@ -85,10 +90,10 @@ export async function POST(req){
     .select("text, created_at")
     .single();
 
-  if(error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if(error) return j({ error: error.message }, { status: 500 });
 
   const parsed = parseAnnouncementText(data?.text || text);
-  return NextResponse.json({
+  return j({
     text: parsed.text,
     envelope_text: parsed.envelope_text,
     urgent_text: parsed.urgent_text,

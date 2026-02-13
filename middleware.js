@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCookieName, verifySession } from "./lib/session.js";
 
 export const config = {
+  // Run for everything except Next.js internal assets.
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
 
@@ -11,30 +12,52 @@ const PUBLIC_PATHS = new Set([
   "/api/logout",
 ]);
 
+function clientIp(request) {
+  const xf = request.headers.get("x-forwarded-for");
+  return (request.ip || (xf ? xf.split(",")[0].trim() : "")) || "";
+}
+
+function applySecurityHeaders(res) {
+  // Lightweight headers that won't break the legacy tool UI.
+  res.headers.set("X-Frame-Options", "DENY");
+  res.headers.set("X-Content-Type-Options", "nosniff");
+  res.headers.set("Referrer-Policy", "same-origin");
+  res.headers.set("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+  // Avoid caching any authenticated content or redirects.
+  res.headers.set("Cache-Control", "no-store");
+  return res;
+}
+
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
 
-  // Allow public paths + the login page assets
-  if (PUBLIC_PATHS.has(pathname) || pathname.startsWith("/login/")) {
-    return NextResponse.next();
+  // Optional IP allowlist (comma-separated). If set, block everyone else early.
+  const allow = (process.env.ALLOWLIST_IPS || "").split(",").map(s => s.trim()).filter(Boolean);
+  if (allow.length) {
+    const ip = clientIp(request);
+    if (!ip || !allow.includes(ip)) {
+      return applySecurityHeaders(new NextResponse("Forbidden", { status: 403 }));
+    }
   }
 
-  // Allow direct access to static assets in /public when NOT authenticated?
-  // No: we want everything protected. But allow the login page to load its assets via /_next.
-  // Static tool assets are served under / (e.g., /index.html, /styles.css, /app.js). We keep them protected.
+  // Public paths must remain reachable without a session.
+  if (PUBLIC_PATHS.has(pathname) || pathname.startsWith("/login/")) {
+    return applySecurityHeaders(NextResponse.next());
+  }
 
   const cookieName = getCookieName();
   const token = request.cookies.get(cookieName)?.value || "";
   const secret = process.env.SESSION_SECRET || process.env.BASIC_AUTH_PASS || "";
 
   if (!secret) {
-    return new NextResponse("Server not configured (missing SESSION_SECRET).", { status: 503 });
+    return applySecurityHeaders(
+      new NextResponse("Server not configured (missing SESSION_SECRET).", { status: 503 })
+    );
   }
 
   const result = await verifySession(token, secret);
-
   if (result.ok) {
-    return NextResponse.next();
+    return applySecurityHeaders(NextResponse.next());
   }
 
   const url = request.nextUrl.clone();
@@ -42,7 +65,6 @@ export async function middleware(request) {
   url.searchParams.set("next", pathname);
 
   const res = NextResponse.redirect(url);
-  // Avoid caching redirects; helps with cookie changes.
   res.headers.set("x-middleware-cache", "no-cache");
-  return res;
+  return applySecurityHeaders(res);
 }

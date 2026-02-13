@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
+import { enforceSameOrigin, requireUserSession, noStore } from "../../../lib/server/auth.js";
 import { requireAdminPassword, getServiceSupabase } from "../../../lib/server/admin.js";
+
+function j(body, init){
+  return noStore(NextResponse.json(body, init));
+}
 
 /**
  * Admin block:
@@ -11,14 +16,18 @@ import { requireAdminPassword, getServiceSupabase } from "../../../lib/server/ad
  *   2) Insert a new row, trying a payload that includes both fields, then fallback.
  */
 export async function POST(req) {
+  const so = enforceSameOrigin(req);
+  if(!so.ok) return j({ error: so.error }, { status: so.status || 403 });
+  const sess = await requireUserSession(req);
+  if(!sess.ok) return j({ error: sess.error }, { status: sess.status || 401 });
   const body = await req.json().catch(() => ({}));
   const chk = requireAdminPassword(body);
-  if (!chk.ok) return NextResponse.json({ error: chk.error }, { status: 401 });
+  if (!chk.ok) return j({ error: chk.error }, { status: 401 });
 
   const user_id = String(body?.user_id || "").trim();
   const minutes = Number(body?.minutes || 0);
   if (!user_id || !Number.isFinite(minutes) || minutes <= 0) {
-    return NextResponse.json({ error: "Invalid user_id or minutes." }, { status: 400 });
+    return j({ error: "Invalid user_id or minutes." }, { status: 400 });
   }
 
   const supabase = getServiceSupabase();
@@ -49,10 +58,10 @@ export async function POST(req) {
       // If expires_at doesn't exist -> retry blocked_until only
       r = await tryInsert({ user_id, blocked_until: expires_at, reason });
       if (r.error) {
-        return NextResponse.json({ error: r.error.message || "Block failed" }, { status: 500 });
+        return j({ error: r.error.message || "Block failed" }, { status: 500 });
       }
     }
   }
 
-  return NextResponse.json({ ok: true, user_id, expires_at });
+  return j({ ok: true, user_id, expires_at });
 }
