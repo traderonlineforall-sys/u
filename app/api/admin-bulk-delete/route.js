@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdminPassword, getServiceSupabase } from "@/lib/server/admin";
+import { requireAdminPassword, getServiceSupabase } from "../../../lib/server/admin.js";
 
 const ALLOWED_TABLES = new Set(["support_messages","suggestions"]);
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdminPassword, getServiceSupabase } from "@/lib/server/admin";
+import { requireAdminPassword, getServiceSupabase } from "../../../lib/server/admin.js";
 
 export async function POST(req){
   const body = await req.json().catch(()=> ({}));

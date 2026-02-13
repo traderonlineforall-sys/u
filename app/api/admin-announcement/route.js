@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdminPassword, getServiceSupabase } from "@/lib/server/admin";
+import { requireAdminPassword, getServiceSupabase } from "../../../lib/server/admin.js";
 
 export async function GET(){
   const supabase = getServiceSupabase();
