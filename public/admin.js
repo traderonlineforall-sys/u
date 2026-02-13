@@ -80,7 +80,7 @@ loginBtn?.addEventListener("click", async ()=>{
   // quick auth check by calling list blocks endpoint (light)
   try{
     setAuthStatus("Checking…");
-    await apiAdmin("/.netlify/functions/admin-ping", {});
+    await apiAdmin("/api/admin-ping", {});
     setAuthStatus("");
     authBox.style.display = "none";
     panel.style.display = "block";
@@ -137,7 +137,7 @@ tabSuggestions.querySelectorAll("button[data-action='delete-suggestion']").forEa
     if(!id) return;
     try{
       setAdminStatus("Deleting…");
-      await apiAdmin("/.netlify/functions/admin-delete", { table: "suggestions", id: Number(id) });
+      await apiAdmin("/api/admin-delete", { table: "suggestions", id: Number(id) });
       setAdminStatus("Deleted ✅");
       await refreshSuggestions();
     }catch(err){
@@ -163,9 +163,9 @@ tabSuggestions.querySelectorAll("button[data-action='delete-block-suggestion']")
 
     try{
       setAdminStatus("Blocking…");
-      const out = await apiAdmin("/.netlify/functions/admin-block", { user_id: userId, minutes });
+      const out = await apiAdmin("/api/admin-block", { user_id: userId, minutes });
       setAdminStatus(`Blocked until ${fmtTime(out.expires_at)}. Deleting…`);
-      await apiAdmin("/.netlify/functions/admin-delete", { table: "suggestions", id: Number(id) });
+      await apiAdmin("/api/admin-delete", { table: "suggestions", id: Number(id) });
       setAdminStatus(`Deleted + Blocked until ${fmtTime(out.expires_at)} ✅`);
       await refreshSuggestions();
       await refreshBlocks();
@@ -292,7 +292,7 @@ async function refreshSupport(){
       if (!id) return;
       try {
         setAdminStatus("Deleting…");
-        await apiAdmin("/.netlify/functions/admin-delete", { table: "support_messages", id: Number(id) });
+        await apiAdmin("/api/admin-delete", { table: "support_messages", id: Number(id) });
         setAdminStatus("Deleted ✅");
         await refreshSupport();
       } catch (err) {
@@ -313,7 +313,7 @@ async function refreshSupport(){
 
       try {
         setAdminStatus("Blocking…");
-        const out = await apiAdmin("/.netlify/functions/admin-block", { user_id: userId, minutes });
+        const out = await apiAdmin("/api/admin-block", { user_id: userId, minutes });
         setAdminStatus(`Blocked until ${fmtTime(out.expires_at)} ✅`);
         await refreshBlocks();
       } catch (err) {
@@ -331,7 +331,7 @@ async function refreshSupport(){
       if (!ok) return;
       try {
         setAdminStatus("Deleting name…");
-        await apiAdmin("/.netlify/functions/admin-delete-support-user", { user_id: uid });
+        await apiAdmin("/api/admin-delete-support-user", { user_id: uid });
         setAdminStatus("Deleted name ✅");
         await refreshSupport();
       } catch (err) {
@@ -384,7 +384,7 @@ async function refreshSupport(){
       if (!ok) return;
       try {
         setAdminStatus("Bulk deleting…");
-        await apiAdmin("/.netlify/functions/admin-bulk-delete", { table: "support_messages", ids });
+        await apiAdmin("/api/admin-bulk-delete", { table: "support_messages", ids });
         setAdminStatus("Bulk delete ✅");
         await refreshSupport();
       } catch (err) {
@@ -392,7 +392,7 @@ async function refreshSupport(){
         // Fallback: delete one by one
         try {
           for (const id of ids) {
-            await apiAdmin("/.netlify/functions/admin-delete", { table: "support_messages", id });
+            await apiAdmin("/api/admin-delete", { table: "support_messages", id });
           }
           setAdminStatus("Bulk delete ✅");
           await refreshSupport();
@@ -458,7 +458,7 @@ async function refreshBlocks(){
       if(!userId) return;
       try{
         setAdminStatus("Unblocking…");
-        await apiAdmin("/.netlify/functions/admin-unblock", { user_id: userId });
+        await apiAdmin("/api/admin-unblock", { user_id: userId });
         setAdminStatus("Unblocked ✅");
         await refreshBlocks();
       }catch(err){
@@ -482,7 +482,7 @@ async function refreshAnnouncements(){
   // This makes the admin UI work even if announcements are not publicly readable by RLS.
   let current = { text: "", created_at: null };
   try{
-    const res = await fetch("/.netlify/functions/admin-announcement", { method: "GET" });
+    const res = await fetch("/api/admin-announcement", { method: "GET" });
     const data = await res.json().catch(()=>({}));
     if(res.ok){
       current = { text: String(data?.text || ""), created_at: data?.created_at || null };
@@ -530,7 +530,7 @@ async function refreshAnnouncements(){
       }
       try{
         setAdminStatus("Saving…");
-        await apiAdmin("/.netlify/functions/admin-announcement", { text: val });
+        await apiAdmin("/api/admin-announcement", { text: val });
         setAdminStatus("Saved ✅");
         await refreshAnnouncements();
       }catch(err){

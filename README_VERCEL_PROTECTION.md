@@ -40,3 +40,12 @@ This package includes TypeScript devDependencies to satisfy Next.js type-check s
 - Set `BASIC_AUTH_USER` and `BASIC_AUTH_PASS` (credentials), and optionally `SESSION_SECRET` (signing key). If `SESSION_SECRET` is not set, the app falls back to `BASIC_AUTH_PASS`.
 - After login, you are redirected to `/index.html`.
 - Logout: open `/logout`.
+
+
+## Admin panel (fix for Vercel)
+Set these env vars on Vercel:
+- SUPABASE_URL (same as in public/supabase-config.js)
+- SUPABASE_SERVICE_ROLE_KEY (from Supabase Project Settings → API → service_role)
+- ADMIN_PASSWORD (admin modal password)
+
+After changing env vars, redeploy.
