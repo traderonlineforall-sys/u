@@ -2,6 +2,30 @@
 import { supabase } from "./supabase-client.js";
 import { ADMIN_NAME } from "./supabase-config.js";
 import { playSoftNotification, unlockSound } from "./notification-sound.js";
+// Dynamic Functions base (Vercel vs Netlify) - avoids hard-coded host checks
+function resolveFnBase() {
+  if (window.__SR_FN_BASE) return Promise.resolve(window.__SR_FN_BASE);
+  if (window.__SR_FN_BASE_PROM) return window.__SR_FN_BASE_PROM;
+
+  const tryBases = ['/api', '/.netlify/functions'];
+  window.__SR_FN_BASE_PROM = (async () => {
+    for (const base of tryBases) {
+      try {
+        const r = await fetch(base + '/admin-ping', { method: 'GET', cache: 'no-store' });
+        if (r && r.ok) {
+          window.__SR_FN_BASE = base;
+          return base;
+        }
+      } catch {}
+    }
+    // fallback (won't break UI; requests may fail gracefully)
+    window.__SR_FN_BASE = '/api';
+    return window.__SR_FN_BASE;
+  })();
+
+  return window.__SR_FN_BASE_PROM;
+}
+
 
 // ---------- User identity ----------
 function getOrCreateUserId() {
@@ -412,12 +436,18 @@ function computeUnread(recentRows){
 
   let dmTotal = 0;
   for(const v of dmByOther.values()) dmTotal += v;
-  return { publicCount, dmByOther, total: publicCount + dmTotal };
+  return { publicCount, dmByOther, dmTotal, total: publicCount + dmTotal };
 }
 
 function updateBadgesFromRecentCache(){
-  const { total, dmByOther, publicCount } = computeUnread(recentCache);
+  const { total, dmByOther, dmTotal } = computeUnread(recentCache);
   setFabBadge(supportBadge, total);
+
+  // Make the Support button "light up" when there are unread private (DM) messages.
+  if(supportBtn){
+    if((dmTotal || 0) > 0) supportBtn.classList.add("has-private");
+    else supportBtn.classList.remove("has-private");
+  }
 
   // per-user unread badges
   usersList?.querySelectorAll(".support-user").forEach(btn=>{
@@ -617,7 +647,7 @@ async function deleteOwnMessage(messageId){
   if(!ok) return;
   try{
     setStatus("Deleting…", "info");
-    const res = await fetch("/.netlify/functions/user-delete-support-message", {
+    const res = await fetch((await resolveFnBase()) + "/user-delete-support-message", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: messageId, user_id: USER_ID })

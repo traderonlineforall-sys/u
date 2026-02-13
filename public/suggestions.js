@@ -183,6 +183,34 @@ async function loadSuggestions() {
 
   const repliesOk = await detectRepliesTable().catch(()=>false);
 
+  // Preload reply counts so users can see them without opening each thread.
+  let replyCountMap = new Map();
+  if (repliesOk) {
+    try {
+      const ids = (Array.isArray(data) ? data : [])
+        .map(r => Number(r?.id))
+        .filter(n => Number.isFinite(n));
+
+      if (ids.length) {
+        const res = await supabase
+          .from("suggestion_replies")
+          .select("suggestion_id")
+          .in("suggestion_id", ids)
+          .limit(5000);
+        if (!res.error && Array.isArray(res.data)) {
+          for (const rr of res.data) {
+            const sid = Number(rr?.suggestion_id);
+            if (!Number.isFinite(sid)) continue;
+            replyCountMap.set(sid, (replyCountMap.get(sid) || 0) + 1);
+          }
+        }
+      }
+    } catch (e) {
+      // If anything goes wrong, just skip counts (threads will still load on click).
+      replyCountMap = new Map();
+    }
+  }
+
   elList.innerHTML = data
     .map((x) => {
       const when = x?.created_at ? new Date(x.created_at).toLocaleString() : "";
@@ -191,9 +219,11 @@ async function loadSuggestions() {
       const name = escapeHtml(x?.name || aliasForUserId(uid) || "User");
       const col = colorForUserId(uid || name);
       const sid = String(x?.id || "");
+      const rCount = repliesOk ? (replyCountMap.get(Number(x?.id)) || 0) : 0;
+      const hasReplies = !!rCount;
 
       return `
-        <div class="suggestion-item" style="--u:${escapeHtml(col)}" data-id="${escapeHtml(sid)}">
+        <div class="suggestion-item${hasReplies ? " has-replies" : ""}" style="--u:${escapeHtml(col)}" data-id="${escapeHtml(sid)}">
           <div class="suggestion-meta">
             <span class="suggestion-who">
               <span class="suggestion-dot" aria-hidden="true"></span>
@@ -204,7 +234,11 @@ async function loadSuggestions() {
           <div class="suggestion-text">${text}</div>
           ${repliesOk ? `
             <div class="suggestion-actions">
-              <button class="sug-replies-toggle" type="button" data-id="${escapeHtml(sid)}" aria-expanded="false">↩ Replies</button>
+              <button class="sug-replies-toggle${hasReplies ? " has-replies" : ""}" type="button" data-id="${escapeHtml(sid)}" data-reply-count="${escapeHtml(String(rCount))}" aria-expanded="false">
+                <span class="sug-replies-icon" aria-hidden="true">↩</span>
+                <span class="sug-replies-label">Replies</span>
+                ${hasReplies ? `<span class="sug-replies-badge" aria-label="${escapeHtml(String(rCount))} replies">${escapeHtml(String(rCount))}</span>` : ``}
+              </button>
             </div>
             <div class="suggestion-replies" id="sugReplies_${escapeHtml(sid)}" style="display:none"></div>
           ` : ``}
@@ -465,6 +499,19 @@ function init() {
         // silent
       }
     });
+
+  // Realtime updates for replies to keep reply counts fresh.
+  detectRepliesTable().then((ok)=>{
+    if(!ok) return;
+    supabase
+      .channel("suggestion-replies")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "suggestion_replies" },
+        () => loadSuggestions()
+      )
+      .subscribe(()=>{});
+  });
 }
 
 document.addEventListener("DOMContentLoaded", init);

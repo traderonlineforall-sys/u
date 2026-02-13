@@ -1,9 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<head>
-    <!-- Access is protected server-side via Next.js middleware (HTTP Basic Auth). -->
-    <link rel="stylesheet" href="styles.css">
+<head><link rel="stylesheet" href="styles.css">
     <link rel="icon" href="favicon.ico">
     <!-- Ramadan visual theme (remove this line to revert to the default look) -->
     <link id="ramadanThemeLink" rel="stylesheet" href="ramadan-theme.css">
@@ -910,7 +908,7 @@
                                                 onclick="openLinkk(event)" target="_blank">TT: Fixed Aggregators Payment
                                                 Not Clear</a>
 
-                                        <a href="https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName=Online%20Payment%20Not%20Clear&srTypeId=153005002&t=1697671712088&tabId=sr0.6918703603344156&topUrl=&custid=&BMEWebToken=null&serviceInfoChar107=3&serviceInfoChar112=2&serviceTitle=Online Payment Not Clear&serviceInfoChar282=Online Payment Not Clear&serviceInfoChar276=1&serviceInfoChar278=1&serviceInfoChar272=0&serviceContent=Transaction full amount ( Specify it`s one transaction or more ) Payment method:- (  WE app or E-care ) Transaction number ( if it available ) &subsNumber="
+                                        <a href="https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName=Fixed%20Voice%20Complaint-%3EPayment%20and%20Recharge-%3EOnline%20Payment%20Not%20Clear&srTypeId=153005002&t=1770677925027&tabId=sr0.7960654302585892&topUrl=&custid=&BMEWebToken=&serviceInfoChar107=3&serviceInfoChar111=0&serviceInfoChar112=2&serviceInfoChar276=1&serviceInfoChar278=1&serviceTitle=Online%20Payment%20Not%20Clear&serviceInfoChar282=Online%20Payment%20Not%20Clear&serviceContent=Online%20Payment%20Not%20ClearTransaction%20full%20amount%20(%20Specify%20it%60s%20one%20transaction%20or%20more%20)%20%0A%0APayment%20method:-%20(%20specify%20it%60s%20proceeded%20through%20WE%20app%20or%20E-care%20)%20%0A%0ATransaction%20number%20(%20if%20it%20available%20)%20%0A%0A&subsNumber="
                                                 onclick="openLinkk(event)" target="_blank">TT: Fixed Online Payment Not
                                                 Clear</a>
 
@@ -4253,6 +4251,40 @@
 
 
 
+                
+
+                        <!-- OCR Spacer -->
+                        <div class="cbOcrSpacer"></div>
+<!-- OCR Paste Box (Call Back) - Paste Screenshot -> Text -->
+                        <div class="ocrBox cbOcrBox">
+                                <div class="ocrHeader">
+                                        <div class="ocrTitle">OCR - Paste Screenshot هنا (Ctrl+V)</div>
+                                        <div class="ocrSubtitle">انسخ أي صورة/سكرينشوت ثم اضغط داخل المربع واعمل Ctrl+V (أو اسحب صورة Drop).</div>
+                                </div>
+
+                                <!-- Hidden paste catcher: guarantees Ctrl+V works even if an overlay steals focus -->
+                                <input id="cbOcrPasteCatcher" class="ocrPasteCatcher" type="text" autocomplete="off" />
+
+                                <div id="cbOcrPasteZone" class="ocrPasteZone" tabindex="0" role="textbox" aria-label="Paste screenshot here" contenteditable="true" spellcheck="false">
+                                        اضغط هنا ثم Ctrl+V للصق الصورة…
+                                        <div class="ocrSubHint">Drag &amp; Drop صورة هنا</div>
+                                </div>
+
+                                <div class="ocrRow">
+                                        <img id="cbOcrPreview" class="ocrPreview" alt="" />
+                                        <div class="ocrRight">
+                                                <div id="cbOcrStatus" class="ocrStatus">جاهز</div>
+                                                <textarea id="cbOcrText" class="ocrText" placeholder="النص المستخرج هيظهر هنا…"></textarea>
+                                                <div class="ocrActions">
+											<button type="button" id="cbOcrExtractBtn" class="ocrBtn ocrBtnPrimary">Extract (Fast)</button>
+											<button type="button" id="cbOcrHqBtn" class="ocrBtn ocrBtnHq">HQ</button>
+                                                        <button type="button" id="cbOcrCopyBtn" class="ocrBtn">Copy Text</button>
+                                                        <button type="button" id="cbOcrClearBtn" class="ocrBtn ocrBtnGhost">Clear</button>
+                                                </div>
+                                        </div>
+                                </div>
+                        </div>
+
                 </div>
                 <!-- نهايه الكول باك -->
                 <div id="Mobile" class="tabcontent" style="color: white; font-family: Arial, sans-serif;">
@@ -4976,8 +5008,9 @@ FBB Non Tech follow up--Installation Order--Call back to CRM">Call back to CRM <
 
 
                         <!-- إضافة عنصر HTML لعرض رسالة الإشعار -->
-                        <div id="notification"></div>
-                        <div id="notification3"></div>
+                        <div id="notification">
+</div>
+<div id="notification3"></div>
 
 
                         
@@ -18116,10 +18149,46 @@ https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeNam
 
                                                 <br>
 
-                                                <!-- download rate -->
+                                                <!-- outage by mail -->
 
-                                                <h1 style="color: #ccc">
-                                                        Download Rate</h1>
+                                                <h1 style="color: #ccc; display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom: 10px;">
+                                                        <span>outage by mail</span>
+                                                </h1>
+
+                                                <!-- Outage by mail helper -->
+                                                <div id="outageMailPanel" class="outage-mail-panel">
+                                                        <div class="outage-mail-grid">
+                                                                <div class="outage-mail-col">
+                                                                        <div class="outage-mail-label">Impacted Bras</div>
+                                                                        <textarea id="outageImpactedBras" class="outage-mail-textarea outage-mail-textarea--full" rows="11" spellcheck="false" placeholder="Impacted Bras\n10.45.4.218\n10.45.3.240\n..."></textarea>
+                                                                </div>
+                                                                <div class="outage-mail-col">
+                                                                        <div class="outage-mail-row">
+                                                                                <div class="outage-mail-label">Search BRAS (exact)</div>
+                                                                                <div class="outage-mail-search">
+                                                                                        <input id="outageBrasSearch" class="outage-mail-input" type="text" placeholder="e.g. 10.45.11.133" spellcheck="false" />
+                                                                                        <button id="outageBrasCheckBtn" class="outage-mail-btn" type="button">Check</button>
+                                                                                </div>
+                                                                                <div id="outageBrasResult" class="outage-mail-result"></div>
+                                                                        </div>
+
+                                                                        <div class="outage-mail-row">
+                                                                                <div class="outage-mail-label">Complaint No (optional)</div>
+                                                                                <input id="outageComplaintNo" class="outage-mail-input" type="text" placeholder="XX" spellcheck="false" />
+                                                                        </div>
+
+                                                                        <div class="outage-mail-row outage-mail-message-row outage-mail-hidden" id="outageMessageRow">
+                                                                                <div class="outage-mail-label">Outage message (copy)</div>
+                                                                                <textarea id="outageMessageBox" class="outage-mail-textarea" rows="5" readonly spellcheck="false" placeholder="(هتظهر رسالة الاوتج هنا بعد التطابق)"></textarea>
+                                                                                <button id="outageCopyBtn" class="outage-mail-btn" type="button">Copy message</button>
+                                                                        </div>
+                                                                </div>
+                                                        </div>
+                                                </div>
+
+                                                <!-- download rate (calculator) -->
+
+                                                <h1 style="color: #ccc; margin-top: 14px;">Download Rate</h1>
                                                 <html xmlns:mso="urn:schemas-microsoft-com:office:office"
                                                         xmlns:msdt="uuid:C2F41010-65B3-11d1-A29F-00AA00C14882">
                                                 <!-- Mirrored from ticket-maker/sa-pilot-rep/offline/html/traffic-calculator.html by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 18 May 2017 14:03:20 GMT -->
@@ -18454,7 +18523,9 @@ https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeNam
 
 
 
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="app.js"></script>
+    <script src="outage-by-mail.js"></script>
     <!-- When the Tags overlay is open, hide all other elements via this CSS rule -->
     <style id="tagsOverlayCss">
       body.tags-open > *:not(#tagsContainer) {

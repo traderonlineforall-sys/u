@@ -478,14 +478,22 @@ async function refreshAll(){
 
 async function refreshAnnouncements(){
   if(!tabAnnouncements) return;
-  // Fetch latest announcement via serverless function (uses service role on the server).
-  // This makes the admin UI work even if announcements are not publicly readable by RLS.
-  let current = { text: "", created_at: null };
+
+  // Fetch latest announcement via server (service role) so Admin works even if RLS hides the table.
+  // Supports both legacy single-text format and the newer { envelope, urgent, urgent_enabled } JSON format.
+  let current = { envelope_text: "", urgent_text: "", urgent_enabled: false, created_at: null, text: "" };
+
   try{
     const res = await fetch("/api/admin-announcement", { method: "GET" });
     const data = await res.json().catch(()=>({}));
     if(res.ok){
-      current = { text: String(data?.text || ""), created_at: data?.created_at || null };
+      current = {
+        envelope_text: String(data?.envelope_text ?? data?.text ?? ""),
+        urgent_text: String(data?.urgent_text ?? ""),
+        urgent_enabled: !!(data?.urgent_enabled),
+        created_at: data?.created_at || null,
+        text: String(data?.text ?? "")
+      };
     }
   }catch(e){
     // Fallback to direct Supabase read (best-effort)
@@ -495,47 +503,106 @@ async function refreshAnnouncements(){
         .select("*")
         .order("created_at", { ascending: false })
         .limit(1);
-      if(!error && Array.isArray(data) && data.length > 0) current = data[0] || current;
+      if(!error && Array.isArray(data) && data.length > 0){
+        const item = data[0] || {};
+        const raw = String(item.text || "");
+        let envelope_text = "";
+        let urgent_text = "";
+        let urgent_enabled = false;
+
+        try{
+          const obj = JSON.parse(raw);
+          if(obj && typeof obj === "object"){
+            envelope_text = String(obj.envelope || "");
+            urgent_text = String(obj.urgent || "");
+            urgent_enabled = !!obj.urgent_enabled;
+          }else{
+            envelope_text = raw;
+          }
+        }catch{
+          const prefix = "URGENT_TICKER::";
+          if(raw.startsWith(prefix)){
+            urgent_enabled = true;
+            urgent_text = raw.slice(prefix.length).trim();
+          }else{
+            envelope_text = raw;
+          }
+        }
+        current = { envelope_text, urgent_text, urgent_enabled, created_at: item.created_at || null, text: raw };
+      }
     }catch(_){}
   }
+
   const when = current.created_at ? fmtTime(current.created_at) : "";
-  const message = current.text || "";
-  // Build UI
+  const lastEnvelope = String(current.envelope_text || "").trim();
+  const lastUrgent = String(current.urgent_text || "").trim();
+  const lastUrgentEnabled = !!current.urgent_enabled;
+
   tabAnnouncements.innerHTML = `
     <div class="admin-row">
       <div class="admin-row-main">
-        <div class="admin-row-meta">${when ? `Last announcement at ${escapeHtml(when)}` : "No announcement posted"}</div>
-        <div class="admin-row-text">${escapeHtml(message) || ""}</div>
+        <div class="admin-row-meta">${when ? `Last update at ${escapeHtml(when)}` : "No announcement posted"}</div>
+        <div class="admin-row-text"><b>Envelope message:</b><br>${escapeHtml(lastEnvelope) || "<span style='opacity:.6'>(empty)</span>"}</div>
+        <div class="admin-row-text" style="margin-top:10px;"><b>Urgent moving banner:</b> ${lastUrgentEnabled ? "<span style='color:#00e676'>(enabled)</span>" : "<span style='opacity:.7'>(disabled)</span>"}<br>${escapeHtml(lastUrgent) || "<span style='opacity:.6'>(empty)</span>"}</div>
       </div>
     </div>
+
     <div class="admin-row">
       <div class="admin-row-main">
-        <textarea id="adminAnnouncementInput" class="admin-input" rows="4" placeholder="Write a new announcement..."></textarea>
+        <div style="font-weight:700;margin-bottom:6px;">Envelope message (shows inside the envelope)</div>
+        <textarea id="adminAnnouncementEnvelopeInput" class="admin-input" rows="4" placeholder="Write envelope message..."></textarea>
+
+        <div style="font-weight:700;margin-top:14px;margin-bottom:6px;">Urgent moving banner (right → left)</div>
+        <textarea id="adminAnnouncementUrgentInput" class="admin-input" rows="3" placeholder="Write urgent message..."></textarea>
+
+        <label class="admin-check" style="margin-top:10px;">
+          <input type="checkbox" id="adminAnnouncementUrgentChk" />
+          <span>Enable urgent moving banner (will not disappear until user clicks “فهمت”)</span>
+        </label>
       </div>
       <div class="admin-row-actions">
         <button id="adminAnnouncementSaveBtn" class="admin-action">Save</button>
       </div>
     </div>
   `;
-  // Set initial value of textarea to current message for convenience
-  const input = tabAnnouncements.querySelector("#adminAnnouncementInput");
-  if(input) input.value = message;
+
+  const envInput = tabAnnouncements.querySelector("#adminAnnouncementEnvelopeInput");
+  if(envInput) envInput.value = lastEnvelope;
+
+  const urgInput = tabAnnouncements.querySelector("#adminAnnouncementUrgentInput");
+  if(urgInput) urgInput.value = lastUrgent;
+
+  const urgentChk = tabAnnouncements.querySelector("#adminAnnouncementUrgentChk");
+  if(urgentChk) urgentChk.checked = lastUrgentEnabled;
+
   const saveBtn = tabAnnouncements.querySelector("#adminAnnouncementSaveBtn");
   if(saveBtn){
     saveBtn.addEventListener("click", async ()=>{
-      const val = (input?.value || "").trim();
-      if(!val){
-        setAdminStatus("Please write a message before saving.", "warn");
+      const envelopeVal = (envInput?.value || "").trim();
+      const urgentVal = (urgInput?.value || "").trim();
+      const urgentOn = !!urgentChk?.checked;
+
+      if(!envelopeVal && !(urgentOn && urgentVal)){
+        setAdminStatus("Write an envelope message or enable urgent with a message.", "warn");
         return;
       }
+      if(urgentOn && !urgentVal){
+        setAdminStatus("Urgent banner is enabled but its message is empty.", "warn");
+        return;
+      }
+
       try{
         setAdminStatus("Saving…");
-        await apiAdmin("/api/admin-announcement", { text: val });
+        await apiAdmin("/api/admin-announcement", {
+          envelope_text: envelopeVal,
+          urgent_text: urgentVal,
+          urgent_enabled: urgentOn
+        });
         setAdminStatus("Saved ✅");
         await refreshAnnouncements();
       }catch(err){
         console.error(err);
-        setAdminStatus(`Could not save announcement. Please contact ${ADMIN_NAME}.`, "error");
+        setAdminStatus(`Could not save announcement. ${String(err?.message||"")}`, "error");
       }
     });
   }

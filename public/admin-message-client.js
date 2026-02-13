@@ -1,3 +1,27 @@
+// Dynamic Functions base (Vercel vs Netlify) - avoids hard-coded host checks
+function resolveFnBase() {
+  if (window.__SR_FN_BASE) return Promise.resolve(window.__SR_FN_BASE);
+  if (window.__SR_FN_BASE_PROM) return window.__SR_FN_BASE_PROM;
+
+  const tryBases = ['/api', '/.netlify/functions'];
+  window.__SR_FN_BASE_PROM = (async () => {
+    for (const base of tryBases) {
+      try {
+        const r = await fetch(base + '/admin-ping', { method: 'GET', cache: 'no-store' });
+        if (r && r.ok) {
+          window.__SR_FN_BASE = base;
+          return base;
+        }
+      } catch {}
+    }
+    // fallback (won't break UI; requests may fail gracefully)
+    window.__SR_FN_BASE = '/api';
+    return window.__SR_FN_BASE;
+  })();
+
+  return window.__SR_FN_BASE_PROM;
+}
+
 /*
  * Admin announcement (Envelope) client
  *
@@ -17,6 +41,8 @@
  */
 
 const LS_SEEN_AT = "sr_admin_ann_seen_at";
+const LS_URGENT_DISMISSED_AT = "sr_admin_urgent_dismissed_at";
+const URGENT_PREFIX = "URGENT_TICKER::";
 
 function escapeHtml(s = "") {
   return String(s)
@@ -36,6 +62,35 @@ function getSeenTs() {
   }
 }
 
+function setSeenTs(isoOrDate) {
+  try {
+    const v = (isoOrDate instanceof Date) ? isoOrDate.toISOString() : String(isoOrDate || "");
+    if (!v) return;
+    localStorage.setItem(LS_SEEN_AT, v);
+  } catch {}
+}
+
+function clearEnvelopeUnreadIfOpen() {
+  const modal = document.getElementById("UA07_SECRET_MODAL");
+  if (!modal) return;
+  const isOpen = modal.style.display === "block" || modal.classList.contains("show") || modal.getAttribute("aria-hidden") === "false";
+  if (!isOpen) return;
+  if (_lastAnnouncement && _lastAnnouncement.created_at) {
+    setSeenTs(_lastAnnouncement.created_at);
+    const b = ensureEnvelopeBadge();
+    if (b) b.style.display = "none";
+  }
+}
+
+
+function getUrgentDismissedTs(){
+  try{ const v = localStorage.getItem(LS_URGENT_DISMISSED_AT)||""; return v ? Date.parse(v) : 0; }catch{ return 0; }
+}
+
+function dismissUrgent(createdAtIso){
+  try{ if(!createdAtIso) return; localStorage.setItem(LS_URGENT_DISMISSED_AT, new Date(createdAtIso).toISOString()); }catch{}
+}
+
 function markSeen(createdAtIso) {
   try {
     if (!createdAtIso) return;
@@ -45,19 +100,96 @@ function markSeen(createdAtIso) {
 
 async function fetchLatestAnnouncement() {
   try {
-    const res = await fetch("/.netlify/functions/admin-announcement", { method: "GET" });
+    const res = await fetch((await resolveFnBase()) + "/admin-announcement", { method: "GET" });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       // Keep silent; we don't want to break the tool UI.
       return null;
     }
-    const text = String(data?.text || "").trim();
+    const envelope_text = String(data?.envelope_text ?? data?.text ?? "").trim();
+    const urgent_text = String(data?.urgent_text ?? "").trim();
+    const urgent_enabled = !!(data?.urgent_enabled);
+
     const created_at = data?.created_at || null;
-    if (!text) return { text: "", created_at: created_at || null };
-    return { text, created_at };
+    if (!envelope_text && !(urgent_enabled && urgent_text)) {
+      return { envelope_text: "", urgent_text: "", urgent_enabled: false, created_at: created_at || null };
+    }
+    return { envelope_text, urgent_text, urgent_enabled, created_at };
   } catch (e) {
     return null;
   }
+}
+
+function ensureUrgentTicker(){
+  let wrap = document.getElementById('SR_URGENT_TICKER');
+  if(wrap) return wrap;
+  wrap = document.createElement('div');
+  wrap.id = 'SR_URGENT_TICKER';
+  wrap.className = 'sr-urgent-ticker';
+  wrap.style.display = 'none';
+  wrap.setAttribute('role','alert');
+  wrap.setAttribute('aria-live','assertive');
+  wrap.setAttribute('aria-atomic','true');
+  wrap.innerHTML = `
+    <div class="sr-urgent-inner">
+      <div class="sr-urgent-label">عاجل</div>
+      <div class="sr-urgent-track" aria-hidden="true">
+        <div class="sr-urgent-marquee" id="SR_URGENT_MARQUEE"></div>
+      </div>
+      <button type="button" class="sr-urgent-ack" id="SR_URGENT_ACK">فهمت</button>
+    </div>
+  `;
+  document.body.appendChild(wrap);
+  return wrap;
+}
+
+function setUrgentText(text){
+  const wrap = ensureUrgentTicker();
+  const marquee = wrap.querySelector('#SR_URGENT_MARQUEE');
+  if(!marquee) return;
+
+  const safe = String(text||'').trim();
+
+  // Build a seamless loop (no gap) by duplicating the segment.
+  marquee.innerHTML = '';
+  if(!safe){
+    marquee.textContent = '';
+    marquee.style.removeProperty('--sr-urgent-duration');
+    return;
+  }
+
+  const seg1 = document.createElement('div');
+  seg1.className = 'sr-urgent-segment';
+  seg1.textContent = safe;
+  const seg2 = seg1.cloneNode(true);
+  marquee.appendChild(seg1);
+  marquee.appendChild(seg2);
+
+  // Auto speed tuned for readability: longer text → a bit slower.
+  // Requested: make it 2x faster than the previous setting.
+  const len = safe.length;
+  const baseSecs = Math.max(18, Math.min(45, len * 0.35));
+  const secs = Math.max(9, Math.min(22.5, baseSecs / 2));
+  marquee.style.setProperty('--sr-urgent-duration', secs.toFixed(1) + 's');
+}
+
+function showUrgent(createdAtIso, text){
+  const wrap = ensureUrgentTicker();
+  setUrgentText(text);
+  wrap.style.display = 'block';
+  const ack = wrap.querySelector('#SR_URGENT_ACK');
+  if(ack && !ack.__bound){
+    ack.__bound = true;
+    ack.addEventListener('click', ()=>{
+      wrap.style.display = 'none';
+      dismissUrgent(createdAtIso);
+    });
+  }
+}
+
+function hideUrgent(){
+  const wrap = document.getElementById('SR_URGENT_TICKER');
+  if(wrap) wrap.style.display = 'none';
 }
 
 function ensureEnvelopeBadge() {
@@ -94,6 +226,31 @@ function shouldShowBadge(ann) {
   return annTs > getSeenTs();
 }
 
+function updateUrgentUI(){
+  const ann = _lastAnnouncement;
+  if(!ann || !ann.created_at) { hideUrgent(); return; }
+
+  // New format: separate urgent fields.
+  let urgentEnabled = !!ann.urgent_enabled;
+  let urgentText = String(ann.urgent_text || "").trim();
+
+  // Backward compatibility: if server still returns legacy prefixed text
+  if(!urgentEnabled && !urgentText){
+    const raw = String(ann.text || "");
+    if(raw.startsWith(URGENT_PREFIX)){
+      urgentEnabled = true;
+      urgentText = raw.slice(URGENT_PREFIX.length).trim();
+    }
+  }
+
+  if(!urgentEnabled || !urgentText){ hideUrgent(); return; }
+
+  const annTs = Date.parse(ann.created_at);
+  if(!Number.isFinite(annTs)) { hideUrgent(); return; }
+  if(annTs <= getUrgentDismissedTs()) { hideUrgent(); return; }
+  showUrgent(ann.created_at, urgentText);
+}
+
 function updateBadgeUI() {
   const badge = ensureEnvelopeBadge();
   if (!badge) return;
@@ -105,6 +262,7 @@ async function refreshAnnouncementAndBadge() {
   const ann = await fetchLatestAnnouncement();
   if (ann) _lastAnnouncement = ann;
   updateBadgeUI();
+  updateUrgentUI();
 }
 
 // --- Modal injection ---
@@ -134,7 +292,7 @@ function renderAnnouncementInModal() {
   if (!titleEl || !bodyEl) return;
 
   const ann = _lastAnnouncement;
-  const hasAnn = !!(ann && ann.text && String(ann.text).trim());
+  const hasAnn = !!(ann && (ann.envelope_text ?? ann.text) && String(ann.envelope_text ?? ann.text).trim());
 
   if (!hasAnn) {
     // Restore original modal when there is no announcement.
@@ -153,7 +311,7 @@ function renderAnnouncementInModal() {
   const when = ann.created_at ? new Date(ann.created_at).toLocaleString() : "";
   bodyEl.innerHTML = `
     <div class="ua07-secret-lead">رسالة من الأدمن</div>
-    <div class="ua07-secret-text" style="white-space:pre-wrap;">${escapeHtml(ann.text)}</div>
+    <div class="ua07-secret-text" style="white-space:pre-wrap;">${escapeHtml(ann.envelope_text ?? ann.text)}</div>
     ${when ? `<div class="ua07-secret-text" style="opacity:0.7;font-size:12px;margin-top:10px;">${escapeHtml(when)}</div>` : ""}
   `;
 
@@ -177,7 +335,10 @@ function hookEnvelopeClick() {
 
       // app.js opens the modal in its own click handler. Wait a tick.
       setTimeout(renderAnnouncementInModal, 30);
+      // Mark as read when user opens the envelope.
+      setTimeout(clearEnvelopeUnreadIfOpen, 60);
       setTimeout(renderAnnouncementInModal, 120);
+      setTimeout(clearEnvelopeUnreadIfOpen, 160);
     },
     true
   );
@@ -194,6 +355,7 @@ function observeModalOpen() {
     const isOpen = modal.classList.contains("is-open") && modal.getAttribute("aria-hidden") === "false";
     if (isOpen) {
       renderAnnouncementInModal();
+        clearEnvelopeUnreadIfOpen();
     }
   });
   obs.observe(modal, { attributes: true, attributeFilter: ["class", "aria-hidden"] });
