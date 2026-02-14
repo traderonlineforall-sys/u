@@ -4439,246 +4439,171 @@ function performBalanceConversion() {
     }
 
     
-    // ---------- Post-process (spacing + mixed Arabic/English) ----------
-    function isArabicChar(ch){
-      const code = ch.charCodeAt(0);
-      return (
-        (code >= 0x0600 && code <= 0x06FF) || // Arabic
-        (code >= 0x0750 && code <= 0x077F) || // Arabic Supplement
-        (code >= 0x08A0 && code <= 0x08FF) || // Arabic Extended-A
-        (code >= 0xFB50 && code <= 0xFDFF) || // Arabic Presentation Forms-A
-        (code >= 0xFE70 && code <= 0xFEFF)    // Arabic Presentation Forms-B
-      );
-    }
-    function isLatinOrDigit(ch){
-      return /[A-Za-z0-9]/.test(ch);
-    }
-    function dominantDir(words){
-      let a = 0, l = 0;
-      for(const w of words){
-        const t = (w.text || '');
-        for(const ch of t){
-          if(isArabicChar(ch)) a++;
-          else if(isLatinOrDigit(ch)) l++;
-        }
-      }
-      return a >= l ? 'rtl' : 'ltr';
-    }
-    function cleanupText(text){
-      if(!text) return '';
-      // Normalize whitespace and add spacing between Arabic<->Latin boundaries.
-      let t = text
-        .replace(/\u200f|\u200e|\u202a|\u202b|\u202c/g,'')  // remove direction marks
-        .replace(/[ \t]+\n/g, '\n')
-        .replace(/\n{3,}/g, '\n\n')
-        .replace(/[ \t]{2,}/g, ' ')
+// ---------- OCR Post-Format (Port details template) ----------
+function stripInvisibles(s){
+  // Remove bidi controls + zero-width chars that can break Arabic/LTR parsing/output
+  return (s || '')
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, '')
+    .normalize('NFC');
+}
+
+function cleanOcrText(raw){
+  let t = stripInvisibles(raw || '');
+  // Drop obvious junk separator lines like "="
+  t = t.replace(/^\s*=\s*$/gm, '');
+  t = t.replace(/\r/g, '');
+  // Normalize colon spacing
+  t = t.replace(/\s*:\s*/g, ': ');
+  // Collapse excessive blank lines
+  t = t.replace(/\n{3,}/g, '\n\n');
+  return t.trim();
+}
+
+function normalizeKey(k){
+  return stripInvisibles(k || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function parseKeyValues(ocrText){
+  const t = cleanOcrText(ocrText);
+  const lines = t.split('\n').map(l => l.trim()).filter(Boolean);
+
+  // Aliases to handle OCR variants (Portno/Port no, vel vs VCI, etc.)
+  const aliases = {
+    'customer number': 'Customer number',
+    'phone': 'Phone',
+    'fv customer number': 'FV customer number',
+    'pop name': 'POP name',
+    'arabic pop': 'Arabic pop',
+    'card no': 'Card no',
+    'cardno': 'Card no',
+    'cabin code': 'Cabin code',
+    'fcc code': 'FCC code',
+    'dslam host name': 'DSLAM host name',
+    'dslam hostname': 'DSLAM host name',
+    'dslam type': 'DSLAM type',
+    'dslam number': 'DSLAM number',
+    'english pop': 'English pop',
+    'adsl username': 'ADSL username',
+    'iptv status': 'IPTV status',
+    'has iptv': 'Has IPTV',
+    'pop type': 'POP type',
+    'card type': 'Card type',
+    'port no': 'Port no',
+    'portno': 'Port no',
+    'frame': 'Frame',
+    'vpi': 'VPI',
+    'vci': 'VCI',
+    'vel': 'VCI',
+    'contracted speed': 'Contracted speed',
+    'nas port id': 'Nas port id',
+
+    'congested status': 'Congested status',
+    'congested date': 'Congested date',
+    'copper cabin number': 'Copper cabin number',
+    'box number': 'Box number',
+    'cpe type': 'CPE type',
+    'box coordinates': 'Box coordinates',
+    'local loop': 'Local loop',
+    'cpe virtual ip': 'CPE virtual ip',
+    'has option pack': 'Has option pack',
+  };
+
+  const kv = {};
+
+  for(const line of lines){
+    const idx = line.indexOf(':');
+    if(idx === -1) continue;
+
+    const kRaw = line.slice(0, idx).trim();
+    let vRaw = line.slice(idx + 1).trim();
+
+    const nk = normalizeKey(kRaw);
+    const canon = aliases[nk];
+    if(!canon) continue;
+
+    vRaw = stripInvisibles(vRaw);
+
+    if(canon === 'Arabic pop'){
+      vRaw = vRaw
+        .replace(/[•·]/g, '')
+        .replace(/\s+/g, ' ')
         .trim();
-
-      // Insert a space between Arabic and Latin/digit boundaries when missing.
-      // e.g., "Facebookفيسبوك" -> "Facebook فيسبوك" and "فيسبوكFacebook" -> "فيسبوك Facebook"
-      t = t
-        .replace(/([\u0600-\u06FF])([A-Za-z0-9])/g, '$1 $2')
-        .replace(/([A-Za-z0-9])([\u0600-\u06FF])/g, '$1 $2');
-
-      // Space around parentheses and hyphens commonly used in UI text
-      t = t
-        .replace(/\s*([()])/g, ' $1')
-        .replace(/([()])\s*/g, '$1 ')
-        .replace(/\s*-\s*/g, ' - ')
-        .replace(/[ \t]{2,}/g, ' ')
-        .trim();
-      return t;
     }
 
-    function rebuildTextFromWords(words){
-      if(!Array.isArray(words) || !words.length) return '';
-      // Group by line (block + para + line where available)
-      const lineKey = (w) => [w.block_num, w.par_num, w.line_num].join(':');
-      const byLine = new Map();
-      for(const w of words){
-        if(!w || !w.text) continue;
-        if(w.confidence != null && w.confidence < 35) continue; // drop very low-confidence junk
-        const k = lineKey(w);
-        if(!byLine.has(k)) byLine.set(k, []);
-        byLine.get(k).push(w);
-      }
-      if(!byLine.size) return '';
-      const lines = Array.from(byLine.values());
-      const outLines = [];
-      for(const lineWords of lines){
-        // Determine reading direction for this line (Arabic tends to RTL)
-        const dir = dominantDir(lineWords);
-        // Sort words by x coordinate (LTR: left->right, RTL: right->left)
-        lineWords.sort((a,b)=>{
-          const ax = (a.bbox && a.bbox.x0 != null) ? a.bbox.x0 : 0;
-          const bx = (b.bbox && b.bbox.x0 != null) ? b.bbox.x0 : 0;
-          return dir === 'rtl' ? (bx-ax) : (ax-bx);
-        });
+    kv[canon] = vRaw;
+  }
 
-        // Estimate a "typical" gap threshold from word heights (works across scales)
-        const heights = lineWords.map(w => (w.bbox && w.bbox.y1 != null && w.bbox.y0 != null) ? (w.bbox.y1 - w.bbox.y0) : 0).filter(h=>h>0);
-        const medianH = heights.length ? heights.sort((a,b)=>a-b)[Math.floor(heights.length/2)] : 24;
-        const gapThresh = Math.max(6, Math.round(medianH * 0.35));
+  return kv;
+}
 
-        let line = '';
-        let prev = null;
-        for(const w of lineWords){
-          const token = (w.text || '').trim();
-          if(!token) continue;
-          if(!prev){
-            line += token;
-            prev = w;
-            continue;
-          }
-          const prevBox = prev.bbox || {};
-          const curBox = w.bbox || {};
-          // Compute horizontal gap depending on direction.
-          const gap = (dir === 'rtl')
-            ? ((prevBox.x0 ?? 0) - (curBox.x1 ?? 0))
-            : ((curBox.x0 ?? 0) - (prevBox.x1 ?? 0));
+function formatPortDetails(ocrText){
+  const kv = parseKeyValues(ocrText);
 
-          // Add a space if there's visible separation or script boundary likely needs it.
-          const lastCh = line[line.length-1] || '';
-          const firstCh = token[0] || '';
-          const boundaryNeedsSpace =
-            (isArabicChar(lastCh) && isLatinOrDigit(firstCh)) ||
-            (isLatinOrDigit(lastCh) && isArabicChar(firstCh));
+  const ordered = [
+    ['Customer number', 'Customer number:'],
+    ['Phone', 'Phone:'],
+    ['FV customer number', 'FV customer number:'],
+    ['POP name', 'POP name:'],
+    ['Arabic pop', 'Arabic pop:'],
+    ['Card no', 'Card no:'],
+    ['Cabin code', 'Cabin code:'],
+    ['FCC code', 'FCC code:'],
+    ['DSLAM host name', 'DSLAM host name:'],
+    ['DSLAM type', 'DSLAM type:'],
+    ['DSLAM number', 'DSLAM number:'],
+    ['English pop', 'English pop:'],
+    ['ADSL username', 'ADSL username:'],
+    ['IPTV status', 'IPTV status:'],
+    ['Has IPTV', 'Has IPTV:'],
+    ['POP type', 'POP type:'],
+    ['Card type', 'Card type:'],
+    ['Port no', 'Port no:'],
+    ['Frame', 'Frame:'],
+    ['VPI', 'VPI:'],
+    ['VCI', 'VCI:'],
+    ['Contracted speed', 'Contracted speed:'],
+    ['Nas port id', 'Nas port id:'],
+  ];
 
-          if(gap > gapThresh || boundaryNeedsSpace) line += ' ';
-          line += token;
-          prev = w;
-        }
-        outLines.push(line);
-      }
+  const logs = [
+    ['Congested status', 'Congested status:'],
+    ['Congested date', 'Congested date:'],
+    ['Copper cabin number', 'Copper cabin number:'],
+    ['Box number', 'Box number:'],
+    ['CPE type', 'CPE type:'],
+    ['Box coordinates', 'Box coordinates:'],
+    ['Local loop', 'Local loop:'],
+    ['CPE virtual ip', 'CPE virtual ip:'],
+    ['Has option pack', 'Has option pack:'],
+  ];
 
-      return cleanupText(outLines.join('\n'));
-    }
+  const outLines = [];
+  outLines.push('Port details');
 
-    // ---------- Mixed-language boost (Arabic + English) ----------
-    // We do an extra (cheap) 2-pass OCR on the *best* candidate settings:
-    //   1) English-only
-    //   2) Arabic-only
-    // Then merge word boxes by overlap + confidence and rebuild text.
-    // This dramatically improves mixed RTL/LTR output and spacing stability.
+  function pushField(key, label){
+    outLines.push(label);
+    outLines.push('');
+    outLines.push(kv[key] ?? '');
+  }
 
-    function wordIoU(a, b){
-      const ax0 = a?.bbox?.x0 ?? 0, ay0 = a?.bbox?.y0 ?? 0, ax1 = a?.bbox?.x1 ?? 0, ay1 = a?.bbox?.y1 ?? 0;
-      const bx0 = b?.bbox?.x0 ?? 0, by0 = b?.bbox?.y0 ?? 0, bx1 = b?.bbox?.x1 ?? 0, by1 = b?.bbox?.y1 ?? 0;
-      const ix0 = Math.max(ax0, bx0);
-      const iy0 = Math.max(ay0, by0);
-      const ix1 = Math.min(ax1, bx1);
-      const iy1 = Math.min(ay1, by1);
-      const iw = Math.max(0, ix1 - ix0);
-      const ih = Math.max(0, iy1 - iy0);
-      const inter = iw * ih;
-      const aArea = Math.max(0, (ax1-ax0)) * Math.max(0, (ay1-ay0));
-      const bArea = Math.max(0, (bx1-bx0)) * Math.max(0, (by1-by0));
-      const union = aArea + bArea - inter;
-      return union > 0 ? (inter / union) : 0;
-    }
+  for(const [k, label] of ordered){
+    pushField(k, label);
+  }
 
-    function hasArabic(text){
-      if(!text) return false;
-      for(const ch of text){ if(isArabicChar(ch)) return true; }
-      return false;
-    }
+  outLines.push('Subscriber database logs');
 
-    function normalizeWord(w){
-      if(!w) return null;
-      const t = (w.text || '').trim();
-      if(!t) return null;
-      return {
-        text: t,
-        confidence: (typeof w.confidence === 'number') ? w.confidence : (typeof w.conf === 'number' ? w.conf : null),
-        bbox: w.bbox || w.bbox_data || w.boundingBox || w.box || w.rect || w,
-        block_num: w.block_num ?? 0,
-        par_num: w.par_num ?? 0,
-        line_num: w.line_num ?? 0,
-        word_num: w.word_num ?? 0
-      };
-    }
+  for(const [k, label] of logs){
+    pushField(k, label);
+  }
 
-    function extractWords(res){
-      const words = res?.data?.words || res?.words || res?.data?.blocks?.flatMap(b=>b?.paragraphs?.flatMap(p=>p?.lines?.flatMap(l=>l?.words||[])||[])||[]) || [];
-      return (Array.isArray(words) ? words : []).map(normalizeWord).filter(Boolean);
-    }
+  return outLines.join('\n').replace(/[ \t]+\n/g, '\n').trim() + '\n';
+}
 
-    function mergeWords(engWords, araWords){
-      const usedAra = new Set();
-      const merged = [];
-
-      // Try to match each English word to the best-overlapping Arabic word.
-      for(const ew of engWords){
-        let bestJ = -1;
-        let bestIoU = 0;
-        for(let j=0;j<araWords.length;j++){
-          if(usedAra.has(j)) continue;
-          const aw = araWords[j];
-          const iou = wordIoU(ew, aw);
-          if(iou > bestIoU){ bestIoU = iou; bestJ = j; }
-        }
-
-        if(bestJ >= 0 && bestIoU >= 0.45){
-          const aw = araWords[bestJ];
-          usedAra.add(bestJ);
-
-          const eConf = (typeof ew.confidence === 'number') ? ew.confidence : -1;
-          const aConf = (typeof aw.confidence === 'number') ? aw.confidence : -1;
-          const eHasA = hasArabic(ew.text);
-          const aHasA = hasArabic(aw.text);
-
-          // Prefer Arabic word if it actually contains Arabic, or if it is much more confident.
-          let pick = ew;
-          if(aHasA && !eHasA) pick = aw;
-          else if(aConf >= 0 && eConf >= 0 && aConf > eConf + 8) pick = aw;
-
-          merged.push(pick);
-        } else {
-          merged.push(ew);
-        }
-      }
-
-      // Add remaining Arabic words (typically ones English OCR missed)
-      for(let j=0;j<araWords.length;j++){
-        if(!usedAra.has(j)) merged.push(araWords[j]);
-      }
-
-      // De-dup near-identical boxes (keep higher confidence)
-      const out = [];
-      for(const w of merged){
-        let dupIdx = -1;
-        for(let i=0;i<out.length;i++){
-          if(wordIoU(out[i], w) > 0.85){ dupIdx = i; break; }
-        }
-        if(dupIdx === -1) out.push(w);
-        else {
-          const oc = out[dupIdx].confidence ?? -1;
-          const wc = w.confidence ?? -1;
-          if(wc > oc) out[dupIdx] = w;
-        }
-      }
-      return out;
-    }
-
-    async function recognizeWithLang(worker, img, lang){
-      // Try recognize(..., {lang}) if supported, otherwise fallback to reinitialize.
-      try{
-        const r = await worker.recognize(img, { lang });
-        if(r?.data?.text != null) return r;
-      }catch(_e){ /* ignore */ }
-
-      // Tesseract.js v5+ supports reinitialize(lang). If available, use it.
-      if(typeof worker.reinitialize === 'function'){
-        try{ await worker.reinitialize(lang); }catch(_e){ /* ignore */ }
-      } else if(typeof worker.initialize === 'function'){
-        // Older APIs may allow initialize(lang)
-        try{ await worker.initialize(lang); }catch(_e){ /* ignore */ }
-      }
-
-      return await worker.recognize(img);
-    }
-
-async function runOcr(mode){
+    async function runOcr(mode){
       if(!lastImageFile) return;
       if(isOcrRunning) return;
 
@@ -4703,8 +4628,7 @@ async function runOcr(mode){
         // For HQ mode, try multiple page segmentation modes for maximum accuracy.
         // In FAST mode, restrict to a single mode (6: uniform block) to speed
         // up recognition dramatically.
-        // Add psm 3 (auto) which often performs better on multi-column UI pages.
-        const psmList = isHq ? ['3','6','11','4'] : ['6'];
+        const psmList = isHq ? ['6','11','4'] : ['6'];
         const images = isHq && altGray
           ? [{ tag:'bin', img: main }, { tag:'gray', img: altGray }]
           : [{ tag:'bin', img: main }];
@@ -4718,61 +4642,22 @@ async function runOcr(mode){
           for(const psm of psmList){
             await w.setParameters({ tessedit_pageseg_mode: psm });
             const res = await w.recognize(im.img);
-            allResults.push({ res, meta: { img: im.img, tag: im.tag, psm } });
+            allResults.push(res);
             // If already very confident, stop early
             if(res?.data?.confidence >= 85 && (res?.data?.text||'').trim().length >= 20){
               break;
             }
           }
-          const last = allResults[allResults.length-1]?.res;
+          const last = allResults[allResults.length-1];
           if(last?.data?.confidence >= 88) break;
         }
 
-        // Pick best candidate by confidence/length, then do a 2-pass (eng-only + ara-only)
-        // on that exact same candidate and merge word boxes for better mixed output.
-        const best = (()=>{
-          let b = null;
-          for(const item of allResults){
-            const r = item?.res;
-            if(!r || !r.data) continue;
-            const conf = typeof r.data.confidence === 'number' ? r.data.confidence : -1;
-            const text = (r.data.text || '').trim();
-            const score = conf + Math.min(30, text.length/30);
-            if(!b || score > b.score){
-              b = { score, conf, text, raw: r, meta: item.meta };
-            }
-          }
-          return b;
-        })();
+        const best = pickBestResult(allResults);
+        const text = (best?.text || '').trim();
 
-        let finalText = '';
-        try{
-          if(best?.meta?.img){
-            await w.setParameters({ tessedit_pageseg_mode: best.meta.psm });
-            const engRes = await recognizeWithLang(w, best.meta.img, 'eng');
-            const araRes = await recognizeWithLang(w, best.meta.img, 'ara');
-            const engWords = extractWords(engRes);
-            const araWords = extractWords(araRes);
-            const merged = mergeWords(engWords, araWords);
-            finalText = rebuildTextFromWords(merged) || '';
-          }
-        }catch(_e){
-          finalText = '';
-        }
-
-        if(!finalText){
-          // Fallback to original best result (single-pass)
-          finalText = (best?.text || '').trim();
-          try{
-            const words = best?.raw?.data?.words;
-            const rebuilt = rebuildTextFromWords(words);
-            if(rebuilt) finalText = rebuilt;
-          }catch(_e){}
-        }
-
-        out.value = finalText || '';
-        setStatus(finalText ? `تم ✅ (${isHq ? 'HQ' : 'FAST'}) (Confidence: ${Math.round(best.conf)}%)` : 'لم يتم العثور على نص واضح — جرّب صورة أوضح/أكبر');
-        return { text: finalText, confidence: (best && typeof best.conf === 'number') ? best.conf : -1 };
+        out.value = text ? formatPortDetails(text) : '';
+        setStatus(text ? `تم ✅ (${isHq ? 'HQ' : 'FAST'}) (Confidence: ${Math.round(best.conf)}%)` : 'لم يتم العثور على نص واضح — جرّب صورة أوضح/أكبر');
+        return { text, confidence: (best && typeof best.conf === 'number') ? best.conf : -1 };
       } catch (e){
         console.error(e);
         setStatus('حصل خطأ أثناء OCR — افتح Console للتفاصيل');
