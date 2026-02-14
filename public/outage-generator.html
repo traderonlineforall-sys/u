@@ -1,0 +1,1984 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Mando Outage Helper</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; margin:16px; background:#0b1020; color:#eaf0ff;}
+  h2{margin:0 0 8px 0; font-size:18px;}
+  .row{display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; margin-bottom:10px;}
+  label{font-size:12px; opacity:.92; display:block; margin-bottom:6px;}
+  input, select{border-radius:12px; border:1px solid rgba(255,255,255,.22); background:rgba(255,255,255,.08); color:#fff; padding:11px 12px; box-sizing:border-box;}
+  input[type="text"]{min-width:420px;}
+  input[type="datetime-local"]{min-width:240px;}
+  button{border:0; border-radius:12px; padding:10px 14px; font-weight:900; cursor:pointer;}
+  .primary{background:#6aa7ff; color:#081022;}
+  .ghost{background:rgba(255,255,255,.10); color:#fff; border:1px solid rgba(255,255,255,.18);}
+  .box{width:100%; min-height:150px; padding:14px; border-radius:14px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.06); overflow:auto;}
+  .timer{margin:12px 0; padding:10px; border-radius:14px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06);}
+  .timer-grid{display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-start;}
+  .pill{display:flex; gap:8px; align-items:center; padding:8px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.06);}
+  .label{opacity:.85; font-size:12px;}
+  .value{font-weight:1000;}
+  .hint{font-size:12px; opacity:.86; line-height:1.7; margin-top:6px}
+  details{border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); border-radius:14px; padding:10px 12px; margin-top:10px}
+  summary{cursor:pointer; font-weight:900;}
+  .help-grid{display:flex; gap:12px; flex-wrap:wrap; margin-top:10px;}
+  .help-item{flex:1 1 360px;}
+  .help-item img{max-width:100%; border-radius:12px; border:1px solid rgba(255,255,255,.12);}
+  #ocrStatus{font-size:12px; opacity:.9; padding:6px 0 0 0;}
+
+  /* Make selects clearer + colored state via wrapper class */
+  .select-wrap{position:relative; min-width:240px;}
+  .select-wrap select{width:100%; padding-inline-start:14px; padding-inline-end:40px; font-weight:900; letter-spacing:.2px; outline:none;}
+  .select-wrap:after{content:"▾"; position:absolute; left:14px; bottom:12px; opacity:.85; pointer-events:none; font-size:14px;}
+  .select-wrap select{appearance:none; -webkit-appearance:none; -moz-appearance:none;}
+  .select-wrap.mode-unplanned select{background:rgba(106,167,255,.18);}
+  .select-wrap.mode-planned select{background:rgba(255,196,0,.18);}
+  .select-wrap.type-normal select{background:rgba(255,255,255,.10);}
+  .select-wrap.type-unstable select{background:rgba(255,102,102,.18);}
+  .select-wrap.type-major select{background:rgba(255,0,170,.16);}
+  .select-wrap.reason select{background:rgba(0,255,170,.14);}
+
+  /* Output readability */
+  .highlight-box{white-space:pre-wrap; line-height:2; text-align:right;}
+  .highlight-box .line{display:block; margin:6px 0;}
+
+  /* Hide legacy area completely */
+  #advancedInputWrap{display:none !important;}
+  #objectionSection{display:none !important;}
+
+  :root{ color-scheme: dark; }
+  /* Fix: dropdown list background may be light while text was white -> invisible until hover */
+  select option{ color:#111; background:#fff; }
+  /* Keep the select control itself readable on dark UI */
+  select{ color:#fff; }
+
+
+  /* timedef-like compact layout */
+  .page{display:flex; justify-content:center; padding:10px 0;}
+  .card{width:100%; max-width:640px;}
+  body{margin:12px;}
+  h2{text-align:center;}
+  .row{gap:10px;}
+  /* stack controls like timedef */
+  .row{flex-direction:column; align-items:stretch;}
+  .row > div, .row > button{width:100%;}
+  input, select{width:100%;}
+  input[type="text"]{min-width:unset;}
+  input[type="datetime-local"]{min-width:unset;}
+  .timer-grid{justify-content:space-between;}
+  .pill{justify-content:space-between;}
+  /* keep buttons in one row on wide screens */
+  @media (min-width: 640px){
+    .actions{display:flex; gap:10px;}
+    .actions button{width:50%;}
+    .timeRow{display:flex; gap:10px;}
+    .timeRow input{width:50%;}
+  }
+
+
+  /* Fix large blank gap: some blocks had inline `flex: 1 1 760px` which becomes height in column layout (flex-basis on main axis). */
+  .row > div[style*="flex:1 1"]{flex:0 0 auto !important;}
+
+
+  /* Compact: show main selects in one row on wider screens */
+  @media (min-width: 880px){
+    .row.controls{flex-direction:row !important; align-items:flex-end !important;}
+    .row.controls > div{flex:1 1 0; min-width:150px;}
+    #modeWrap,#typeWrap,#majorReasonWrap{min-width:180px;}
+    /* reduce vertical spacing a bit */
+    .row.controls{margin-bottom:8px;}
+  }
+
+
+  .select-wrap.type-majorMaint select{background:rgba(255,0,170,.16);}
+  .select-wrap.type-majorTheft select{background:rgba(255,0,170,.16);}
+
+
+  /* ===== Modern Pro UI Upgrade (override) ===== */
+  :root{
+    color-scheme: dark;
+    --bg0:#070A12;
+    --bg1:#0B1020;
+    --card: rgba(255,255,255,.06);
+    --card2: rgba(255,255,255,.085);
+    --stroke: rgba(255,255,255,.14);
+    --stroke2: rgba(255,255,255,.22);
+    --text:#EAF0FF;
+    --muted: rgba(234,240,255,.78);
+    --accent:#6AA7FF;
+    --accent2:#9B7CFF;
+    --radius:18px;
+    --shadow: 0 18px 70px rgba(0,0,0,.45);
+  }
+  body{
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(106,167,255,.18), transparent 60%),
+      radial-gradient(900px 500px at 10% 20%, rgba(155,124,255,.16), transparent 55%),
+      linear-gradient(180deg, var(--bg0), var(--bg1));
+    color:var(--text);
+  }
+  .card{
+    border-radius: calc(var(--radius) + 6px);
+    border:1px solid var(--stroke);
+    background: linear-gradient(180deg, var(--card2), var(--card));
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(10px);
+  }
+  h2{letter-spacing:.2px;}
+  label{color: var(--muted); opacity:1;}
+  input, select{
+    border-radius: var(--radius);
+    border:1px solid var(--stroke2);
+    background: rgba(255,255,255,.06);
+    padding: 12px 14px;
+    transition: border-color .15s ease, box-shadow .15s ease, transform .05s ease;
+  }
+  input:focus, select:focus{
+    outline:none;
+    border-color: rgba(106,167,255,.55);
+    box-shadow: 0 0 0 4px rgba(106,167,255,.16);
+  }
+  button{border-radius: var(--radius);}
+  .primary{
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color:#06101F;
+    box-shadow: 0 12px 26px rgba(106,167,255,.18);
+  }
+  .primary:hover{filter: brightness(1.06);}
+  .ghost{border:1px solid var(--stroke);}
+  .box, .timer, details{
+    border-radius: calc(var(--radius) + 2px);
+    border:1px solid var(--stroke);
+    background: rgba(255,255,255,.05);
+  }
+  select option{ color:#111; background:#fff; }
+
+
+  /* ===== Timer row compact (force 1-row on desktop) ===== */
+  .timer{padding:10px 10px;}
+  .timer-grid{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap:10px;
+    align-items:stretch;
+  }
+  .pill{
+    width:100%;
+    padding:8px 10px;
+    min-width:0;
+  }
+  .pill .label{white-space:nowrap;}
+  .pill .value{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;}
+  @media (min-width: 720px){
+    .timer-grid{grid-template-columns: repeat(3, minmax(0, 1fr));}
+  }
+
+
+
+/* === LUX COMPACT OVERRIDE (v1) === */
+:root{
+  --lux-bg: #070A12;
+  --lux-card: rgba(255,255,255,.045);
+  --lux-stroke: rgba(255,255,255,.14);
+  --lux-stroke2: rgba(255,255,255,.20);
+  --lux-text: #EAF0FF;
+  --lux-muted: rgba(234,240,255,.72);
+  --lux-accent: #6AA7FF;
+  --lux-accent2:#9B7CFF;
+  --lux-radius: 18px;
+}
+
+body{
+  margin:0 !important;
+  padding:10px 10px 14px !important;
+  background:
+    radial-gradient(900px 520px at 80% -10%, rgba(106,167,255,.16), transparent 60%),
+    radial-gradient(800px 520px at 10% 20%, rgba(155,124,255,.14), transparent 55%),
+    linear-gradient(180deg, var(--lux-bg), #0B1020) !important;
+  color: var(--lux-text) !important;
+  display:flex;
+  justify-content:center;
+}
+
+.card{
+  width:100% !important;
+  max-width:560px !important;
+  padding:0 !important;
+  margin:0 !important;
+  border:none !important;
+  background:transparent !important;
+  box-shadow:none !important;
+  backdrop-filter:none !important;
+}
+
+h2{
+  margin: 0 0 10px !important;
+  font-size:18px !important;
+  letter-spacing:.2px !important;
+  text-align:center !important;
+}
+
+/* tighter form spacing */
+.row{gap:8px !important; margin:0 0 8px !important;}
+.select-wrap, .field{margin:0 !important;}
+label{color:var(--lux-muted) !important; font-size:12px !important; margin-bottom:6px !important;}
+
+/* inputs */
+input, select{
+  border-radius: 999px !important;
+  border:1px solid var(--lux-stroke) !important;
+  background: rgba(255,255,255,.05) !important;
+  padding: 12px 14px !important;
+}
+input:focus, select:focus{
+  border-color: rgba(106,167,255,.55) !important;
+  box-shadow: 0 0 0 4px rgba(106,167,255,.14) !important;
+}
+
+/* Buttons */
+button{border-radius:999px !important;}
+.primary{
+  background: linear-gradient(135deg, var(--lux-accent), var(--lux-accent2)) !important;
+  color:#06101F !important;
+  box-shadow: 0 12px 26px rgba(106,167,255,.16) !important;
+}
+.ghost{
+  background: rgba(255,255,255,.06) !important;
+  border:1px solid var(--lux-stroke) !important;
+}
+
+/* Remove "inner templates": timer + pills become clean inline stats */
+.timer{
+  margin: 8px 0 10px !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+}
+#timerHint{margin:0 0 6px !important;}
+.timer-grid{
+  display:grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 6px !important;
+  justify-content:stretch !important;
+}
+
+@media (min-width: 720px){
+  .timer-grid{
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+}
+.pill{
+  padding: 10px 12px !important;
+  border-radius: var(--lux-radius) !important;
+  border:1px solid var(--lux-stroke) !important;
+  background: var(--lux-card) !important;
+}
+.pill .label{color:var(--lux-muted) !important; font-size:11px !important;}
+.pill .value{font-weight:800 !important; font-size:14px !important;}
+
+/* Output areas: minimal, no big empty space */
+.box{
+  min-height: 96px !important;
+  padding: 12px 12px !important;
+  border-radius: var(--lux-radius) !important;
+  border:1px solid var(--lux-stroke2) !important;
+  background: rgba(255,255,255,.035) !important;
+}
+#output{margin-top:10px !important;}
+#objectionSection{margin-top:10px !important;}
+details{
+  border-radius: var(--lux-radius) !important;
+  border:1px solid var(--lux-stroke) !important;
+  background: rgba(255,255,255,.03) !important;
+}
+/* === end override === */
+
+
+/* === LUX Compact: timer pills shrink-to-content (professional) === */
+.timer-grid{
+  display:flex !important;
+  flex-wrap:nowrap !important;          /* desktop: one row */
+  gap:8px !important;
+  justify-content:flex-start !important;
+  align-items:center !important;
+  width:100% !important;
+  overflow:hidden !important;           /* no spill outside tool */
+}
+
+@media (max-width: 860px){
+  .timer-grid{
+    flex-wrap:wrap !important;          /* mobile: wrap nicely */
+    overflow:visible !important;
+  }
+}
+
+.timer-grid .pill{
+  display:inline-flex !important;
+  align-items:center !important;
+  gap:10px !important;
+  width:fit-content !important;         /* shrink to text */
+  max-width:100% !important;
+  flex:0 0 auto !important;             /* don't stretch */
+  padding:10px 12px !important;
+  border-radius:16px !important;
+  white-space:nowrap !important;
+}
+
+.timer-grid .pill .label{
+  font-size:11px !important;
+  opacity:.78 !important;
+}
+
+.timer-grid .pill .value{
+  font-size:14px !important;
+  font-weight:900 !important;
+  letter-spacing:.2px !important;
+}
+
+/* If the timer section is RTL, keep pills readable */
+.timer-grid{ direction:rtl; }
+.timer-grid .pill{ direction:rtl; }
+
+
+/* =========================
+   v4 — Crop empty spaces (lux compact)
+   هدفها: كل مربع على قد اللي فيه + صفوف متناسقة بدون فراغات
+   ========================= */
+
+/* لا تخلّي عناصر الصف تتمدّد 100% على الشاشات الواسعة */
+@media (min-width: 720px){
+  .row > div, .row > button{width:auto !important;}
+  input, select{width:auto !important;}
+  .select-wrap select{width:auto !important;}
+}
+
+/* صف الكنترولز (رقم الشكوى + الوضع + نوع الاوتج) */
+.row.controls{
+  justify-content:center !important;
+  gap:8px !important;
+  align-items:flex-end !important;
+  gap:10px !important;
+}
+.row.controls > div{
+  flex:0 0 auto !important;
+  width:fit-content !important;
+}
+
+/* مقاسات ناعمة مبنية على المحتوى */
+#complaintId{width:auto !important; min-width:8ch !important; max-width:14ch !important; text-align:center; display:inline-block;}
+#modeWrap select{max-width: 24ch !important;}
+#typeWrap select{max-width: 30ch !important;}
+
+/* صف الوقت: خلي المربعات على قدها */
+.timeRow{
+  display:flex !important;
+  flex-wrap:wrap !important;
+  gap:10px !important;
+  align-items:center !important;
+}
+#timePicker{width: 20ch !important;}
+#timePaste{width:auto !important; min-width:18ch !important; max-width:30ch !important;}
+
+/* الأزرار: ممنوع تمدد/فراغات */
+.actions{
+  display:flex !important;
+  gap:10px !important;
+  width:fit-content !important;
+  flex:0 0 auto !important;
+  align-items:center !important;
+}
+.actions button{
+  width:fit-content !important;
+  min-width: 140px !important;
+}
+
+/* تقليل padding العام عشان الإطار يبقى أصغر ومتماسك */
+.card{padding: 14px !important;}
+.row{margin-bottom: 8px !important;}
+
+
+/* ===== v5: Minimal rows + tidy alignment ===== */
+.row{ 
+  display:flex !important;
+  flex-wrap:wrap !important;
+  justify-content:center !important;
+  align-items:flex-end !important;
+  gap:12px !important;
+}
+
+/* Controls row: keep on one line when possible */
+.row.controls > div{
+  flex:0 0 auto !important;
+  width:fit-content !important;
+}
+
+#complaintId{
+  width: 12ch !important;
+  text-align:center;
+}
+
+/* Make selects compact but not huge */
+#modeSelect, #outageTypeUI{
+  width: 240px !important;
+  max-width: 75vw;
+}
+
+/* Time row: paste box gets the space, picker stays compact */
+.timeRow{
+  display:flex !important;
+  flex-wrap:nowrap !important;
+  gap:10px !important;
+  align-items:stretch !important;
+}
+#timePicker{ width: 20ch !important; flex:0 0 auto !important; }
+#timePaste{ min-width: 34ch !important; flex:1 1 auto !important; }
+
+/* Actions: inline, tight */
+.actions{
+  display:flex !important;
+  flex-direction:row !important;
+  gap:10px !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:fit-content !important;
+}
+.actions button{
+  min-width: 140px !important;
+  padding: 11px 14px !important;
+}
+
+/* Keep everything inside the tool width nicely */
+.card{ max-width: 920px !important; margin-inline:auto !important; padding-inline: 14px !important; }
+@media (max-width: 720px){
+  #modeSelect, #outageTypeUI{ width: 100% !important; }
+  .timeRow{ flex-wrap:wrap !important; }
+  #timePicker, #timePaste{ width: 100% !important; min-width: 0 !important; }
+  .actions{ width:100% !important; justify-content:space-between !important; }
+  .actions button{ flex:1 1 0 !important; min-width: 0 !important; }
+}
+
+
+  /* ===== v6 Tight Frame + Min Rows (override) ===== */
+  body{margin:0; padding:18px; background:
+    radial-gradient(900px 520px at 20% 10%, rgba(106,167,255,.14), transparent 60%),
+    radial-gradient(900px 520px at 80% 0%, rgba(155,124,255,.12), transparent 60%),
+    #0b1020;
+  }
+  .page{padding:0}
+  .card{
+    margin:0 auto;
+    width:100%;
+    max-width:620px;
+    padding:18px 18px 14px;
+    border-radius:22px;
+    border:1px solid rgba(255,255,255,.14);
+    background: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.035));
+    box-shadow: 0 18px 70px rgba(0,0,0,.45);
+    backdrop-filter: blur(10px);
+  }
+
+  /* stop global stretching */
+  input[type="text"], input[type="datetime-local"], select{min-width:0 !important; width:auto;}
+  .row{justify-content:space-between; align-items:flex-end;}
+  .row.controls{
+    display:grid;
+    grid-template-columns: 12ch minmax(0, 1fr) minmax(0, 1fr);
+    gap:10px;
+    align-items:end;
+  }
+  @media (max-width: 680px){
+    .row.controls{grid-template-columns: 1fr; }
+    .row{justify-content:stretch;}
+  }
+
+  #complaintId{width:12ch; max-width:100%;}
+  #modeSelect,#outageTypeUI{width:240px; max-width:100%;}
+  #modeWrap,#typeWrap{min-width:0;}
+
+  .timeRow{
+    display:grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap:10px;
+    align-items:center;
+  }
+  @media (max-width: 680px){
+    .timeRow{grid-template-columns: 1fr;}
+    #timePicker{width:100%;}
+  }
+  #timePicker{width:220px;}
+  #timePaste{width:100%; min-width:0;}
+
+  .actions{
+    display:flex;
+    gap:10px;
+    justify-content:flex-end;
+    align-items:flex-end;
+    margin-top:6px;
+    flex: 0 0 auto;
+  }
+  .actions button{width:fit-content; padding:10px 16px;}
+
+  /* timer pills: stay on one row when space allows */
+  .timer-grid{justify-content:flex-end;}
+  .pill{display:inline-flex; width:fit-content; flex:0 0 auto;}
+
+
+/* =========================
+   v7: Tight frame + aligned rows (no "floating centers")
+   ========================= */
+*{box-sizing:border-box;} /* predictable sizing */ 
+
+.card{
+  margin-inline:auto !important;
+  max-width:620px !important;
+  width:100% !important;
+}
+
+/* Make each row align to the same left/right edges */
+.row{
+  display:grid !important;
+  grid-template-columns: 1fr !important;
+  gap:12px !important;
+  justify-items:stretch !important;
+  align-items:end !important;
+  margin-bottom:12px !important;
+}
+
+/* Top timer pills: same row, same edges */
+.timer-grid{
+  display:grid !important;
+  grid-template-columns: repeat(3, minmax(0,1fr)) !important;
+  gap:10px !important;
+  width:100% !important;
+  justify-items:stretch !important;
+}
+.pill{
+  width:100% !important;
+  min-width:0 !important;
+  padding:10px 12px !important;
+}
+.pill .label{font-size:11px !important;}
+.pill .value{font-size:14px !important;}
+
+/* Controls row: 3 columns aligned (Complaint / Mode / Type) */
+.row.controls{
+  grid-template-columns: minmax(10ch, 14ch) minmax(0, 1fr) minmax(0, 1fr) !important;
+  gap:12px !important;
+}
+.row.controls > div{
+  width:auto !important;
+}
+#complaintId{width:100% !important; text-align:center;}
+#modeWrap select, #typeWrap select{width:100% !important; max-width:none !important;}
+
+/* Time row: picker fixed, paste expands - aligned with same edges */
+.timeBlock{width:100% !important;}
+.timeRow{
+  display:grid !important;
+  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) !important;
+  gap:10px !important;
+  width:100% !important;
+}
+#timePicker, #timePaste{width:100% !important;}
+
+/* Actions: one line, aligned with frame edges (RTL start = right) */
+.actions{
+  display:flex !important;
+  justify-content:flex-start !important;
+  gap:10px !important;
+  width:100% !important;
+}
+.actions button{
+  width: fit-content !important;
+  min-width: 140px !important;
+  flex: 0 0 auto !important;
+}
+
+/* Mobile: stack nicely */
+@media (max-width: 680px){
+  .timer-grid{grid-template-columns: 1fr !important;}
+  .row.controls{grid-template-columns: 1fr !important;}
+  .timeRow{grid-template-columns: 1fr !important;}
+  .actions{flex-wrap:wrap !important;}
+  .actions button{min-width: 160px !important;}
+}
+
+/* أيقونات Generate/Reset داخل صف الوقت */
+.iconBar{
+  display:inline-flex !important;
+  gap:10px !important;
+  align-items:center !important;
+  flex:0 0 auto !important;
+}
+.iconBtn{
+  width:44px !important;
+  height:44px !important;
+  padding:0 !important;
+  border-radius:14px !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  border:1px solid rgba(255,255,255,.14) !important;
+  background: rgba(255,255,255,.06) !important;
+  color:#eaf0ff !important;
+  cursor:pointer !important;
+}
+.iconBtn.primaryIcon{
+  background: linear-gradient(135deg, #6AA7FF, #9B7CFF) !important;
+  color:#06101F !important;
+  border-color: transparent !important;
+}
+
+.iconBtn.genIcon{
+  width:88px !important; /* ضعف العرض */
+  height:44px !important;
+  border-radius:16px !important;
+  padding:0 14px !important;
+  justify-content:center !important;
+  gap:10px !important;
+}
+.iconBtn.genIcon svg{width:18px; height:18px;}
+.iconBtn.genIcon .genLabel{
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.2px;
+  white-space:nowrap;
+}
+
+.iconBtn:hover{filter:brightness(1.06);}
+.iconBtn:active{transform:translateY(1px);}
+.iconBtn svg{width:20px; height:20px;}
+
+/* ===== v9 Compact two-rows + aligned ===== */
+.wrap{max-width: 640px !important; margin: 0 auto !important;}
+/* Controls row: keep tight, aligned */
+.controlsRow{display:grid !important; grid-template-columns: auto auto minmax(120px, 1fr) !important; gap:10px !important; align-items:end !important;}
+/* complaint id shrink to content */
+#complaintId{width: 9ch !important; min-width: 7ch !important; max-width: 14ch !important; text-align:center !important;}
+/* selects consistent width (no floating) */
+#modeSelect, #outageTypeUI{min-width: 170px !important; width: 100% !important;}
+/* Time row: single line (picker + paste + icons), no extra gaps */
+.timeRow{
+  display:grid !important;
+  grid-template-columns: auto minmax(14ch, 1fr) auto !important;
+  gap:10px !important;
+  align-items:center !important;
+}
+#timePicker{width: 22ch !important; min-width: 20ch !important;}
+#timePaste{width: 20ch !important; min-width: 16ch !important; max-width: 30ch !important;}
+.iconBar{display:flex !important; gap:8px !important; align-items:center !important;}
+.iconBtn{
+  width:34px !important; height:34px !important;
+  border-radius:12px !important;
+}
+.iconBtn svg{width:18px !important; height:18px !important;}
+/* Reduce vertical spacing to keep tool short */
+.row{margin-bottom:8px !important;}
+.help{margin-top:6px !important;}
+.outputBox{min-height: 92px !important;}
+
+
+/* ===== v10: aligned + shrink-to-content + no wasted gaps ===== */
+.row.controls{
+  display:grid !important;
+  grid-template-columns: fit-content(14ch) fit-content(26ch) fit-content(26ch) !important;
+  gap:10px !important;
+  align-items:end !important;
+  justify-content:space-between !important;
+}
+@media (max-width: 760px){
+  .row.controls{grid-template-columns: 1fr !important;}
+}
+
+.row.controls > div{flex:0 0 auto !important; min-width:0 !important;}
+#complaintId{
+  width: 10ch !important;
+  min-width: 9ch !important;
+  max-width: 14ch !important;
+  text-align:center !important;
+  padding-inline:12px !important;
+}
+
+#modeSelect, #outageTypeUI{
+  width: 24ch !important;
+  min-width: 20ch !important;
+  max-width: 30ch !important;
+}
+
+/* Time row: everything in one tight line */
+.timeRow{
+  display:flex !important;
+  flex-wrap:nowrap !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  gap:8px !important;
+}
+.timeRow > *{flex:0 0 auto !important;}
+
+#timePicker{
+  width: 26ch !important;
+  min-width: 24ch !important;
+}
+#timePaste{
+  width: 28ch !important;
+  min-width: 22ch !important;
+  max-width: 34ch !important;
+}
+
+.iconBar{
+  display:inline-flex !important;
+  gap:8px !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+.iconBtn{
+  width:34px !important;
+  height:34px !important;
+  border-radius:12px !important;
+}
+.iconBtn svg{width:18px !important; height:18px !important;}
+
+/* ===== v11: frame fits content + no dead spaces ===== */
+.page{display:flex; justify-content:center;}
+.card{
+  display:inline-block;
+  width:fit-content;
+  max-width:calc(100vw - 32px);
+  padding:16px 18px;
+}
+/* prevent rows from stretching wider than needed */
+.row, .timer, .timeBlock{width:fit-content; max-width:100%;}
+/* make timer pills define the frame width */
+.timer-grid{display:inline-flex !important; gap:10px !important; flex-wrap:nowrap !important; width:max-content; max-width:100%;}
+.pill{width:fit-content; flex:0 0 auto;}
+/* controls row: keep three fields aligned and tight */
+.row.controls{display:grid !important; grid-template-columns: repeat(3, max-content) !important; gap:14px !important; align-items:end !important; justify-content:start !important;}
+.row.controls > div{width:max-content;}
+/* time row: single line, no wasted stretch */
+.timeRow{display:flex !important; flex-wrap:nowrap !important; align-items:center !important; gap:10px !important;}
+#timePicker{min-width:26ch !important; width:fit-content !important;}
+#timePaste{min-width:18ch !important; width:fit-content !important; max-width:40ch !important;}
+.iconBar{display:inline-flex !important; gap:6px !important; width:fit-content !important;}
+.iconBtn{width:30px !important; height:30px !important; border-radius:11px !important;}
+.iconBtn svg{width:16px !important; height:16px !important;}
+/* complaint box grows to show full number */
+#complaintId{min-width:8ch !important; max-width:30ch !important; width:fit-content !important;}
+
+
+  /* --- Compact icon buttons (Reset/Generate) --- */
+  .iconBar{display:flex; gap:8px; align-items:center;}
+  .iconBtn{
+    height:44px;
+    border-radius:16px;
+    border:1px solid rgba(255,255,255,.16);
+    background:rgba(255,255,255,.06);
+    color:#eaf0ff;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    user-select:none;
+    padding:0 12px;
+  }
+  .iconBtn:active{transform:translateY(1px);}
+  .iconBtn.reset{width:44px;}
+  .iconBtn.gen{width:88px; background:linear-gradient(135deg,#6AA7FF,#9B7CFF); color:#06101F; border-color:transparent; font-weight:900;}
+  .iconBtn .txt{font-size:12px; font-weight:900; letter-spacing:.2px;}
+  .iconBtn .ico{font-size:16px; line-height:1;}
+  .iconBtn.gen .ico{margin-inline-end:8px;}
+
+  /* --- Output copy button --- */
+  .copyBtn{
+    margin-inline-start:10px;
+    height:28px;
+    min-width:28px;
+    padding:0 10px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,.16);
+    background:rgba(255,255,255,.06);
+    color:#eaf0ff;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    cursor:pointer;
+    font-size:12px;
+    font-weight:800;
+  }
+  .copyBtn:hover{background:rgba(255,255,255,.09);}
+  .copyBtn:active{transform:translateY(1px);}
+  .hbHead{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .hbTitle{display:flex; align-items:center; gap:10px;}
+
+
+/* === v15: Generate button wider + refined icon === */
+.iconBar{gap:8px !important;}
+.iconBtn{
+  height:44px !important;
+  box-sizing:border-box !important;
+}
+.iconBtn.reset{ width:44px !important; border-radius:14px !important; }
+.iconBtn.gen{
+  width:auto !important;
+  min-width:88px !important; /* ضعف مربع الريست تقريباً */
+  padding:0 14px !important;
+  border-radius:999px !important;
+  justify-content:center !important;
+  gap:8px !important;
+}
+.iconBtn.gen .txt{ font-weight:900 !important; font-size:12px !important; letter-spacing:.1px !important; opacity:.95 !important;}
+.iconBtn.gen .ico{ font-size:15px !important; line-height:1 !important; }
+
+
+/* ===== Lux Color Upgrade (semantic + pleasing chips) ===== */
+:root{
+  --chip-purple: 155,124,255;
+  --chip-cyan:   80,220,255;
+  --chip-amber:  255,199,94;
+  --chip-pink:   255,105,180;
+  --chip-green:  110,255,190;
+  --chip-blue:   106,167,255;
+
+  --chip-bg-a: .14;
+  --chip-bg-b: .08;
+  --chip-stroke: .38;
+}
+
+/* Pills (الدورة) — كل مربع لون مميز */
+.timer-grid .pill{ position:relative; overflow:hidden; }
+.timer-grid .pill::before{
+  content:"";
+  position:absolute; inset:0;
+  background: radial-gradient(120% 180% at 20% 10%, rgba(255,255,255,.10), transparent 55%);
+  pointer-events:none;
+}
+.timer-grid .pill:nth-child(1){
+  border-color: rgba(var(--chip-purple), var(--chip-stroke));
+  background: linear-gradient(135deg, rgba(var(--chip-purple), var(--chip-bg-a)), rgba(var(--chip-purple), var(--chip-bg-b)));
+}
+.timer-grid .pill:nth-child(2){
+  border-color: rgba(var(--chip-cyan), var(--chip-stroke));
+  background: linear-gradient(135deg, rgba(var(--chip-cyan), var(--chip-bg-a)), rgba(var(--chip-cyan), var(--chip-bg-b)));
+}
+.timer-grid .pill:nth-child(3){
+  border-color: rgba(var(--chip-amber), var(--chip-stroke));
+  background: linear-gradient(135deg, rgba(var(--chip-amber), var(--chip-bg-a)), rgba(var(--chip-amber), var(--chip-bg-b)));
+}
+
+/* Controls row – حقول/قوائم بألوان مميزة */
+#complaintId{
+  border-color: rgba(var(--chip-purple), .50) !important;
+  background: linear-gradient(135deg, rgba(var(--chip-purple), .12), rgba(255,255,255,.05)) !important;
+}
+#modeSelect{
+  border-color: rgba(var(--chip-blue), .48) !important;
+  background: linear-gradient(135deg, rgba(var(--chip-blue), .10), rgba(255,255,255,.05)) !important;
+}
+#outageTypeUI{
+  border-color: rgba(var(--chip-green), .45) !important;
+  background: linear-gradient(135deg, rgba(var(--chip-green), .10), rgba(255,255,255,.05)) !important;
+}
+
+/* Time row – picker (amber) + paste (cyan) */
+#timePicker{
+  border-color: rgba(var(--chip-amber), .55) !important;
+  background: linear-gradient(135deg, rgba(var(--chip-amber), .10), rgba(255,255,255,.05)) !important;
+}
+#timePaste{
+  border-color: rgba(var(--chip-cyan), .50) !important;
+  background: linear-gradient(135deg, rgba(var(--chip-cyan), .10), rgba(255,255,255,.05)) !important;
+}
+
+/* Icon buttons – reset neutral, generate brand */
+.iconBtn{
+  border-color: rgba(255,255,255,.16) !important;
+  background: rgba(255,255,255,.06) !important;
+}
+.iconBtn:hover{ filter: brightness(1.06); }
+
+.iconBtn.genIcon{
+  border-color: rgba(var(--chip-blue), .40) !important;
+  background: linear-gradient(135deg, rgba(var(--chip-blue), .55), rgba(var(--chip-purple), .42)) !important;
+  color:#06101F !important;
+  box-shadow: 0 14px 30px rgba(106,167,255,.16);
+}
+.iconBtn.genIcon .genGlyph{
+  width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center;
+  border-radius:8px;
+  background: rgba(255,255,255,.22);
+}
+
+/* Output cards accent */
+.box{
+  border-color: rgba(var(--chip-blue), .18) !important;
+  background: radial-gradient(1200px 420px at 20% -10%, rgba(var(--chip-blue), .10), transparent 60%),
+              rgba(255,255,255,.04) !important;
+}
+.copyBtn{
+  border-color: rgba(var(--chip-green), .40) !important;
+  background: linear-gradient(135deg, rgba(var(--chip-green), .18), rgba(255,255,255,.05)) !important;
+}
+
+
+/* === Pro upgrade: Generate/Reset + timer pills (v18) === */
+:root{
+  --p-cycle: rgba(155,124,255,.22);
+  --p-elapsed: rgba(80,220,255,.20);
+  --p-remaining: rgba(255,196,0,.18);
+  --stroke-soft: rgba(255,255,255,.16);
+  --stroke-strong: rgba(255,255,255,.26);
+}
+
+/* timer pills: cleaner + premium */
+.timer-grid{gap:12px !important;}
+.pill{
+  padding: 9px 12px !important;
+  border-radius: 999px !important;
+  border:1px solid var(--stroke-soft) !important;
+  background: rgba(255,255,255,.055) !important;
+  box-shadow: 0 10px 26px rgba(0,0,0,.22);
+}
+.pill .label{font-size:11px !important; opacity:.82 !important;}
+.pill .value{font-size:14px !important; letter-spacing:.2px;}
+.pill.cycle{
+  background: linear-gradient(135deg, var(--p-cycle), rgba(255,255,255,.04)) !important;
+  border-color: rgba(155,124,255,.34) !important;
+}
+.pill.elapsed{
+  background: linear-gradient(135deg, var(--p-elapsed), rgba(255,255,255,.04)) !important;
+  border-color: rgba(80,220,255,.34) !important;
+}
+.pill.remaining{
+  background: linear-gradient(135deg, var(--p-remaining), rgba(255,255,255,.04)) !important;
+  border-color: rgba(255,196,0,.34) !important;
+}
+
+/* icon buttons: tighter + clearer emphasis like “filled tonal” vs “outlined” */
+.iconBar{gap:8px !important;}
+.iconBtn{
+  height:44px !important;
+  border-radius: 16px !important;
+  border:1px solid var(--stroke-soft) !important;
+  background: rgba(255,255,255,.05) !important;
+  box-shadow: 0 10px 26px rgba(0,0,0,.24);
+}
+.iconBtn.reset{
+  width:44px !important;
+  background: rgba(255,255,255,.045) !important;
+  border-color: var(--stroke-strong) !important;
+}
+.iconBtn.reset:hover{background: rgba(255,255,255,.07) !important;}
+.iconBtn.gen{
+  width: 96px !important; /* ~2x width */
+  padding: 0 14px !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  border-color: transparent !important;
+  color:#071022 !important;
+  background: linear-gradient(135deg, rgba(106,167,255,.98), rgba(155,124,255,.98)) !important;
+  box-shadow: 0 14px 34px rgba(106,167,255,.22);
+}
+.iconBtn.gen:hover{filter: brightness(1.05);}
+.iconBtn .txt{font-weight:1000 !important; font-size:13px !important; letter-spacing:.2px;}
+.iconBtn .ico{font-size:16px !important;}
+
+/* focus visible for keyboard users */
+.iconBtn:focus{outline:none;}
+.iconBtn:focus-visible{
+  box-shadow: 0 0 0 4px rgba(106,167,255,.18), 0 14px 34px rgba(0,0,0,.28) !important;
+}
+
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="card">
+
+
+<h2>احسب الـ SLA / Outage Helper</h2>
+
+<!-- Timer at top -->
+<div id="timerBar" class="timer" hidden>
+  <div id="timerHint" style="opacity:.85;font-size:12px;margin-bottom:8px"></div>
+  <div class="timer-grid">
+    <div class="pill cycle"><span class="label">رقم الدورة</span><span class="value" id="cycleNumber">—</span></div>
+    <div class="pill elapsed"><span class="label">مرّ منها</span><span class="value" id="elapsed">—</span></div>
+    <div class="pill remaining"><span class="label">متبقي منها</span><span class="value" id="remaining">—</span></div>
+  </div>
+</div>
+
+<div class="row controls">
+  <div>
+    <label>رقم الشكوى</label>
+    <input id="complaintId" inputmode="numeric" placeholder="مثال: 12345678"/>
+  </div>
+
+  <div class="select-wrap mode-unplanned" id="modeWrap">
+    <label>الوضع</label>
+    <select id="modeSelect">
+      
+      <option value="" selected disabled>اختر الوضع أولاً…</option>
+<option value="unplanned">Unplanned (غير مخطط)</option>
+      <option value="planned">Planned (مخطط)</option>
+    </select>
+  </div>
+
+  <div class="select-wrap type-normal" id="typeWrap">
+    <label>نوع الـ Outage</label>
+    <select id="outageTypeUI" disabled>
+      
+      <option value="" selected disabled>اختر النوع…</option>
+<option value="normal">Normal (عادي)</option>
+      <option value="unstable">Unstable (انستيبل)</option>
+      <option value="major_maint">Major Fault (ماجر) — صيانة</option>
+      <option value="major_theft">Major Fault (ماجر) — سرقة / إتلاف</option>
+    </select>
+  </div>
+
+    <select id="outageType" style="display:none">
+      <option value="normal">normal</option>
+      <option value="unstable">unstable</option>
+      <option value="major">major</option>
+    </select>
+    <select id="majorReasonLegacy" style="display:none">
+      <option value="صيانة">صيانة</option>
+      <option value="سرقة">سرقة</option>
+      <option value="اتلاف">اتلاف</option>
+    </select>
+
+
+  
+</div>
+
+<div class="row">
+  <div class="timeBlock">
+    <label id="timeLabel">وقت البداية (Unplanned) — اختار/الصق/Ctrl+V صورة</label>
+    <div class="timeRow">
+      <input id="timePicker" type="datetime-local" />
+      <input id="timePaste" type="text" placeholder="الصق الوقت هنا… أو Ctrl+V للصورة داخل نفس المربع" />
+      
+<div class="iconBar">
+  <button id="resetBtn" type="button" class="iconBtn reset" title="Reset" aria-label="Reset">
+    <span class="ico">↻</span>
+  </button>
+  <button id="genSimpleBtn" type="button" class="iconBtn gen" title="Generate / احسب" aria-label="Generate">
+    <span class="ico">▶</span><span class="txt">Generate</span>
+  </button>
+</div>
+
+    </div>
+    <div class="hint">Ctrl+V للصورة داخل مربع الوقت أو الصق وقت كنص أو اختار من الـ picker.</div>
+    <div id="ocrStatus"></div>
+  </div>
+</div>
+
+<details>
+  <summary>شرح الاستخدام</summary>
+  <div class="hint" style="margin-top:10px">
+    <div>✅ <b>Unplanned</b>: انسخ صورة <b>وقت الإضافة (Add‑On)</b> من سيستم الـ TT / السجل، وحط المؤشر داخل مربع الوقت ثم <b>Ctrl+V</b>. التول هتقرأ الوقت وتعتبره <b>بداية الـ Outage</b>.</div>
+    <div>✅ <b>Planned</b>: غالبًا الصورة فيها تاريخين (من → إلى). التول هتختار <b>الأحدث تلقائيًا</b> وتستخدمه كـ <b>وقت الانتهاء</b>.</div>
+    <div style="margin-top:6px">🟦 <b>3 طرق لإدخال الوقت</b>:
+      (1) <b>Ctrl+V صورة</b> داخل مربع الوقت → OCR يحوّله لوقت،
+      (2) <b>Paste Text</b> (مثال: 2026-02-13 12:04 AM)،
+      (3) <b>Picker</b>.
+      <br/>⭐ <b>الأولوية</b>: لو مربع النص فيه وقت → يتاخد، لو فاضي → يتاخد الـ picker.
+    </div>
+    <div style="margin-top:6px">🟣 <b>Major Fault</b>: اختر النوع من نفس قائمة <b>نوع الـ Outage</b> (صيانة / سرقة‑إتلاف). مش هتحتاج تختار سبب الماجر مرة تانية.</div>
+  </div>
+  <div class="help-grid">
+    <div class="help-item">
+      <div class="hint">Unplanned: صورة تاريخ واحد (Add-on time)</div>
+      <img src="data:image/png;base64,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" alt="single date example"/>
+    </div>
+    <div class="help-item">
+      <div class="hint">Planned: صورة تاريخين → يتم اختيار الأحدث تلقائيًا</div>
+      <img src="data:image/png;base64,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" alt="two dates example"/>
+    </div>
+  </div>
+</details>
+
+<!-- Hidden legacy input used by original logic (no button shown) -->
+<div id="advancedInputWrap">
+  <textarea id="inputText"></textarea>
+</div>
+
+<label style="margin-top:12px">الناتج (Text)</label>
+<div id="output" class="box"></div>
+
+<div id="objectionSection">
+  <div id="objectionBox" class="box"></div>
+</div>
+
+<script src="https://unpkg.com/tesseract.js@5.0.5/dist/tesseract.min.js"></script>
+
+<script>
+let officialOnly = "";
+let timerTick = null;
+
+let lastOutageScript = "";
+
+function autoSizeByValue(el, minCh=5, maxCh=22){
+  if (!el) return;
+  // size uses "character" width; good for numeric/time strings
+  const v = (el.value || "").trim();
+  const n = v.length ? (v.length + 1) : minCh;
+  const sz = Math.max(minCh, Math.min(maxCh, n));
+  try{ el.setAttribute("size", String(sz)); }catch(e){}
+}
+
+async function copyText(text){
+  const s = (text || "").trim();
+  if(!s) return;
+  try{
+    await navigator.clipboard.writeText(s);
+    toast("✅ تم النسخ");
+  }catch(e){
+    // Fallback
+    const ta = document.createElement("textarea");
+    ta.value = s;
+    ta.style.position="fixed";
+    ta.style.opacity="0";
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand("copy"); toast("✅ تم النسخ"); }catch(_){}
+    ta.remove();
+  }
+}
+
+
+function getCleanTextFromHtml(html){
+  const tmp=document.createElement("div");
+  tmp.innerHTML = html || "";
+  return (tmp.innerText || tmp.textContent || "").trim();
+}
+function copyOutageScript(){
+  const c = (document.getElementById("complaintId")?.value || "").trim();
+  // Prefer official box text if present
+  const officialBox = document.querySelector("#output .highlight-box .hbBody");
+  let base = officialBox ? officialBox.textContent.trim() : document.getElementById("output")?.innerText?.trim();
+  if(!base) base = (lastOutageScript||"").trim();
+  let s = base || "";
+  if(c && !s.includes(c)) s += (s? "\n\n":"") + `رقم الشكوى: ${c}`;
+  return copyText(s);
+}
+
+function toast(msg){
+  const el = document.getElementById("ocrStatus") || document.getElementById("formAlert");
+  if(!el) return;
+  el.textContent = msg;
+  setTimeout(()=>{ if(el.textContent===msg) el.textContent=""; }, 1200);
+}
+
+const HOUR = 3600000, DAY = 24*HOUR;
+
+const pad2 = n => String(Math.max(0,n)).padStart(2,'0');
+function fmtDHMS(ms){
+  if (ms < 0) ms = 0;
+  const d = Math.floor(ms / DAY);
+  const h = Math.floor((ms % DAY) / HOUR);
+  const m = Math.floor((ms % HOUR) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  return (d? d+'ي ' : '') + pad2(h)+'س:'+pad2(m)+'د:'+pad2(s)+'ث';
+}
+function showTimer(baseMs, unitMs, caption){
+  const bar = document.getElementById('timerBar');
+  bar.hidden = false;
+  document.getElementById('timerHint').textContent = caption || '';
+  if (timerTick) clearInterval(timerTick);
+  function update(){
+    const now = Date.now();
+    const unit = Math.max(1, unitMs);
+    const elapsed = Math.max(0, now - baseMs);
+    const idx = Math.floor(elapsed / unit);
+    const inCycle = elapsed - idx*unit;
+    const remain = unit - inCycle;
+    document.getElementById('cycleNumber').textContent = (idx+1);
+    document.getElementById('elapsed').textContent = fmtDHMS(inCycle);
+    document.getElementById('remaining').textContent = fmtDHMS(remain);
+  }
+  update();
+  timerTick = setInterval(update, 1000);
+}
+
+// Relative day label for dates in local time
+function relLabel(dateObj){
+  const now = new Date();
+  const d0 = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+  const d1 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDays = Math.round((d1 - d0) / DAY);
+  if (diffDays === 0) return "اليوم";
+  if (diffDays === 1) return "أمس";
+  return `يوم ${dateObj.getDate()}/${dateObj.getMonth()+1}/${dateObj.getFullYear()}`;
+}
+function ampm(h,mer){ if (mer) return (mer.toLowerCase()==="am"?"صباحًا":"مساءً"); return (h>=0&&h<12)?"صباحًا":"مساءً"; }
+
+function generateResponse(){
+  const text = document.getElementById('inputText').value;
+  const output = document.getElementById('output');
+  output.innerHTML = "";
+  document.getElementById('timerBar').hidden = true;
+  if (timerTick){ clearInterval(timerTick); timerTick = null; }
+
+  const isUnstable = /\bunstable\b/i.test(text);
+  const isPlanned  = /\bplanned\b/i.test(text);
+  const isMajor    = /Major Fault/i.test(text) && /(سرقه|سرقة|اتلاف|إتلاف|صيانه|صيانة)/i.test(text);
+
+  // ===== Major Fault (keep as agreed; works fine) =====
+  if (isMajor){
+    const complaint = (text.match(/\b(\d{4,})\b/)||[])[1];
+    const dates = [...text.matchAll(/(\d{4})-(\d{2})-(\d{2})[ \tT]+(\d{1,2}):(\d{2})\s*(AM|PM)?/gi)];
+    if (!complaint || dates.length===0){ output.textContent="⚠️ لم يتم العثور على رقم الشكوى أو توقيت صالح داخل النص."; return; }
+    const last = dates[dates.length-1]; let [,y,mo,d,h,mi,mer]=last; h=parseInt(h,10);
+    if (mer && mer.toLowerCase()==="pm" && h<12) h+=12; if (mer && mer.toLowerCase()==="am" && h===12) h=0;
+    const start = new Date(`${y}-${mo}-${d}T${pad2(h)}:${mi}:00`);
+    const now = new Date(); const diffMs = now - start; if (diffMs<0){ output.textContent="⚠️ التوقيت المدخل يسبق التوقيت الحالي."; return; }
+    let slaDays = /(سرقه|سرقة|اتلاف|إتلاف)/i.test(text) ? 5 : 3;
+    const unitMs = slaDays*DAY; const cycleIdx = Math.floor(diffMs/unitMs);
+    const afterDurationPhrase = cycleIdx>=1? "" : " من بدايتها";
+    const complaintLine = `بنعتذر لحضرتك بكل صدق، وندرك أن انقطاع الخدمة أمر مزعج، لكن نود طمأنتك أن خطك ضمن مجموعة من الخطوط المتأثرة بعطل جسيم في الشبكة الأرضية، ويجري التعامل معه حاليًا من قِبل فرق الصيانة المختصة بأقصى سرعة ممكنة، مع توقع إتمام الإصلاح خلال (${slaDays} أيام)${afterDurationPhrase} ونشكرك على تفهمك ونقدر صبرك، ورقم الشكوى هو: ${complaint}`;
+    const dD = Math.floor(diffMs/DAY), dH = Math.floor((diffMs%DAY)/HOUR), dM = Math.floor((diffMs%HOUR)/60000);
+    const empathy = "📢 إحنا مقدرين جدًا إن العطل ده مأثر عليك، وبنأكد لك إنه تحت المتابعة المستمرة من فرق فنية متخصصة، وبيتم التعامل معاها بأعلى أولوية وبأقصى سرعة عشان ترجع الخدمة في أسرع وقت 💪";
+    officialOnly = complaintLine;
+    output.innerHTML = `<div class="highlight-box"><div class="hbHead"><div class="hbTitle"><strong>✅ العطل الجسيم:</strong></div><button class="copyBtn" type="button" onclick="copyOutageScript()">⧉ نسخ اسكربت</button></div><div class="hbBody">${complaintLine}</div></div>
+<div class="highlight-box"><strong>💬 المتابعة:</strong><br>${empathy}</div>
+<div class="highlight-box"><strong>⏳ الوقت:</strong><br>⏱️ مر ${dD} يوم و ${dH} س و ${dM} د من بداية العطل.</div>`;
+    showTimer(start.getTime(), unitMs, `الدورة = ${slaDays} يوم (SLA)`);
+    return;
+  }
+
+  // ===== Unstable =====
+  if (isUnstable){
+    const complaint = (text.match(/\b(\d{4,})\b/)||[])[1];
+
+    // Auto-fill complaint ID field (and keep it editable)
+    try{
+      const ci = document.getElementById("complaintId");
+      if (ci && complaint && (!ci.value || ci.value.trim().length < String(complaint).length)){
+        ci.disabled = false; ci.readOnly = false; ci.removeAttribute("readonly");
+        ci.value = complaint;
+        if (typeof autoSizeByValue === "function") autoSizeByValue(ci, 5, 24);
+      }
+    }catch(e){}
+
+    const dates = [...text.matchAll(/(\d{4})-(\d{2})-(\d{2})[ \tT]+(\d{1,2}):(\d{2})\s*(AM|PM)?/gi)];
+    if (!complaint || dates.length===0){ output.textContent="⚠️ لم يتم العثور على رقم الشكوى أو توقيت صالح داخل النص."; return; }
+
+    // Unstable + Planned window
+    if (isPlanned && dates.length>=2){
+      const m = dates[dates.length-2]; let [,y,mo,d,h,mi,mer]=m; h=parseInt(h,10);
+      if (mer && mer.toLowerCase()==="pm" && h<12) h+=12; if (mer && mer.toLowerCase()==="am" && h===12) h=0;
+      const planned = new Date(`${y}-${mo}-${d}T${pad2(h)}:${mi}:00`);
+      const now = new Date(); if (planned < now){ output.textContent = "⚠️ هذا العطل المخطط قد انتهى بالفعل."; return; }
+      const label = relLabel(planned); const suffix = ampm(parseInt(m[4],10), m[6]);
+      const formatted = `${parseInt(m[4],10)}:${m[5]} ${suffix} ${label}`;
+      const msg = `بعتذر لحضرتك جدا ونحب نطمن حضرتك إن الشركة بتجري حاليًا بعض أعمال التحديث لتحسين الخدمة، والتي قد تؤثر علي خدمه الانترنت عند بعض العملاء منها خط حضرتك وجاري العمل علي انهائها في اسرع وقت وبشكل كامل قبل  (الساعه ${formatted}) ورقم الشكوى ${complaint} 🙏 نشكرك على تواصلك مع وي، مع كامل اعتذارنا عن أي إزعاج مؤقت`;
+      const remainingMs = planned.getTime()-now.getTime();
+      officialOnly = msg;
+      output.innerHTML = `<div class="highlight-box"><div class="hbHead"><div class="hbTitle"><strong>✅ العطل المخطط Unstable:</strong></div><button class="copyBtn" type="button" onclick="copyOutageScript()">⧉ نسخ اسكربت</button></div><div class="hbBody">${msg}</div>`;
+      showTimer(now.getTime(), Math.max(remainingMs,1), "عدّ تنازلي حتى الموعد المخطط");
+      return;
+    }
+
+    // Unstable only
+    const m = dates[dates.length-1]; let [,y,mo,d,h,mi,mer]=m; h=parseInt(h,10);
+    if (mer && mer.toLowerCase()==="pm" && h<12) h+=12; if (mer && mer.toLowerCase()==="am" && h===12) h=0;
+    const start = new Date(`${y}-${mo}-${d}T${pad2(h)}:${mi}:00`);
+    const now = new Date(); const diffMs = now - start; if (diffMs<0){ output.textContent="⚠️ التوقيت المدخل يسبق التوقيت الحالي."; return; }
+    const hrs = diffMs / HOUR; const mins = Math.floor((diffMs/60000)%60);
+    const label = relLabel(start); const suffix = ampm(parseInt(m[4],10), m[6]);
+    const formatted = `${parseInt(m[4],10)}:${m[5]} ${suffix} ${label}`;
+
+    let officialLine = "", empathy = "", unitMs = 4*HOUR, caption = "الدورة = 4 ساعات";
+  // تأكد من عرض التهدئة بشكل واضح في صندوق منفصل
+    if (hrs <= 4){
+      officialLine = `بعتذر لحضرتك جدا ونحب نطمن حضرتك إن الشركة بتجري حاليًا بعض أعمال التحديث لتحسين الخدمة، والتي قد تؤثر علي خدمه الانترنت عند بعض العملاء منها خط حضرتك وجاري العمل علي انهائها في اسرع وقت خلال 4 ساعات من توقيت  (الساعه ${formatted}) ورقم الشكوى ${complaint} 🙏 نشكرك على تواصلك مع وي، مع كامل اعتذارنا عن أي إزعاج مؤقت`;
+      empathy = `📢  بنقدّر جدًا شعور حضرتك، وبنأكد لك إننا متابعين اتمام التحديثات دى لحظة بلحظة وبأقصى جديه، لإن راحتك ورضاك أولوية بالنسبة لينا 🙏<br>الفرق المختصه شغالة بأقصى سرعة عشان ننهي التحديثات قبل المدة المحددة، ونرجع الخدمة بأفضل أداء ممكن.`;
+      unitMs = 4*HOUR; caption = "الدورة = 4 ساعات";
+    } else if (hrs <= 24){
+      // >>> FIX: full text (no ellipses)
+      officialLine = `بعتذر لحضرتك جدا ونحب نطمن حضرتك إن الشركة بتجري حاليًا بعض أعمال التحديث لتحسين الخدمة، والتي قد تؤثر علي خدمه الانترنت عند بعض العملاء منها خط حضرتك وجاري العمل علي انهائها في اسرع وقت خلال 24 ساعه من توقيت  (الساعه ${formatted}) ورقم الشكوى ${complaint} 🙏 نشكرك على تواصلك مع وي، مع كامل اعتذارنا عن أي إزعاج مؤقت`;
+      empathy = `💬 كل هدفنا إن حضرتك تستمتع بخدمة مستقرة وأداء أفضل، وعشان كده فرقنا المختصه بهذه التحديثات شغالة بأقصى سرعة لإنهاء العمل في أسرع وقت ممكن 💡<br>📢 إحنا مقدرين جدًا إن الموقف ده ممكن يكون سبب إزعاج لحضرتك، وبنأكد إننا متابعين الموضوع بكل جدية وبأعلى درجة أولوية عشان نرجّع الخدمة لحضرتك بأفضل صورة 🌟`;
+      unitMs = 24*HOUR; caption = "الدورة = 24 ساعة";
+    } else {
+      // >>> FIX: full text (no ellipses)
+      officialLine = `بعتذر لحضرتك جدا ونحب نطمن حضرتك إن الشركة بتجري حاليًا بعض أعمال التحديث لتحسين الخدمة، والتي قد تؤثر علي خدمه الانترنت عند بعض العملاء منها خط حضرتك وجاري العمل علي انهائها في اسرع وقت وبشكل كامل خلال 24 ساعه ورقم الشكوى ${complaint} 🙏 نشكرك على تواصلك مع وي، مع كامل اعتذارنا عن أي إزعاج مؤقت`;
+      empathy = `📢 بنطمن حضرتك إن التحديثات دي هدفها تحسين الخدمة وتطوير الشبكة عشان تستمتع بأفضل تجربة إنترنت 💡<br>🙏 نشكرك على صبرك وتعاونك، وصدقني رضاك بالنسبة لينا أهم حاجة، ونتمنى لك تجربة إنترنت أحسن من أي وقت فات 💖`;
+      unitMs = 24*HOUR; caption = "الدورة = 24 ساعة (متكررة)";
+    }
+
+    const elapsedTxt = hrs<=24 ? `⏱️ مر ${Math.floor(hrs)} س و ${mins} د.` : `⏱️ مر ${Math.floor(hrs/24)} يوم و ${Math.floor(hrs%24)} س و ${mins} د.`;
+    officialOnly = officialLine;
+    output.innerHTML = `<div class="highlight-box"><div class="hbHead"><div class="hbTitle"><strong>✅ العطل Unstable:</strong></div><button class="copyBtn" type="button" onclick="copyOutageScript()">⧉ نسخ اسكربت</button></div><div class="hbBody">${officialLine}</div></div>
+<div class="highlight-box"><strong>💬 المتابعة:</strong><br>${empathy}</div>
+<div class="highlight-box"><strong>⏳ الوقت:</strong><br>${elapsedTxt}</div>`;
+    showTimer(start.getTime(), unitMs, caption);
+    return;
+  }
+
+  // ===== Planned only (no changes needed) =====
+  if (isPlanned){
+    const complaint = (text.match(/\b(\d{4,})\b/)||[])[1];
+    const dates = [...text.matchAll(/(\d{4})-(\d{2})-(\d{2})[ \t]+(\d{1,2}):(\d{2})\s*(AM|PM)?/gi)];
+    if (!complaint || dates.length<2){ output.textContent="⚠️ لم يتم العثور على رقم الشكوى أو وقت صالح لعطل مخطط."; return; }
+    const m = dates[dates.length-2]; let [,y,mo,d,h,mi,mer]=m; h=parseInt(h,10);
+    if (mer && mer.toLowerCase()==="pm" && h<12) h+=12; if (mer && mer.toLowerCase()==="am" && h===12) h=0;
+    const planned = new Date(`${y}-${mo}-${d}T${pad2(h)}:${mi}:00`);
+    const now = new Date(); if (planned < now){ output.textContent="⚠️ هذا العطل المخطط كان من المفترض أن يحدث في الماضي، التاريخ قد انقضى."; return; }
+    const label = relLabel(planned); const suffix = ampm(parseInt(m[4],10), m[6]);
+    const formatted = `${parseInt(m[4],10)}:${m[5]} ${suffix} ${label}`;
+    const msg = `بعتذر لحضرتك جدا وحاليا جاري العمل على اصلاح العطل الفني اللي بيأثر على خدمة الانترنت الارضي في منطقتك بأسرع ما يمكن وبشكل كامل قبل (الساعه ${formatted}) وان شاء الله المشكلة هتتحل مع حضرتك بشكل كامل بأسرع ما يمكن بدون أي تأخير ورقم الشكوى ${complaint}. نشكركم على ثقتكم وممتنين لحسن تعاونكم 🙏🌐`;
+    officialOnly = msg;
+    output.innerHTML = `<div class="highlight-box"><div class="hbHead"><div class="hbTitle"><strong>✅ العطل المخطط:</strong></div><button class="copyBtn" type="button" onclick="copyOutageScript()">⧉ نسخ اسكربت</button></div><div class="hbBody">${msg}</div>`;
+    const remainingMs = planned.getTime()-now.getTime();
+    showTimer(now.getTime(), Math.max(remainingMs,1), "عدّ تنازلي حتى الموعد المخطط");
+    return;
+  }
+
+  // ===== Default (unplanned) with TODAY/YESTERDAY rule =====
+  const complaint = (text.match(/\b(\d{4,})\b/)||[])[1];
+  const dates = [...text.matchAll(/(\d{4})-(\d{2})-(\d{2})[ T]+(\d{1,2}):(\d{2})\s*(AM|PM)?/gi)];
+  if (!complaint || dates.length===0){ output.textContent="⚠️ لم يتم العثور على رقم الشكوى أو توقيت صالح داخل النص."; return; }
+  const m = dates[dates.length-1]; let [,y,mo,d,h,mi,mer]=m; h=parseInt(h,10);
+  if (mer && mer.toLowerCase()==="pm" && h<12) h+=12; if (mer && mer.toLowerCase()==="am" && h===12) h=0;
+  const start = new Date(`${y}-${mo}-${d}T${pad2(h)}:${mi}:00`);
+  const now = new Date(); if (start > now){ output.textContent="⚠️ يوجد خطأ: التوقيت المدخل يسبق التوقيت الحالي. يرجى المراجعة."; return; }
+
+  const diffMs = now - start; const hrs = diffMs / HOUR; const mins = Math.floor((diffMs/60000)%60);
+  const label = relLabel(start); const suffix = ampm(parseInt(m[4],10), m[6]);
+  const formatted = `${parseInt(m[4],10)}:${m[5]} ${suffix} ${label}`;
+
+  let officialLine = "", empathy = "", unitMs = 4*HOUR, caption = "الدورة = 4 ساعات";
+  // تأكد من عرض التهدئة بشكل واضح في صندوق منفصل
+  if (hrs <= 4){
+    officialLine = `بعتذر لحضرتك جدا وحاليا جارى العمل على اصلاح العطل الفني اللي بيأثر على خدمة الانترنت الارضى في منطقتك خلال 4 ساعات وده بداية من (الساعه ${formatted}) وان شاء الله المشكلة هتتحل مع حضرتك بشكل كامل باسرع ما يمكن
+ورقم الشكوى ${complaint}. نشكركم على ثقتكم وممتنين لحسن تعاونكم 🙏🌐.`;
+    empathy = `📢 بنطمن حضرتك بكل تقدير وبأكد على اهتمامنا الكامل إن المشكلة حالياً تحت المتابعة الفعلية، وبيتم التعامل معاها باعلى اولويه وبأقصى سرعة ممكنة،
+وده لإنه عطل عام بيأثر على خدمة الإنترنت في بعض الخطوط، ومن ضمنهم للأسف خط حضرتك 💔
+🙏 إحنا مقدرين تمامًا إن انقطاع الخدمة ممكن يكون مزعج، وبنعتذرلك بشدة عن الموقف المزعج ده وتاثيره علي حضرتك
+والمتوقع بإذن الله إن الخدمة ترجع بكامل كفاءتها خلال ٤ ساعات من بداية العطل ⏳`;
+    unitMs = 4*HOUR; caption = "الدورة = 4 ساعات";
+  } else if (hrs <= 24){
+    officialLine = `بعتذر لحضرتك جدا وحاليا جارى العمل على اصلاح العطل الفني اللي بيأثر على خدمة الانترنت الارضى في منطقتك خلال 24 ساعة وده بداية من (الساعه ${formatted}) وان شاء الله المشكلة هتتحل مع حضرتك بشكل كامل باسرع ما يمكن
+ورقم الشكوى ${complaint}. نشكركم على ثقتكم وممتنين لحسن تعاونكم 🙏🌐.`;
+    empathy = `📢 بنطمن حضرتك بكل تقدير وبأكد على اهتمامنا الكامل إن المشكلة حالياً تحت المتابعة الفعلية، وبيتم التعامل معاها باعلى اولويه وبأقصى سرعة ممكنة،
+وده لإنه عطل عام بيأثر على خدمة الإنترنت في بعض الخطوط، ومن ضمنهم للأسف خط حضرتك 💔
+🙏 إحنا مقدرين تمامًا إن انقطاع الخدمة ممكن يكون مزعج، وبنعتذرلك بشدة عن الموقف المزعج ده وتاثيره علي حضرتك
+والمتوقع بإذن الله إن الخدمة ترجع بكامل كفاءتها خلال 24 ساعه من بداية العطل ⏳`;
+    unitMs = 24*HOUR; caption = "الدورة = 24 ساعة";
+  } else {
+    officialLine = `بعتذر لحضرتك جدا وحاليا جارى العمل على اصلاح العطل الفني اللي بيأثر على خدمة الانترنت الارضى في منطقتك خلال 24 ساعه وان شاء الله المشكلة هتتحل مع حضرتك بشكل كامل باسرع ما يمكن
+ورقم الشكوى ${complaint}. نعتذر بصدق عن التاخير و نشكركم على ثقتكم وممتنين لحسن تعاونكم 🙏🌐.`;
+    empathy = `بنطمن حضرتك بكل احترام إن المشكلة لسه تحت المتابعة الفعلية من فرقنا الفنية، وبيتم التعامل معاها باقصى سرعه ودرجة من الأولوية الممكنه
+وده لإن العطل للأسف مازال قائم وبيأثر على بعض الخطوط، من ضمنها خط حضرتك، وبنعتذرلك عن استمرار الانقطاع حتى الان 💔
+⚙️ وبما إن الـ 24 ساعة مدة الاصلاح المتوقعه انتهت دون حل نهائي، فتم تجديد مدة المتابعة 24 ساعة إضافية تلقائيًا، لضمان استمرار المتابعة الفنية لحين استعادة الخدمة بكامل كفاءتها بإذن الله.
+🙏 بنقدّر جدًا صبر حضرتك، وبنأكدلك إننا ملتزمين بحل المشكلة بشكل كامل لحد ما الخدمه ترجع بالشكل اللي يرضيك`;
+    unitMs = 24*HOUR; caption = "الدورة = 24 ساعة (متكررة)";
+  }
+
+  const elapsedTxt = hrs<=24 ? `⏱️ مر ${Math.floor(hrs)} س و ${mins} د.` : `⏱️ مر ${Math.floor(hrs/24)} يوم و ${Math.floor(hrs%24)} س و ${mins} د.`;
+  officialOnly = officialLine;
+  output.innerHTML = `<div class="highlight-box"><div class="hbHead"><div class="hbTitle"><strong>✅ الرد الرسمي:</strong></div><button class="copyBtn" type="button" onclick="copyOutageScript()">⧉ نسخ اسكربت</button></div><div class="hbBody">${officialLine}</div></div>
+<div class="highlight-box"><strong>💬 تهدئة:</strong><br>${empathy}</div>
+<div class="highlight-box"><strong>⏳ الوقت:</strong><br>${elapsedTxt}</div>`;
+  showTimer(start.getTime(), unitMs, caption);
+}
+
+function copyResponse(){ if (!officialOnly){ alert("⚠️ مفيش رد رسمي لسه."); return; } navigator.clipboard.writeText(officialOnly).then(()=>alert("✅ تم نسخ الرد الرسمي بنجاح!")); }
+
+function handleObjection(key) {
+    const replies = {
+      exam: `💔 أنا حاسس جدًا بموقفك يا فندم، ومقدّر قد إيه ده الوقت حساس بالنسبالك، خصوصًا مع وجود امتحان – وفعلا مش بنتمنا أبدًا إنك تكون في الموقف ده.<br>
+🙏 بعتذرلك بكل احترام عن الإزعاج اللي سببه العطل، وبأكدلك إن المشكلة تحت أعلى أولوية فنية حاليًا، وبيتم متابعتها لحظة بلحظة عشان ترجع الخدمة بأسرع وقت ممكن. 💪📘`,
+      job: `💔 أنا مقدّر جدًا موقف حضرتك، وعارف إن انقطاع الخدمة بيأثر بشكل مباشر على شغلك، وده أكتر حاجة مش بنرضاها لحضرتك.<br>
+🙏 بعتذر لحضرتك بكل احترام عن الإزعاج اللي سببه العطل، وبأكدلك إن المشكلة عامة، لكن الاصلاح تحت أعلى أولوية حاليًا، والقسم لفنى شغال بالفعل على حلها بأقصى سرعة.<br>
+📢 وإن شاء الله في أقرب وقت الخدمة ترجع بكامل كفاءتهاو كل حاجة ترجع زي ما كانت وأفضل كمان 💼`,
+      bored: `📢 أنا آسف جدًا إنك وصلت للمرحلة دي من الزهق، وبصدق مقدّر تعبك واستياءك، وده حقك تمامًا، خاصة مع استمرار المشكلة.<br>
+ومقدّر جدًا استياء حضرتك، وفعلاً أي تأخير في حل الخدمة بيكون مزعج جدًا، خاصة لما يتكرر أو يطول، وده حقك تزعل وتزهق.<br>
+بنعتذر لحضرتك جدًا، العطل الحالي للأسف عام، ومأثر على شريحة من الخطوط في نفس المنطقة، منها خط حضرتك.<br>
+حبينا نطمنك إن فرقنا الفنية شغالة عليه فعليًا بأعلى أولوية علشان نرجعلك الخدمة في أسرع وقت ممكن بإذن الله 💪🔧.<br>
+🙏 بنعتذرلك بشدة عن استمرار التأثير، وبنأكد إن كل الجهود شغالة عشان الخدمة ترجع بأسرع وقت.<br>
+🌟 مقدرين صبرك ووجودك معانا، وهدفنا نرجّعلك الخدمة بنفس الجودة اللي تستحقها، ونتمنى دعمك لحد ما نعدي الموقف ده.`,
+      ignore: `🙏 أنا متفهم تمامًا شعور حضرتك، ومقدر جدًا إن استمرار المشكلة بالشكل ده مسببلك ضيق، وحقك علينا لو حضرتك حاسس بعدم الاهتمام بسبب هذه المشكلات الغير مقصوده<br>
+🛠️ لكن أحب أطمنك إن العطل فعلاً تحت المتابعة الفعلية من فرقنا الفنية ، وبيتم التعامل معاه بأولوية قصوى.<br>
+💬 إحنا في صفك، ومكملين لحد ما الخدمة ترجع بكامل جودتها إن شاء الله وحقك تطلب تعويض عن الفتره بالكامل بعد حل المشكله`,
+      alternative: `🟢 أستاذ/ [العميل]، حضرتك من العملاء اللي بنعتز بيهم جدًا، وبنتفهم تمامًا قد إيه انقطاع الخدمة مأثر على يومك، وعشان الإنترنت بقى أساسي في كل تفاصيل حياتنا بنقدملك دعم إضافي من الشركة كنوع من التقدير لموقف حضرتك مع الاعتذار 🙏<br>
+🎁 ممكن أضيف لحضرتك 3 جيجا هدية على رقم موبايل WE توضحه،كحل مؤقت الان تقدر تستخدمهم لمدة يومين ياريت تبعتلي الرقم اللي تحب أضيف عليه الجيجات حالا 💚<br>
+🙌 ولو في أي إجراء أسرع نقدر نقدمه لحضرتك خلال المتابعة، بنأكد إننا مش هنتأخر ولا لحظة، لأن راحتك ورضاك دايمًا على رأس أولوياتنا.`,
+      // المفتاح بدون مسافات
+      noAlternative: `متفهمين تمامًا موقف حضرتك، وبنعتذرلك مرة تانية عن أي إزعاج سببه العطل، وصدقني لو في أي وسيلة نقدر نسرّع بيها الحل مش هنتأخر لحظة. وحقك يفندم تتابع لطلب التعويض على خطك للانترنت المنزلى بعد حل المشكله عشان نراجع الفتره بالكامل من بدايتها وحتى انتهاء الاصلاح.<br>
+🙌 وبنأكدلك إن المتابعة مستمرة بأعلى أولوية، وهدفنا الأساسي هو استعادة الخدمة في أسرع وقت ممكن ورضاك التام عن تجربتك معانا بإذن الله.`,
+      repeat: `أحب أطمن حضرتك إن صوتك بالفعل واصل للإدارة المختصة، وتم تسجيل ملاحظتك بخصوص تكرار الأعطال الخاص بحضرتك تحت رقم: (XX)، وبكل احترام بنقدّر انزعاجك تمامًا، وبنعتذرلك بصدق على أي إزعاج حاصل.<br>
+🙏 وبأمانة، لو أنا مكان حضرتك كنت هكون متضايق برضو، وده شيء بنفهمه تمامًا. بس بنوضح إن نوع الأعطال دي بيكون اضطراري وخارج عن إرادتنا، وغالبًا بيكون نتيجة لأسباب فنية أو ظروف خارجة، وبيأثر على عدد من العملاء في نفس الوقت.<br>
+⚙️ حاليًا في متابعة شاملة من الفرق المختصة لتقليل تكرار هذه المشكلات , والتعامل مع الأسباب الجذرية بشكل دائم.`,
+      pressure: `تمام يفندم بنفهم فعلا رغبة حضرتك في استعجال الحل، وبنقدّر حرصك الكبير على عودة الخدمة سريعًا.<br>
+بس حابب أوضح لحضرتك إن العطل اللي بيأثر على الخدمة حالياً هو عطل عام، وبيتم التعامل معاه فعليًا من قبل الفرق الفنية بأعلى أولوية وضمن خطة متابعة شاملة، علشان يتم إصلاحه بأسرع ما يمكن.<br>
+⏳ وبما إنه عطل عام، فبيتم بالفعل متابعته من الإدارة المختصة لحظيًا، وبالتالي مش محتاج طلب استعجال فردي، لإن كل الخطوط المتأثرة في نفس المنطقة تابعه لنفس العطل تحت التعامل الفني بدون اى تهاون وباستمرار – على مدار الساعة – لضمان رجوع الخدمة بأسرع وقت ممكن.<br>
+🙏 بنعتذرلك تاني على أي إزعاج حصل، وبنطمن حضرتك إننا ملتزمين بحل المشكلة في أقرب وقت باسرع ما يمكن`,
+      follow: `بنشكر حضرتك جدًا على سعة صدرك ومتابعتك المستمرة معانا، ومقدّرين جدًا وقتك ومجهودك في التواصل.<br>
+وبناكد لحضرتك ان العطل مازال جاري العمل عليه فعليا من خلال فرق الصيانة المختصة، وبنتعامل معاه كأولوية قصوى لضمان إنه يتم الانتهاء منه بأسرع ما يمكن، وبدون أي تكرار للمشكلة.<br>
+🙏 وبنعتذر لحضرتك عن استمرار العطل، وبنشتغل حاليًا بكل طاقتنا لإنهاء المشكلة من جذورها وعشان نتفادى انها متتكررش تاني بإذن الله، وبنطمن حضرتك الخدمة هترجع بشكل مستقر بكامل جودتها باسرع ما ممكن`,
+      notOnlyMe: `العطل بالفعل مش على خطك يفندم ولكن خطك متاثر ضمن خطوط تانى بعطل عام ونؤكد لك أن فريقنا الفني يعمل على مدار الساعة لحل المشكلة في أقرب وقت ممكن متوقع نظرًا لأن العطل يؤثر على أكثر من عميل، يتم اتخاذ جميع الإجراءات لضمان عودة الخدمة لك بأفضل جودة.`,
+      anger: `أنا مقدر جدًا استياء حضرتك أستاذ [الاسم]، وواثق إن اللي بتمر بيه فعلاً مزعج… ومهما كانت حدة كلامك، حضرتك على حق في زعلك، وده دورنا نسمع ونساعد.<br>
+🙏 وبعتذرلك بكل احترام عن أي تقصير أو تأخير حصل، وبأكد إن هدفنا الحقيقي هو رضاك التام، وإرجاع الخدمة في أسرع وقت ممكن.<br>
+العطل للأسف عام ومش خاص بخط حضرتك فقط، لكنه فعليًا بيتابع بأولوية قصوى من فرقنا الفنية، وبيتم الشغل عليه حاليًا بدون أي تهاون.`,
+      useless: `🙏 أفهم تمامًا الإحباط اللي حضرتك حاسس بيه، ومقدر جدًا إنك شايف إن مفيش فايدة، بس باكد يفندم إحنا مش سايبين الموضوع، ومفيش لحظة بتمر من غير واحنا متابعين الاصلاح من جانب فرق مختصه باعلى اولويه ممكنه عشان الخدمه ترجع لحضرتك بدون اى تاخير<br>
+العطل اللي حاصل حاليًا فعلاً عام، ومؤثر على مجموعة من الخطوط في نفس المنطقة، وبيتم التعامل معاه بشكل مباشر وتم تسجيل المتابعة لحضرتك ووضحت من خلالى مدى اهمية حل المشكله بالنسبه لحضرتك باسرع ما يمكن وباذن الله تتحل المشكله بدون اى تاخير على حضرتك تانى 🙌`,
+      whereTeam: `مقدر جدًا لحضرتك الإحساس ده، وفعلاً من حقك تستغرب لما متشوفش تحرُّك قدامك، لكن بأكدلك إن الفنيين شغالين على العطل فعليا، بس مش شرط يكونوا ظاهرين لحضرتك مباشرة لإن الشغل ممكن يكون في البوكس الرئيسي أو على الكابينة أو من داخل السنترال نفسه، حسب تتبع حالة العطل يفندم<br>
+بنعتذر لحضرتك عن الموقف المزعج جدًا ده، وبنأكدلك إن الخدمة هترجع بكامل كفاءتها بإذن الله في أقرب وقت، وإن فرق الصيانة المختصه مستمرة فى حل المشكله بدون اى توقف وباسرع ما يمكن بالفعل`,
+      lateNight: `بالفعل باحترم تماما مشاعرك ورد فعلك – ولو حضرتك شايف إن حصل تأخير أو تقصير، فأنا باعتذرلك بكل احترام<br>
+لكن يفندم حابب اوضح ان الأعطال دي بالتحديد بيتابعها الفنيين فعليًا بدون مواعيد عمل وبيشتغلوا عليها على مدار الساعة بكل جدية، لإننا عارفين قد إيه انقطاع الخدمة ممكن يأثر على حضرتك ومش نرضى ليك ابدا ان الخدمه تكون فاصله وخصوصا ان العطل عام وماثر على اكتر من عميل فى منطقتك يفندم<br>
+🙏 بنشتغل بكل التزام ومن غير تهاون لحين الانتهاء من الإصلاح بالكامل، وبنأكدلك إن صوتك مسموع وموصل للإدارة.`,
+      disconnect: `اللي حضرتك بتمُر بيه مش مقبول عندنا، وده مش المفروض يكون شكل الخدمة اللي توصلك، واللي حصل طول الفترة اللي فاتت مش هنعديه مرور الكرام.<br>
+عشان كده وصلت صوتك يفندم الى الاداره المختصه ووضحت مدى انزعاجك من تكرار هذه الاعطال وباكد لحضرتك بيتم التعامل مع العطل ده حاليًا من خلال فرق موجودة فعليًا في مناطق التأثير، وبيشتغلوا عليه من غير أي توقف – حتى خارج مواعيد العمل الرسمية ووارد المشكله تتحل الان او اى وقت خلال فترة الاصلاح المتوقع لحد ما الخدمة ترجع بافضل جودة ممكنه`
+    };
+
+    document.getElementById("objectionBox").innerHTML =
+      `<div class='highlight-box'><strong>🎯 رد مهندل:</strong><br>${replies[key] || "رد غير متاح حالياً."}</div>`;
+  }
+
+
+// ==== حماية بسيطة: منع إعادة تعريف الدوال العامة ====
+try{
+  if (window.generateResponse) Object.defineProperty(window, 'generateResponse', {writable:false, configurable:false});
+  if (window.copyResponse)     Object.defineProperty(window, 'copyResponse',     {writable:false, configurable:false});
+  if (window.handleObjection)  Object.defineProperty(window, 'handleObjection',  {writable:false, configurable:false});
+} catch(_) {}
+</script>
+
+<script>
+// Wrapper v7: keep original selects, but make them clearer + move explanation into details.
+(function(){
+  const $ = (id)=>document.getElementById(id);
+
+  function autoSizeCh(id, minCh, maxCh){
+    const el = $(id);
+    if(!el) return;
+    const update = ()=>{
+      let v = (el.value && el.value.trim().length) ? el.value.trim() : "";
+      if(!v && id !== "timePaste"){ v = (el.placeholder || ""); }
+      const ch = Math.min(maxCh, Math.max(minCh, v.length + 1));
+      el.style.width = ch + "ch";
+    };
+    el.addEventListener("input", update);
+    el.addEventListener("change", update);
+    update();
+  }
+
+
+  function toLegacySpace(dtLocal){ return (dtLocal||"").replace("T"," "); }
+
+  // OCR date patterns
+  const RE_ISO_SPACE = /\b\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}\s*(AM|PM)?\b/gi;
+  const RE_US_AMPM   = /\b\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}\s*(AM|PM)\b/gi;
+
+  function refreshSelectColors(){
+    // mode color
+    const mode = $("modeSelect").value;
+    const mw = $("modeWrap").classList;
+    mw.remove("mode-unplanned","mode-planned");
+    mw.add(mode==="planned" ? "mode-planned" : "mode-unplanned");
+
+    // Enforce: must choose mode first to enable type
+    const typeUI = $("outageTypeUI");
+    if (!mode){
+      typeUI.disabled = true;
+      typeUI.value = "";
+      $("outageType").value = "normal";
+      $("majorReasonLegacy").value = "صيانة";
+      return;
+    }
+    typeUI.disabled = false;
+    if (!typeUI.value) { typeUI.value = "normal"; }
+    $("outageType").value = typeUI.value || "normal";
+
+    // If Planned: disable & hide Major options (no planned major)
+    const isPlanned = (mode === "planned");
+    const optMaint = typeUI.querySelector('option[value="major_maint"]');
+    const optTheft = typeUI.querySelector('option[value="major_theft"]');
+    [optMaint, optTheft].forEach(opt=>{
+      if(!opt) return;
+      opt.disabled = isPlanned;
+      opt.hidden = isPlanned;
+    });
+
+    // If currently on a major option while Planned, push back to normal
+    if (isPlanned && (typeUI.value === "major_maint" || typeUI.value === "major_theft")){
+      typeUI.value = "normal";
+    }
+
+    // Map UI type -> real outageType + majorReason
+    const ui = typeUI.value;
+    let realType = "normal";
+    let reason = "صيانة";
+
+    if (ui==="unstable"){ realType="unstable"; }
+    else if (ui==="major_maint"){ realType="major"; reason="صيانة"; }
+    else if (ui==="major_theft"){ realType="major"; reason="سرقة"; }
+    else { realType="normal"; }
+
+    $("outageType").value = realType;
+    $("majorReasonLegacy").value = reason;
+
+    // color class for UI dropdown
+    const tw = $("typeWrap").classList;
+    tw.remove("type-normal","type-unstable","type-major","type-majorMaint","type-majorTheft");
+    if (ui==="unstable") tw.add("type-unstable");
+    else if (ui==="major_maint") tw.add("type-majorMaint");
+    else if (ui==="major_theft") tw.add("type-majorTheft");
+    else tw.add("type-normal");
+  }
+
+  function refreshMajorUI(){ /* removed: major reason is chosen from type dropdown */ }
+  function refreshMajorUI(){ /* removed: major reason is chosen from type dropdown */ }
+
+  function refreshModeUI(){
+    $("timeLabel").textContent = $("modeSelect").value==="planned"
+      ? "وقت الانتهاء (Planned) — اختار/الصق/Ctrl+V صورة"
+      : "وقت البداية (Unplanned) — اختار/الصق/Ctrl+V صورة";
+  }
+
+  function getChosenTime(){
+    const pasted = ($("timePaste").value || "").trim();
+    if (pasted) return pasted;
+    const picked = ($("timePicker").value || "").trim();
+    if (picked) return toLegacySpace(picked);
+    return "";
+  }
+
+  function normalizeTimeForEngine(t){
+    if (!t) return "";
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(t)) return toLegacySpace(t);
+    return t.trim();
+  }
+
+    function parseDatesFromText(txt){
+    // Normalize OCR output: join lines, remove weird chars, collapse spaces.
+    let text = (txt||"")
+      .replace(/[\r\n]+/g, " ")
+      .replace(/[^\x20-\x7E]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const found = [];
+
+    // Full patterns
+    const RE_ISO = /\b\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}\s*(AM|PM)?\b/gi;
+    const RE_ISO_TIGHT = /\b\d{4}-\d{2}-\d{2}\s*\d{1,2}:\d{2}\s*(AM|PM)\b/gi; // sometimes no space before AM/PM
+    const RE_US = /\b\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}\s*(AM|PM)\b/gi;
+
+    for (const m of text.matchAll(RE_US)) found.push(m[0]);
+    for (const m of text.matchAll(RE_ISO_TIGHT)) found.push(m[0]);
+    for (const m of text.matchAll(RE_ISO)) found.push(m[0]);
+
+    // If OCR split date/time: "2024-12-17" and "12:00 AM" separately -> combine
+    const dateOnly = (text.match(/\b\d{4}-\d{2}-\d{2}\b/g) || [])[0];
+    const timeOnly = (text.match(/\b\d{1,2}:\d{2}\s*(AM|PM)\b/i) || [])[0];
+    if (dateOnly && timeOnly){
+      found.push(`${dateOnly} ${timeOnly}`);
+    }
+
+    return Array.from(new Set(found.map(s=>s.replace(/\s+/g," ").trim())));
+  }
+
+  function toComparableDate(s){
+    const t = Date.parse(s);
+    return isNaN(t) ? NaN : t;
+  }
+
+  function pickLatestDate(list){
+    let best = null, bestT = -Infinity;
+    for (const s of list){
+      const t = toComparableDate(s);
+      if (!isNaN(t) && t > bestT) { bestT = t; best = s; }
+    }
+    return best || (list[0] || "");
+  }
+
+  
+  // --- Fast OCR worker (reuse) ---
+  let _workerReady = false;
+  let _worker = null;
+
+  async function ensureWorker(){
+    if (_workerReady && _worker) return;
+
+    // Use tessdata_fast for MUCH faster inference (time-only OCR is fine with fast model).
+    // v5 createWorker signature: createWorker(lang, oem, options)
+    _worker = await Tesseract.createWorker("eng", 1, {
+      langPath: "https://tessdata.projectnaptha.com/4.0.0_fast"
+    });
+
+    await _worker.setParameters({
+      tessedit_pageseg_mode: '7',
+      user_defined_dpi: '300',
+      tessedit_char_whitelist: '0123456789:/- AaPpMm',
+      preserve_interword_spaces: '1'
+    });
+
+    _workerReady = true;
+  }
+
+
+  async function preprocessBlob(blob, opts = {}){
+    // Ultra-fast preprocessing for time-only OCR + auto-crop ROI.
+    const bmp = await createImageBitmap(blob);
+    const scale = opts.scale || 3;
+    const pad = opts.pad || 0;
+    const mode = opts.mode || "gray"; // "gray" | "binary"
+    const crop = (opts.crop !== false);
+
+    const w = bmp.width * scale;
+    const h = bmp.height * scale;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w + pad*2;
+    canvas.height = h + pad*2;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(bmp, pad, pad, w, h);
+
+    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const d = img.data;
+
+    // auto-invert detect
+    let sum=0,cnt=0;
+    for (let i=0;i<d.length;i+=100*4){
+      const r=d[i],g=d[i+1],b=d[i+2];
+      sum += (r*0.299+g*0.587+b*0.114); cnt++;
+    }
+    const avg = sum/Math.max(1,cnt);
+    const invert = avg < 128;
+
+    // contrast + optional binary
+    const thr = (opts.thr ?? (invert ? 175 : 155));
+    for (let i=0;i<d.length;i+=4){
+      let r=d[i],g=d[i+1],b=d[i+2];
+      if (invert){ r=255-r; g=255-g; b=255-b; }
+      const y = (r*0.299+g*0.587+b*0.114);
+      if (mode==="binary"){
+        const v = (y>thr)?255:0;
+        d[i]=d[i+1]=d[i+2]=v;
+      } else {
+        // grayscale with a bit of contrast
+        const v = Math.max(0, Math.min(255, (y-128)*1.35+128));
+        d[i]=d[i+1]=d[i+2]=v;
+      }
+      d[i+3]=255;
+    }
+    ctx.putImageData(img,0,0);
+
+    if (crop){
+      // Find tight bounding box of "ink" pixels (anything not near-white)
+      const w0=canvas.width, h0=canvas.height;
+      const data = ctx.getImageData(0,0,w0,h0).data;
+      let minX=w0, minY=h0, maxX=0, maxY=0, found=false;
+      for (let y=0;y<h0;y+=1){
+        for (let x=0;x<w0;x+=1){
+          const idx=(y*w0+x)*4;
+          const v=data[idx]; // gray/binary
+          if (v < 245){ // ink
+            found=true;
+            if (x<minX) minX=x;
+            if (y<minY) minY=y;
+            if (x>maxX) maxX=x;
+            if (y>maxY) maxY=y;
+          }
+        }
+      }
+      if (found){
+        const m = 18; // margin
+        minX=Math.max(0,minX-m); minY=Math.max(0,minY-m);
+        maxX=Math.min(w0-1,maxX+m); maxY=Math.min(h0-1,maxY+m);
+        const cw=maxX-minX+1, ch=maxY-minY+1;
+
+        const c2=document.createElement('canvas');
+        c2.width=cw; c2.height=ch;
+        const c2x=c2.getContext('2d', { willReadFrequently: true });
+        c2x.fillStyle='#fff'; c2x.fillRect(0,0,cw,ch);
+        c2x.drawImage(canvas, minX, minY, cw, ch, 0, 0, cw, ch);
+
+        return await new Promise((resolve)=>c2.toBlob(b=>resolve(b||blob),'image/png'));
+      }
+    }
+
+    return await new Promise((resolve)=>canvas.toBlob(b=>resolve(b||blob),'image/png'));
+  }
+
+
+  async function ocrBlobToTime(blob){
+    const status = $("ocrStatus");
+    try {
+      status.textContent = "OCR جاري…";
+      await ensureWorker();
+
+      const run = async (psm, imgOpts) => {
+        await _worker.setParameters({ tessedit_pageseg_mode: String(psm) });
+        const img = await preprocessBlob(blob, imgOpts);
+        const { data } = await _worker.recognize(img);
+        const text = (data && data.text) ? data.text : "";
+        return { text, dates: parseDatesFromText(text) };
+      };
+
+      // Pass 1: fastest (gray + ROI crop)
+      let r1 = await run(7, { scale: 4, pad: 10, mode: "gray", crop: true });
+      let dates = r1.dates;
+
+      // Pass 2: still fast (binary + ROI crop) to rescue ':' / AM/PM strokes
+      let rawText = r1.text;
+      if (!dates.length || !/(AM|PM)/i.test(rawText)) {
+        const r2 = await run(7, { scale: 4, pad: 10, mode: "binary", thr: 160, crop: true });
+        rawText = (rawText || "") + " " + (r2.text || "");
+        if (!dates.length) dates = r2.dates;
+        else if (!/(AM|PM)/i.test(dates[0])) {
+          // if date exists but missing AM/PM, try to attach if present in OCR text
+          const m = rawText.match(/(AM|PM)/i);
+          if (m) dates = dates.map(s => /(AM|PM)/i.test(s) ? s : (s + " " + m[1].toUpperCase()));
+        }
+      }
+
+      // Pass 3: only if still missing AM/PM (single word mode)
+      if (dates.length && !/(AM|PM)/i.test(dates[0])) {
+        const r3 = await run(8, { scale: 5, pad: 12, mode: "binary", thr: 165, crop: true });
+        const m = (r3.text || "").match(/(AM|PM)/i);
+        if (m) dates = dates.map(s => s + " " + m[1].toUpperCase());
+      }
+
+      if (!dates.length) {
+        status.textContent = "فشل OCR. لو ممكن: الصق الوقت كنص أو جرّب لقطة أوضح/أكبر.";
+        return;
+      }
+
+      const mode = $("modeSelect").value;
+      const chosen = (mode==="planned") ? pickLatestDate(dates) : dates[0];
+      $("timePaste").value = chosen;
+      status.textContent = `تم استخراج: ${chosen}`;
+    } catch (e) {
+      console.error(e);
+      $("ocrStatus").textContent = "فشل OCR — جرّب صورة أوضح/أكبر.";
+    }
+  }
+
+
+
+
+
+
+  // Ctrl+V image ONLY inside timePaste
+  $("timePaste").addEventListener("paste", (event)=>{
+    const items = event.clipboardData && event.clipboardData.items;
+    if (!items) return;
+    for (const item of items){
+      if (item.type && item.type.startsWith("image/")) {
+        event.preventDefault();
+        const blob = item.getAsFile();
+        if (blob) ocrBlobToTime(blob);
+        return;
+      }
+    }
+  });
+
+  function buildLegacyText(){
+    const cid = ($("complaintId").value||"").trim();
+    const mode = $("modeSelect").value;
+    const typ = $("outageType").value;
+
+    let tokens = [];
+    if (mode==="planned") tokens.push("planned");
+    if (typ==="unstable") tokens.push("unstable");
+    if (typ==="major") {
+      const reason = $("majorReasonLegacy").value || "صيانة";
+      tokens.push(`Major Fault ${reason} سيرفر`);
+    }
+    if (!tokens.length) tokens.push("outage");
+
+    const lines = [];
+    if (cid) lines.push(`CID: ${cid}`);
+    lines.push(tokens.join(" "));
+
+    const chosen = normalizeTimeForEngine(getChosenTime());
+
+    if (mode==="unplanned") {
+      if (chosen) lines.push(chosen);
+    } else {
+      const dummy = toLegacySpace(new Date().toISOString().slice(0,16));
+      if (chosen) lines.push(chosen);   // second-last
+      lines.push(dummy);                // last
+    }
+    return lines.join("\n");
+  }
+
+  function prettifyOutput(){
+    const out = $("output");
+    if (!out) return;
+    if (out.innerHTML && out.innerHTML.includes("highlight-box")) {
+      out.innerHTML = out.innerHTML
+        .replace(/<br\s*\/?>/gi, "</div><div class=\"line\">")
+        .replace(/(<div class=\"highlight-box\">)/i, "$1<div class=\"line\">");
+    }
+  }
+
+  function generateFromSimple(){
+    if(!$("modeSelect").value){ $("ocrStatus").textContent = "اختار الوضع الأول."; return; }
+    if(!$("outageTypeUI").value){ $("ocrStatus").textContent = "اختار نوع الـ Outage."; return; }
+    $("inputText").value = buildLegacyText();
+    // keep fields editable + show full value
+    try{ $("complaintId").disabled=false; $("complaintId").readOnly=false; $("complaintId").removeAttribute("readonly"); }catch(e){}
+    autoSizeByValue(document.getElementById("complaintId"), 5, 24);
+    autoSizeByValue(document.getElementById("timePaste"), 14, 40);
+    autoSizeByValue(document.getElementById("timePicker"), 16, 24);
+
+    if (typeof window.generateResponse === "function") window.generateResponse();
+    prettifyOutput();
+  }
+
+  function resetAll(){
+    $("complaintId").value="";
+    autoSizeByValue(document.getElementById("complaintId"), 5, 24);
+
+    $("modeSelect").value="";
+    $("outageType").value="normal";
+    $("majorReasonLegacy").value="صيانة";
+    $("timePicker").value="";
+    $("timePaste").value="";
+    autoSizeByValue(document.getElementById("timePaste"), 14, 40);
+
+    $("ocrStatus").textContent="";
+    $("inputText").value="";
+    $("output").innerHTML="";
+    $("objectionBox").innerHTML="";
+    $("timerBar").hidden = true;
+    $("timerHint").textContent = "";
+    refreshSelectColors();
+    refreshMajorUI();
+
+  autoSizeCh("complaintId", 8, 14);
+  autoSizeCh("timePaste", 18, 30);
+
+    refreshModeUI();
+  }
+
+  // init
+  $("modeSelect").value = "";
+  refreshModeUI();
+  refreshSelectColors();
+  refreshMajorUI();
+
+  autoSizeCh("complaintId", 8, 14);
+  autoSizeCh("timePaste", 18, 30);
+
+
+  // Pre-warm OCR worker in idle time for instant paste experience
+  if ("requestIdleCallback" in window) {
+    window.requestIdleCallback(() => { ensureWorker().catch(() => {}); }, { timeout: 50 });
+  } else {
+    window.setTimeout(() => { ensureWorker().catch(() => {}); }, 50);
+  }
+
+  $("modeSelect").addEventListener("change", ()=>{ refreshSelectColors(); refreshModeUI(); $("ocrStatus").textContent=""; });
+  $("outageTypeUI").addEventListener("change", ()=>{ refreshSelectColors(); refreshMajorUI(); $("ocrStatus").textContent=""; });
+    $("genSimpleBtn").addEventListener("click", generateFromSimple);
+  $("resetBtn").addEventListener("click", resetAll);
+})();
+</script>
+
+
+  </div>
+</div>
+
+<script>
+(function(){
+  function autosizeCh(el, minCh, maxCh){
+    if(!el) return;
+    const val = (el.value || el.placeholder || "").trim();
+    const ch = Math.min(maxCh, Math.max(minCh, val.length + 1));
+    el.style.width = ch + "ch";
+  }
+  function bind(id, minCh, maxCh){
+    const el = document.getElementById(id);
+    if(!el) return;
+    const run = ()=>autosizeCh(el, minCh, maxCh);
+    el.addEventListener("input", run);
+    el.addEventListener("change", run);
+    run();
+  }
+  // complaint id & time paste shrink-to-content
+  bind("complaintId", 7, 14);
+  bind("timePaste", 16, 30);
+})();
+
+/* ===== v11: smart auto-size (value-based, no placeholder bloat) ===== */
+(function(){
+  function clamp(n,min,max){ return Math.min(max, Math.max(min,n)); }
+
+  // Uses HTML 'size' attribute (character-based) for text-like inputs
+  function setSizeByValue(el, minCh, maxCh){
+    if(!el) return;
+    const v = (el.value || "").trim();
+    const ch = clamp((v.length ? (v.length + 1) : minCh), minCh, maxCh);
+    el.setAttribute("size", String(ch));
+    el.style.width = "fit-content";
+  }
+
+  const complaint = document.getElementById("complaintId");
+  const paste = document.getElementById("timePaste");
+  const picker = document.getElementById("timePicker");
+
+  const tick = ()=>{
+    setSizeByValue(complaint, 8, 30);
+    setSizeByValue(paste, 18, 40);
+    // datetime-local rendering varies across browsers/locales; keep safe width so it never clips
+    if(picker) picker.style.minWidth = "26ch";
+  };
+
+  ["input","change","keyup","paste","blur"].forEach(evt=>{
+    if(complaint) complaint.addEventListener(evt, tick);
+    if(paste) paste.addEventListener(evt, tick);
+    if(picker) picker.addEventListener(evt, tick);
+  });
+
+  window.addEventListener("load", tick);
+  setTimeout(tick, 50);
+})();
+
+</script>
+
+
+<script>
+/* Auto-size inputs so values never get clipped */
+function autoSizeByValue(el, minCh, maxCh){
+  try{
+    const v = (el.value || "").toString();
+    const ch = Math.min(maxCh, Math.max(minCh, v.length || minCh));
+    el.setAttribute("size", String(ch));
+  }catch(e){}
+}
+document.addEventListener("DOMContentLoaded", ()=>{
+  const c  = document.getElementById("complaintId");
+  const tp = document.getElementById("timePaste");
+  const pk = document.getElementById("timePicker");
+  if(c){
+    c.addEventListener("input", ()=>autoSizeByValue(c, 5, 32));
+    autoSizeByValue(c, 5, 32);
+  }
+  if(tp){
+    tp.addEventListener("input", ()=>autoSizeByValue(tp, 12, 42));
+    autoSizeByValue(tp, 12, 42);
+  }
+  if(pk){
+    pk.addEventListener("change", ()=>autoSizeByValue(pk, 16, 26));
+    autoSizeByValue(pk, 16, 26);
+  }
+});
+</script>
+
+</body>
+</html>
