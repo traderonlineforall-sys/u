@@ -4048,6 +4048,31 @@ function performBalanceConversion() {
     // ---------- Helpers ----------
     function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
 
+    // Rough estimate of ink density (how much "black" content exists).
+    // Used to skip deskew on nearly-empty images (saves time & avoids false skew).
+    function estimateInkRatio(imgData){
+      try{
+        const d = imgData.data;
+        const totalPx = Math.max(1, (d.length / 4) | 0);
+
+        // Sample every Nth pixel for speed.
+        const step = Math.max(1, Math.floor(totalPx / 120000)); // cap ~120k samples
+        let ink = 0;
+        let sampled = 0;
+
+        for(let p=0; p<totalPx; p+=step){
+          const i = p * 4;
+          const r = d[i], g = d[i+1], b = d[i+2];
+          const lum = (0.2126*r + 0.7152*g + 0.0722*b);
+          if(lum < 160) ink++; // "dark" threshold
+          sampled++;
+        }
+        return sampled ? (ink / sampled) : 0;
+      }catch(_e){
+        return 0;
+      }
+    }
+
     async function fileToImageBitmap(file){
       if(window.createImageBitmap){
         return await createImageBitmap(file);
@@ -4268,10 +4293,12 @@ function performBalanceConversion() {
        * noticeable speed‑up without compromising legibility.  HQ mode
        * remains unchanged to provide maximum quality when needed.
        */
-      let scale = isHq ? 2.0 : 1.0;
-      if(baseW < 900) scale = isHq ? 3.0 : 1.2;
-      if(baseW < 520) scale = isHq ? 4.0 : 1.4;
-      if(baseW < 420) scale = isHq ? 5.0 : 1.6;
+      // Slightly upscaled FAST mode improves small-font UI screenshots a lot,
+      // without the heavy latency of HQ. HQ stays aggressive for maximum quality.
+      let scale = isHq ? 2.2 : 1.2;
+      if(baseW < 900) scale = isHq ? 3.2 : 1.5;
+      if(baseW < 520) scale = isHq ? 4.2 : 1.8;
+      if(baseW < 420) scale = isHq ? 5.0 : 2.0;
 
       // Hard caps
       const capW = 3600;
@@ -4292,10 +4319,12 @@ function performBalanceConversion() {
       }
       ctx.putImageData(img,0,0);
 
-      // Sharpen only in HQ mode.  Skipping the unsharp mask in FAST mode
-      // eliminates a costly convolution step, further speeding up preprocessing.
+      // Sharpen: HQ stronger. FAST gets a very light sharpen which is cheap enough
+      // and significantly improves OCR on tiny UI text.
       if(isHq){
         unsharpMask(ctx, 0.6);
+      } else {
+        unsharpMask(ctx, 0.25);
       }
 
       // Binarize (Otsu)
@@ -4377,7 +4406,8 @@ function performBalanceConversion() {
       // Parameters: keep spaces, reduce dictionary bias (helps mixed UI text), etc.
       await w.setParameters({
         preserve_interword_spaces: '1',
-        user_defined_dpi: '300',
+        // Higher DPI helps with UI screenshots & mixed Arabic/English text.
+        user_defined_dpi: isHq ? '450' : '350',
         // reduce dictionary bias for UI/mixed content
         load_system_dawg: '0',
         load_freq_dawg: '0'
@@ -4462,9 +4492,11 @@ function performBalanceConversion() {
 
         out.value = text || '';
         setStatus(text ? `تم ✅ (${isHq ? 'HQ' : 'FAST'}) (Confidence: ${Math.round(best.conf)}%)` : 'لم يتم العثور على نص واضح — جرّب صورة أوضح/أكبر');
+        return { text, confidence: (best && typeof best.conf === 'number') ? best.conf : -1 };
       } catch (e){
         console.error(e);
         setStatus('حصل خطأ أثناء OCR — افتح Console للتفاصيل');
+        return { text: '', confidence: -1 };
       } finally{
         isOcrRunning = false;
         setExtractEnabled(!!lastImageFile);
@@ -4474,12 +4506,18 @@ function performBalanceConversion() {
     }
 
     // ---------- Events ----------
-    function onNewImageFile(file){
+    async function onNewImageFile(file){
       lastImageFile = file;
       setExtractEnabled(true);
       setStatus('جاهز — Extract (Fast) سريع أو HQ أدق');
-      // Auto-run FAST by default
-      runOcr('fast');
+      // Auto-run FAST by default, then auto-fallback to HQ if the result looks weak.
+      const fastRes = await runOcr('fast');
+      const fastText = (fastRes?.text || '').trim();
+      const fastConf = typeof fastRes?.confidence === 'number' ? fastRes.confidence : -1;
+      // Heuristics tuned for UI screenshots: low confidence or very short output.
+      if(fastText && fastConf >= 80) return;
+      if(fastText.length >= 35 && fastConf >= 70) return;
+      await runOcr('hq');
     }
 
 
