@@ -3862,7 +3862,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
       // Create an iframe to host the tags page
       var iframe = document.createElement('iframe');
-      iframe.setAttribute('src', 'Tags.html');
+      iframe.setAttribute('src', '/Tags.html');
       iframe.style.width = '100%';
       iframe.style.height = '100%';
       iframe.style.border = 'none';
