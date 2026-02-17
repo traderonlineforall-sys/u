@@ -18149,14 +18149,22 @@ https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeNam
 
                                                 <br>
 
-                                                <!-- outage by mail -->
+                                                <!-- Outage tools (SR Technical) -->
 
-                                                <h1 style="color: #ccc; display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom: 10px;">
-                                                        <span>outage by mail</span>
-                                                </h1>
+                                                <div class="outage-switchbar" aria-label="Outage tools">
+                                                        <div class="outage-switchbar-title">Outage</div>
+                                                        <div class="outage-switchbar-actions" role="tablist" aria-label="Outage tabs">
+                                                                <button id="outageTabMail" class="outage-tabbtn is-active" type="button" role="tab" aria-selected="true" aria-controls="outageMailPanel">
+                                                                        Outage Mail
+                                                                </button>
+                                                                <button id="outageTabNormal" class="outage-tabbtn" type="button" role="tab" aria-selected="false" aria-controls="outageNormalPanel">
+                                                                        Outage Normal
+                                                                </button>
+                                                        </div>
+                                                </div>
 
                                                 <!-- Outage by mail helper -->
-                                                <div id="outageMailPanel" class="outage-mail-panel">
+                                                <div id="outageMailPanel" class="outage-mail-panel" role="tabpanel" aria-label="Outage Mail">
                                                         <div class="outage-mail-grid">
                                                                 <div class="outage-mail-col">
                                                                         <div class="outage-mail-label">Impacted Bras</div>
@@ -18186,11 +18194,16 @@ https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeNam
                                                         </div>
                                                 </div>
 
-                                                <div class="outage-mail-tools">
-                                                        <a class="outage-mail-launch" href="/outage-generator.protected.html" target="_blank" rel="noopener">
-                                                                <span class="outage-mail-launch-ic">⚡</span>
-                                                                <span>Outage Generator</span>
-                                                        </a>
+                                                <!-- Outage Normal (embedded in-place; no new tab) -->
+                                                <div id="outageNormalPanel" class="outage-panel outage-panel-hidden" role="tabpanel" aria-label="Outage Normal">
+                                                        <div class="outage-normal-hint">افتح/اقفل من التابات فوق — الأوتج العادي هيظهر هنا جوه نفس التول.</div>
+                                                        <iframe
+                                                                title="Outage Generator"
+                                                                class="outage-normal-iframe"
+                                                                src="/outage-generator.protected.html"
+                                                                loading="lazy"
+                                                                referrerpolicy="no-referrer"
+                                                        ></iframe>
                                                 </div>
 
                                                 <!-- download rate (calculator) -->
