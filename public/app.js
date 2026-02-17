@@ -3754,7 +3754,12 @@ link += myVariable; // إضافة المتغير إلى الرابط
                                                                 const input1 = document.getElementById("arabicNumber");
                                                                 const input2 = document.getElementById("input2");
                                                                 const input3 = document.getElementById("input3");
-                                                                let numberValue = input1.value;
+                                                                
+                                                                // Safety guard: some pages may not include input2/input3.
+                                                                if (!input1 || !input2 || !input3) {
+                                                                        return;
+                                                                }
+let numberValue = input1.value;
 
                                                                 // Get the value of input1
                                                                 const value = input1.value.trim();
@@ -3860,13 +3865,86 @@ document.addEventListener('DOMContentLoaded', function(){
       // Dark semi‑transparent backdrop
       tagsContainer.style.backgroundColor = 'rgba(5,5,15,0.95)';
 
-      // Create an iframe to host the tags page
-      var iframe = document.createElement('iframe');
-      iframe.setAttribute('src', '/Tags.html');
-      iframe.style.width = '100%';
-      iframe.style.height = '100%';
-      iframe.style.border = 'none';
-      tagsContainer.appendChild(iframe);
+      // Load Tags.html inline (NO iframe) to avoid X-Frame-Options / frame-ancestors restrictions on Vercel.
+      var tagsPanel = document.createElement('div');
+      tagsPanel.id = 'tagsPanel';
+      tagsPanel.style.position = 'relative';
+      tagsPanel.style.width = '100%';
+      tagsPanel.style.height = '100%';
+      tagsPanel.style.overflow = 'auto';
+      tagsPanel.style.padding = '24px';
+      tagsPanel.style.boxSizing = 'border-box';
+      tagsContainer.appendChild(tagsPanel);
+
+      // Fetch and inject Tags.html into the overlay
+      fetch('/Tags.html', { cache: 'no-store' })
+        .then(function(r){ return r.text(); })
+        .then(function(htmlText){
+          try {
+            var parser = new DOMParser();
+            var doc = parser.parseFromString(htmlText, 'text/html');
+
+            // Inject head styles (style + link rel=stylesheet)
+            var headNodes = doc.head ? Array.from(doc.head.querySelectorAll('style,link[rel="stylesheet"]')) : [];
+            headNodes.forEach(function(node){
+              // Avoid duplicates by id/href
+              if (node.tagName === 'STYLE') {
+                var id = node.getAttribute('id');
+                if (id && document.getElementById(id)) return;
+                var styleEl = document.createElement('style');
+                if (id) styleEl.id = id;
+                styleEl.textContent = node.textContent || '';
+                tagsPanel.appendChild(styleEl);
+              } else if (node.tagName === 'LINK') {
+                var href = node.getAttribute('href');
+                if (!href) return;
+                if (tagsPanel.querySelector('link[href="'+href+'"]')) return;
+                var linkEl = document.createElement('link');
+                linkEl.rel = 'stylesheet';
+                linkEl.href = href;
+                tagsPanel.appendChild(linkEl);
+              }
+            });
+
+            // Body content
+            var body = doc.body;
+            if (body) {
+              // Wrap body content in a container for styling isolation
+              var bodyWrap = document.createElement('div');
+              bodyWrap.id = 'tagsBody';
+              bodyWrap.style.minHeight = '100%';
+              bodyWrap.style.width = '100%';
+              bodyWrap.style.boxSizing = 'border-box';
+              bodyWrap.innerHTML = body.innerHTML;
+              tagsPanel.appendChild(bodyWrap);
+
+              // Re-execute scripts (inline + src)
+              var scripts = Array.from(bodyWrap.querySelectorAll('script'));
+              scripts.forEach(function(oldScript){
+                var newScript = document.createElement('script');
+                // Copy attributes
+                Array.from(oldScript.attributes || []).forEach(function(attr){
+                  newScript.setAttribute(attr.name, attr.value);
+                });
+                if (oldScript.src) {
+                  newScript.src = oldScript.src;
+                  newScript.async = false;
+                } else {
+                  newScript.textContent = oldScript.textContent || '';
+                }
+                oldScript.parentNode.replaceChild(newScript, oldScript);
+              });
+            }
+          } catch(e) {
+            tagsPanel.innerHTML = '<div style="color:#fff; font-family:Arial; padding:16px;">Failed to load Tags view.</div>';
+            console.error('Tags inline load failed:', e);
+          }
+        })
+        .catch(function(err){
+          tagsPanel.innerHTML = '<div style="color:#fff; font-family:Arial; padding:16px;">Failed to load Tags view.</div>';
+          console.error('Tags fetch failed:', err);
+        });
+
 
       // Create a close button inside the overlay so the user can exit the Tags view
       var closeBtnEl = document.createElement('button');
