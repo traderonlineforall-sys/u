@@ -19096,46 +19096,11 @@ button {border-radius:999px !important;}
 #outageNormalPanel .iconBtn:focus-visible {
   box-shadow: 0 0 0 4px rgba(106,167,255,.18), 0 14px 34px rgba(0,0,0,.28) !important;
 }
-
-#outageNormalPanel .outageLayout{
-  display:grid;
-  grid-template-columns: minmax(320px, 1fr) minmax(360px, 520px);
-  gap: 18px;
-  align-items: start;
-  direction:ltr;
-}
-#outageNormalPanel .outageForm{direction:rtl;}
-#outageNormalPanel .outageResult{direction:rtl;}
-#outageNormalPanel .resultHeader{
-  font-weight: 900;
-  font-size: 13px;
-  opacity: .9;
-  margin: 8px 0 10px;
-}
-#outageNormalPanel .resultBox{
-  min-height: 360px;
-  max-height: 62vh;
-  overflow:auto;
-}
-#outageNormalPanel .resultObjection{margin-top:12px;}
-@media (max-width: 980px){
-  #outageNormalPanel .outageLayout{grid-template-columns: 1fr; }
-  #outageNormalPanel .resultBox{max-height:none;}
-}
-</style>
+                                                                </style>
 <div class="page">
   <div class="card">
 
-<div class="outageLayout">
-  <div class="outageResult">
-    <div class="resultHeader">الناتج (Text)</div>
-    <div id="output" class="box resultBox"></div>
-    <div id="objectionSection" class="resultObjection">
-      <div id="objectionBox" class="box"></div>
-    </div>
-  </div>
 
-  <div class="outageForm">
 <h2>احسب الـ SLA / Outage Helper</h2>
 
 <!-- Timer at top -->
@@ -19243,9 +19208,12 @@ button {border-radius:999px !important;}
   <textarea id="inputText"></textarea>
 </div>
 
-  </div>
-</div>
+<label style="margin-top:12px">الناتج (Text)</label>
+<div id="output" class="box"></div>
 
+<div id="objectionSection">
+  <div id="objectionBox" class="box"></div>
+</div>
 
 <script src="https://unpkg.com/tesseract.js@5.0.5/dist/tesseract.min.js"></script>
 
