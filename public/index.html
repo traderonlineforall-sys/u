@@ -19122,6 +19122,65 @@ button {border-radius:999px !important;}
   #outageNormalPanel .outageLayout{grid-template-columns: 1fr; }
   #outageNormalPanel .resultBox{max-height:none;}
 }
+
+/* === MNDO polish overrides (fill + darker + pro selects) === */
+#outageNormalPanel{width:100% !important;}
+#outageNormalPanel .outageLayout{
+  grid-template-columns: 1fr 1fr !important;
+  align-items: stretch !important;
+  width: 100% !important;
+}
+#outageNormalPanel .outageForm,
+#outageNormalPanel .outageResult{
+  border: 1px solid rgba(255,255,255,.14) !important;
+  background: rgba(0,0,0,.58) !important;
+  border-radius: 16px !important;
+  padding: 14px !important;
+  min-height: 380px !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06) !important;
+}
+#outageNormalPanel .resultBox{
+  min-height: 420px !important;
+  background: rgba(0,0,0,.55) !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+}
+#outageNormalPanel .box{
+  background: rgba(0,0,0,.52) !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+}
+#outageNormalPanel input,
+#outageNormalPanel select{
+  background: rgba(0,0,0,.55) !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  color: rgba(255,255,255,.92) !important;
+}
+#outageNormalPanel select{
+  appearance:none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(255,255,255,.75) 50%),
+    linear-gradient(135deg, rgba(255,255,255,.75) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) calc(1em + 2px),
+    calc(100% - 13px) calc(1em + 2px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 34px !important;
+}
+#outageNormalPanel input:focus,
+#outageNormalPanel select:focus{
+  outline:none;
+  border-color: rgba(6,167,255,.55) !important;
+  box-shadow: 0 0 0 4px rgba(6,167,255,.12) !important;
+}
+#outageNormalPanel .controls button{
+  background: linear-gradient(135deg, rgba(6,167,255,.95), rgba(147,110,255,.92)) !important;
+  color:#081018 !important;
+}
+@media (max-width: 980px){
+  #outageNormalPanel .outageForm,
+  #outageNormalPanel .outageResult{ min-height: auto !important; }
+  #outageNormalPanel .resultBox{ min-height: 320px !important; }
+}
 </style>
 <div class="page">
   <div class="card">
