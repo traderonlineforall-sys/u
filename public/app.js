@@ -3839,100 +3839,124 @@ if (typeof move1 !== "function") {
 
 
 
-// ---- Tags / Tag Studio (Inline overlay, NO iframe) ----
-// Vercel sends X-Frame-Options: DENY, so iframes/objects will be blocked even on same-origin.
-// We load Tags.html via fetch and inject its DOM into an overlay, then execute its scripts ONCE.
+// ---- Tags (restore original behaviour, NO iframe) ----
+// Vercel sets X-Frame-Options: DENY, so iframes are blocked.
+// We keep the original UX: click #bat2 toggles a full-screen overlay.
 
 (function(){
   const TAGS_HTML_URL = "/Tags.html";
-  let overlay, panel, content, closeBtn;
+  let tagsContainer = null;
+  let tagsPanel = null;
+  let tagsContent = null;
   let loaded = false;
   let loading = false;
 
-  function ensureOverlay(){
-    if(overlay) return overlay;
-
-    overlay = document.createElement("div");
-    overlay.id = "mndoTagsOverlay";
-    overlay.style.cssText = [
-      "position:fixed",
-      "inset:0",
-      "z-index:999999",
-      "display:none",
-      "background:rgba(0,0,0,.70)",
-      "backdrop-filter:blur(4px)"
-    ].join(";");
-
-    panel = document.createElement("div");
-    panel.id = "mndoTagsPanel";
-    panel.style.cssText = [
-      "position:absolute",
-      "top:50%",
-      "left:50%",
-      "transform:translate(-50%,-50%)",
-      "width:min(1100px, 96vw)",
-      "height:min(720px, 90vh)",
-      "background:rgba(10,10,10,.88)",
-      "border:1px solid rgba(255,255,255,.12)",
-      "border-radius:16px",
-      "box-shadow:0 20px 60px rgba(0,0,0,.55)",
-      "overflow:hidden"
-    ].join(";");
-
-    const header = document.createElement("div");
-    header.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.10);";
-    const title = document.createElement("div");
-    title.textContent = "Tag Studio";
-    title.style.cssText = "font-weight:700;letter-spacing:.2px;";
-    closeBtn = document.createElement("button");
-    closeBtn.type = "button";
-    closeBtn.textContent = "✕";
-    closeBtn.style.cssText = "cursor:pointer;border:0;background:rgba(255,255,255,.08);color:#fff;width:34px;height:34px;border-radius:10px;font-size:16px;";
-
-    header.appendChild(title);
-    header.appendChild(closeBtn);
-
-    content = document.createElement("div");
-    content.id = "mndoTagsContent";
-    content.style.cssText = "height:calc(100% - 55px);overflow:auto;padding:12px;";
-
-    panel.appendChild(header);
-    panel.appendChild(content);
-    overlay.appendChild(panel);
-    document.body.appendChild(overlay);
-
-    function hide(){ overlay.style.display="none"; }
-    closeBtn.addEventListener("click", hide);
-    overlay.addEventListener("click", (e)=>{ if(e.target===overlay) hide(); });
-    document.addEventListener("keydown", (e)=>{ if(e.key==="Escape" && overlay.style.display!=="none") hide(); });
-
-    return overlay;
+  function ensureCssOnce(){
+    if(document.getElementById('mndo-tags-open-css')) return;
+    const st = document.createElement('style');
+    st.id = 'mndo-tags-open-css';
+    st.textContent = `
+      body.tags-open #mndoQueryTimer{ transform: scale(.75); transform-origin: top right; }
+      body.tags-open #mndoQueryTimer *{ transform-origin: top right; }
+    `;
+    document.head.appendChild(st);
   }
 
-  async function runScriptsFromDoc(doc){
-    // Execute external and inline scripts in order
-    const scripts = Array.from(doc.querySelectorAll("script"));
+  function ensureOverlay(){
+    if(tagsContainer) return tagsContainer;
+
+    tagsContainer = document.getElementById('tagsContainer');
+    if(!tagsContainer){
+      tagsContainer = document.createElement('div');
+      tagsContainer.id = 'tagsContainer';
+      tagsContainer.style.display = 'none';
+      tagsContainer.style.position = 'fixed';
+      tagsContainer.style.inset = '0';
+      tagsContainer.style.zIndex = '2147483646';
+      tagsContainer.style.backgroundColor = 'rgba(5,5,15,0.92)';
+      tagsContainer.style.backdropFilter = 'blur(4px)';
+
+      tagsPanel = document.createElement('div');
+      tagsPanel.id = 'mndoTagsPanel';
+      tagsPanel.style.position = 'absolute';
+      tagsPanel.style.inset = '10px';
+      tagsPanel.style.borderRadius = '14px';
+      tagsPanel.style.border = '1px solid rgba(255,255,255,.10)';
+      tagsPanel.style.background = 'rgba(0,0,0,.30)';
+      tagsPanel.style.overflow = 'hidden';
+
+      tagsContent = document.createElement('div');
+      tagsContent.id = 'mndoTagsContent';
+      tagsContent.style.width = '100%';
+      tagsContent.style.height = '100%';
+      tagsContent.style.overflow = 'auto';
+      tagsContent.style.position = 'relative';
+
+      const closeBtn = document.createElement('button');
+      closeBtn.id = 'closeTagsBtn';
+      closeBtn.type = 'button';
+      closeBtn.textContent = '×';
+      closeBtn.style.position = 'absolute';
+      closeBtn.style.top = '14px';
+      closeBtn.style.right = '14px';
+      closeBtn.style.zIndex = '2147483647';
+      closeBtn.style.backgroundColor = 'rgba(255,255,255,0.85)';
+      closeBtn.style.color = '#000';
+      closeBtn.style.border = 'none';
+      closeBtn.style.padding = '6px 10px';
+      closeBtn.style.fontSize = '18px';
+      closeBtn.style.borderRadius = '8px';
+      closeBtn.style.cursor = 'pointer';
+
+      tagsPanel.appendChild(tagsContent);
+      tagsContainer.appendChild(tagsPanel);
+      tagsContainer.appendChild(closeBtn);
+      document.body.appendChild(tagsContainer);
+
+      closeBtn.addEventListener('click', hideTags);
+      tagsContainer.addEventListener('click', (e)=>{ if(e.target===tagsContainer) hideTags(); });
+      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && tagsContainer.style.display==='block') hideTags(); });
+    } else {
+      tagsPanel = document.getElementById('mndoTagsPanel');
+      tagsContent = document.getElementById('mndoTagsContent');
+    }
+
+    ensureCssOnce();
+    return tagsContainer;
+  }
+
+  function shouldSkipScriptSrc(src){
+    const s = (src||'').toLowerCase();
+    // Avoid scripts that can break the main tool (disable-devtool etc.)
+    if(s.includes('disable-devtool')) return true;
+    return false;
+  }
+
+  async function execScriptsSequentially(doc){
+    const scripts = Array.from(doc.querySelectorAll('script'));
     for(const s of scripts){
-      const src = s.getAttribute("src");
+      const src = s.getAttribute('src');
       if(src){
+        if(shouldSkipScriptSrc(src)) continue;
         await new Promise((resolve)=>{
-          const ns = document.createElement("script");
-          ns.src = new URL(src, location.href).href;
+          // Avoid double-loading the same src
+          const abs = new URL(src, location.href).href;
+          if(document.querySelector('script[data-tags-src="'+abs.replace(/"/g,'&quot;')+'"]')) return resolve();
+          const ns = document.createElement('script');
+          ns.src = abs;
           ns.async = false;
+          ns.setAttribute('data-tags-src', abs);
           ns.onload = resolve;
-          ns.onerror = resolve; // don't block tool if one script fails
+          ns.onerror = resolve;
           document.body.appendChild(ns);
         });
-      }else{
-        const code = s.textContent || "";
-        if(code.trim()){
-          try{
-            // isolate to avoid leaking 'let/const' redeclare into global scope as much as possible
-            (0, Function)('"use strict";\n' + code + '\n//# sourceURL=Tags.inline.js')();
-          }catch(err){
-            console.warn("Tags inline script error:", err);
-          }
-        }
+      } else {
+        const code = s.textContent || '';
+        if(!code.trim()) continue;
+        const ns = document.createElement('script');
+        // Wrap to reduce global name collisions but still allow DOM access.
+        ns.textContent = "try{\n" + code + "\n}catch(e){console.warn('Tags inline script error', e);}";
+        tagsContent.appendChild(ns);
       }
     }
   }
@@ -3941,92 +3965,71 @@ if (typeof move1 !== "function") {
     if(loaded || loading) return;
     loading = true;
     try{
-      const res = await fetch(TAGS_HTML_URL, { cache: "no-store" });
+      const res = await fetch(TAGS_HTML_URL, { cache: 'no-store' });
       const html = await res.text();
-      const doc = new DOMParser().parseFromString(html, "text/html");
+      const doc = new DOMParser().parseFromString(html, 'text/html');
 
-      // Inject stylesheets and style blocks once
-      const headNodes = [];
-      doc.querySelectorAll('link[rel="stylesheet"], style').forEach(n=>headNodes.push(n));
-      headNodes.forEach(n=>{
-        const key = n.tagName + ":" + (n.getAttribute("href")||"") + ":" + (n.textContent||"").slice(0,80);
-        if(document.head.querySelector(`[data-tags-key="${CSS.escape(key)}"]`)) return;
+      // Copy stylesheets + style blocks (once)
+      doc.querySelectorAll('link[rel="stylesheet"], style').forEach(n=>{
+        const key = (n.tagName||'') + ':' + (n.getAttribute('href')||'') + ':' + (n.id||'') + ':' + (n.textContent||'').slice(0,120);
+        if(document.head.querySelector('[data-tags-key="'+CSS.escape(key)+'"]')) return;
         const clone = n.cloneNode(true);
-        clone.setAttribute("data-tags-key", key);
+        clone.setAttribute('data-tags-key', key);
         document.head.appendChild(clone);
       });
 
-      // Prefer body content
+      // Inject body content without scripts
       const body = doc.body;
-      // Remove scripts from injected markup (we execute them separately)
-      body.querySelectorAll("script").forEach(s=>s.remove());
-      content.innerHTML = "";
-      // Inject body children
-      Array.from(body.children).forEach(ch=>content.appendChild(ch.cloneNode(true)));
+      body.querySelectorAll('script').forEach(s=>s.remove());
+      tagsContent.innerHTML = '';
+      Array.from(body.children).forEach(ch=>tagsContent.appendChild(ch.cloneNode(true)));
 
-      // Now execute scripts (external + inline)
-      await runScriptsFromDoc(doc);
+      // Execute scripts in order (skip disable-devtool)
+      await execScriptsSequentially(doc);
+
+      // Some Tags scripts rely on load; trigger a light custom event.
+      try{ window.dispatchEvent(new Event('mndo:tags-ready')); }catch{}
 
       loaded = true;
     }catch(e){
-      content.innerHTML = '<div style="padding:14px;color:#fff;opacity:.9">تعذر تحميل Tag Studio. تأكد أن ملف Tags.html موجود داخل public.</div>';
-      console.warn("Failed to load Tags.html:", e);
-    }finally{
+      tagsContent.innerHTML = '<div style="padding:14px;color:#fff;opacity:.9">تعذر تحميل Tags.html. تأكد أن الملف موجود داخل public.</div>';
+      console.warn('Failed to load Tags.html:', e);
+    } finally {
       loading = false;
     }
   }
 
-  async function open(){
+  async function showTags(){
     ensureOverlay();
-    overlay.style.display = "block";
+    document.body.classList.add('tags-open');
+    tagsContainer.style.display = 'block';
     if(!loaded) await loadTagsOnce();
   }
 
-  // Add a compact "Tag Studio" pill next to AHT timer and Tags button.
-  function ensureTagStudioBtn(){
-    const stack = document.getElementById("MNDO_AHT_TAGS_STACK");
-    const tagsBtn = document.getElementById("bat2");
-    if(!stack || !tagsBtn) return;
-
-    let btn = document.getElementById("mndoTagStudioBtn");
-    if(btn) return;
-
-    btn = document.createElement("button");
-    btn.id = "mndoTagStudioBtn";
-    btn.type = "button";
-    btn.textContent = "Tag Studio";
-    btn.style.cssText = [
-      "position:fixed",
-      "top:48px",
-      "right:12px",
-      "height:30px",
-      "padding:0 12px",
-      "border-radius:999px",
-      "border:1px solid rgba(255,255,255,.14)",
-      "background:rgba(0,0,0,.45)",
-      "color:#fff",
-      "cursor:pointer",
-      "z-index:999998",
-      "backdrop-filter:blur(4px)",
-      "font-weight:600",
-      "font-size:13px"
-    ].join(";");
-
-    btn.addEventListener("click", open);
-
-    // Don't break existing Tags button; also open studio when clicking Tags
-    tagsBtn.addEventListener("click", function(e){
-      e.preventDefault();
-      open();
-    });
-
-    document.body.appendChild(btn);
+  function hideTags(){
+    ensureOverlay();
+    tagsContainer.style.display = 'none';
+    document.body.classList.remove('tags-open');
   }
 
-  document.addEventListener("DOMContentLoaded", function(){
-    // Ensure move1 exists (HTML still calls it on mousemove)
-    if (typeof window.move1 !== "function") window.move1 = function(){};
+  function toggleTags(){
     ensureOverlay();
-    ensureTagStudioBtn();
+    if(tagsContainer.style.display === 'block') hideTags();
+    else showTags();
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    try{
+      ensureOverlay();
+      const tagsBtn = document.getElementById('bat2');
+      if(tagsBtn){
+        tagsBtn.addEventListener('click', function(e){
+          if(e) e.preventDefault();
+          toggleTags();
+        });
+      }
+    }catch(ex){
+      console.warn(ex);
+    }
   });
 })();
