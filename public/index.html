@@ -18323,6 +18323,37 @@ https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeNam
     border-color: rgba(106,167,255,.55);
     box-shadow: 0 0 0 4px rgba(106,167,255,.16);
   }
+
+/* ===== Fix: datetime picker value not visible on some Chrome dark themes ===== */
+#outageNormalPanel input[type="datetime-local"]{
+  color: var(--text);
+  -webkit-text-fill-color: var(--text);
+}
+#outageNormalPanel input[type="datetime-local"]::-webkit-datetime-edit,
+#outageNormalPanel input[type="datetime-local"]::-webkit-datetime-edit-text,
+#outageNormalPanel input[type="datetime-local"]::-webkit-datetime-edit-month-field,
+#outageNormalPanel input[type="datetime-local"]::-webkit-datetime-edit-day-field,
+#outageNormalPanel input[type="datetime-local"]::-webkit-datetime-edit-year-field,
+#outageNormalPanel input[type="datetime-local"]::-webkit-datetime-edit-hour-field,
+#outageNormalPanel input[type="datetime-local"]::-webkit-datetime-edit-minute-field,
+#outageNormalPanel input[type="datetime-local"]::-webkit-datetime-edit-ampm-field{
+  color: var(--text);
+  -webkit-text-fill-color: var(--text);
+  opacity: 1;
+}
+#outageNormalPanel input[type="datetime-local"]::-webkit-calendar-picker-indicator{
+  filter: invert(1) brightness(1.15);
+  opacity: .9;
+  cursor: pointer;
+}
+/* ===== Field color upgrade (more contrast) ===== */
+#outageNormalPanel input, #outageNormalPanel select{
+  background: rgba(255,255,255,.085);
+  border-color: rgba(255,255,255,.24);
+}
+#outageNormalPanel input::placeholder{
+  color: rgba(234,240,255,.55);
+}
 #outageNormalPanel button {border-radius: var(--radius);}
 #outageNormalPanel .primary {
     background: linear-gradient(135deg, var(--accent), var(--accent2));
