@@ -3865,141 +3865,66 @@ document.addEventListener('DOMContentLoaded', function(){
       // Dark semi‑transparent backdrop
       tagsContainer.style.backgroundColor = 'rgba(5,5,15,0.95)';
 
-      // Render Tags.html inside the overlay (NO iframe).
-      // NOTE: Vercel may send X-Frame-Options: deny, which breaks iframes even on same-origin.
-      // So we fetch the HTML and inline it once (styles + scripts) inside the overlay.
-      var tagsPanel = document.createElement('div');
-      tagsPanel.id = 'tagsPanel';
-      tagsPanel.style.position = 'relative';
-      tagsPanel.style.width = '100%';
-      tagsPanel.style.height = '100%';
-      tagsPanel.style.overflow = 'auto';
-      tagsPanel.style.padding = '0';
-      tagsPanel.style.margin = '0';
-      tagsPanel.style.boxSizing = 'border-box';
-      tagsContainer.appendChild(tagsPanel);
 
-      function loadTagsHtmlOnce(){
-        if(tagsPanel.__tagsLoaded) return;
-        tagsPanel.__tagsLoaded = true;
+// Render Tags.html inside the overlay using an iframe WITH srcdoc (NO URL-framing).
+// Why srcdoc? Vercel sends `X-Frame-Options: DENY`, which blocks iframes that load a URL
+// (even same-origin). Using `srcdoc` avoids framing a URL entirely, while still isolating
+// Tags scripts/styles so they don't break the main tool (timers/globals).
+var tagsPanel = document.createElement('div');
+tagsPanel.id = 'tagsPanel';
+tagsPanel.style.position = 'relative';
+tagsPanel.style.width = '100%';
+tagsPanel.style.height = '100%';
+tagsPanel.style.overflow = 'hidden';
+tagsPanel.style.padding = '0';
+tagsPanel.style.margin = '0';
+tagsPanel.style.boxSizing = 'border-box';
+tagsContainer.appendChild(tagsPanel);
 
-        fetch('/Tags.html', { cache: 'no-store' })
-          .then(function(r){ return r.text(); })
-          .then(function(html){
-            try {
-              // Parse the HTML properly so we don't miss <head> scripts (e.g., jQuery) and
-              // we preserve the original execution order as much as possible.
-              var parser = new DOMParser();
-              var doc = parser.parseFromString(html, 'text/html');
+var tagsFrame = document.createElement('iframe');
+tagsFrame.id = 'tagsFrame';
+tagsFrame.style.width = '100%';
+tagsFrame.style.height = '100%';
+tagsFrame.style.border = '0';
+tagsFrame.style.display = 'block';
+tagsFrame.style.background = 'transparent';
 
-              // Collect <style> blocks (head + body)
-              var styleCss = [];
-              Array.prototype.forEach.call(doc.querySelectorAll('style'), function(st){
-                styleCss.push(st.textContent || '');
-              });
+// Sandbox keeps any navigation (e.g. opening IVR .htm) INSIDE the frame,
+// so it won't change the main page URL or kick the user out of the tool.
+// We allow same-origin so Tags can load local assets (css/js/images) normally.
+// We do NOT allow top-navigation.
+tagsFrame.setAttribute('sandbox', 'allow-scripts allow-forms allow-same-origin');
+tagsPanel.appendChild(tagsFrame);
 
-              // Collect scripts in document order (includes <head> scripts!)
-              var scripts = [];
-              Array.prototype.forEach.call(doc.querySelectorAll('script'), function(sc){
-                scripts.push({
-                  src: sc.getAttribute('src'),
-                  code: sc.textContent || ''
-                });
-              });
+function loadTagsHtmlOnce(){
+  if(tagsFrame.__tagsLoaded) return;
+  tagsFrame.__tagsLoaded = true;
 
-              // Prepare body HTML without script tags
-              var bodyClone = doc.body ? doc.body.cloneNode(true) : null;
-              if(bodyClone){
-                Array.prototype.forEach.call(bodyClone.querySelectorAll('script'), function(s){ s.remove(); });
-                tagsPanel.innerHTML = bodyClone.innerHTML;
-              } else {
-                tagsPanel.innerHTML = html;
-              }
-
-              // Add styles (once)
-              if(styleCss.length){
-                var st = document.createElement('style');
-                st.setAttribute('data-tags-inline', '1');
-                st.textContent = styleCss.join('\n');
-                tagsPanel.prepend(st);
-              }
-
-              // Execute scripts in order
-              (function runScripts(i){
-                var inlineBuf = '';
-
-                function execInline(buf){
-                  if(!buf || !buf.trim()) return;
-                  // Make DOMContentLoaded / load handlers run even though the main page is already loaded
-                  buf = buf.replace(/document\.addEventListener\(\s*['\"]DOMContentLoaded['\"]\s*,/g, '__tagsReady(');
-                  buf = buf.replace(/window\.addEventListener\(\s*['\"]load['\"]\s*,/g, '__tagsReady(');
-
-                  // Insert as-is (global scope) to preserve Tags.html behavior
-                  var sc = document.createElement('script');
-                  sc.type = 'text/javascript';
-                  sc.text = buf;
-                  tagsPanel.appendChild(sc);
-                }
-
-                // Helper available for rewritten onReady hooks
-                if(!window.__tagsReady){
-                  window.__tagsReady = function(fn){
-                    try {
-                      if(document.readyState && document.readyState !== 'loading') fn();
-                      else document.addEventListener('DOMContentLoaded', fn, { once:true });
-                    } catch(e){ /* ignore */ }
-                  };
-                }
-
-                function next(j){
-                  // End: flush remaining inline and stop
-                  if(j >= scripts.length){
-                    execInline(inlineBuf);
-                    inlineBuf = '';
-                    return;
-                  }
-
-                  var s = scripts[j];
-
-                  // Inline script: buffer and continue
-                  if(!s.src){
-                    inlineBuf += "\n" + (s.code || '') + "\n";
-                    return next(j+1);
-                  }
-
-                  var src = (s.src || '').trim();
-
-                  // Skip aggressive/unsafe scripts that break the host tool (e.g., disable-devtool)
-                  if(/disable-devtool/i.test(src)){
-                    return next(j+1);
-                  }
-
-                  // Before loading an external script, execute any buffered inline scripts in-order
-                  execInline(inlineBuf);
-                  inlineBuf = '';
-
-                  var sc = document.createElement('script');
-                  sc.async = false;
-                  sc.defer = false;
-                  sc.src = src;
-                  sc.onload = function(){ next(j+1); };
-                  sc.onerror = function(){ next(j+1); };
-                  tagsPanel.appendChild(sc);
-                }
-
-                next(i);
-              })(0);
-
-            } catch (e) {
-              console.error('Tags.html parse error', e);
-              tagsPanel.innerHTML = '<div style="color:#fff;padding:20px;font-family:system-ui">تعذر تحميل صفحة الـ Tags. جرّب Refresh.</div>';
-            }
-          })
-          .catch(function(err){
-            console.error('Failed to load Tags.html', err);
-            tagsPanel.innerHTML = '<div style="color:#fff;padding:20px;font-family:system-ui">تعذر تحميل صفحة الـ Tags. تحقق من وجود Tags.html داخل /public.</div>';
+  fetch('/Tags.html', { cache: 'no-store' })
+    .then(function(r){ return r.text(); })
+    .then(function(html){
+      try {
+        // Ensure relative URLs inside Tags.html resolve from site root
+        if (!/\<base\b/i.test(html)) {
+          html = html.replace(/<head(\b[^>]*)>/i, function(m){
+            return m + "\n<base href=\"/\" />\n";
           });
+        }
+
+        // Block aggressive devtools-disabling scripts inside Tags.html if present.
+        html = html.replace(/<script[^>]*src=["'][^"']*disable-devtool[^"']*["'][^>]*>\s*<\/script>/gi, '');
+
+        tagsFrame.srcdoc = html;
+      } catch (e) {
+        console.error('Tags.html srcdoc error', e);
+        tagsFrame.srcdoc = '<html><body style="margin:0;background:#05050f;color:#fff;font-family:system-ui;padding:20px">تعذر تحميل صفحة الـ Tags. جرّب Refresh.</body></html>';
       }
+    })
+    .catch(function(err){
+      console.error('Failed to load Tags.html', err);
+      tagsFrame.srcdoc = '<html><body style="margin:0;background:#05050f;color:#fff;font-family:system-ui;padding:20px">تعذر تحميل صفحة الـ Tags. تحقق من وجود Tags.html داخل /public.</body></html>';
+    });
+}
 // Create a close button inside the overlay so the user can exit the Tags view
       var closeBtnEl = document.createElement('button');
       closeBtnEl.id = 'closeTagsBtn';
