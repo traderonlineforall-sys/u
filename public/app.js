@@ -3837,18 +3837,13 @@ if (typeof move1 !== "function") {
   }
 }
 
-// Integrate Tags.html into the main page by toggling an overlay that renders Tags.html
-// inside a SAME-ORIGIN iframe (so we preserve Tags.html logic without JS/CSS collisions).
-// This avoids issues like duplicated identifiers or global variables leaking into the main page.
+// Integrate Tags.html into the main page by toggling an overlay with an iframe.
+// When the user clicks the Tags button (#bat2) the overlay is shown, and it is hidden when the close button is clicked.
 document.addEventListener('DOMContentLoaded', function(){
   try {
     var tagsBtn = document.getElementById('bat2');
-    if(!tagsBtn) return;
-
     var tagsContainer = document.getElementById('tagsContainer');
-    var tagsIframe = document.getElementById('tagsIframe');
-    var closeBtn = document.getElementById('closeTagsBtn');
-
+    // If the overlay container doesn't exist in the DOM, create it dynamically.
     if(!tagsContainer){
       tagsContainer = document.createElement('div');
       tagsContainer.id = 'tagsContainer';
@@ -3858,82 +3853,210 @@ document.addEventListener('DOMContentLoaded', function(){
       tagsContainer.style.left = '0';
       tagsContainer.style.width = '100%';
       tagsContainer.style.height = '100%';
+      // Place the overlay above all existing UI elements. Some parts of the UA07
+      // interface (such as the search input and results) use extremely high
+      // z-index values (2,147,483,646 and above). Using a modest value like
+      // 999,999 would still place the overlay underneath those elements,
+      // causing the logo and search bar to remain visible. To ensure the
+      // overlay covers every other element, assign a z-index near the top of
+      // the valid range. 2,147,483,647 is the maximum 32-bit signed integer,
+      // and values slightly below it will safely layer above existing UI.
       tagsContainer.style.zIndex = '2147483646';
-      tagsContainer.style.backgroundColor = 'rgba(0,0,0,0.92)';
+      // Dark semi‑transparent backdrop
+      tagsContainer.style.backgroundColor = 'rgba(5,5,15,0.95)';
 
-      // Panel wrapper
-      var panel = document.createElement('div');
-      panel.id = 'tagsPanel';
-      panel.style.position = 'absolute';
-      panel.style.inset = '0';
-      panel.style.width = '100%';
-      panel.style.height = '100%';
-      panel.style.overflow = 'hidden';
-      panel.style.borderRadius = '0';
-      panel.style.boxSizing = 'border-box';
+      // Render Tags.html inside the overlay (NO iframe).
+      // NOTE: Vercel may send X-Frame-Options: deny, which breaks iframes even on same-origin.
+      // So we fetch the HTML and inline it once (styles + scripts) inside the overlay.
+      var tagsPanel = document.createElement('div');
+      tagsPanel.id = 'tagsPanel';
+      tagsPanel.style.position = 'relative';
+      tagsPanel.style.width = '100%';
+      tagsPanel.style.height = '100%';
+      tagsPanel.style.overflow = 'auto';
+      tagsPanel.style.padding = '0';
+      tagsPanel.style.margin = '0';
+      tagsPanel.style.boxSizing = 'border-box';
+      tagsContainer.appendChild(tagsPanel);
 
-      // Same-origin iframe to keep Tags.html fully intact
-      tagsIframe = document.createElement('iframe');
-      tagsIframe.id = 'tagsIframe';
-      tagsIframe.src = '/Tags.html';
-      tagsIframe.title = 'Tags';
-      tagsIframe.style.width = '100%';
-      tagsIframe.style.height = '100%';
-      tagsIframe.style.border = '0';
-      tagsIframe.style.background = 'transparent';
-      // Allow clipboard + popups if Tags.html needs it
-      tagsIframe.setAttribute('allow', 'clipboard-read; clipboard-write;');
-      // Same-origin by default; do NOT sandbox to avoid breaking its scripts
-      panel.appendChild(tagsIframe);
+      function loadTagsHtmlOnce(){
+        if(tagsPanel.__tagsLoaded) return;
+        tagsPanel.__tagsLoaded = true;
 
-      // Close button
-      closeBtn = document.createElement('button');
-      closeBtn.id = 'closeTagsBtn';
-      closeBtn.type = 'button';
-      closeBtn.textContent = '\u00D7';
-      closeBtn.style.position = 'absolute';
-      closeBtn.style.top = '10px';
-      closeBtn.style.right = '10px';
-      closeBtn.style.zIndex = '2147483647';
-      closeBtn.style.width = '36px';
-      closeBtn.style.height = '36px';
-      closeBtn.style.lineHeight = '36px';
-      closeBtn.style.borderRadius = '10px';
-      closeBtn.style.border = '1px solid rgba(255,255,255,0.25)';
-      closeBtn.style.background = 'rgba(0,0,0,0.55)';
-      closeBtn.style.color = '#fff';
-      closeBtn.style.fontSize = '22px';
-      closeBtn.style.cursor = 'pointer';
+        fetch('/Tags.html', { cache: 'no-store' })
+          .then(function(r){ return r.text(); })
+          .then(function(html){
+            try {
+              // Collect <style> blocks from anywhere in the file
+              var styleCss = [];
+              html = html.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, function(_, css){
+                styleCss.push(css || '');
+                return '';
+              });
 
-      tagsContainer.appendChild(panel);
-      tagsContainer.appendChild(closeBtn);
+              // Extract <body> content (fallback to full HTML if missing)
+              var bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+              var bodyHtml = bodyMatch ? bodyMatch[1] : html;
+
+              // Extract scripts from body and execute after DOM insertion
+              var scripts = [];
+              bodyHtml = bodyHtml.replace(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi, function(_, attrs, code){
+                scripts.push({ attrs: attrs || '', code: code || '' });
+                return '';
+              });
+
+              // Insert HTML first
+              tagsPanel.innerHTML = bodyHtml;
+
+              // Add styles (once)
+              if(styleCss.length){
+                var st = document.createElement('style');
+                st.setAttribute('data-tags-inline', '1');
+                st.textContent = styleCss.join('\n');
+                tagsPanel.prepend(st);
+              }
+
+              // Execute scripts in order
+              (function runScripts(i){
+                var inlineBuf = '';
+
+                function execInline(buf){
+                  if(!buf || !buf.trim()) return;
+                  // Make DOMContentLoaded / load handlers run even though the main page is already loaded
+                  buf = buf.replace(/document\.addEventListener\(\s*['\"]DOMContentLoaded['\"]\s*,/g, '__tagsReady(');
+                  buf = buf.replace(/window\.addEventListener\(\s*['\"]load['\"]\s*,/g, '__tagsReady(');
+
+                  // Wrap in a single IIFE to avoid leaking identifiers into the main tool scope
+                  var wrapped = "\n;(function(){\n" + buf + "\n}).call(window);\n";
+                  var sc = document.createElement('script');
+                  sc.type = 'text/javascript';
+                  sc.text = wrapped;
+                  tagsPanel.appendChild(sc);
+                }
+
+                // Helper available for rewritten onReady hooks
+                if(!window.__tagsReady){
+                  window.__tagsReady = function(fn){
+                    try {
+                      if(document.readyState && document.readyState !== 'loading') fn();
+                      else document.addEventListener('DOMContentLoaded', fn, { once:true });
+                    } catch(e){ /* ignore */ }
+                  };
+                }
+
+                function next(j){
+                  // End: flush remaining inline and stop
+                  if(j >= scripts.length){
+                    execInline(inlineBuf);
+                    inlineBuf = '';
+                    return;
+                  }
+
+                  var s = scripts[j];
+                  var srcM = s.attrs.match(/src\s*=\s*[\"']([^\"']+)[\"']/i);
+
+                  // Inline script: buffer and continue
+                  if(!srcM){
+                    inlineBuf += "\n" + (s.code || '') + "\n";
+                    return next(j+1);
+                  }
+
+                  var src = (srcM[1] || '').trim();
+
+                  // Skip aggressive/unsafe scripts that break the host tool (e.g., disable-devtool)
+                  if(/disable-devtool/i.test(src)){
+                    return next(j+1);
+                  }
+
+                  // Before loading an external script, execute any buffered inline scripts in-order
+                  execInline(inlineBuf);
+                  inlineBuf = '';
+
+                  var sc = document.createElement('script');
+                  sc.async = false;
+                  sc.defer = false;
+                  sc.src = src;
+                  sc.onload = function(){ next(j+1); };
+                  sc.onerror = function(){ next(j+1); };
+                  tagsPanel.appendChild(sc);
+                }
+
+                next(i);
+              })(0);
+
+            } catch (e) {
+              console.error('Tags.html parse error', e);
+              tagsPanel.innerHTML = '<div style="color:#fff;padding:20px;font-family:system-ui">تعذر تحميل صفحة الـ Tags. جرّب Refresh.</div>';
+            }
+          })
+          .catch(function(err){
+            console.error('Failed to load Tags.html', err);
+            tagsPanel.innerHTML = '<div style="color:#fff;padding:20px;font-family:system-ui">تعذر تحميل صفحة الـ Tags. تحقق من وجود Tags.html داخل /public.</div>';
+          });
+      }
+// Create a close button inside the overlay so the user can exit the Tags view
+      var closeBtnEl = document.createElement('button');
+      closeBtnEl.id = 'closeTagsBtn';
+      closeBtnEl.textContent = '\u00D7'; // multiplication sign looks like an “x”
+      closeBtnEl.style.position = 'absolute';
+      closeBtnEl.style.top = '10px';
+      closeBtnEl.style.right = '10px';
+      // Ensure the close button sits atop the overlay as well
+      closeBtnEl.style.zIndex = '2147483647';
+      closeBtnEl.style.backgroundColor = 'rgba(255,255,255,0.8)';
+      closeBtnEl.style.color = '#000';
+      closeBtnEl.style.border = 'none';
+      closeBtnEl.style.padding = '6px 10px';
+      closeBtnEl.style.fontSize = '16px';
+      closeBtnEl.style.borderRadius = '4px';
+      closeBtnEl.style.cursor = 'pointer';
+      tagsContainer.appendChild(closeBtnEl);
+
+      // Append the overlay to the document body
       document.body.appendChild(tagsContainer);
 
-      closeBtn.addEventListener('click', function(){ hideTags(); });
-    }
+      // Assign close button click handler to hide the overlay
+      closeBtnEl.addEventListener('click', function(){
+        hideTags();
+      });
 
+      // Update closeBtn variable to point to the dynamically created button
+      closeBtn = closeBtnEl;
+    }
+    var closeBtn = document.getElementById('closeTagsBtn');
+    // When the Tags panel is shown, we mark the body with a class and show the overlay.
+    // Helper to show the Tags overlay and apply a class on the body to hide other content.
     function showTags(){
+      // Add a class to the body so CSS can hide all siblings except the overlay
       document.body.classList.add('tags-open');
+      loadTagsHtmlOnce();
       tagsContainer.style.display = 'block';
-      // Ensure iframe is loaded (in case it was removed/replaced by the browser)
-      if(tagsIframe && !tagsIframe.src) tagsIframe.src = '/Tags.html';
     }
-
+    // Helper to hide the Tags overlay and remove the body class to restore content.
     function hideTags(){
       tagsContainer.style.display = 'none';
       document.body.classList.remove('tags-open');
     }
-
-    tagsBtn.addEventListener('click', function(e){
-      if(e) e.preventDefault();
-      if(tagsContainer.style.display === 'block') hideTags();
-      else showTags();
-    });
-
+    if(tagsBtn && tagsContainer){
+      tagsBtn.addEventListener('click', function(e){
+        // Prevent the default anchor behaviour (which would try to load Tags.html in a new tab)
+        if(e) e.preventDefault();
+        // Toggle: if container is visible hide it, otherwise show it
+        if(tagsContainer.style.display === 'block'){
+          hideTags();
+        } else {
+          showTags();
+        }
+      });
+    }
     if(closeBtn){
-      closeBtn.addEventListener('click', function(){ hideTags(); });
+      // If a close button is provided inside the overlay, hide the overlay when clicked
+      closeBtn.addEventListener('click', function(){
+        hideTags();
+      });
     }
   } catch (ex) {
+    // swallow any errors to avoid breaking the page
     console.error(ex);
   }
 });
