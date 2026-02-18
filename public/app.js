@@ -3865,88 +3865,35 @@ document.addEventListener('DOMContentLoaded', function(){
       // Dark semi‑transparent backdrop
       tagsContainer.style.backgroundColor = 'rgba(5,5,15,0.95)';
 
-      // Load Tags.html inline (NO iframe) to avoid X-Frame-Options / frame-ancestors restrictions on Vercel.
-      var tagsPanel = document.createElement('div');
-      tagsPanel.id = 'tagsPanel';
-      tagsPanel.style.position = 'relative';
-      tagsPanel.style.width = '100%';
-      tagsPanel.style.height = '100%';
-      tagsPanel.style.overflow = 'auto';
-      tagsPanel.style.padding = '24px';
-      tagsPanel.style.boxSizing = 'border-box';
-      tagsContainer.appendChild(tagsPanel);
+      // Render Tags.html inside the overlay using a same-origin iframe.
+// This ensures all inline scripts/styles in Tags.html execute normally (needed for Tag Studio UI).
+var tagsPanel = document.createElement('div');
+tagsPanel.id = 'tagsPanel';
+tagsPanel.style.position = 'relative';
+tagsPanel.style.width = '100%';
+tagsPanel.style.height = '100%';
+tagsPanel.style.overflow = 'hidden';
+tagsPanel.style.padding = '0';
+tagsPanel.style.margin = '0';
+tagsPanel.style.boxSizing = 'border-box';
 
-      // Fetch and inject Tags.html into the overlay
-      fetch('/Tags.html', { cache: 'no-store' })
-        .then(function(r){ return r.text(); })
-        .then(function(htmlText){
-          try {
-            var parser = new DOMParser();
-            var doc = parser.parseFromString(htmlText, 'text/html');
+// Iframe (same origin)
+var tagsFrame = document.createElement('iframe');
+tagsFrame.id = 'tagsFrame';
+tagsFrame.src = '/Tags.html';
+tagsFrame.style.width = '100%';
+tagsFrame.style.height = '100%';
+tagsFrame.style.border = '0';
+tagsFrame.style.background = 'transparent';
+tagsFrame.setAttribute('loading', 'lazy');
+// Allow the Tags tool to run its own scripts; same-origin is required for internal copy buttons etc.
+tagsFrame.setAttribute('allow', 'clipboard-read; clipboard-write');
 
-            // Inject head styles (style + link rel=stylesheet)
-            var headNodes = doc.head ? Array.from(doc.head.querySelectorAll('style,link[rel="stylesheet"]')) : [];
-            headNodes.forEach(function(node){
-              // Avoid duplicates by id/href
-              if (node.tagName === 'STYLE') {
-                var id = node.getAttribute('id');
-                if (id && document.getElementById(id)) return;
-                var styleEl = document.createElement('style');
-                if (id) styleEl.id = id;
-                styleEl.textContent = node.textContent || '';
-                tagsPanel.appendChild(styleEl);
-              } else if (node.tagName === 'LINK') {
-                var href = node.getAttribute('href');
-                if (!href) return;
-                if (tagsPanel.querySelector('link[href="'+href+'"]')) return;
-                var linkEl = document.createElement('link');
-                linkEl.rel = 'stylesheet';
-                linkEl.href = href;
-                tagsPanel.appendChild(linkEl);
-              }
-            });
+tagsPanel.appendChild(tagsFrame);
+tagsContainer.appendChild(tagsPanel);
 
-            // Body content
-            var body = doc.body;
-            if (body) {
-              // Wrap body content in a container for styling isolation
-              var bodyWrap = document.createElement('div');
-              bodyWrap.id = 'tagsBody';
-              bodyWrap.style.minHeight = '100%';
-              bodyWrap.style.width = '100%';
-              bodyWrap.style.boxSizing = 'border-box';
-              bodyWrap.innerHTML = body.innerHTML;
-              tagsPanel.appendChild(bodyWrap);
-
-              // Re-execute scripts (inline + src)
-              var scripts = Array.from(bodyWrap.querySelectorAll('script'));
-              scripts.forEach(function(oldScript){
-                var newScript = document.createElement('script');
-                // Copy attributes
-                Array.from(oldScript.attributes || []).forEach(function(attr){
-                  newScript.setAttribute(attr.name, attr.value);
-                });
-                if (oldScript.src) {
-                  newScript.src = oldScript.src;
-                  newScript.async = false;
-                } else {
-                  newScript.textContent = oldScript.textContent || '';
-                }
-                oldScript.parentNode.replaceChild(newScript, oldScript);
-              });
-            }
-          } catch(e) {
-            tagsPanel.innerHTML = '<div style="color:#fff; font-family:Arial; padding:16px;">Failed to load Tags view.</div>';
-            console.error('Tags inline load failed:', e);
-          }
-        })
-        .catch(function(err){
-          tagsPanel.innerHTML = '<div style="color:#fff; font-family:Arial; padding:16px;">Failed to load Tags view.</div>';
-          console.error('Tags fetch failed:', err);
-        });
-
-
-      // Create a close button inside the overlay so the user can exit the Tags view
+// Create a close button inside the overlay so the user can exit the Tags view
+ so the user can exit the Tags view
       var closeBtnEl = document.createElement('button');
       closeBtnEl.id = 'closeTagsBtn';
       closeBtnEl.textContent = '\u00D7'; // multiplication sign looks like an “x”
