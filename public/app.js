@@ -3887,26 +3887,34 @@ document.addEventListener('DOMContentLoaded', function(){
           .then(function(r){ return r.text(); })
           .then(function(html){
             try {
-              // Collect <style> blocks from anywhere in the file
+              // Parse the HTML properly so we don't miss <head> scripts (e.g., jQuery) and
+              // we preserve the original execution order as much as possible.
+              var parser = new DOMParser();
+              var doc = parser.parseFromString(html, 'text/html');
+
+              // Collect <style> blocks (head + body)
               var styleCss = [];
-              html = html.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, function(_, css){
-                styleCss.push(css || '');
-                return '';
+              Array.prototype.forEach.call(doc.querySelectorAll('style'), function(st){
+                styleCss.push(st.textContent || '');
               });
 
-              // Extract <body> content (fallback to full HTML if missing)
-              var bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-              var bodyHtml = bodyMatch ? bodyMatch[1] : html;
-
-              // Extract scripts from body and execute after DOM insertion
+              // Collect scripts in document order (includes <head> scripts!)
               var scripts = [];
-              bodyHtml = bodyHtml.replace(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi, function(_, attrs, code){
-                scripts.push({ attrs: attrs || '', code: code || '' });
-                return '';
+              Array.prototype.forEach.call(doc.querySelectorAll('script'), function(sc){
+                scripts.push({
+                  src: sc.getAttribute('src'),
+                  code: sc.textContent || ''
+                });
               });
 
-              // Insert HTML first
-              tagsPanel.innerHTML = bodyHtml;
+              // Prepare body HTML without script tags
+              var bodyClone = doc.body ? doc.body.cloneNode(true) : null;
+              if(bodyClone){
+                Array.prototype.forEach.call(bodyClone.querySelectorAll('script'), function(s){ s.remove(); });
+                tagsPanel.innerHTML = bodyClone.innerHTML;
+              } else {
+                tagsPanel.innerHTML = html;
+              }
 
               // Add styles (once)
               if(styleCss.length){
@@ -3952,15 +3960,14 @@ document.addEventListener('DOMContentLoaded', function(){
                   }
 
                   var s = scripts[j];
-                  var srcM = s.attrs.match(/src\s*=\s*[\"']([^\"']+)[\"']/i);
 
                   // Inline script: buffer and continue
-                  if(!srcM){
+                  if(!s.src){
                     inlineBuf += "\n" + (s.code || '') + "\n";
                     return next(j+1);
                   }
 
-                  var src = (srcM[1] || '').trim();
+                  var src = (s.src || '').trim();
 
                   // Skip aggressive/unsafe scripts that break the host tool (e.g., disable-devtool)
                   if(/disable-devtool/i.test(src)){
