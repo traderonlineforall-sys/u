@@ -3893,7 +3893,6 @@ tagsPanel.appendChild(tagsFrame);
 tagsContainer.appendChild(tagsPanel);
 
 // Create a close button inside the overlay so the user can exit the Tags view
- so the user can exit the Tags view
       var closeBtnEl = document.createElement('button');
       closeBtnEl.id = 'closeTagsBtn';
       closeBtnEl.textContent = '\u00D7'; // multiplication sign looks like an “x”
