@@ -3865,33 +3865,92 @@ document.addEventListener('DOMContentLoaded', function(){
       // Dark semi‑transparent backdrop
       tagsContainer.style.backgroundColor = 'rgba(5,5,15,0.95)';
 
-      // Render Tags.html inside the overlay using a same-origin iframe.
-// This ensures all inline scripts/styles in Tags.html execute normally (needed for Tag Studio UI).
-var tagsPanel = document.createElement('div');
-tagsPanel.id = 'tagsPanel';
-tagsPanel.style.position = 'relative';
-tagsPanel.style.width = '100%';
-tagsPanel.style.height = '100%';
-tagsPanel.style.overflow = 'hidden';
-tagsPanel.style.padding = '0';
-tagsPanel.style.margin = '0';
-tagsPanel.style.boxSizing = 'border-box';
+      // Render Tags.html inside the overlay (NO iframe).
+      // NOTE: Vercel may send X-Frame-Options: deny, which breaks iframes even on same-origin.
+      // So we fetch the HTML and inline it once (styles + scripts) inside the overlay.
+      var tagsPanel = document.createElement('div');
+      tagsPanel.id = 'tagsPanel';
+      tagsPanel.style.position = 'relative';
+      tagsPanel.style.width = '100%';
+      tagsPanel.style.height = '100%';
+      tagsPanel.style.overflow = 'auto';
+      tagsPanel.style.padding = '0';
+      tagsPanel.style.margin = '0';
+      tagsPanel.style.boxSizing = 'border-box';
+      tagsContainer.appendChild(tagsPanel);
 
-// Iframe (same origin)
-var tagsFrame = document.createElement('iframe');
-tagsFrame.id = 'tagsFrame';
-tagsFrame.src = '/Tags.html';
-tagsFrame.style.width = '100%';
-tagsFrame.style.height = '100%';
-tagsFrame.style.border = '0';
-tagsFrame.style.background = 'transparent';
-tagsFrame.setAttribute('loading', 'lazy');
-// Allow the Tags tool to run its own scripts; same-origin is required for internal copy buttons etc.
-tagsFrame.setAttribute('allow', 'clipboard-read; clipboard-write');
+      function loadTagsHtmlOnce(){
+        if(tagsPanel.__tagsLoaded) return;
+        tagsPanel.__tagsLoaded = true;
 
-tagsPanel.appendChild(tagsFrame);
-tagsContainer.appendChild(tagsPanel);
+        fetch('/Tags.html', { cache: 'no-store' })
+          .then(function(r){ return r.text(); })
+          .then(function(html){
+            try {
+              // Collect <style> blocks from anywhere in the file
+              var styleCss = [];
+              html = html.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, function(_, css){
+                styleCss.push(css || '');
+                return '';
+              });
 
+              // Extract <body> content (fallback to full HTML if missing)
+              var bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+              var bodyHtml = bodyMatch ? bodyMatch[1] : html;
+
+              // Extract scripts from body and execute after DOM insertion
+              var scripts = [];
+              bodyHtml = bodyHtml.replace(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi, function(_, attrs, code){
+                scripts.push({ attrs: attrs || '', code: code || '' });
+                return '';
+              });
+
+              // Insert HTML first
+              tagsPanel.innerHTML = bodyHtml;
+
+              // Add styles (once)
+              if(styleCss.length){
+                var st = document.createElement('style');
+                st.setAttribute('data-tags-inline', '1');
+                st.textContent = styleCss.join('\n');
+                tagsPanel.prepend(st);
+              }
+
+              // Execute scripts in order
+              (function runScripts(i){
+                if(i >= scripts.length) return;
+                var s = scripts[i];
+                var sc = document.createElement('script');
+
+                // Preserve type if any
+                var typeM = s.attrs.match(/type\s*=\s*["']([^"']+)["']/i);
+                if(typeM) sc.type = typeM[1];
+
+                // Handle src scripts
+                var srcM = s.attrs.match(/src\s*=\s*["']([^"']+)["']/i);
+                if(srcM && srcM[1]){
+                  sc.src = srcM[1];
+                  sc.async = false;
+                  sc.onload = function(){ runScripts(i+1); };
+                  sc.onerror = function(){ runScripts(i+1); };
+                  tagsPanel.appendChild(sc);
+                } else {
+                  sc.text = s.code;
+                  tagsPanel.appendChild(sc);
+                  runScripts(i+1);
+                }
+              })(0);
+
+            } catch (e) {
+              console.error('Tags.html parse error', e);
+              tagsPanel.innerHTML = '<div style="color:#fff;padding:20px;font-family:system-ui">تعذر تحميل صفحة الـ Tags. جرّب Refresh.</div>';
+            }
+          })
+          .catch(function(err){
+            console.error('Failed to load Tags.html', err);
+            tagsPanel.innerHTML = '<div style="color:#fff;padding:20px;font-family:system-ui">تعذر تحميل صفحة الـ Tags. تحقق من وجود Tags.html داخل /public.</div>';
+          });
+      }
 // Create a close button inside the overlay so the user can exit the Tags view
       var closeBtnEl = document.createElement('button');
       closeBtnEl.id = 'closeTagsBtn';
@@ -3927,6 +3986,7 @@ tagsContainer.appendChild(tagsPanel);
     function showTags(){
       // Add a class to the body so CSS can hide all siblings except the overlay
       document.body.classList.add('tags-open');
+      loadTagsHtmlOnce();
       tagsContainer.style.display = 'block';
     }
     // Helper to hide the Tags overlay and remove the body class to restore content.
