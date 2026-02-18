@@ -3926,11 +3926,10 @@ document.addEventListener('DOMContentLoaded', function(){
                   buf = buf.replace(/document\.addEventListener\(\s*['\"]DOMContentLoaded['\"]\s*,/g, '__tagsReady(');
                   buf = buf.replace(/window\.addEventListener\(\s*['\"]load['\"]\s*,/g, '__tagsReady(');
 
-                  // Wrap in a single IIFE to avoid leaking identifiers into the main tool scope
-                  var wrapped = "\n;(function(){\n" + buf + "\n}).call(window);\n";
+                  // Insert as-is (global scope) to preserve Tags.html behavior
                   var sc = document.createElement('script');
                   sc.type = 'text/javascript';
-                  sc.text = wrapped;
+                  sc.text = buf;
                   tagsPanel.appendChild(sc);
                 }
 
