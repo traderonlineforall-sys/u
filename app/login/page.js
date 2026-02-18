@@ -27,7 +27,7 @@ export default function LoginPage() {
       }
 
       // After cookie is set, go to the tool
-      window.location.href = "/index.html";
+      window.location.replace("/");
     } catch (e2) {
       setErr(e2?.message || "Login failed");
     } finally {
