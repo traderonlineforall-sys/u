@@ -8,32 +8,6 @@
 (function(){
   function $(id){ return document.getElementById(id); }
 
-  // Tabs (Mail / Normal) – optional; only runs if elements exist.
-  const tabMail = $("outageTabMail");
-  const tabNormal = $("outageTabNormal");
-  const panelMail = $("outageMailPanel");
-  const panelNormal = $("outageNormalPanel");
-
-  function setOutageTab(which){
-    if(!tabMail || !tabNormal || !panelMail || !panelNormal) return;
-    const isMail = which === "mail";
-    tabMail.classList.toggle("is-active", isMail);
-    tabNormal.classList.toggle("is-active", !isMail);
-    tabMail.setAttribute("aria-selected", isMail ? "true" : "false");
-    tabNormal.setAttribute("aria-selected", !isMail ? "true" : "false");
-    panelMail.classList.toggle("outage-panel-hidden", !isMail);
-    panelNormal.classList.toggle("outage-panel-hidden", isMail);
-
-    // Small UX nicety
-    if(isMail){
-      const search = $("outageBrasSearch");
-      search?.focus?.();
-    }
-  }
-
-  tabMail?.addEventListener?.("click", ()=> setOutageTab("mail"));
-  tabNormal?.addEventListener?.("click", ()=> setOutageTab("normal"));
-
   const elList = $("outageImpactedBras");
   const elSearch = $("outageBrasSearch");
   const elBtn = $("outageBrasCheckBtn");
@@ -44,9 +18,6 @@
   const elMsgRow = $("outageMessageRow");
 
   if(!elList || !elSearch || !elBtn || !elResult || !elMsg || !elCopy) return;
-
-  // Default view
-  setOutageTab("mail");
 
   function showMessageBox(show){
     if(!elMsgRow) return;

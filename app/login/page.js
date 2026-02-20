@@ -7,22 +7,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const [agreed, setAgreed] = useState(false);
-  const [agreeHint, setAgreeHint] = useState("");
 
   const canSubmit = useMemo(() => username.trim() && password, [username, password]);
-  const canProceed = useMemo(() => canSubmit && agreed, [canSubmit, agreed]);
 
   async function onSubmit(e) {
     e.preventDefault();
     setErr("");
-    setAgreeHint("");
-
-    if (!agreed) {
-      setAgreeHint("يرجى وضع علامة ✓ للموافقة قبل تسجيل الدخول.");
-      return;
-    }
-
     setBusy(true);
     try {
       const res = await fetch("/api/login", {
@@ -37,7 +27,7 @@ export default function LoginPage() {
       }
 
       // After cookie is set, go to the tool
-      window.location.replace("/");
+      window.location.href = "/index.html";
     } catch (e2) {
       setErr(e2?.message || "Login failed");
     } finally {
@@ -82,42 +72,14 @@ export default function LoginPage() {
 
           {err ? <div style={styles.error}>{err}</div> : null}
 
-          <button type="submit"
-            disabled={!canSubmit || busy}
-            aria-disabled={!canProceed || busy}
-            onClick={(e) => {
-              if (!agreed) {
-                e.preventDefault();
-                setAgreeHint("يرجى وضع علامة ✓ للموافقة قبل تسجيل الدخول.");
-              }
-            }}
-            style={{
-              ...styles.btn,
-              ...((!canProceed || busy) ? styles.btnDisabled : null),
-              ...(busy ? styles.btnBusy : null),
-            }}>
+          <button type="submit" disabled={!canSubmit || busy} style={{ ...styles.btn, ...(busy ? styles.btnBusy : null) }}>
             {busy ? "Signing in…" : "Sign in"}
           </button>
 
-          <div style={styles.consentBox}>
-            <label style={styles.consentLabel}>
-              <input
-                type="checkbox"
-                checked={agreed}
-                onChange={(e) => {
-                  setAgreed(e.target.checked);
-                  setAgreeHint("");
-                }}
-                style={styles.checkbox}
-              />
-              <span style={styles.consentText}>
-                أقرّ وأوافق على استخدام هذه الأداة بناءً على مسؤوليتي الشخصية.
-              </span>
-            </label>
-            {agreeHint ? <div style={styles.agreeHint}>{agreeHint}</div> : null}
+          <div style={styles.hint}>
+            Tip: set <code>BASIC_AUTH_USER</code> and <code>BASIC_AUTH_PASS</code> in Vercel Environment Variables.
           </div>
-
-</form>
+        </form>
       </div>
 
       <div style={styles.footer}>
