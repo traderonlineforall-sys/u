@@ -19,7 +19,11 @@ function clientIp(request) {
 
 function applySecurityHeaders(res) {
   // Lightweight headers that won't break the legacy tool UI.
-  res.headers.set("X-Frame-Options", "DENY");
+  // Allow embedding ONLY from the same origin so the root page can iframe /index.html
+  // while still preventing clickjacking from other sites.
+  res.headers.set("X-Frame-Options", "SAMEORIGIN");
+  // Modern equivalent for browsers that prefer CSP.
+  res.headers.set("Content-Security-Policy", "frame-ancestors 'self'");
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("Referrer-Policy", "same-origin");
   res.headers.set("Permissions-Policy", "geolocation=(), microphone=(), camera=()");

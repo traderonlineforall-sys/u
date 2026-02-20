@@ -168,10 +168,10 @@
     // treat "FBB" alone (or "FBB " / "FBB\t") as empty
     const s = String(v || "");
     const stripped = s.replace(/\s+/g,'');
-    if(stripped === "") return false;
-    if(/^FBB$/i.test(stripped)) return false;
+    if(stripped === "") return False;
+    if(/^FBB$/i.test(stripped)) return False;
     if(/^FBB\d*$/i.test(stripped)) return stripped.length > 3; // has digits
-    return true;
+    return True;
   }
 
   function enforceClear(){
@@ -3754,7 +3754,12 @@ link += myVariable; // إضافة المتغير إلى الرابط
                                                                 const input1 = document.getElementById("arabicNumber");
                                                                 const input2 = document.getElementById("input2");
                                                                 const input3 = document.getElementById("input3");
-                                                                let numberValue = input1.value;
+                                                                
+                                                                // Safety guard: some pages may not include input2/input3.
+                                                                if (!input1 || !input2 || !input3) {
+                                                                        return;
+                                                                }
+let numberValue = input1.value;
 
                                                                 // Get the value of input1
                                                                 const value = input1.value.trim();
@@ -3860,15 +3865,67 @@ document.addEventListener('DOMContentLoaded', function(){
       // Dark semi‑transparent backdrop
       tagsContainer.style.backgroundColor = 'rgba(5,5,15,0.95)';
 
-      // Create an iframe to host the tags page
-      var iframe = document.createElement('iframe');
-      iframe.setAttribute('src', 'Tags.html');
-      iframe.style.width = '100%';
-      iframe.style.height = '100%';
-      iframe.style.border = 'none';
-      tagsContainer.appendChild(iframe);
 
-      // Create a close button inside the overlay so the user can exit the Tags view
+// Render Tags.html inside the overlay using an iframe WITH srcdoc (NO URL-framing).
+// Why srcdoc? Vercel sends `X-Frame-Options: DENY`, which blocks iframes that load a URL
+// (even same-origin). Using `srcdoc` avoids framing a URL entirely, while still isolating
+// Tags scripts/styles so they don't break the main tool (timers/globals).
+var tagsPanel = document.createElement('div');
+tagsPanel.id = 'tagsPanel';
+tagsPanel.style.position = 'relative';
+tagsPanel.style.width = '100%';
+tagsPanel.style.height = '100%';
+tagsPanel.style.overflow = 'hidden';
+tagsPanel.style.padding = '0';
+tagsPanel.style.margin = '0';
+tagsPanel.style.boxSizing = 'border-box';
+tagsContainer.appendChild(tagsPanel);
+
+var tagsFrame = document.createElement('iframe');
+tagsFrame.id = 'tagsFrame';
+tagsFrame.style.width = '100%';
+tagsFrame.style.height = '100%';
+tagsFrame.style.border = '0';
+tagsFrame.style.display = 'block';
+tagsFrame.style.background = 'transparent';
+
+// Sandbox keeps any navigation (e.g. opening IVR .htm) INSIDE the frame,
+// so it won't change the main page URL or kick the user out of the tool.
+// We allow same-origin so Tags can load local assets (css/js/images) normally.
+// We do NOT allow top-navigation.
+tagsFrame.setAttribute('sandbox', 'allow-scripts allow-forms allow-same-origin');
+tagsPanel.appendChild(tagsFrame);
+
+function loadTagsHtmlOnce(){
+  if(tagsFrame.__tagsLoaded) return;
+  tagsFrame.__tagsLoaded = true;
+
+  fetch('/Tags.html', { cache: 'no-store' })
+    .then(function(r){ return r.text(); })
+    .then(function(html){
+      try {
+        // Ensure relative URLs inside Tags.html resolve from site root
+        if (!/\<base\b/i.test(html)) {
+          html = html.replace(/<head(\b[^>]*)>/i, function(m){
+            return m + "\n<base href=\"/\" />\n";
+          });
+        }
+
+        // Block aggressive devtools-disabling scripts inside Tags.html if present.
+        html = html.replace(/<script[^>]*src=["'][^"']*disable-devtool[^"']*["'][^>]*>\s*<\/script>/gi, '');
+
+        tagsFrame.srcdoc = html;
+      } catch (e) {
+        console.error('Tags.html srcdoc error', e);
+        tagsFrame.srcdoc = '<html><body style="margin:0;background:#05050f;color:#fff;font-family:system-ui;padding:20px">تعذر تحميل صفحة الـ Tags. جرّب Refresh.</body></html>';
+      }
+    })
+    .catch(function(err){
+      console.error('Failed to load Tags.html', err);
+      tagsFrame.srcdoc = '<html><body style="margin:0;background:#05050f;color:#fff;font-family:system-ui;padding:20px">تعذر تحميل صفحة الـ Tags. تحقق من وجود Tags.html داخل /public.</body></html>';
+    });
+}
+// Create a close button inside the overlay so the user can exit the Tags view
       var closeBtnEl = document.createElement('button');
       closeBtnEl.id = 'closeTagsBtn';
       closeBtnEl.textContent = '\u00D7'; // multiplication sign looks like an “x”
@@ -3903,6 +3960,7 @@ document.addEventListener('DOMContentLoaded', function(){
     function showTags(){
       // Add a class to the body so CSS can hide all siblings except the overlay
       document.body.classList.add('tags-open');
+      loadTagsHtmlOnce();
       tagsContainer.style.display = 'block';
     }
     // Helper to hide the Tags overlay and remove the body class to restore content.
@@ -4655,7 +4713,7 @@ function formatPortDetails(ocrText){
         const best = pickBestResult(allResults);
         const text = (best?.text || '').trim();
 
-        out.value = text || '';
+        out.value = text ? formatPortDetails(text) : '';
         setStatus(text ? `تم ✅ (${isHq ? 'HQ' : 'FAST'}) (Confidence: ${Math.round(best.conf)}%)` : 'لم يتم العثور على نص واضح — جرّب صورة أوضح/أكبر');
         return { text, confidence: (best && typeof best.conf === 'number') ? best.conf : -1 };
       } catch (e){
@@ -4837,41 +4895,3 @@ function handlePasteForOcr(e){
   });
 })();
 
-
-
-/* === SR Builder (Safe, Data-Driven) ===
-   Add new SR buttons/links without touching JS:
-   - Put <a class="sr-link" data-srtypeid="102038001" data-srname="Site Down">Site Down</a>
-   This script will generate the href using the base template and keep subsNumber= empty for injection.
-*/
-(function(){
-  try{
-    // Base template taken from existing working SR (Site Down). Only srTypeId & srTypeName/title placeholders.
-    const BASE = "https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName={srTypeName}&srTypeId={srTypeId}&t={t}&tabId=sr{tab}&topUrl=&custid=&serviceInfoChar107=2&serviceInfoChar111=1&&BMEWebToken=null&serviceTitle=%20{title}&serviceInfoChar282=%20{title}&serviceInfoChar276=1&serviceInfoChar278=1&serviceInfoChar272=0&serviceContent=&subsNumber=";
-
-    function enc(x){ return encodeURIComponent(String(x||"").trim()); }
-    function now(){ return Date.now(); }
-    function tab(){ return Math.random().toString().slice(2); }
-
-    window.buildSrLink = function buildSrLink(srTypeId, name){
-      const n = String(name||"").trim() || "SR";
-      const title = n;
-      return BASE
-        .replaceAll("{srTypeId}", enc(srTypeId))
-        .replaceAll("{srTypeName}", enc(n))
-        .replaceAll("{title}", enc(title))
-        .replaceAll("{t}", String(now()))
-        .replaceAll("{tab}", tab());
-    };
-
-    document.addEventListener("DOMContentLoaded", function(){
-      document.querySelectorAll("a[data-srtypeid]").forEach(a=>{
-        const id = a.getAttribute("data-srtypeid");
-        const nm = a.getAttribute("data-srname") || a.textContent || "SR";
-        if(!a.getAttribute("href") || a.getAttribute("href")==="#" ){
-          a.setAttribute("href", window.buildSrLink(id, nm));
-        }
-      });
-    });
-  }catch(e){ console.warn("SR Builder init failed", e); }
-})();
