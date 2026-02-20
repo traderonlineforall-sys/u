@@ -168,10 +168,10 @@
     // treat "FBB" alone (or "FBB " / "FBB\t") as empty
     const s = String(v || "");
     const stripped = s.replace(/\s+/g,'');
-    if(stripped === "") return False;
-    if(/^FBB$/i.test(stripped)) return False;
+    if(stripped === "") return false;
+    if(/^FBB$/i.test(stripped)) return false;
     if(/^FBB\d*$/i.test(stripped)) return stripped.length > 3; // has digits
-    return True;
+    return true;
   }
 
   function enforceClear(){
@@ -4713,7 +4713,8 @@ function formatPortDetails(ocrText){
         const best = pickBestResult(allResults);
         const text = (best?.text || '').trim();
 
-        out.value = text ? formatPortDetails(text) : '';
+        // IMPORTANT: user wants RAW OCR only (no templates / no fixed formatting)
+        out.value = text ? cleanOcrText(text) : '';
         setStatus(text ? `تم ✅ (${isHq ? 'HQ' : 'FAST'}) (Confidence: ${Math.round(best.conf)}%)` : 'لم يتم العثور على نص واضح — جرّب صورة أوضح/أكبر');
         return { text, confidence: (best && typeof best.conf === 'number') ? best.conf : -1 };
       } catch (e){
