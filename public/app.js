@@ -168,10 +168,10 @@
     // treat "FBB" alone (or "FBB " / "FBB\t") as empty
     const s = String(v || "");
     const stripped = s.replace(/\s+/g,'');
-    if(stripped === "") return False;
-    if(/^FBB$/i.test(stripped)) return False;
+    if(stripped === "") return false;
+    if(/^FBB$/i.test(stripped)) return false;
     if(/^FBB\d*$/i.test(stripped)) return stripped.length > 3; // has digits
-    return True;
+    return true;
   }
 
   function enforceClear(){
@@ -4652,18 +4652,12 @@ function formatPortDetails(ocrText){
           if(last?.data?.confidence >= 88) break;
         }
 
-	      const best = pickBestResult(allResults);
-	      const rawText = (best?.text || '').trim();
-	      const cleaned = cleanOcrText(rawText);
+        const best = pickBestResult(allResults);
+        const text = (best?.text || '').trim();
 
-	      // المطلوب: عرض النص المستخرج من الصورة فقط — بدون أي تمبلت ثابت أو إعادة تنسيق.
-	      const finalText = cleaned || '';
-
-	      out.value = finalText;
-	      setStatus(finalText
-	        ? `تم ✅ (${isHq ? 'HQ' : 'FAST'}) (Confidence: ${Math.round(best.conf)}%)`
-	        : 'لم يتم العثور على نص واضح — جرّب صورة أوضح/أكبر');
-	      return { text: finalText, confidence: (best && typeof best.conf === 'number') ? best.conf : -1 };
+        out.value = text || '';
+        setStatus(text ? `تم ✅ (${isHq ? 'HQ' : 'FAST'}) (Confidence: ${Math.round(best.conf)}%)` : 'لم يتم العثور على نص واضح — جرّب صورة أوضح/أكبر');
+        return { text, confidence: (best && typeof best.conf === 'number') ? best.conf : -1 };
       } catch (e){
         console.error(e);
         setStatus('حصل خطأ أثناء OCR — افتح Console للتفاصيل');
@@ -4843,3 +4837,41 @@ function handlePasteForOcr(e){
   });
 })();
 
+
+
+/* === SR Builder (Safe, Data-Driven) ===
+   Add new SR buttons/links without touching JS:
+   - Put <a class="sr-link" data-srtypeid="102038001" data-srname="Site Down">Site Down</a>
+   This script will generate the href using the base template and keep subsNumber= empty for injection.
+*/
+(function(){
+  try{
+    // Base template taken from existing working SR (Site Down). Only srTypeId & srTypeName/title placeholders.
+    const BASE = "https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName={srTypeName}&srTypeId={srTypeId}&t={t}&tabId=sr{tab}&topUrl=&custid=&serviceInfoChar107=2&serviceInfoChar111=1&&BMEWebToken=null&serviceTitle=%20{title}&serviceInfoChar282=%20{title}&serviceInfoChar276=1&serviceInfoChar278=1&serviceInfoChar272=0&serviceContent=&subsNumber=";
+
+    function enc(x){ return encodeURIComponent(String(x||"").trim()); }
+    function now(){ return Date.now(); }
+    function tab(){ return Math.random().toString().slice(2); }
+
+    window.buildSrLink = function buildSrLink(srTypeId, name){
+      const n = String(name||"").trim() || "SR";
+      const title = n;
+      return BASE
+        .replaceAll("{srTypeId}", enc(srTypeId))
+        .replaceAll("{srTypeName}", enc(n))
+        .replaceAll("{title}", enc(title))
+        .replaceAll("{t}", String(now()))
+        .replaceAll("{tab}", tab());
+    };
+
+    document.addEventListener("DOMContentLoaded", function(){
+      document.querySelectorAll("a[data-srtypeid]").forEach(a=>{
+        const id = a.getAttribute("data-srtypeid");
+        const nm = a.getAttribute("data-srname") || a.textContent || "SR";
+        if(!a.getAttribute("href") || a.getAttribute("href")==="#" ){
+          a.setAttribute("href", window.buildSrLink(id, nm));
+        }
+      });
+    });
+  }catch(e){ console.warn("SR Builder init failed", e); }
+})();
