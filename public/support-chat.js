@@ -1,6 +1,7 @@
 
 import { supabase } from "./supabase-client.js";
 import { ADMIN_NAME } from "./supabase-config.js";
+import { getStableUserId, getStoredUserName, setStoredUserName } from "./stable-user-identity.js";
 import { playSoftNotification, unlockSound } from "./notification-sound.js";
 // Dynamic Functions base (Vercel vs Netlify) - avoids hard-coded host checks
 function resolveFnBase() {
@@ -28,22 +29,13 @@ function resolveFnBase() {
 
 
 // ---------- User identity ----------
-function getOrCreateUserId() {
-  const key = "sr_tool_user_id";
-  let v = localStorage.getItem(key);
-  if (!v) {
-    v = (crypto?.randomUUID?.() || ("uid_" + Math.random().toString(16).slice(2) + Date.now().toString(16)));
-    localStorage.setItem(key, v);
-  }
-  return v;
-}
-const USER_ID = getOrCreateUserId();
+const USER_ID = getStableUserId();
 
 function getUserName() {
-  return localStorage.getItem("sr_tool_user_name") || "";
+  return getStoredUserName();
 }
 function setUserName(name) {
-  localStorage.setItem("sr_tool_user_name", name);
+  setStoredUserName(name);
 }
 
 // ---------- Elements ----------
@@ -384,17 +376,46 @@ function lsDmSeenKey(roomId){ return `sr_support_seen_dm_${roomId}`; }
 function getSeen(key){ return localStorage.getItem(key) || ""; }
 function setSeen(key, iso){ try{ localStorage.setItem(key, iso); }catch{} }
 
+function maxIso(a, b){
+  const ta = a ? Date.parse(a) : 0;
+  const tb = b ? Date.parse(b) : 0;
+  if (!Number.isFinite(ta) && !Number.isFinite(tb)) return "";
+  if (!Number.isFinite(ta)) return b || "";
+  if (!Number.isFinite(tb)) return a || "";
+  return ta >= tb ? (a || "") : (b || "");
+}
+
+function getLatestSeenIso(type, roomId){
+  if(type === "public") return getSeen(LS_PUBLIC_SEEN);
+  if(type === "dm") return getSeen(lsDmSeenKey(roomId));
+  return "";
+}
+
+function markRoomSeenAt(type, roomId, iso){
+  const current = getLatestSeenIso(type, roomId);
+  const nextIso = maxIso(current, iso || new Date().toISOString()) || new Date().toISOString();
+  if(type === "public") setSeen(LS_PUBLIC_SEEN, nextIso);
+  if(type === "dm") setSeen(lsDmSeenKey(roomId), nextIso);
+  updateBadgesFromRecentCache();
+}
+
+function markActiveRoomSeenFromRows(rows){
+  if(!Array.isArray(rows) || !rows.length) return;
+  let latestIso = "";
+  for(const r of rows){
+    if(r?.room_type !== activeRoom.type || r?.room_id !== activeRoom.room_id) continue;
+    latestIso = maxIso(latestIso, r?.created_at || "");
+  }
+  if(latestIso) markRoomSeenAt(activeRoom.type, activeRoom.room_id, latestIso);
+}
+
 // On first run, avoid counting all historical messages as unread
 if(!getSeen(LS_PUBLIC_SEEN)){
   setSeen(LS_PUBLIC_SEEN, new Date().toISOString());
 }
 
 function markRoomSeen(type, roomId){
-  const now = new Date().toISOString();
-  if(type === "public") setSeen(LS_PUBLIC_SEEN, now);
-  if(type === "dm") setSeen(lsDmSeenKey(roomId), now);
-  // update badges after marking
-  updateBadgesFromRecentCache();
+  markRoomSeenAt(type, roomId, new Date().toISOString());
 }
 
 let recentCache = [];
@@ -636,15 +657,29 @@ async function loadMessages() {
 }
 
 
-async function deleteOwnMessage(messageId){
+async function deleteOwnMessage(messageId, triggerBtn){
   if(!messageId) return;
   const blocked = await isBlocked();
   if (blocked) {
     setStatus(`You are blocked until ${fmtTime(blocked.expires_at)}. Please contact ${ADMIN_NAME}.`, "error");
     return;
   }
+
+  const row = triggerBtn?.closest?.(".support-msg") || messagesList.querySelector(`button.support-del-btn[data-id="${String(messageId)}"]`)?.closest?.(".support-msg");
   const ok = confirm("Delete this message?");
   if(!ok) return;
+
+  const previousBtnHtml = triggerBtn ? triggerBtn.innerHTML : "";
+  if (triggerBtn) {
+    triggerBtn.disabled = true;
+    triggerBtn.innerHTML = "…";
+    triggerBtn.setAttribute("aria-busy", "true");
+  }
+  if (row) {
+    row.style.opacity = "0.55";
+    row.style.pointerEvents = "none";
+  }
+
   try{
     setStatus("Deleting…", "info");
     const res = await fetch((await resolveFnBase()) + "/user-delete-support-message", {
@@ -654,12 +689,49 @@ async function deleteOwnMessage(messageId){
     });
     const data = await res.json().catch(()=>({}));
     if(!res.ok) throw new Error(data?.error || "Delete failed");
-    setStatus("");
-    await loadMessages();
+
+    if (row) {
+      row.style.transition = "opacity .18s ease, transform .18s ease, max-height .2s ease, margin .2s ease";
+      row.style.transform = "translateX(8px)";
+      row.style.maxHeight = row.offsetHeight + "px";
+      requestAnimationFrame(() => {
+        row.style.opacity = "0";
+        row.style.maxHeight = "0px";
+        row.style.margin = "0";
+      });
+      setTimeout(() => {
+        if (row.parentNode) row.parentNode.removeChild(row);
+        messagesList.scrollTop = messagesList.scrollHeight;
+      }, 220);
+    }
+
+    setStatus("Message deleted.", "success");
+    setTimeout(() => {
+      if ((statusEl?.textContent || "").trim() === "Message deleted.") setStatus("");
+    }, 1400);
     await loadUsers();
   }catch(err){
     console.error(err);
-    setStatus(`Could not delete. Please contact ${ADMIN_NAME}.`, "error");
+    if (triggerBtn) {
+      triggerBtn.disabled = false;
+      triggerBtn.innerHTML = previousBtnHtml || "🗑️";
+      triggerBtn.removeAttribute("aria-busy");
+    }
+    if (row) {
+      row.style.opacity = "";
+      row.style.pointerEvents = "";
+      row.style.transform = "";
+      row.style.maxHeight = "";
+      row.style.margin = "";
+    }
+    const msg = String(err?.message || "");
+    if (/not found/i.test(msg)) {
+      setStatus("This message was already removed.", "info");
+      await loadMessages();
+      await loadUsers();
+      return;
+    }
+    setStatus(msg || `Could not delete. Please contact ${ADMIN_NAME}.`, "error");
   }
 }
 
@@ -670,7 +742,7 @@ function bindDeleteButtons(){
     btn.addEventListener("click", (e)=>{
       e.preventDefault();
       e.stopPropagation();
-      deleteOwnMessage(btn.dataset.id);
+      deleteOwnMessage(btn.dataset.id, btn);
     });
   });
 }
@@ -714,7 +786,7 @@ function subscribeBackground(){
       // If the chat is open and we're currently viewing this room, mark it as read.
       const isChatOpen = chatOverlay?.style.display !== "none";
       if(isChatOpen && row.room_type === activeRoom.type && row.room_id === activeRoom.room_id){
-        markRoomSeen(activeRoom.type, activeRoom.room_id);
+        markRoomSeenAt(activeRoom.type, activeRoom.room_id, row.created_at || new Date().toISOString());
         loadMessages();
       }
 
@@ -894,6 +966,13 @@ attachInput?.addEventListener("change", ()=>{
   const f = attachInput.files && attachInput.files[0];
   if(!f) return;
   setSelectedFile(f);
+});
+
+window.addEventListener("storage", (e) => {
+  if (!e?.key) return;
+  if (e.key === LS_PUBLIC_SEEN || e.key.startsWith("sr_support_seen_dm_")) {
+    updateBadgesFromRecentCache();
+  }
 });
 
 // Initial status cleanup

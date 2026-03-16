@@ -1061,6 +1061,9 @@
                                 </button>
                                 <div class="dropdown-content">
 
+                                        <a href="https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName=Other&srTypeId=159003069&topUrl=&custid=&BMEWebToken=&serviceInfoChar107=2&serviceInfoChar111=1&serviceInfoChar112=0&serviceInfoChar276=1&serviceInfoChar278=1&serviceTitle=General Inquiry&serviceInfoChar282=General Inquiry&serviceContent=cst ask about &subsNumber="
+                                                onclick="openLinkk(event) " target="_blank 170000 ">Fixed Voice - General Information</a>
+
 
                                         <a href="https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName=Exchange%20Working%20Hours%20And%20Address&srTypeId=159003013&t=1689252491470&tabId=sr0.3567039462060242&topUrl=&custid=&BMEWebToken=&serviceInfoChar107=2&serviceInfoChar111=1&serviceTitle= ​Exchange Working Hours And Address&serviceInfoChar282= ​Exchange Working Hours And Address &serviceInfoChar276=1&serviceInfoChar278=1&serviceInfoChar272=0&serviceContent=Inf cst about ​Exchange Working Hours And Address &subsNumber="
                                                 onclick="openLinkk(event) " target="_blank 170000 "

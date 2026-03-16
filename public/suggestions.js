@@ -1,5 +1,6 @@
 import { supabase as sharedSupabase } from "./supabase-client.js";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_NAME } from "./supabase-config.js";
+import { getStableUserId, aliasForUserId } from "./stable-user-identity.js";
 
 const elInput = document.getElementById("suggestionInput");
 const elBtn = document.getElementById("suggestionAddBtn");
@@ -68,32 +69,10 @@ function isConfigured() {
 let supabase = null;
 
 // Anonymous user id (stored locally) used for admin blocks
-function getOrCreateUserId() {
-  const key = "sr_tool_user_id";
-  let v = localStorage.getItem(key);
-  if (!v) {
-    v = (crypto?.randomUUID?.() || ("uid_" + Math.random().toString(16).slice(2) + Date.now().toString(16)));
-    localStorage.setItem(key, v);
-  }
-  return v;
-}
-const USER_ID = getOrCreateUserId();
+const USER_ID = getStableUserId();
 
 // Stable, anonymous display name derived from the stored USER_ID.
 // This avoids requiring a `name` column in the `suggestions` table.
-function aliasForUserId(uid = "") {
-  const s = String(uid || "");
-  if (!s) return "User";
-  // Simple stable hash → 4 digits
-  let h = 0;
-  for (let i = 0; i < s.length; i++) {
-    h = (h << 5) - h + s.charCodeAt(i);
-    h |= 0;
-  }
-  const n = (Math.abs(h) % 9000) + 1000;
-  return `User-${n}`;
-}
-
 const SESSION_ALIAS = aliasForUserId(USER_ID);
 
 // Per-user colors to make multi-user threads clear

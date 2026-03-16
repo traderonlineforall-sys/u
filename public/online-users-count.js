@@ -10,31 +10,9 @@
  */
 
 import { supabase } from "./supabase-client.js";
+import { getStableUserId, getStablePresenceLabel, aliasForUserId } from "./stable-user-identity.js";
 
-function getOrCreateUserId() {
-  const key = "sr_tool_user_id";
-  let v = localStorage.getItem(key);
-  if (!v) {
-    v = (crypto?.randomUUID?.() || ("uid_" + Math.random().toString(16).slice(2) + Date.now().toString(16)));
-    localStorage.setItem(key, v);
-  }
-  return v;
-}
-
-const USER_ID = getOrCreateUserId();
-
-// Keep naming consistent with Suggestions (stable per stored USER_ID)
-function aliasForUserId(uid = "") {
-  const s = String(uid || "");
-  if (!s) return "User";
-  let h = 0;
-  for (let i = 0; i < s.length; i++) {
-    h = (h << 5) - h + s.charCodeAt(i);
-    h |= 0;
-  }
-  const n = (Math.abs(h) % 9000) + 1000;
-  return `User-${n}`;
-}
+const USER_ID = getStableUserId();
 
 function ensureCountPill() {
   const wrap = document.getElementById("UA07_SECRET_ENVELOPE_WRAP");
@@ -108,7 +86,12 @@ function countPresenceState(state) {
 function buildOnlineTitle(state){
   try{
     const keys = Object.keys(state || {});
-    const names = keys.map(aliasForUserId);
+    const names = [];
+    for (const key of keys) {
+      const metas = Array.isArray(state?.[key]) ? state[key] : [];
+      const label = String(metas?.[0]?.display_name || metas?.[0]?.alias || aliasForUserId(key) || "User").trim();
+      names.push(label);
+    }
     const n = names.length;
     const max = 12;
     const shown = names.slice(0, max);
@@ -175,7 +158,12 @@ async function startPresence() {
   channel.subscribe(async (status) => {
     if (status === "SUBSCRIBED") {
       try {
-        await channel.track({ online_at: new Date().toISOString() });
+        await channel.track({
+          online_at: new Date().toISOString(),
+          display_name: getStablePresenceLabel(),
+          alias: aliasForUserId(USER_ID),
+          user_id: USER_ID
+        });
       } catch {}
     }
   });

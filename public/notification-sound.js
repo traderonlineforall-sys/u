@@ -66,41 +66,77 @@ export async function unlockSound() {
   unlocked = (c.state === "running");
 }
 
-// A very soft notification tone: short sine with fade-in/out
+// A clear but still gentle notification chime.
+// الهدف: يبقى أوضح من النسخة القديمة من غير ما يكون مزعج أو حاد.
 export async function playSoftNotification() {
   if (!enabled) return;
   if (!ctx || !unlocked) return; // do not create AudioContext before gesture
 
-  // Cooldown: avoid spamming if multiple messages arrive quickly
   const nowMs = Date.now();
-  if (nowMs - lastPlayedAt < 850) return;
+  // Slightly longer cooldown so repeated inserts never feel noisy.
+  if (nowMs - lastPlayedAt < 1200) return;
   lastPlayedAt = nowMs;
 
-  // If the context got suspended again, skip quietly.
   if (ctx.state !== "running") return;
 
   const t0 = ctx.currentTime;
 
-  // Gain envelope (very gentle)
-  const gain = ctx.createGain();
-  gain.gain.setValueAtTime(0.0001, t0);
-  gain.gain.exponentialRampToValueAtTime(0.11, t0 + 0.015);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.28);
-  gain.connect(ctx.destination);
+  // A tiny dynamics chain keeps the chime audible without harsh peaks.
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.85, t0);
 
-  // Oscillator
-  const osc = ctx.createOscillator();
-  osc.type = "sine";
-  osc.frequency.setValueAtTime(740, t0);
-  osc.frequency.exponentialRampToValueAtTime(980, t0 + 0.10);
-  osc.connect(gain);
-
+  let finalNode = master;
   try {
-    osc.start(t0);
-    osc.stop(t0 + 0.30);
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.setValueAtTime(-22, t0);
+    comp.knee.setValueAtTime(14, t0);
+    comp.ratio.setValueAtTime(2.2, t0);
+    comp.attack.setValueAtTime(0.004, t0);
+    comp.release.setValueAtTime(0.10, t0);
+    master.connect(comp);
+    comp.connect(ctx.destination);
+    finalNode = master;
   } catch {
-    // ignore
+    master.connect(ctx.destination);
   }
+
+  function note({ freq = 880, type = "triangle", start = 0, dur = 0.18, vol = 0.06, harmonic = 0.02 }) {
+    const gain = ctx.createGain();
+    const when = t0 + start;
+    gain.gain.setValueAtTime(0.0001, when);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), when + 0.018);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+    gain.connect(finalNode);
+
+    const osc = ctx.createOscillator();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, when);
+    osc.frequency.exponentialRampToValueAtTime(freq * 1.028, when + dur * 0.45);
+    osc.connect(gain);
+
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = "sine";
+    osc2.frequency.setValueAtTime(freq * 2, when);
+    gain2.gain.setValueAtTime(0.0001, when);
+    gain2.gain.exponentialRampToValueAtTime(Math.max(0.00015, harmonic), when + 0.02);
+    gain2.gain.exponentialRampToValueAtTime(0.0001, when + Math.max(0.14, dur - 0.01));
+    osc2.connect(gain2);
+    gain2.connect(finalNode);
+
+    try {
+      osc.start(when);
+      osc.stop(when + dur + 0.02);
+      osc2.start(when);
+      osc2.stop(when + dur);
+    } catch {
+      // ignore
+    }
+  }
+
+  // Two-note upward chime: clearer recognition, still soft.
+  note({ freq: 784, type: "triangle", start: 0.00, dur: 0.16, vol: 0.050, harmonic: 0.012 });
+  note({ freq: 1046, type: "triangle", start: 0.12, dur: 0.22, vol: 0.070, harmonic: 0.018 });
 }
 
 // Auto unlock on first user gesture (this is where we create the AudioContext)

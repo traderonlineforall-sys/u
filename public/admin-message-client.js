@@ -41,8 +41,18 @@ function resolveFnBase() {
  */
 
 const LS_SEEN_AT = "sr_admin_ann_seen_at";
+const LS_SEEN_KEY = "sr_admin_ann_seen_key";
 const LS_URGENT_DISMISSED_AT = "sr_admin_urgent_dismissed_at";
+const LS_URGENT_DISMISSED_KEY = "sr_admin_urgent_dismissed_key";
 const URGENT_PREFIX = "URGENT_TICKER::";
+const ANNOUNCEMENT_POLL_MS = 25000;
+const SR_ANNOUNCEMENT_CHANNEL = (typeof BroadcastChannel !== "undefined") ? new BroadcastChannel("sr_admin_announcement_state") : null;
+
+function announceStateChanged(kind, payload = {}) {
+  try {
+    SR_ANNOUNCEMENT_CHANNEL?.postMessage({ kind, ...payload });
+  } catch {}
+}
 
 function escapeHtml(s = "") {
   return String(s)
@@ -70,13 +80,35 @@ function setSeenTs(isoOrDate) {
   } catch {}
 }
 
+function getSeenKey(){
+  try { return localStorage.getItem(LS_SEEN_KEY) || ""; } catch { return ""; }
+}
+
+function setSeenKey(key){
+  try {
+    const v = String(key || "").trim();
+    if (!v) return;
+    localStorage.setItem(LS_SEEN_KEY, v);
+  } catch {}
+}
+
+function getAnnouncementKey(ann){
+  if(!ann) return "";
+  const created = String(ann.created_at || "").trim();
+  const env = String(ann.envelope_text ?? ann.text ?? "").trim();
+  const urgent = String(ann.urgent_text ?? "").trim();
+  return created || `${env}__${urgent}`;
+}
+
 function clearEnvelopeUnreadIfOpen() {
   const modal = document.getElementById("UA07_SECRET_MODAL");
   if (!modal) return;
   const isOpen = modal.style.display === "block" || modal.classList.contains("show") || modal.getAttribute("aria-hidden") === "false";
   if (!isOpen) return;
-  if (_lastAnnouncement && _lastAnnouncement.created_at) {
-    setSeenTs(_lastAnnouncement.created_at);
+  if (_lastAnnouncement) {
+    const annKey = getAnnouncementKey(_lastAnnouncement);
+    if (_lastAnnouncement.created_at) setSeenTs(_lastAnnouncement.created_at);
+    if (annKey) setSeenKey(annKey);
     const b = ensureEnvelopeBadge();
     if (b) b.style.display = "none";
   }
@@ -87,14 +119,25 @@ function getUrgentDismissedTs(){
   try{ const v = localStorage.getItem(LS_URGENT_DISMISSED_AT)||""; return v ? Date.parse(v) : 0; }catch{ return 0; }
 }
 
-function dismissUrgent(createdAtIso){
-  try{ if(!createdAtIso) return; localStorage.setItem(LS_URGENT_DISMISSED_AT, new Date(createdAtIso).toISOString()); }catch{}
+function getUrgentDismissedKey(){
+  try{ return localStorage.getItem(LS_URGENT_DISMISSED_KEY) || ""; }catch{ return ""; }
 }
 
-function markSeen(createdAtIso) {
+function dismissUrgent(createdAtIso, key){
+  try{
+    if(createdAtIso) localStorage.setItem(LS_URGENT_DISMISSED_AT, new Date(createdAtIso).toISOString());
+    const v = String(key || "").trim();
+    if(v) localStorage.setItem(LS_URGENT_DISMISSED_KEY, v);
+    announceStateChanged("urgent-dismissed", { key: v, created_at: createdAtIso || "" });
+  }catch{}
+}
+
+function markSeen(createdAtIso, key) {
   try {
-    if (!createdAtIso) return;
-    localStorage.setItem(LS_SEEN_AT, new Date(createdAtIso).toISOString());
+    if (createdAtIso) localStorage.setItem(LS_SEEN_AT, new Date(createdAtIso).toISOString());
+    const v = String(key || "").trim();
+    if (v) localStorage.setItem(LS_SEEN_KEY, v);
+    announceStateChanged("envelope-seen", { key: v, created_at: createdAtIso || "" });
   } catch {}
 }
 
@@ -173,16 +216,17 @@ function setUrgentText(text){
   marquee.style.setProperty('--sr-urgent-duration', secs.toFixed(1) + 's');
 }
 
-function showUrgent(createdAtIso, text){
+function showUrgent(createdAtIso, text, annKey){
   const wrap = ensureUrgentTicker();
   setUrgentText(text);
   wrap.style.display = 'block';
+
   const ack = wrap.querySelector('#SR_URGENT_ACK');
   if(ack && !ack.__bound){
     ack.__bound = true;
     ack.addEventListener('click', ()=>{
       wrap.style.display = 'none';
-      dismissUrgent(createdAtIso);
+      dismissUrgent(createdAtIso, annKey);
     });
   }
 }
@@ -220,9 +264,15 @@ function ensureEnvelopeBadge() {
 let _lastAnnouncement = null;
 
 function shouldShowBadge(ann) {
-  if (!ann || !ann.created_at) return false;
+  if (!ann) return false;
+  const annKey = getAnnouncementKey(ann);
+  if (!annKey) return false;
+  const seenKey = getSeenKey();
+  if (seenKey && seenKey === annKey) return false;
+
+  if (!ann.created_at) return true;
   const annTs = Date.parse(ann.created_at);
-  if (!Number.isFinite(annTs)) return false;
+  if (!Number.isFinite(annTs)) return true;
   return annTs > getSeenTs();
 }
 
@@ -245,10 +295,18 @@ function updateUrgentUI(){
 
   if(!urgentEnabled || !urgentText){ hideUrgent(); return; }
 
+  const annKey = getAnnouncementKey(ann);
+  const dismissedKey = getUrgentDismissedKey();
+  if(annKey && dismissedKey && annKey === dismissedKey) { hideUrgent(); return; }
+
   const annTs = Date.parse(ann.created_at);
-  if(!Number.isFinite(annTs)) { hideUrgent(); return; }
+  if(!Number.isFinite(annTs)) {
+    if(annKey && dismissedKey && annKey === dismissedKey) { hideUrgent(); return; }
+    showUrgent(ann.created_at, urgentText, annKey);
+    return;
+  }
   if(annTs <= getUrgentDismissedTs()) { hideUrgent(); return; }
-  showUrgent(ann.created_at, urgentText);
+  showUrgent(ann.created_at, urgentText, annKey);
 }
 
 function updateBadgeUI() {
@@ -308,7 +366,7 @@ function renderAnnouncementInModal() {
   titleEl.textContent = "رسالة إدارية";
   if (iconEl) iconEl.textContent = "📣";
 
-  const when = ann.created_at ? new Date(ann.created_at).toLocaleString() : "";
+  const when = ann.created_at ? new Date(ann.created_at).toLocaleString("ar-EG") : "";
   bodyEl.innerHTML = `
     <div class="ua07-secret-lead">رسالة من الأدمن</div>
     <div class="ua07-secret-text" style="white-space:pre-wrap;">${escapeHtml(ann.envelope_text ?? ann.text)}</div>
@@ -316,7 +374,8 @@ function renderAnnouncementInModal() {
   `;
 
   // Mark as seen and hide badge.
-  if (ann.created_at) markSeen(ann.created_at);
+  const annKey = getAnnouncementKey(ann);
+  markSeen(ann.created_at, annKey);
   updateBadgeUI();
 }
 
@@ -361,7 +420,26 @@ function observeModalOpen() {
   obs.observe(modal, { attributes: true, attributeFilter: ["class", "aria-hidden"] });
 }
 
+function bindAnnouncementSync() {
+  window.addEventListener("storage", (e) => {
+    if (!e?.key) return;
+    if ([LS_SEEN_AT, LS_SEEN_KEY, LS_URGENT_DISMISSED_AT, LS_URGENT_DISMISSED_KEY].includes(e.key)) {
+      updateBadgeUI();
+      updateUrgentUI();
+    }
+  });
+
+  if (SR_ANNOUNCEMENT_CHANNEL && !window.__srAnnChannelBound) {
+    window.__srAnnChannelBound = true;
+    SR_ANNOUNCEMENT_CHANNEL.addEventListener("message", () => {
+      updateBadgeUI();
+      updateUrgentUI();
+    });
+  }
+}
+
 function init() {
+  bindAnnouncementSync();
   hookEnvelopeClick();
 
   // First load
@@ -370,10 +448,18 @@ function init() {
   // Poll to keep badge in sync across users without requiring realtime config.
   setInterval(() => {
     refreshAnnouncementAndBadge().catch(() => {});
-  }, 25000);
+  }, ANNOUNCEMENT_POLL_MS);
 
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) refreshAnnouncementAndBadge().catch(() => {});
+  });
+
+  // Keep multiple tabs/windows in sync for the same user.
+  window.addEventListener("storage", (e) => {
+    const keys = [LS_SEEN_AT, LS_SEEN_KEY, LS_URGENT_DISMISSED_AT, LS_URGENT_DISMISSED_KEY];
+    if (!e || !keys.includes(e.key)) return;
+    updateBadgeUI();
+    updateUrgentUI();
   });
 
   // The UA07 logo/modal might be injected a bit later.
