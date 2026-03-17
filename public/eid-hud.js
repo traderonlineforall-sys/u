@@ -18,7 +18,24 @@ function isThemeOff(){
 function setThemeOff(v){
   try { localStorage.setItem(LS_THEME_OFF, v ? "1" : "0"); } catch {}
 }
+
+function ensureDecorLayer(){
+  if (document.getElementById('EID_DECOR_LAYER')) return;
+  const host = document.body || document.documentElement;
+  if (!host) return;
+  const layer = document.createElement('div');
+  layer.id = 'EID_DECOR_LAYER';
+  layer.setAttribute('aria-hidden', 'true');
+  layer.innerHTML = [
+    '<span class="eid-art eid-art-ribbon"></span>',
+    '<span class="eid-art eid-art-center"></span>',
+    '<span class="eid-art eid-art-left"></span>',
+    '<span class="eid-art eid-art-right"></span>'
+  ].join('');
+  host.appendChild(layer);
+}
 function applyThemeState(){
+  ensureDecorLayer();
   const link = getThemeLink();
   if(link) link.disabled = isThemeOff();
   document.documentElement.classList.toggle('eid-theme-live', !isThemeOff());
@@ -97,6 +114,7 @@ function fixUa07PointerEvents(logoEl){
   } catch {}
 }
 function boot(){
+  ensureDecorLayer();
   applyThemeState();
   let tries = 0;
   const t = setInterval(function(){

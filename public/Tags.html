@@ -688,27 +688,38 @@
 
 
 <style id="smart-scroll-dock">
-  /* Smart scroll dock bar (does NOT dim page) */
+  /* Smart compact dock: keep Timer + Studio pinned together on the right */
   #smartDockBar{
-    position: sticky;
-    top: 10px;
+    position: fixed;
+    top: 12px;
+    right: 18px;
+    left: auto;
     z-index: 9998;
     display: none;
     align-items: flex-start;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 14px;
-    padding: 10px 14px 0 14px;
-    pointer-events: auto;
+    width: auto;
+    max-width: calc(100vw - 24px);
+    padding: 0;
+    pointer-events: none;
   }
+  #smartDockBar > *{ pointer-events: auto; }
   body.smart-compact #smartDockBar{ display: flex; }
 
-  /* When docked, prevent fixed overlays; let widgets live inside bar */
+  /* When docked, prevent fixed overlays; let widgets live inside the compact bar */
   body.smart-compact #tagStudio{
     position: static !important;
     top: auto !important;
     right: auto !important;
-    width: auto !important;
+    width: 300px !important;
+    max-width: 300px !important;
+    transform: none !important;
     z-index: auto !important;
+  }
+  body.smart-compact #tagStudio.collapsed{
+    width: 220px !important;
+    max-width: 220px !important;
   }
   body.smart-compact .ltTimerDock{
     position: static !important;
@@ -717,6 +728,7 @@
     right: auto !important;
     z-index: auto !important;
     margin: 0 !important;
+    min-width: 0 !important;
   }
 
   /* Make docked versions compact using their OWN logic (collapsed/clock) */
@@ -725,47 +737,69 @@
     padding: 10px !important;
   }
   body.smart-compact .ltTimerDock.isClock{
-    /* clock mode already removes heavy styling via existing overrides */
     margin-top: 2px !important;
   }
-  /* Keep bar from occupying too much height */
+
   @media (max-width: 520px){
-    #smartDockBar{ flex-direction: column; align-items: flex-start; }
+    #smartDockBar{
+      right: 10px;
+      top: 10px;
+      gap: 10px;
+      transform: scale(.92);
+      transform-origin: top right;
+    }
   }
 </style>
 
 
 <style id="toolsRowCSS">
-  /* Tools row: places Timer next to Tag Studio in the top-right empty area (scrolls with page) */
+  /* Tools row: keep Timer and Tag Studio locked together in fixed columns */
   #toolsRow{
     position: absolute;
     top: 22px;
     right: 18px;
-    display: flex;
+    display: grid;
+    grid-template-columns: 340px 300px;
     gap: 14px;
     align-items: flex-start;
+    justify-content: end;
     z-index: 2147482000;
-    pointer-events: none; /* children will re-enable */
+    pointer-events: none;
   }
   #toolsRow > *{ pointer-events: auto; }
 
-  /* Make Timer use natural sizing inside the row (no hard left/top) */
+  #timerMount{
+    width: 340px;
+    min-width: 340px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
+  }
+
   #toolsRow .ltTimerDock{
     position: relative !important;
     left: auto !important;
     top: auto !important;
-    margin: 0 !important;
+    margin: 0 0 0 auto !important;
   }
 
-  /* Keep studio natural too */
   #toolsRow #tagStudio{
     position: relative !important;
     top: auto !important;
     right: auto !important;
+    width: 300px !important;
+    max-width: 300px !important;
+    transform: none !important;
   }
 
-  /* When smart compact bar is active, toolsRow should not duplicate layout */
   body.smart-compact #toolsRow{ display:none; }
+
+  @media (max-width: 760px){
+    #toolsRow{
+      transform: scale(.9);
+      transform-origin: top right;
+    }
+  }
 </style>
 
 
@@ -3059,8 +3093,10 @@ const MORE_SCROLL_TO_RECOMPACT = Math.max(40, Math.round(SCROLL_THRESHOLD * 0.5)
 
 
   // Remember original DOM positions so we can restore cleanly
-  const timerHome = { parent: timerDock.parentNode, next: timerDock.nextSibling };
-  const studioHome = { parent: studio.parentNode, next: studio.nextSibling };
+  const timerMount = document.getElementById('timerMount');
+  const toolsRow = document.getElementById('toolsRow');
+  const timerHome = { parent: timerMount || timerDock.parentNode, next: null };
+  const studioHome = { parent: toolsRow || studio.parentNode, next: null };
 
   // Helpers
   const qs = (root, sel)=> root ? root.querySelector(sel) : null;
@@ -3102,12 +3138,10 @@ const MORE_SCROLL_TO_RECOMPACT = Math.max(40, Math.round(SCROLL_THRESHOLD * 0.5)
   }
   function moveHome(){
     if(timerHome.parent){
-      if(timerHome.next && timerHome.next.parentNode === timerHome.parent) timerHome.parent.insertBefore(timerDock, timerHome.next);
-      else timerHome.parent.appendChild(timerDock);
+      timerHome.parent.appendChild(timerDock);
     }
     if(studioHome.parent){
-      if(studioHome.next && studioHome.next.parentNode === studioHome.parent) studioHome.parent.insertBefore(studio, studioHome.next);
-      else studioHome.parent.appendChild(studio);
+      studioHome.parent.appendChild(studio);
     }
   }
 
