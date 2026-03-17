@@ -1,240 +1,237 @@
 /*
-  Eid Gala Theme — elegant decorative layer only.
-  Leaves the tool's core controls on the original system styling.
+  Eid Prestige Theme
+  - Keeps the tool's original controls and behavior intact.
+  - Uses the provided Eid artwork as a lightweight, optimized background.
+  - Hides the old Ramadan moon/stars while the Eid theme is active.
+  - Keeps the Eid toggle compact so it matches the envelope button size.
 */
 :root {
-  --eid-night-0:#040914;
-  --eid-night-1:#081126;
-  --eid-night-2:#101b37;
-  --eid-gold:#f3d37a;
-  --eid-gold-soft:#fff1bf;
-  --eid-cyan:#86d5ff;
-  --eid-violet:#9776ff;
-  --eid-rose:#ff9ac9;
-  --eid-text:rgba(248,250,255,.96);
+  --eid-night: #060b16;
+  --eid-night-soft: rgba(7, 11, 20, 0.72);
+  --eid-gold: #f3d37a;
+  --eid-gold-soft: rgba(255, 239, 186, 0.78);
+  --eid-rose: rgba(255, 165, 118, 0.16);
+  --eid-sky: rgba(113, 160, 255, 0.14);
+  --eid-text: rgba(244, 247, 255, 0.96);
+  --eid-edge: rgba(255, 255, 255, 0.18);
 }
 
-html, body {
-  background:
-    radial-gradient(1100px 520px at 50% -8%, rgba(255,220,138,.19), rgba(255,220,138,0) 56%),
-    radial-gradient(720px 360px at 6% 18%, rgba(151,118,255,.17), rgba(151,118,255,0) 60%),
-    radial-gradient(820px 420px at 94% 18%, rgba(134,213,255,.12), rgba(134,213,255,0) 52%),
-    linear-gradient(180deg, #0a1229 0%, #061023 44%, #040810 100%) !important;
-  background-attachment: fixed !important;
+html,
+body {
+  min-height: 100%;
+  background: transparent !important;
   color: var(--eid-text);
 }
 
+/* Replace the old Ramadan sky with the optimized Eid artwork. */
 html::before {
-  content:"";
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  z-index:-5;
-  opacity:.55;
-  background-image:
-    radial-gradient(circle at 8% 14%, rgba(255,255,255,.90) 0 1px, transparent 1.7px),
-    radial-gradient(circle at 18% 8%, rgba(255,255,255,.76) 0 1px, transparent 1.7px),
-    radial-gradient(circle at 26% 18%, rgba(255,255,255,.88) 0 1px, transparent 1.8px),
-    radial-gradient(circle at 36% 10%, rgba(255,255,255,.76) 0 1px, transparent 1.6px),
-    radial-gradient(circle at 48% 7%, rgba(255,255,255,.92) 0 1px, transparent 1.7px),
-    radial-gradient(circle at 62% 11%, rgba(255,255,255,.74) 0 1px, transparent 1.8px),
-    radial-gradient(circle at 74% 8%, rgba(255,255,255,.82) 0 1px, transparent 1.8px),
-    radial-gradient(circle at 86% 14%, rgba(255,255,255,.84) 0 1px, transparent 1.7px),
-    radial-gradient(circle at 92% 8%, rgba(255,255,255,.72) 0 1px, transparent 1.8px);
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -12;
+  pointer-events: none;
+  transform: translateZ(0);
+  background:
+    linear-gradient(180deg,
+      rgba(4, 7, 15, 0.82) 0%,
+      rgba(6, 10, 19, 0.74) 11%,
+      rgba(7, 10, 18, 0.56) 30%,
+      rgba(6, 9, 15, 0.62) 58%,
+      rgba(5, 8, 14, 0.78) 100%),
+    radial-gradient(54% 26% at 50% 0%, rgba(255, 231, 166, 0.28), rgba(255, 231, 166, 0) 74%),
+    radial-gradient(42% 32% at 50% 38%, rgba(255, 169, 73, 0.20), rgba(255, 169, 73, 0) 72%),
+    radial-gradient(28% 22% at 14% 18%, rgba(121, 102, 255, 0.14), rgba(121, 102, 255, 0) 76%),
+    radial-gradient(28% 22% at 86% 18%, rgba(106, 190, 255, 0.12), rgba(106, 190, 255, 0) 76%),
+    url("./eid-festive-bg.webp") center 18% / cover no-repeat;
 }
 
+/* Soft festive glow + bokeh polish without touching the tool controls. */
 html::after {
-  content:"";
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  z-index:-4;
-  opacity:.12;
-  mix-blend-mode:screen;
-  background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20320%20320%27%3E%0A%20%20%3Cg%20fill%3D%27none%27%20stroke%3D%27%23fff4c9%27%20stroke-opacity%3D%270.18%27%20stroke-width%3D%271.2%27%3E%0A%20%20%20%20%3Cpath%20d%3D%27M160%2030c24%200%2044%2020%2044%2044%200%2012-5%2023-12.9%2031%2016%207.3%2027.1%2023.5%2027.1%2042.4%200%2025.7-20.8%2046.5-46.5%2046.5-4.2%200-8.2-.6-12-1.6-3.8%201-7.8%201.6-12%201.6-25.7%200-46.5-20.8-46.5-46.5%200-18.9%2011.1-35.1%2027.1-42.4C121%2097%20116%2086%20116%2074c0-24%2020-44%2044-44Z%27%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%27M160%2074v170M74%20160h172M104%20104l112%20112M216%20104%20104%20216%27%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%27160%27%20cy%3D%27160%27%20r%3D%27118%27%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%27160%27%20cy%3D%27160%27%20r%3D%2780%27%2F%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E");
-  background-size:320px 320px;
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -11;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 10% 14%, rgba(255, 244, 206, 0.56) 0 1.2px, transparent 2px),
+    radial-gradient(circle at 18% 7%, rgba(255, 227, 161, 0.46) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 28% 17%, rgba(255, 245, 214, 0.42) 0 1.2px, transparent 2px),
+    radial-gradient(circle at 40% 10%, rgba(255, 231, 166, 0.34) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 54% 8%, rgba(255, 248, 226, 0.44) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 67% 11%, rgba(255, 230, 176, 0.34) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 80% 8%, rgba(255, 241, 198, 0.40) 0 1.1px, transparent 1.9px),
+    radial-gradient(circle at 91% 14%, rgba(255, 231, 182, 0.46) 0 1.1px, transparent 2px),
+    linear-gradient(180deg, rgba(255, 230, 162, 0.10), rgba(255, 230, 162, 0) 16%),
+    radial-gradient(90% 56% at 50% 112%, rgba(1, 3, 9, 0), rgba(1, 3, 9, 0.36) 68%, rgba(1, 3, 9, 0.72) 100%);
+  opacity: 0.9;
+  mix-blend-mode: screen;
 }
 
 body::before {
-  content:"";
-  position:fixed;
-  left:0;
-  right:0;
-  top:0;
-  height:min(180px, 18vh);
-  pointer-events:none;
-  z-index:-3;
-  opacity:.86;
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
   background:
-    radial-gradient(72px 26px at 12% 22%, rgba(255,240,191,.64), rgba(255,240,191,0) 72%),
-    radial-gradient(72px 26px at 28% 25%, rgba(255,240,191,.52), rgba(255,240,191,0) 72%),
-    radial-gradient(72px 26px at 44% 27%, rgba(255,240,191,.58), rgba(255,240,191,0) 72%),
-    radial-gradient(72px 26px at 60% 27%, rgba(255,240,191,.48), rgba(255,240,191,0) 72%),
-    radial-gradient(72px 26px at 76% 25%, rgba(255,240,191,.54), rgba(255,240,191,0) 72%),
-    radial-gradient(72px 26px at 90% 22%, rgba(255,240,191,.62), rgba(255,240,191,0) 72%);
+    linear-gradient(90deg, rgba(4, 7, 15, 0.34), rgba(4, 7, 15, 0.06) 22%, rgba(4, 7, 15, 0.06) 78%, rgba(4, 7, 15, 0.34)),
+    linear-gradient(180deg, rgba(255, 235, 182, 0.06), rgba(255, 235, 182, 0) 18%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -90px 120px rgba(0, 0, 0, 0.28);
 }
 
-body::after {
-  content:"";
-  position:fixed;
-  left:50%;
-  bottom:0;
-  transform:translateX(-50%);
-  width:min(96vw, 1400px);
-  height:min(26vw, 220px);
-  pointer-events:none;
-  z-index:-3;
-  opacity:.28;
-  background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%201440%20260%27%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%271%27%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%270%25%27%20stop-color%3D%27%23fff2bf%27%20stop-opacity%3D%270.55%27%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%27100%25%27%20stop-color%3D%27%23f4c869%27%20stop-opacity%3D%270.12%27%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Cpath%20fill%3D%27url%28%23g%29%27%20d%3D%27M0%20236h108v-32h34v-44h38v-18h28v18h40v-80h22V54h16v26h22v80h48v-42h30v-26h18v26h34v118h68v-62h22v-92h14V60h18v22h16v92h26v22h48v40h62v-86h18v-28h24v28h18v86h56v-54h18v-28h24v28h18v54h62v-98h20v-60h18v60h22v98h66v-46h22v-32h26v32h24v46h82v24H0z%27%2F%3E%0A%20%20%3Cpath%20fill%3D%27%23fff6d7%27%20fill-opacity%3D%270.22%27%20d%3D%27M242%2064h16v12h-16zm70%2030h12v12h-12zm246%2048h12v12h-12zm176-66h12v12h-12zm316%2082h12v12h-12zm146%2024h12v12h-12z%27%2F%3E%0A%3C%2Fsvg%3E") center bottom / contain no-repeat;
+/* Disable the old Ramadan moon + animated stars while the Eid stylesheet is active. */
+.moon,
+.star {
+  display: none !important;
 }
 
+/* Keep the injected decorative layer light and premium. */
 #EID_DECOR_LAYER {
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  z-index:-2;
-  overflow:hidden;
-  opacity:1;
+  position: fixed;
+  inset: 0;
+  z-index: -9;
+  pointer-events: none;
+  overflow: hidden;
 }
+
 #EID_DECOR_LAYER .eid-art {
-  position:absolute;
-  background-repeat:no-repeat;
-  background-position:center;
-  background-size:contain;
-  pointer-events:none;
-}
-#EID_DECOR_LAYER .eid-art-left {
-  top:58px;
-  left:22px;
-  width:min(13vw, 188px);
-  height:min(30vw, 320px);
-  opacity:.62;
-  filter:drop-shadow(0 26px 36px rgba(0,0,0,.34));
-  background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20220%20340%27%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%27gold%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%271%27%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%270%25%27%20stop-color%3D%27%23fff5cb%27%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%2748%25%27%20stop-color%3D%27%23f6d77f%27%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%27100%25%27%20stop-color%3D%27%23ffb07b%27%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%27glass%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%270%25%27%20stop-color%3D%27%23ffffff%27%20stop-opacity%3D%270.78%27%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%27100%25%27%20stop-color%3D%27%23ffffff%27%20stop-opacity%3D%270.06%27%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Cg%20fill%3D%27none%27%20stroke%3D%27url%28%23gold%29%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%0A%20%20%20%20%3Cpath%20d%3D%27M110%200v70%27%20stroke-width%3D%274%27%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%27M72%2038c8%208%2018%2012%2038%2012s30-4%2038-12%27%20stroke-width%3D%274%27%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%27M58%2070h104l-10%2026v98l10%2034H58l10-34V96z%27%20stroke-width%3D%276%27%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%27M78%2096h64v98H78z%27%20stroke-width%3D%274%27%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%27M82%20244h56M92%20268h36%27%20stroke-width%3D%274%27%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20x%3D%2782%27%20y%3D%27100%27%20width%3D%2756%27%20height%3D%2790%27%20rx%3D%2712%27%20fill%3D%27url%28%23glass%29%27%2F%3E%0A%20%20%3Cellipse%20cx%3D%27110%27%20cy%3D%27145%27%20rx%3D%2722%27%20ry%3D%2738%27%20fill%3D%27%23fff4bf%27%20fill-opacity%3D%270.34%27%2F%3E%0A%20%20%3Ccircle%20cx%3D%27110%27%20cy%3D%27145%27%20r%3D%2710%27%20fill%3D%27%23fff8d7%27%20fill-opacity%3D%270.85%27%2F%3E%0A%20%20%3Ccircle%20cx%3D%2738%27%20cy%3D%27218%27%20r%3D%274%27%20fill%3D%27%23fff0b8%27%20fill-opacity%3D%270.8%27%2F%3E%0A%20%20%3Ccircle%20cx%3D%27178%27%20cy%3D%27196%27%20r%3D%275%27%20fill%3D%27%23ffd5ef%27%20fill-opacity%3D%270.82%27%2F%3E%0A%3C%2Fsvg%3E");
-}
-#EID_DECOR_LAYER .eid-art-right {
-  top:38px;
-  right:48px;
-  width:min(18vw, 232px);
-  height:min(19vw, 220px);
-  opacity:.76;
-  filter:drop-shadow(0 18px 26px rgba(0,0,0,.26));
-  background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20280%20220%27%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%27moon%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%270%25%27%20stop-color%3D%27%23fff8d7%27%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%2758%25%27%20stop-color%3D%27%23f6d77f%27%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%27100%25%27%20stop-color%3D%27%23f0a2d3%27%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Cpath%20fill%3D%27url%28%23moon%29%27%20d%3D%27M162%2028c-42%2010-72%2048-72%2092%200%2052%2042%2094%2094%2094%2022%200%2043-8%2059-20-17%2020-42%2032-70%2032-52%200-94-42-94-94%200-46%2033-84%2077-93%202-1%204-1%206-1z%27%2F%3E%0A%20%20%3Cg%20fill%3D%27%23fff6d7%27%3E%0A%20%20%20%20%3Cpath%20d%3D%27M204%2044l7%2018%2018%207-18%207-7%2018-7-18-18-7%2018-7z%27%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%27M84%20116l5%2012%2012%205-12%205-5%2012-5-12-12-5%2012-5z%27%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%27204%27%20cy%3D%27146%27%20r%3D%275%27%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%27228%27%20cy%3D%27116%27%20r%3D%273%27%2F%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E");
-}
-#EID_DECOR_LAYER .eid-art-center {
-  top:68px;
-  left:50%;
-  transform:translateX(-50%);
-  width:min(54vw, 700px);
-  height:min(12vw, 140px);
-  opacity:.40;
-  background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20720%20160%27%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%27line%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%270%27%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%270%25%27%20stop-color%3D%27%23fff1bf%27%20stop-opacity%3D%270%27%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%2750%25%27%20stop-color%3D%27%23fff1bf%27%20stop-opacity%3D%270.8%27%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%27100%25%27%20stop-color%3D%27%23fff1bf%27%20stop-opacity%3D%270%27%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Cpath%20d%3D%27M86%20112c78-92%20470-92%20548%200%27%20fill%3D%27none%27%20stroke%3D%27url%28%23line%29%27%20stroke-width%3D%276%27%20stroke-linecap%3D%27round%27%2F%3E%0A%20%20%3Cpath%20d%3D%27M180%20112c54-48%20306-48%20360%200%27%20fill%3D%27none%27%20stroke%3D%27%23fff4d0%27%20stroke-opacity%3D%270.42%27%20stroke-width%3D%273%27%20stroke-linecap%3D%27round%27%2F%3E%0A%20%20%3Ccircle%20cx%3D%27360%27%20cy%3D%2776%27%20r%3D%2722%27%20fill%3D%27none%27%20stroke%3D%27%23fff5d6%27%20stroke-opacity%3D%270.72%27%20stroke-width%3D%272%27%2F%3E%0A%20%20%3Ccircle%20cx%3D%27360%27%20cy%3D%2776%27%20r%3D%278%27%20fill%3D%27%23fff7e0%27%20fill-opacity%3D%270.84%27%2F%3E%0A%20%20%3Cg%20fill%3D%27%23fff5d6%27%20fill-opacity%3D%270.48%27%3E%0A%20%20%20%20%3Ccircle%20cx%3D%27302%27%20cy%3D%2788%27%20r%3D%273%27%2F%3E%3Ccircle%20cx%3D%27418%27%20cy%3D%2788%27%20r%3D%273%27%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%27250%27%20cy%3D%27100%27%20r%3D%272.5%27%2F%3E%3Ccircle%20cx%3D%27470%27%20cy%3D%27100%27%20r%3D%272.5%27%2F%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E");
-}
-#EID_DECOR_LAYER .eid-art-ribbon {
-  top:20px;
-  left:50%;
-  transform:translateX(-50%);
-  width:min(66vw, 880px);
-  height:78px;
-  opacity:.42;
-  background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20920%20120%27%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%27wire%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%270%27%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%270%25%27%20stop-color%3D%27%23fff3c4%27%20stop-opacity%3D%270.2%27%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%2750%25%27%20stop-color%3D%27%23fff3c4%27%20stop-opacity%3D%270.45%27%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%27100%25%27%20stop-color%3D%27%23fff3c4%27%20stop-opacity%3D%270.2%27%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Cpath%20d%3D%27M34%2026c96%2064%20756%2064%20852%200%27%20fill%3D%27none%27%20stroke%3D%27url%28%23wire%29%27%20stroke-width%3D%274%27%20stroke-linecap%3D%27round%27%2F%3E%0A%20%20%3Cg%3E%0A%20%20%20%20%3Ccircle%20cx%3D%27136%27%20cy%3D%2744%27%20r%3D%277%27%20fill%3D%27%23fff7da%27%20fill-opacity%3D%270.7%27%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%27242%27%20cy%3D%2760%27%20r%3D%277%27%20fill%3D%27%23f7d782%27%20fill-opacity%3D%270.8%27%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%27348%27%20cy%3D%2767%27%20r%3D%277%27%20fill%3D%27%23ffd7ef%27%20fill-opacity%3D%270.82%27%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%27460%27%20cy%3D%2770%27%20r%3D%277%27%20fill%3D%27%23c3ecff%27%20fill-opacity%3D%270.8%27%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%27572%27%20cy%3D%2767%27%20r%3D%277%27%20fill%3D%27%23fff7da%27%20fill-opacity%3D%270.78%27%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%27676%27%20cy%3D%2758%27%20r%3D%277%27%20fill%3D%27%23f7d782%27%20fill-opacity%3D%270.82%27%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%27784%27%20cy%3D%2742%27%20r%3D%277%27%20fill%3D%27%23ffd7ef%27%20fill-opacity%3D%270.8%27%2F%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E");
+  display: none !important;
 }
 
-#tabs.tab {
-  position:relative !important;
-  isolation:isolate;
-}
-#tabs.tab::before {
-  content:"";
-  position:absolute;
-  inset:-6px -6px;
-  z-index:-1;
-  pointer-events:none;
-  border-radius:24px;
-  background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,0));
-  box-shadow:0 26px 48px rgba(3,7,15,.30), inset 0 1px 0 rgba(255,255,255,.06);
-  opacity:.72;
+#EID_DECOR_LAYER::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(255, 226, 156, 0), rgba(255, 226, 156, 0.15) 50%, rgba(255, 226, 156, 0)),
+    linear-gradient(180deg, rgba(255, 243, 208, 0.04), rgba(255, 243, 208, 0) 22%);
+  opacity: 0.9;
 }
 
+#EID_DECOR_LAYER::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60% 26% at 50% 0%, rgba(255, 223, 144, 0.18), rgba(255, 223, 144, 0) 76%),
+    radial-gradient(52% 36% at 50% 100%, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.30) 72%, rgba(0, 0, 0, 0.56) 100%);
+}
+
+/* Compact Eid toggle: same overall size feel as the envelope button beside it. */
 #UA07_SECRET_ENVELOPE_WRAP {
-  z-index:9002;
+  z-index: 9002;
+  gap: 6px;
 }
 
 .eid-toggle-btn {
-  width:40px !important;
-  min-width:40px !important;
-  height:40px !important;
-  border-radius:14px !important;
-  border:1px solid rgba(255,255,255,.18) !important;
+  position: relative;
+  pointer-events: auto;
+  width: 38px !important;
+  min-width: 38px !important;
+  height: 28px !important;
+  padding: 0 !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
   background:
-    radial-gradient(circle at 24% 22%, rgba(255,255,255,.34), rgba(255,255,255,0) 34%),
-    linear-gradient(145deg, rgba(255,248,216,.16), rgba(245,215,127,.14) 36%, rgba(151,118,255,.16) 78%, rgba(255,154,201,.16)) !important;
-  box-shadow:0 18px 34px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.22) !important;
-  backdrop-filter:blur(8px) saturate(120%);
-  -webkit-backdrop-filter:blur(8px) saturate(120%);
-  transition:transform .18s ease, filter .18s ease, box-shadow .18s ease;
+    radial-gradient(circle at 26% 22%, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0) 34%),
+    linear-gradient(180deg, rgba(255, 248, 220, 0.14), rgba(246, 211, 122, 0.14) 48%, rgba(255, 155, 125, 0.14) 100%) !important;
+  box-shadow:
+    0 10px 22px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.20) !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+  transform: translateZ(0);
+  transition: transform 0.16s ease, filter 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
 }
+
 .eid-toggle-btn:hover {
-  transform:translateY(-1px);
-  filter:brightness(1.04);
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+  border-color: rgba(255, 238, 196, 0.32) !important;
+  box-shadow:
+    0 14px 26px rgba(0, 0, 0, 0.44),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
 }
+
 .eid-toggle-btn:active {
-  transform:translateY(0) scale(.98);
+  transform: translateY(0) scale(0.98);
 }
+
 .eid-toggle-btn.is-off {
-  filter:saturate(.7) brightness(.88);
-  opacity:.8;
+  filter: saturate(0.55) brightness(0.84);
+  opacity: 0.84;
 }
+
 .eid-toggle-btn .eid-toggle-shell {
-  position:relative;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  width:100%;
-  height:100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
 }
+
 .eid-toggle-btn .eid-toggle-glyph {
-  width:22px;
-  height:22px;
-  filter:drop-shadow(0 5px 8px rgba(0,0,0,.28));
+  width: 16px;
+  height: 16px;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.30));
 }
+
 .eid-toggle-btn .eid-toggle-orb {
-  position:absolute;
-  right:5px;
-  top:5px;
-  width:8px;
-  height:8px;
-  border-radius:50%;
-  background:linear-gradient(180deg, #fff4ca, #f3d37a);
-  box-shadow:0 0 0 2px rgba(5,9,23,.42), 0 0 10px rgba(243,211,122,.45);
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #fff7d6, #f3d37a);
+  box-shadow:
+    0 0 0 1px rgba(4, 8, 19, 0.40),
+    0 0 8px rgba(243, 211, 122, 0.45);
 }
+
 .eid-toggle-btn::before {
-  content:"";
-  position:absolute;
-  inset:0;
-  background:linear-gradient(120deg, transparent 18%, rgba(255,255,255,.20) 48%, transparent 78%);
-  transform:translateX(-145%);
-  animation:eidShine 5.2s ease-in-out infinite;
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0));
+  pointer-events: none;
 }
-@keyframes eidShine {
-  0%, 76%, 100% { transform:translateX(-145%); }
-  88% { transform:translateX(145%); }
+
+/* Do not alter the core tool buttons; only let the original tabs keep their existing nice style. */
+#tabs.tab,
+#tabs .tablinks,
+.dropbtn,
+.dropdown-content,
+.toolsStyle,
+button {
+  will-change: auto;
 }
 
 @media (max-width: 980px) {
-  #EID_DECOR_LAYER .eid-art-left { opacity:.38; width:min(16vw, 150px); }
-  #EID_DECOR_LAYER .eid-art-right { opacity:.52; width:min(20vw, 180px); right:18px; }
-  #EID_DECOR_LAYER .eid-art-center { opacity:.26; }
-  #EID_DECOR_LAYER .eid-art-ribbon { opacity:.28; width:min(78vw, 740px); }
+  html::before {
+    background-position: center 15%;
+  }
 }
+
 @media (max-width: 720px) {
-  html::after { opacity:.07; }
-  #EID_DECOR_LAYER .eid-art-left,
-  #EID_DECOR_LAYER .eid-art-right,
-  #EID_DECOR_LAYER .eid-art-center { display:none; }
-  #EID_DECOR_LAYER .eid-art-ribbon { top:12px; opacity:.20; }
-  body::after { opacity:.18; height:120px; }
+  html::before {
+    background-position: center 12%;
+  }
+
+  html::after {
+    opacity: 0.78;
+  }
 }
+
 @media (prefers-reduced-motion: reduce) {
-  .eid-toggle-btn::before { animation:none !important; }
+  .eid-toggle-btn {
+    transition: none !important;
+  }
 }

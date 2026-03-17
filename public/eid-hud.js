@@ -50,18 +50,18 @@ function buildToggleMarkup(){
       <svg viewBox="0 0 64 64" class="eid-toggle-glyph" focusable="false" aria-hidden="true">
         <defs>
           <linearGradient id="eidGemGradient" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#fff3bf"></stop>
-            <stop offset="45%" stop-color="#f5d574"></stop>
-            <stop offset="100%" stop-color="#ff98d5"></stop>
+            <stop offset="0%" stop-color="#fff6cf"></stop>
+            <stop offset="48%" stop-color="#f4cf72"></stop>
+            <stop offset="100%" stop-color="#ffab73"></stop>
           </linearGradient>
           <linearGradient id="eidGemStroke" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#fff8d4"></stop>
-            <stop offset="100%" stop-color="#f4b7ff"></stop>
+            <stop offset="0%" stop-color="#fff8e0"></stop>
+            <stop offset="100%" stop-color="#ffd8b0"></stop>
           </linearGradient>
         </defs>
-        <path d="M38.7 10.2c-8.4 1.8-14.4 9.2-14.4 18 0 9.8 8.2 17.8 18.1 17.8 2.1 0 4.2-.4 6.1-1-2.8 2.9-6.9 4.8-11.5 4.8-9.9 0-18-8-18-17.9 0-7.8 5-14.7 12.4-17 .1 0 .2-.1.3-.1 2.2-.7 4.6-.9 7-.6z" fill="url(#eidGemGradient)"></path>
-        <path d="M44.9 18.2l1.8 4.4 4.4 1.8-4.4 1.8-1.8 4.4-1.8-4.4-4.4-1.8 4.4-1.8 1.8-4.4zm-20 15.1l1.2 2.9 2.9 1.2-2.9 1.2-1.2 2.9-1.2-2.9-2.9-1.2 2.9-1.2 1.2-2.9z" fill="url(#eidGemGradient)"></path>
-        <circle cx="32" cy="32" r="29" fill="none" stroke="url(#eidGemStroke)" stroke-width="1.6" opacity=".65"></circle>
+        <path d="M37.8 11.5c-8.1 1.7-13.9 8.7-13.9 17.2 0 9.4 7.9 17.1 17.4 17.1 1.9 0 3.9-.3 5.7-.9-2.7 2.8-6.5 4.5-10.9 4.5-9.4 0-17-7.6-17-17 0-7.5 4.8-14 11.9-16.2 2.1-.7 4.4-.9 6.8-.7z" fill="url(#eidGemGradient)"></path>
+        <path d="M44 18l1.7 4.1 4.1 1.7-4.1 1.7-1.7 4.1-1.7-4.1-4.1-1.7 4.1-1.7 1.7-4.1zm-18.2 15.4 1.1 2.6 2.6 1.1-2.6 1.1-1.1 2.6-1.1-2.6-2.6-1.1 2.6-1.1 1.1-2.6z" fill="url(#eidGemGradient)"></path>
+        <circle cx="32" cy="32" r="29" fill="none" stroke="url(#eidGemStroke)" stroke-width="1.45" opacity=".58"></circle>
       </svg>
       <span class="eid-toggle-orb"></span>
     </span>

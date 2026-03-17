@@ -577,6 +577,60 @@
 
 </style>
 
+<style id="timer-stability-patch-v6">
+  /* Stable clock width: prevents the compact timer from drifting left when digits change. */
+  .ltTime,
+  .ltMiniTime {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "lnum" 1;
+  }
+
+  .ltTimerDock.isClock {
+    width: 152px !important;
+    min-width: 152px !important;
+  }
+
+  .ltTimerDock.isClock .ltMiniClock {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+  }
+
+  .ltTimerDock.isClock .ltMiniTime {
+    min-width: 4.8ch !important;
+    text-align: right !important;
+    margin: 0 !important;
+    letter-spacing: .04em !important;
+  }
+
+  .ltTimerDock.isClock .ltMiniDot {
+    flex: 0 0 auto !important;
+    margin-left: 0 !important;
+  }
+
+  .ltTimerDock.isClock.isClockLarge {
+    width: 186px !important;
+    min-width: 186px !important;
+  }
+
+  #smartDockBar .ltTimerDock {
+    flex: 0 0 168px !important;
+    min-width: 168px !important;
+  }
+
+  #smartDockBar .ltTimerDock.isClock {
+    flex-basis: 152px !important;
+    min-width: 152px !important;
+  }
+
+  #smartDockBar .ltTimerDock.isClock.isClockLarge {
+    flex-basis: 186px !important;
+    min-width: 186px !important;
+  }
+</style>
+
 <style id="lt-pro-overrides">
 /* ===== Timer UI professional polish ===== */
 .ltTimerDock{
