@@ -1,55 +1,299 @@
 /*
-  Eid UI theme (visual-only)
-  --------------------------
-  Lightweight, modern, festive styling that keeps the original tool layout intact.
+  Eid Premium Theme (luxury visual layer)
+  --------------------------------------
+  Safe visual upgrade only: richer colors, festive highlights, lighter motion,
+  and an icon-based Eid toggle instead of visible text.
 */
 :root{
-  --eid-bg-0:#070b1a; --eid-bg-1:#0f1633; --eid-surface:rgba(15,20,44,0.70); --eid-text:rgba(255,255,255,0.95);
-  --eid-gold:#f4d47d; --eid-gold-2:#fff0bf; --eid-violet:#7c3aed; --eid-indigo:#4f46e5; --eid-rose:#ec4899; --eid-cyan:#38bdf8;
-  --eid-shadow:0 24px 64px rgba(0,0,0,0.45);
+  --eid-ink:#050917;
+  --eid-night:#081228;
+  --eid-midnight:#0c1734;
+  --eid-surface:rgba(10,16,37,.76);
+  --eid-surface-2:rgba(255,255,255,.08);
+  --eid-text:rgba(255,255,255,.96);
+  --eid-text-soft:rgba(255,255,255,.74);
+  --eid-gold:#f2d078;
+  --eid-gold-soft:#fff0bf;
+  --eid-rose:#ff6fb2;
+  --eid-amethyst:#8e63ff;
+  --eid-cyan:#6fd7ff;
+  --eid-shadow:0 24px 64px rgba(0,0,0,.42);
+  --eid-line:rgba(255,255,255,.14);
 }
-html, body{
+html,body{
   background:
-    radial-gradient(1200px 720px at 15% 12%, rgba(124,58,237,0.20), transparent 58%),
-    radial-gradient(980px 600px at 88% 14%, rgba(236,72,153,0.14), transparent 54%),
-    radial-gradient(880px 520px at 50% 96%, rgba(56,189,248,0.12), transparent 56%),
-    linear-gradient(180deg, var(--eid-bg-1), var(--eid-bg-0)),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cg fill='none' stroke='rgba(255,255,255,0.08)' stroke-width='1'%3E%3Cpath d='M90 18 111 39 90 60 69 39 90 18Z'/%3E%3Cpath d='M90 60 111 81 90 102 69 81 90 60Z'/%3E%3Cpath d='M39 39 60 60 39 81 18 60 39 39Z'/%3E%3Cpath d='M141 39 162 60 141 81 120 60 141 39Z'/%3E%3Cpath d='M90 102 111 123 90 144 69 123 90 102Z'/%3E%3Cpath d='M0 90h180M90 0v180' stroke='rgba(255,255,255,0.045)'/%3E%3C/g%3E%3C/svg%3E") repeat;
-  background-size:auto, auto, auto, auto, 220px 220px;
+    radial-gradient(1200px 560px at 50% -8%, rgba(255,214,122,.14), transparent 54%),
+    radial-gradient(900px 460px at 10% 10%, rgba(142,99,255,.22), transparent 56%),
+    radial-gradient(760px 420px at 88% 16%, rgba(255,111,178,.16), transparent 50%),
+    radial-gradient(820px 460px at 50% 100%, rgba(111,215,255,.10), transparent 60%),
+    linear-gradient(180deg, #081228 0%, #060d1f 46%, #040914 100%) !important;
+  background-attachment: fixed !important;
   color:var(--eid-text);
 }
-#EID_TOGGLE_BTN,.eid-toggle-btn{
-  position:relative !important; overflow:hidden !important; height:22px !important; padding:0 14px 0 12px !important;
-  border-radius:999px !important; border:1px solid rgba(255,255,255,0.20) !important;
-  background:radial-gradient(circle at 20% 20%, rgba(255,255,255,0.28), rgba(255,255,255,0) 24%), linear-gradient(135deg, rgba(124,58,237,0.92), rgba(79,70,229,0.92) 45%, rgba(236,72,153,0.92));
-  color:rgba(255,255,255,0.98) !important; box-shadow:0 16px 30px rgba(0,0,0,0.36),0 0 0 1px rgba(255,255,255,0.06), inset 0 1px 0 rgba(255,255,255,0.18); text-shadow:0 1px 2px rgba(0,0,0,0.35);
+html::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:-2;
+  opacity:.42;
+  background-image:
+    radial-gradient(circle at 10% 14%, rgba(255,255,255,.9) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 28% 10%, rgba(255,255,255,.85) 0 1.1px, transparent 1.7px),
+    radial-gradient(circle at 48% 9%, rgba(255,255,255,.9) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 72% 12%, rgba(255,255,255,.82) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 86% 9%, rgba(255,255,255,.76) 0 1px, transparent 1.7px);
 }
-.eid-toggle-btn:hover{ filter:brightness(1.08) saturate(1.04); }
-.eid-toggle-btn:active{ transform:translateY(1px); }
-.eid-toggle-btn.is-off{ background:linear-gradient(135deg, rgba(71,85,105,0.85), rgba(51,65,85,0.86)) !important; opacity:0.88; }
+body::before,
+body::after{
+  content:"";
+  position:fixed;
+  pointer-events:none;
+  z-index:-1;
+  opacity:.95;
+  background-repeat:no-repeat;
+  background-size:contain;
+}
+body::before{
+  top:18px;
+  left:18px;
+  width:min(240px,22vw);
+  height:min(260px,28vw);
+  opacity:.30;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 280'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23fff1c2'/%3E%3Cstop offset='50%25' stop-color='%23f4d47d'/%3E%3Cstop offset='100%25' stop-color='%23f77fc7'/%3E%3C/linearGradient%3E%3CradialGradient id='glow' cx='50%25' cy='18%25' r='58%25'%3E%3Cstop offset='0%25' stop-color='%23fff5d3' stop-opacity='.88'/%3E%3Cstop offset='100%25' stop-color='%23fff5d3' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cellipse cx='110' cy='58' rx='66' ry='44' fill='url(%23glow)'/%3E%3Cpath d='M110 22c28 0 51 23 51 51 0 31-22 55-60 73-4 2-9-2-7-7 13-31 10-63-10-95-2-4 0-9 5-10 7-2 14-3 21-3z' fill='url(%23g)'/%3E%3Cg fill='url(%23g)' opacity='.9'%3E%3Cpath d='M156 126v20l-18 10v18l-18 10v-28l18-10v-20z'/%3E%3Cpath d='M82 104h56v14H82z'/%3E%3Cpath d='M96 118h28v82c0 14-6 22-14 32-8-10-14-18-14-32z'/%3E%3C/g%3E%3Cg fill='%23fff7de' opacity='.86'%3E%3Ccircle cx='60' cy='70' r='4'/%3E%3Ccircle cx='176' cy='46' r='4.5'/%3E%3Ccircle cx='184' cy='92' r='3.5'/%3E%3C/g%3E%3C/svg%3E");
+}
+body::after{
+  top:14px;
+  right:20px;
+  width:min(260px,24vw);
+  height:min(240px,24vw);
+  opacity:.26;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 260 220'%3E%3Cdefs%3E%3ClinearGradient id='c' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23fff0bf'/%3E%3Cstop offset='48%25' stop-color='%23f2d078'/%3E%3Cstop offset='100%25' stop-color='%23ff90d0'/%3E%3C/linearGradient%3E%3CradialGradient id='h' cx='55%25' cy='30%25' r='50%25'%3E%3Cstop offset='0%25' stop-color='%23fff5d3' stop-opacity='.9'/%3E%3Cstop offset='100%25' stop-color='%23fff5d3' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cellipse cx='152' cy='70' rx='90' ry='56' fill='url(%23h)'/%3E%3Cpath d='M165 28c35 0 63 28 63 63 0 39-31 70-70 70-25 0-47-12-60-31 9 4 19 6 29 6 40 0 73-33 73-73 0-13-3-25-9-35 2 0 4 0 6 0z' fill='url(%23c)'/%3E%3Cpath d='M88 138l7 16 16 7-16 7-7 16-7-16-16-7 16-7zm106-72l5 12 12 5-12 5-5 12-5-12-12-5 12-5zm-79-24l4 10 10 4-10 4-4 10-4-10-10-4 10-4z' fill='%23fff6db'/%3E%3C/svg%3E");
+}
+#MNDO_UA07_LOGO3,
+#MNDO_UA07_LOGO{
+  filter: drop-shadow(0 10px 22px rgba(0,0,0,.42)) drop-shadow(0 0 18px rgba(242,208,120,.14));
+}
+#UA07_SECRET_ENVELOPE_WRAP{
+  padding:4px 8px !important;
+  border-radius:999px !important;
+  background:linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.03)) !important;
+  border:1px solid rgba(255,255,255,.08) !important;
+  box-shadow:0 12px 28px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.08) !important;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+#EID_TOGGLE_BTN,
+.eid-toggle-btn{
+  position:relative !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:38px !important;
+  min-width:38px !important;
+  height:38px !important;
+  padding:0 !important;
+  border-radius:14px !important;
+  border:1px solid rgba(255,240,191,.40) !important;
+  background:
+    radial-gradient(circle at 32% 24%, rgba(255,255,255,.42), rgba(255,255,255,0) 34%),
+    linear-gradient(135deg, rgba(30,39,87,.92), rgba(117,74,255,.92) 46%, rgba(255,111,178,.90)) !important;
+  box-shadow:0 18px 34px rgba(0,0,0,.34), 0 0 0 1px rgba(255,255,255,.06), inset 0 1px 0 rgba(255,255,255,.26) !important;
+  overflow:hidden !important;
+  color:#fff !important;
+  font-size:0 !important;
+  line-height:0 !important;
+  text-shadow:none !important;
+  transition:transform .18s ease, filter .18s ease, box-shadow .18s ease !important;
+}
+.eid-toggle-btn:hover{
+  transform:translateY(-1px) scale(1.03);
+  filter:brightness(1.08) saturate(1.04);
+}
+.eid-toggle-btn:active{ transform:translateY(0) scale(.98); }
+.eid-toggle-btn.is-off{
+  background:linear-gradient(135deg, rgba(71,85,105,.88), rgba(36,46,64,.90)) !important;
+  border-color:rgba(255,255,255,.18) !important;
+  opacity:.86;
+}
+.eid-toggle-btn .eid-toggle-shell{
+  position:relative;
+  width:24px;
+  height:24px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+.eid-toggle-btn .eid-toggle-glyph{
+  width:24px;
+  height:24px;
+  display:block;
+  filter:drop-shadow(0 2px 8px rgba(242,208,120,.26));
+}
+.eid-toggle-btn .eid-toggle-orb{
+  position:absolute;
+  right:-1px;
+  top:-1px;
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:linear-gradient(180deg, #fff4ca, #f2d078);
+  box-shadow:0 0 0 2px rgba(5,9,23,.42), 0 0 12px rgba(242,208,120,.54);
+}
 .eid-toggle-btn::before{
-  content:""; width:14px; height:14px; display:inline-block; margin-right:6px; vertical-align:-2px;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Cpath d='M11.8 2.1c-3.2.7-5.5 3.5-5.5 6.8 0 3.7 3.1 6.8 6.9 6.8.8 0 1.6-.1 2.3-.4-1.1 1.1-2.7 1.8-4.5 1.8-3.8 0-6.9-3.1-6.9-6.9 0-3 1.9-5.6 4.8-6.5.9-.3 1.9-.4 2.9-.3z' fill='%23fff0bf'/%3E%3Cpath d='m13.7 4.1.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6.6-1.6z' fill='%23f4d47d'/%3E%3C/svg%3E");
-  background-size:contain; background-repeat:no-repeat; filter:drop-shadow(0 2px 6px rgba(244,212,125,0.35));
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(120deg, transparent 20%, rgba(255,255,255,.24) 48%, transparent 72%);
+  transform:translateX(-140%);
+  animation:eidShine 4.8s ease-in-out infinite;
 }
-.eid-toggle-btn::after{ content:""; position:absolute; inset:0; background:linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.20) 46%, transparent 70%); transform:translateX(-120%); animation:eidShine 4.6s ease-in-out infinite; }
-@keyframes eidShine{ 0%,72%,100%{ transform:translateX(-120%);} 84%{ transform:translateX(120%);} }
-#UA07_SECRET_ENVELOPE,#UA07_UPDATE_ICON{ border-color:rgba(244,212,125,0.22) !important; background:linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.06)) !important; box-shadow:0 14px 30px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.14) !important; }
-#UA07_SECRET_ENVELOPE:hover,#UA07_UPDATE_ICON:hover{ border-color:rgba(244,212,125,0.48) !important; }
-#UA07_ONLINE_COUNT{ border-color:rgba(244,212,125,0.16) !important; background:rgba(7,11,26,0.55) !important; box-shadow:0 10px 24px rgba(0,0,0,0.34); }
-.floating-actions .suggestions-fab,.floating-actions .support-fab{ border:1px solid rgba(255,255,255,0.14) !important; background:linear-gradient(135deg, rgba(124,58,237,0.28), rgba(56,189,248,0.18) 54%, rgba(236,72,153,0.18)) !important; box-shadow:0 18px 42px rgba(0,0,0,0.42) !important; color:rgba(255,255,255,0.95) !important; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
-.fab-badge{ background:linear-gradient(180deg, #ff6aa2, #ff3d7f) !important; }
-.support-overlay,.suggestions-overlay{ backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
-.support-modal,.suggestions-modal,.admin-modal{ border:1px solid rgba(255,255,255,0.10) !important; background:linear-gradient(180deg, rgba(9,13,28,0.92), rgba(10,15,34,0.94)) !important; box-shadow:var(--eid-shadow) !important; }
-.support-modal-header,.suggestions-header{ border-bottom:1px solid rgba(255,255,255,0.10) !important; }
-.support-form input,.support-form textarea,.suggestions-form textarea{ border:1px solid rgba(255,255,255,0.14) !important; background:rgba(255,255,255,0.06) !important; color:rgba(255,255,255,0.94) !important; }
-.support-form input:focus,.support-form textarea:focus,.suggestions-form textarea:focus{ border-color:rgba(124,58,237,0.44) !important; box-shadow:0 0 0 3px rgba(124,58,237,0.16) !important; outline:none !important; }
-.support-form button,.suggestions-form button,.admin-action{ border:1px solid rgba(255,255,255,0.14) !important; background:linear-gradient(135deg, rgba(124,58,237,0.38), rgba(56,189,248,0.24), rgba(236,72,153,0.24)) !important; color:rgba(255,255,255,0.96) !important; }
-#tabs .tab-utility-btn.is-reset{ background:radial-gradient(circle at 30% 25%, rgba(255,255,255,0.34), rgba(255,255,255,0) 34%), linear-gradient(135deg, #f59e0b, #f97316 45%, #ec4899) !important; box-shadow:inset 0 1px 0 rgba(255,255,255,0.32),0 14px 28px rgba(244,114,182,0.28),0 0 0 1px rgba(255,255,255,0.08) !important; }
-.calc-launch-btn{ background:radial-gradient(circle at 28% 22%, rgba(255,255,255,0.38), rgba(255,255,255,0) 34%), linear-gradient(135deg, #4f46e5, #2563eb 48%, #7c3aed) !important; box-shadow:0 18px 34px rgba(79,70,229,0.34),0 0 0 1px rgba(255,255,255,0.10), inset 0 1px 0 rgba(255,255,255,0.30) !important; }
-.smart-calc-panel{ border:1px solid rgba(255,255,255,0.12) !important; background:radial-gradient(circle at top left, rgba(124,58,237,0.20), rgba(0,0,0,0) 32%), linear-gradient(180deg, rgba(11,18,36,0.98), rgba(8,12,24,0.98)) !important; box-shadow:0 30px 70px rgba(0,0,0,0.46) !important; }
-.smart-calc-display:focus{ box-shadow:0 0 0 3px rgba(124,58,237,0.20) !important; }
-.smart-calc-btn.is-operator{ background:linear-gradient(180deg, rgba(79,70,229,0.82), rgba(109,40,217,0.76)) !important; }
-.smart-calc-btn.is-equals{ background:linear-gradient(180deg, rgba(45,212,191,0.88), rgba(14,165,233,0.84)) !important; }
-@media (prefers-reduced-motion: reduce){ .eid-toggle-btn::after,#MNDO_UA07_LOGO3 .ua07-shine{ animation:none !important; } }
-@media (max-width: 520px){ .eid-toggle-btn{ font-size:11px !important; } }
+@keyframes eidShine{
+  0%,74%,100%{ transform:translateX(-140%); }
+  86%{ transform:translateX(140%); }
+}
+#UA07_SECRET_ENVELOPE,
+#UA07_UPDATE_ICON{
+  border-color:rgba(242,208,120,.22) !important;
+  background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05)) !important;
+  box-shadow:0 16px 34px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.12) !important;
+}
+#UA07_SECRET_ENVELOPE:hover,
+#UA07_UPDATE_ICON:hover{
+  border-color:rgba(242,208,120,.48) !important;
+}
+#UA07_ONLINE_COUNT{
+  border-color:rgba(242,208,120,.15) !important;
+  background:rgba(7,11,26,.56) !important;
+  box-shadow:0 10px 24px rgba(0,0,0,.30);
+}
+#tabs .tablinks{
+  position:relative;
+  border:1px solid rgba(255,255,255,.12) !important;
+  background:linear-gradient(180deg, rgba(255,255,255,.96), rgba(226,232,245,.92)) !important;
+  box-shadow:0 14px 26px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.95) !important;
+  color:#11213f !important;
+}
+#tabs .tablinks:hover{
+  filter:brightness(1.02);
+  transform:translateY(-1px);
+}
+#tabs .tablinks.active,
+#tabs .tablinks:focus-visible{
+  border-color:rgba(255,240,191,.44) !important;
+  background:
+    radial-gradient(circle at 24% 22%, rgba(255,255,255,.44), rgba(255,255,255,0) 28%),
+    linear-gradient(135deg, rgba(255,246,220,.98), rgba(242,208,120,.94) 32%, rgba(151,113,255,.90) 72%, rgba(255,111,178,.88)) !important;
+  color:#09111f !important;
+  box-shadow:0 18px 34px rgba(0,0,0,.28), 0 0 0 1px rgba(255,255,255,.10), inset 0 1px 0 rgba(255,255,255,.75) !important;
+}
+.dropbtn,
+.toolsStyle,
+.dropdown-content a,
+.support-modal,
+.suggestions-modal,
+.admin-modal,
+.support-form input,
+.support-form textarea,
+.suggestions-form textarea,
+.smart-calc-panel{
+  border-color:var(--eid-line) !important;
+}
+.dropbtn,
+.toolsStyle{
+  background:linear-gradient(180deg, rgba(16,24,53,.90), rgba(10,16,36,.92)) !important;
+  box-shadow:0 18px 42px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+.dropdown-content,
+.support-modal,
+.suggestions-modal,
+.admin-modal{
+  background:linear-gradient(180deg, rgba(10,16,37,.96), rgba(7,11,24,.97)) !important;
+  box-shadow:var(--eid-shadow) !important;
+}
+.dropdown-content a:hover,
+.toolsStyle:hover,
+.dropbtn:hover{
+  background:linear-gradient(135deg, rgba(142,99,255,.22), rgba(255,111,178,.14), rgba(242,208,120,.14)) !important;
+}
+.floating-actions .suggestions-fab,
+.floating-actions .support-fab{
+  border:1px solid rgba(255,255,255,.14) !important;
+  background:linear-gradient(135deg, rgba(142,99,255,.34), rgba(111,215,255,.24) 54%, rgba(255,111,178,.24)) !important;
+  box-shadow:0 18px 42px rgba(0,0,0,.42) !important;
+  color:#fff !important;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+.support-overlay,
+.suggestions-overlay{
+  backdrop-filter:blur(7px);
+  -webkit-backdrop-filter:blur(7px);
+}
+.support-form input,
+.support-form textarea,
+.suggestions-form textarea{
+  background:rgba(255,255,255,.06) !important;
+  color:rgba(255,255,255,.94) !important;
+}
+.support-form input:focus,
+.support-form textarea:focus,
+.suggestions-form textarea:focus,
+.smart-calc-display:focus{
+  border-color:rgba(142,99,255,.48) !important;
+  box-shadow:0 0 0 3px rgba(142,99,255,.16) !important;
+  outline:none !important;
+}
+.support-form button,
+.suggestions-form button,
+.admin-action,
+.smart-calc-btn.is-operator,
+.smart-calc-btn.is-equals{
+  color:#fff !important;
+}
+.support-form button,
+.suggestions-form button,
+.admin-action{
+  background:linear-gradient(135deg, rgba(142,99,255,.38), rgba(111,215,255,.22), rgba(255,111,178,.22)) !important;
+}
+#tabs .tab-utility-btn.is-reset{
+  background:
+    radial-gradient(circle at 28% 24%, rgba(255,255,255,.34), rgba(255,255,255,0) 30%),
+    linear-gradient(135deg, #ffb22f, #ff6f3d 44%, #ff4f95) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.32), 0 14px 30px rgba(255,111,178,.24), 0 0 0 1px rgba(255,255,255,.08) !important;
+}
+.calc-launch-btn{
+  background:
+    radial-gradient(circle at 28% 22%, rgba(255,255,255,.38), rgba(255,255,255,0) 34%),
+    linear-gradient(135deg, #4f46e5, #2563eb 48%, #8e63ff) !important;
+  box-shadow:0 18px 34px rgba(79,70,229,.34), 0 0 0 1px rgba(255,255,255,.10), inset 0 1px 0 rgba(255,255,255,.30) !important;
+}
+.smart-calc-panel{
+  background:radial-gradient(circle at top left, rgba(142,99,255,.18), rgba(0,0,0,0) 32%), linear-gradient(180deg, rgba(11,18,36,.98), rgba(8,12,24,.98)) !important;
+  box-shadow:0 30px 70px rgba(0,0,0,.46) !important;
+}
+.smart-calc-btn.is-operator{
+  background:linear-gradient(180deg, rgba(79,70,229,.84), rgba(109,40,217,.78)) !important;
+}
+.smart-calc-btn.is-equals{
+  background:linear-gradient(180deg, rgba(45,212,191,.90), rgba(14,165,233,.86)) !important;
+}
+#tagsContainer #closeTagsBtn{
+  box-shadow:0 18px 36px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.18) !important;
+}
+@media (prefers-reduced-motion: reduce){
+  .eid-toggle-btn::before{ animation:none !important; }
+}
+@media (max-width: 840px){
+  body::before,
+  body::after{ opacity:.18; }
+}
+@media (max-width: 520px){
+  #EID_TOGGLE_BTN,
+  .eid-toggle-btn{
+    width:34px !important;
+    min-width:34px !important;
+    height:34px !important;
+    border-radius:12px !important;
+  }
+}

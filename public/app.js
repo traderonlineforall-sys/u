@@ -3852,6 +3852,7 @@ document.addEventListener('DOMContentLoaded', function(){
     var tagsHtmlPromise = null;
     var tagsApplied = false;
     var bodyOverflowBeforeTags = '';
+    var currentTagsMode = 'main';
 
     function ensureOverlay(){
       if (tagsContainer && tagsFrame && tagsPanel) return;
@@ -3866,7 +3867,7 @@ document.addEventListener('DOMContentLoaded', function(){
         tagsContainer.style.width = '100%';
         tagsContainer.style.height = '100%';
         tagsContainer.style.zIndex = '2147483646';
-        tagsContainer.style.background = 'linear-gradient(180deg, rgba(4,7,20,0.92), rgba(5,5,15,0.97))';
+        tagsContainer.style.background = 'radial-gradient(circle at 50% 0%, rgba(255,214,122,0.16), rgba(255,214,122,0) 24%), radial-gradient(circle at 20% 12%, rgba(142,99,255,0.18), rgba(142,99,255,0) 30%), linear-gradient(180deg, rgba(5,8,22,0.92), rgba(5,5,15,0.97))';
         tagsContainer.style.backdropFilter = 'blur(4px)';
         tagsContainer.style.webkitBackdropFilter = 'blur(4px)';
         tagsContainer.style.opacity = '0';
@@ -3928,21 +3929,24 @@ document.addEventListener('DOMContentLoaded', function(){
         closeBtn.id = 'closeTagsBtn';
         closeBtn.textContent = '\u00D7';
         closeBtn.style.position = 'absolute';
-        closeBtn.style.top = '14px';
-        closeBtn.style.right = '14px';
+        closeBtn.style.top = '18px';
+        closeBtn.style.left = '18px';
+        closeBtn.style.right = 'auto';
         closeBtn.style.zIndex = '2147483647';
-        closeBtn.style.width = '44px';
-        closeBtn.style.height = '44px';
-        closeBtn.style.borderRadius = '14px';
-        closeBtn.style.border = '1px solid rgba(255,255,255,0.2)';
-        closeBtn.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.08))';
+        closeBtn.style.width = '42px';
+        closeBtn.style.height = '42px';
+        closeBtn.style.borderRadius = '16px';
+        closeBtn.style.border = '1px solid rgba(255,240,191,0.30)';
+        closeBtn.style.background = 'radial-gradient(circle at 28% 22%, rgba(255,255,255,0.34), rgba(255,255,255,0) 32%), linear-gradient(135deg, rgba(255,240,191,0.16), rgba(133,92,255,0.22) 48%, rgba(255,111,178,0.18))';
         closeBtn.style.color = '#fff';
         closeBtn.style.fontSize = '26px';
+        closeBtn.style.fontWeight = '800';
         closeBtn.style.lineHeight = '1';
-        closeBtn.style.boxShadow = '0 14px 34px rgba(0,0,0,0.28)';
+        closeBtn.style.boxShadow = '0 18px 40px rgba(0,0,0,0.30)';
         closeBtn.style.cursor = 'pointer';
-        closeBtn.style.backdropFilter = 'blur(6px)';
-        closeBtn.style.webkitBackdropFilter = 'blur(6px)';
+        closeBtn.style.backdropFilter = 'blur(8px)';
+        closeBtn.style.webkitBackdropFilter = 'blur(8px)';
+        closeBtn.setAttribute('aria-label', 'Close Tags');
         tagsContainer.appendChild(closeBtn);
       }
 
@@ -3983,6 +3987,33 @@ document.addEventListener('DOMContentLoaded', function(){
       return html;
     }
 
+    function decorateTagsHtml(html, mode){
+      var safeMode = mode === 'ivr' ? 'ivr' : 'main';
+      var bridge = '<script>window.__SR_TAGS_EMBED={mode:"' + safeMode + '",parentBridge:true};<\/script>';
+      if (/<head(\b[^>]*)>/i.test(html)) {
+        return html.replace(/<head(\b[^>]*)>/i, function(m){ return m + '\n' + bridge + '\n'; });
+      }
+      return bridge + html;
+    }
+
+    function bindTagsBridge(){
+      if (window.__srTagsBridgeBound) return;
+      window.__srTagsBridgeBound = true;
+      window.addEventListener('message', function(ev){
+        var data = ev && ev.data;
+        if (!data || typeof data !== 'object') return;
+        if (data.type === 'SR_TAGS_SWITCH_MODE') {
+          currentTagsMode = data.mode === 'ivr' ? 'ivr' : 'main';
+          tagsApplied = false;
+          applyTagsHtml();
+          return;
+        }
+        if (data.type === 'SR_TAGS_CLOSE') {
+          hideTags();
+        }
+      });
+    }
+
     function fetchTagsHtml(force){
       if (tagsHtmlCache && !force) return Promise.resolve(tagsHtmlCache);
       if (tagsHtmlPromise && !force) return tagsHtmlPromise;
@@ -4000,7 +4031,8 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 
     function applyTagsHtml(){
-      ensureOverlay();
+      bindTagsBridge();
+    ensureOverlay();
       if (tagsApplied && tagsFrame && tagsFrame.srcdoc) {
         if (tagsLoader) tagsLoader.style.display = 'none';
         tagsFrame.style.opacity = '1';
@@ -4012,7 +4044,7 @@ document.addEventListener('DOMContentLoaded', function(){
         .then(function(html){
           if (!html) throw new Error('empty Tags.html');
           tagsApplied = true;
-          tagsFrame.srcdoc = html;
+          tagsFrame.srcdoc = decorateTagsHtml(html, currentTagsMode);
         })
         .catch(function(err){
           console.error('Failed to load Tags.html', err);
