@@ -1326,12 +1326,12 @@ html, body { overflow-x: hidden !important; }
     50%{ opacity:.22; transform: translateX(12px); }
   }
 
-  /* Ramadan toggle button (always available; enables/disables the Ramadan stylesheet)
+  /* Eid toggle button (always available; enables/disables the Eid stylesheet)
      - Placed near the UA07 logo without changing the original layout.
-     - Styled further by ramadan-theme.css when the theme is ON.
+     - Styled further by eid-theme.css when the theme is ON.
   */
   .ramadan-toggle-btn{
-    /* The Ramadan toggle lives inside the UA07 envelope row (flex). */
+    /* The Eid toggle lives inside the UA07 envelope row (flex). */
     position: static;
     display: inline-flex;
     align-items: center;

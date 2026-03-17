@@ -3838,160 +3838,239 @@ if (typeof move1 !== "function") {
 }
 
 // Integrate Tags.html into the main page by toggling an overlay with an iframe.
-// When the user clicks the Tags button (#bat2) the overlay is shown, and it is hidden when the close button is clicked.
+// Performance refresh:
+// - Do NOT hide the entire page tree when opening Tags.
+// - Warm the Tags HTML during idle time / hover / focus.
+// - Reuse a single fetched HTML string + a single iframe instance.
+// - Show the overlay instantly, then hydrate the iframe content.
 document.addEventListener('DOMContentLoaded', function(){
   try {
     var tagsBtn = document.getElementById('bat2');
     var tagsContainer = document.getElementById('tagsContainer');
-    // If the overlay container doesn't exist in the DOM, create it dynamically.
-    if(!tagsContainer){
-      tagsContainer = document.createElement('div');
-      tagsContainer.id = 'tagsContainer';
-      tagsContainer.style.display = 'none';
-      tagsContainer.style.position = 'fixed';
-      tagsContainer.style.top = '0';
-      tagsContainer.style.left = '0';
-      tagsContainer.style.width = '100%';
-      tagsContainer.style.height = '100%';
-      // Place the overlay above all existing UI elements. Some parts of the UA07
-      // interface (such as the search input and results) use extremely high
-      // z-index values (2,147,483,646 and above). Using a modest value like
-      // 999,999 would still place the overlay underneath those elements,
-      // causing the logo and search bar to remain visible. To ensure the
-      // overlay covers every other element, assign a z-index near the top of
-      // the valid range. 2,147,483,647 is the maximum 32-bit signed integer,
-      // and values slightly below it will safely layer above existing UI.
-      tagsContainer.style.zIndex = '2147483646';
-      // Dark semi‑transparent backdrop
-      tagsContainer.style.backgroundColor = 'rgba(5,5,15,0.95)';
+    var tagsPanel, tagsFrame, closeBtn, tagsLoader;
+    var tagsHtmlCache = '';
+    var tagsHtmlPromise = null;
+    var tagsApplied = false;
+    var bodyOverflowBeforeTags = '';
 
+    function ensureOverlay(){
+      if (tagsContainer && tagsFrame && tagsPanel) return;
 
-// Render Tags.html inside the overlay using an iframe WITH srcdoc (NO URL-framing).
-// Why srcdoc? Vercel sends `X-Frame-Options: DENY`, which blocks iframes that load a URL
-// (even same-origin). Using `srcdoc` avoids framing a URL entirely, while still isolating
-// Tags scripts/styles so they don't break the main tool (timers/globals).
-var tagsPanel = document.createElement('div');
-tagsPanel.id = 'tagsPanel';
-tagsPanel.style.position = 'relative';
-tagsPanel.style.width = '100%';
-tagsPanel.style.height = '100%';
-tagsPanel.style.overflow = 'hidden';
-tagsPanel.style.padding = '0';
-tagsPanel.style.margin = '0';
-tagsPanel.style.boxSizing = 'border-box';
-tagsContainer.appendChild(tagsPanel);
-
-var tagsFrame = document.createElement('iframe');
-tagsFrame.id = 'tagsFrame';
-tagsFrame.style.width = '100%';
-tagsFrame.style.height = '100%';
-tagsFrame.style.border = '0';
-tagsFrame.style.display = 'block';
-tagsFrame.style.background = 'transparent';
-
-// Sandbox keeps any navigation (e.g. opening IVR .htm) INSIDE the frame,
-// so it won't change the main page URL or kick the user out of the tool.
-// We allow same-origin so Tags can load local assets (css/js/images) normally.
-// We do NOT allow top-navigation.
-tagsFrame.setAttribute('sandbox', 'allow-scripts allow-forms allow-same-origin');
-tagsPanel.appendChild(tagsFrame);
-
-function loadTagsHtmlOnce(){
-  if(tagsFrame.__tagsLoaded) return;
-  tagsFrame.__tagsLoaded = true;
-
-  fetch('/Tags.html', { cache: 'no-store' })
-    .then(function(r){ return r.text(); })
-    .then(function(html){
-      try {
-        // Ensure relative URLs inside Tags.html resolve from site root
-        if (!/\<base\b/i.test(html)) {
-          html = html.replace(/<head(\b[^>]*)>/i, function(m){
-            return m + "\n<base href=\"/\" />\n";
-          });
-        }
-
-        // Block aggressive devtools-disabling scripts inside Tags.html if present.
-        html = html.replace(/<script[^>]*src=["'][^"']*disable-devtool[^"']*["'][^>]*>\s*<\/script>/gi, '');
-
-        tagsFrame.srcdoc = html;
-      } catch (e) {
-        console.error('Tags.html srcdoc error', e);
-        tagsFrame.srcdoc = '<html><body style="margin:0;background:#05050f;color:#fff;font-family:system-ui;padding:20px">تعذر تحميل صفحة الـ Tags. جرّب Refresh.</body></html>';
+      if(!tagsContainer){
+        tagsContainer = document.createElement('div');
+        tagsContainer.id = 'tagsContainer';
+        tagsContainer.style.display = 'none';
+        tagsContainer.style.position = 'fixed';
+        tagsContainer.style.top = '0';
+        tagsContainer.style.left = '0';
+        tagsContainer.style.width = '100%';
+        tagsContainer.style.height = '100%';
+        tagsContainer.style.zIndex = '2147483646';
+        tagsContainer.style.background = 'linear-gradient(180deg, rgba(4,7,20,0.92), rgba(5,5,15,0.97))';
+        tagsContainer.style.backdropFilter = 'blur(4px)';
+        tagsContainer.style.webkitBackdropFilter = 'blur(4px)';
+        tagsContainer.style.opacity = '0';
+        tagsContainer.style.transition = 'opacity 0.18s ease';
+        tagsContainer.style.contain = 'layout paint style';
       }
-    })
-    .catch(function(err){
-      console.error('Failed to load Tags.html', err);
-      tagsFrame.srcdoc = '<html><body style="margin:0;background:#05050f;color:#fff;font-family:system-ui;padding:20px">تعذر تحميل صفحة الـ Tags. تحقق من وجود Tags.html داخل /public.</body></html>';
-    });
-}
-// Create a close button inside the overlay so the user can exit the Tags view
-      var closeBtnEl = document.createElement('button');
-      closeBtnEl.id = 'closeTagsBtn';
-      closeBtnEl.textContent = '\u00D7'; // multiplication sign looks like an “x”
-      closeBtnEl.style.position = 'absolute';
-      closeBtnEl.style.top = '10px';
-      closeBtnEl.style.right = '10px';
-      // Ensure the close button sits atop the overlay as well
-      closeBtnEl.style.zIndex = '2147483647';
-      closeBtnEl.style.backgroundColor = 'rgba(255,255,255,0.8)';
-      closeBtnEl.style.color = '#000';
-      closeBtnEl.style.border = 'none';
-      closeBtnEl.style.padding = '6px 10px';
-      closeBtnEl.style.fontSize = '16px';
-      closeBtnEl.style.borderRadius = '4px';
-      closeBtnEl.style.cursor = 'pointer';
-      tagsContainer.appendChild(closeBtnEl);
 
-      // Append the overlay to the document body
-      document.body.appendChild(tagsContainer);
+      tagsPanel = document.getElementById('tagsPanel');
+      if(!tagsPanel){
+        tagsPanel = document.createElement('div');
+        tagsPanel.id = 'tagsPanel';
+        tagsPanel.style.position = 'relative';
+        tagsPanel.style.width = '100%';
+        tagsPanel.style.height = '100%';
+        tagsPanel.style.overflow = 'hidden';
+        tagsPanel.style.padding = '0';
+        tagsPanel.style.margin = '0';
+        tagsPanel.style.boxSizing = 'border-box';
+        tagsPanel.style.contain = 'layout paint style';
+        tagsContainer.appendChild(tagsPanel);
+      }
 
-      // Assign close button click handler to hide the overlay
-      closeBtnEl.addEventListener('click', function(){
-        hideTags();
-      });
+      tagsFrame = document.getElementById('tagsFrame');
+      if(!tagsFrame){
+        tagsFrame = document.createElement('iframe');
+        tagsFrame.id = 'tagsFrame';
+        tagsFrame.style.width = '100%';
+        tagsFrame.style.height = '100%';
+        tagsFrame.style.border = '0';
+        tagsFrame.style.display = 'block';
+        tagsFrame.style.background = 'transparent';
+        tagsFrame.style.opacity = '0';
+        tagsFrame.style.transition = 'opacity 0.18s ease';
+        tagsFrame.setAttribute('sandbox', 'allow-scripts allow-forms allow-same-origin');
+        tagsPanel.appendChild(tagsFrame);
+      }
 
-      // Update closeBtn variable to point to the dynamically created button
-      closeBtn = closeBtnEl;
-    }
-    var closeBtn = document.getElementById('closeTagsBtn');
-    // When the Tags panel is shown, we mark the body with a class and show the overlay.
-    // Helper to show the Tags overlay and apply a class on the body to hide other content.
-    function showTags(){
-      // Add a class to the body so CSS can hide all siblings except the overlay
-      document.body.classList.add('tags-open');
-      loadTagsHtmlOnce();
-      tagsContainer.style.display = 'block';
-    }
-    // Helper to hide the Tags overlay and remove the body class to restore content.
-    function hideTags(){
-      tagsContainer.style.display = 'none';
-      document.body.classList.remove('tags-open');
-    }
-    if(tagsBtn && tagsContainer){
-      tagsBtn.addEventListener('click', function(e){
-        // Prevent the default anchor behaviour (which would try to load Tags.html in a new tab)
-        if(e) e.preventDefault();
-        // Toggle: if container is visible hide it, otherwise show it
-        if(tagsContainer.style.display === 'block'){
+      tagsLoader = document.getElementById('tagsLoader');
+      if(!tagsLoader){
+        tagsLoader = document.createElement('div');
+        tagsLoader.id = 'tagsLoader';
+        tagsLoader.style.position = 'absolute';
+        tagsLoader.style.inset = '0';
+        tagsLoader.style.display = 'flex';
+        tagsLoader.style.flexDirection = 'column';
+        tagsLoader.style.alignItems = 'center';
+        tagsLoader.style.justifyContent = 'center';
+        tagsLoader.style.gap = '12px';
+        tagsLoader.style.color = '#f5f7ff';
+        tagsLoader.style.fontFamily = 'system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Arial, sans-serif';
+        tagsLoader.style.background = 'radial-gradient(circle at 50% 30%, rgba(83,114,255,0.22), rgba(0,0,0,0) 32%), linear-gradient(180deg, rgba(7,11,28,0.86), rgba(5,5,15,0.94))';
+        tagsLoader.innerHTML = '<div style="width:46px;height:46px;border-radius:50%;border:3px solid rgba(255,255,255,0.16);border-top-color:#f7d88b;animation: srTagsSpin 0.9s linear infinite"></div><div style="font-size:14px;font-weight:700;letter-spacing:.2px">جارٍ تجهيز Tags...</div><div style="font-size:12px;opacity:.72">فتح أسرع وتحميل أخف</div>';
+        tagsPanel.appendChild(tagsLoader);
+      }
+
+      closeBtn = document.getElementById('closeTagsBtn');
+      if(!closeBtn){
+        closeBtn = document.createElement('button');
+        closeBtn.id = 'closeTagsBtn';
+        closeBtn.textContent = '\u00D7';
+        closeBtn.style.position = 'absolute';
+        closeBtn.style.top = '14px';
+        closeBtn.style.right = '14px';
+        closeBtn.style.zIndex = '2147483647';
+        closeBtn.style.width = '44px';
+        closeBtn.style.height = '44px';
+        closeBtn.style.borderRadius = '14px';
+        closeBtn.style.border = '1px solid rgba(255,255,255,0.2)';
+        closeBtn.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.08))';
+        closeBtn.style.color = '#fff';
+        closeBtn.style.fontSize = '26px';
+        closeBtn.style.lineHeight = '1';
+        closeBtn.style.boxShadow = '0 14px 34px rgba(0,0,0,0.28)';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.style.backdropFilter = 'blur(6px)';
+        closeBtn.style.webkitBackdropFilter = 'blur(6px)';
+        tagsContainer.appendChild(closeBtn);
+      }
+
+      if (!document.getElementById('srTagsSpinStyle')) {
+        var spinStyle = document.createElement('style');
+        spinStyle.id = 'srTagsSpinStyle';
+        spinStyle.textContent = '@keyframes srTagsSpin{to{transform:rotate(360deg)}}';
+        document.head.appendChild(spinStyle);
+      }
+
+      if(!tagsContainer.parentNode){
+        document.body.appendChild(tagsContainer);
+      }
+
+      if(!closeBtn.__tagsBound){
+        closeBtn.__tagsBound = true;
+        closeBtn.addEventListener('click', function(){
           hideTags();
-        } else {
-          showTags();
-        }
-      });
+        });
+      }
+
+      if(!tagsFrame.__fadeBound){
+        tagsFrame.__fadeBound = true;
+        tagsFrame.addEventListener('load', function(){
+          tagsFrame.style.opacity = '1';
+          if (tagsLoader) tagsLoader.style.display = 'none';
+        });
+      }
     }
-    if(closeBtn){
-      // If a close button is provided inside the overlay, hide the overlay when clicked
-      closeBtn.addEventListener('click', function(){
-        hideTags();
+
+    function normalizeTagsHtml(html){
+      if (!/\<base\b/i.test(html)) {
+        html = html.replace(/<head(\b[^>]*)>/i, function(m){
+          return m + '\n<base href="/" />\n';
+        });
+      }
+      html = html.replace(/<script[^>]*src=["'][^"']*disable-devtool[^"']*["'][^>]*>\s*<\/script>/gi, '');
+      return html;
+    }
+
+    function fetchTagsHtml(force){
+      if (tagsHtmlCache && !force) return Promise.resolve(tagsHtmlCache);
+      if (tagsHtmlPromise && !force) return tagsHtmlPromise;
+      tagsHtmlPromise = fetch('/Tags.html', { cache: force ? 'reload' : 'force-cache' })
+        .then(function(r){ return r.text(); })
+        .then(function(html){
+          tagsHtmlCache = normalizeTagsHtml(html || '');
+          return tagsHtmlCache;
+        })
+        .catch(function(err){
+          console.error('Failed to warm Tags.html', err);
+          throw err;
+        });
+      return tagsHtmlPromise;
+    }
+
+    function applyTagsHtml(){
+      ensureOverlay();
+      if (tagsApplied && tagsFrame && tagsFrame.srcdoc) {
+        if (tagsLoader) tagsLoader.style.display = 'none';
+        tagsFrame.style.opacity = '1';
+        return Promise.resolve();
+      }
+      if (tagsLoader) tagsLoader.style.display = 'flex';
+      tagsFrame.style.opacity = '0';
+      return fetchTagsHtml(false)
+        .then(function(html){
+          if (!html) throw new Error('empty Tags.html');
+          tagsApplied = true;
+          tagsFrame.srcdoc = html;
+        })
+        .catch(function(err){
+          console.error('Failed to load Tags.html', err);
+          tagsApplied = false;
+          tagsFrame.srcdoc = '<html><body style="margin:0;background:#05050f;color:#fff;font-family:system-ui;padding:20px">تعذر تحميل صفحة الـ Tags. تحقق من وجود Tags.html داخل /public.</body></html>';
+        });
+    }
+
+    function warmTags(preRender){
+      ensureOverlay();
+      fetchTagsHtml(false)
+        .then(function(){
+          if (preRender && !tagsApplied) applyTagsHtml();
+        })
+        .catch(function(){ /* no-op */ });
+    }
+
+    function showTags(){
+      ensureOverlay();
+      tagsContainer.style.display = 'block';
+      requestAnimationFrame(function(){ tagsContainer.style.opacity = '1'; });
+      if (!bodyOverflowBeforeTags) bodyOverflowBeforeTags = document.body.style.overflow || '';
+      document.body.style.overflow = 'hidden';
+      applyTagsHtml();
+    }
+
+    function hideTags(){
+      if (!tagsContainer) return;
+      tagsContainer.style.opacity = '0';
+      setTimeout(function(){ if (tagsContainer) tagsContainer.style.display = 'none'; }, 160);
+      document.body.style.overflow = bodyOverflowBeforeTags;
+    }
+
+    ensureOverlay();
+
+    if(tagsBtn){
+      tagsBtn.addEventListener('click', function(e){
+        if(e) e.preventDefault();
+        if(tagsContainer.style.display === 'block') hideTags();
+        else showTags();
       });
+      if (!tagsBtn.__tagsWarmBound) {
+        tagsBtn.__tagsWarmBound = true;
+        ['mouseenter', 'focus', 'touchstart'].forEach(function(evtName){
+          tagsBtn.addEventListener(evtName, function(){ warmTags(false); }, { passive: true, once: true });
+        });
+      }
+    }
+
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(function(){ warmTags(false); }, { timeout: 1800 });
+    } else {
+      window.setTimeout(function(){ warmTags(false); }, 900);
     }
   } catch (ex) {
-    // swallow any errors to avoid breaking the page
     console.error(ex);
   }
 });
-
 // -----------------------------------------------------------------------------
 // Additional converters for the Mobile section
 // These functions replicate the behaviour of the standalone converter tool
