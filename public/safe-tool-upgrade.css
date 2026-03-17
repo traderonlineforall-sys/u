@@ -312,3 +312,116 @@
     font-size: 17px;
   }
 }
+
+
+/* === Visual refresh v2 === */
+#tabs .tab-utility-btn.is-reset {
+  border-color: rgba(255,255,255,0.38);
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255,255,255,0.34), rgba(255,255,255,0) 34%),
+    linear-gradient(135deg, #ff8a00, #ff3d00 58%, #ff1744);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.34),
+    0 12px 26px rgba(255, 72, 0, 0.42),
+    0 0 0 1px rgba(255,255,255,0.08);
+}
+
+#tabs .tab-utility-btn.is-reset:hover {
+  filter: brightness(1.12) saturate(1.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.42),
+    0 16px 30px rgba(255, 72, 0, 0.5),
+    0 0 18px rgba(255, 102, 0, 0.22);
+}
+
+.calc-launch-btn {
+  width: 56px;
+  height: 56px;
+  border-color: rgba(255,255,255,0.28);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 28% 22%, rgba(255,255,255,0.38), rgba(255,255,255,0) 34%),
+    linear-gradient(135deg, #00c6ff, #0072ff 55%, #7c3aed);
+  color: #fff;
+  box-shadow:
+    0 18px 34px rgba(0, 102, 255, 0.34),
+    0 0 0 1px rgba(255,255,255,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.30);
+}
+
+.calc-launch-btn:hover {
+  filter: brightness(1.13) saturate(1.08);
+  box-shadow:
+    0 22px 38px rgba(0, 102, 255, 0.4),
+    0 0 22px rgba(0, 198, 255, 0.18),
+    inset 0 1px 0 rgba(255,255,255,0.36);
+}
+
+.calc-launch-btn i {
+  font-size: 24px;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.22));
+}
+
+.smart-calc-panel {
+  width: min(392px, calc(100vw - 24px));
+  padding: 14px;
+  border-radius: 22px;
+}
+
+.smart-calc-header {
+  margin-bottom: 8px;
+}
+
+.smart-calc-title {
+  gap: 8px;
+  font-size: 16px;
+}
+
+.smart-calc-hint {
+  margin-bottom: 8px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.smart-calc-display {
+  min-height: 50px;
+  padding: 10px 13px;
+  border-radius: 15px;
+  font-size: 18px;
+}
+
+.smart-calc-preview {
+  min-height: 18px;
+  margin: 7px 0 10px;
+  font-size: 12px;
+}
+
+.smart-calc-actions {
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.smart-calc-action-btn {
+  padding: 8px 10px;
+  border-radius: 13px;
+  font-size: 12px;
+}
+
+.smart-calc-grid {
+  gap: 8px;
+}
+
+.smart-calc-btn {
+  min-height: 42px;
+  padding: 8px;
+  border-radius: 13px;
+  font-size: 16px;
+}
+
+.smart-calc-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  font-size: 18px;
+}

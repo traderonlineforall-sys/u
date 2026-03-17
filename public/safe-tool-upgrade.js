@@ -576,6 +576,7 @@
 
     var toolbar = document.createElement("div");
     toolbar.className = "calc-smart-toolbar";
+    toolbar.setAttribute("data-smart-calc-toolbar", "true");
     toolbar.innerHTML = [
       '<button id="smartCalcToggle" class="calc-launch-btn" type="button"',
       ' aria-label="Open calculator" aria-haspopup="dialog" aria-controls="smartCalcOverlay" aria-expanded="false"',
@@ -664,10 +665,10 @@
     var btn = document.createElement("button");
     btn.id = "headerResetBtn";
     btn.type = "button";
-    btn.className = "tab-utility-btn";
+    btn.className = "tab-utility-btn is-reset";
     btn.setAttribute("aria-label", "Reset tool header");
     btn.setAttribute("title", "Reset الرقم الأرضي وإعادة تثبيت اللوجو");
-    btn.innerHTML = '<i class="fa fa-sync-alt" aria-hidden="true"></i>';
+    btn.innerHTML = '<i class="fa fa-rotate-left" aria-hidden="true"></i>';
     btn.addEventListener("click", handleHeaderReset);
     tabs.appendChild(btn);
   }

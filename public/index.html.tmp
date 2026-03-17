@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head><link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="safe-tool-upgrade.css">
     <link rel="icon" href="favicon.ico">
     <!-- Ramadan visual theme (remove this line to revert to the default look) -->
     <link id="ramadanThemeLink" rel="stylesheet" href="ramadan-theme.css">
@@ -1062,18 +1063,13 @@
                                 <div class="dropdown-content">
 
                                         <a href="https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName=Other&srTypeId=159003069&topUrl=&custid=&BMEWebToken=&serviceInfoChar107=2&serviceInfoChar111=1&serviceInfoChar112=0&serviceInfoChar276=1&serviceInfoChar278=1&serviceTitle=General Inquiry&serviceInfoChar282=General Inquiry&serviceContent=cst ask about &subsNumber="
-                                                onclick="openLinkk(event) " target="_blank 170000 ">Fixed Voice - General Information</a>
+                                                onclick="openLinkk(event) " target="_blank 170000 ">Other</a>
 
 
                                         <a href="https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName=Exchange%20Working%20Hours%20And%20Address&srTypeId=159003013&t=1689252491470&tabId=sr0.3567039462060242&topUrl=&custid=&BMEWebToken=&serviceInfoChar107=2&serviceInfoChar111=1&serviceTitle= ​Exchange Working Hours And Address&serviceInfoChar282= ​Exchange Working Hours And Address &serviceInfoChar276=1&serviceInfoChar278=1&serviceInfoChar272=0&serviceContent=Inf cst about ​Exchange Working Hours And Address &subsNumber="
                                                 onclick="openLinkk(event) " target="_blank 170000 "
                                                 title=" ​مواعيد عمل السنترال والعنوان"> Fixed ​Exchange Working Hours
                                                 And Address</a>
-
-
-                                        <a href="https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName=Products%20Inquiry&srTypeId=159003003&t=1697605341231&tabId=sr0.8561957957353619&topUrl=&custid=&BMEWebToken=null&serviceInfoChar107=2&serviceInfoChar111=1&serviceTitle=Products Inquiry&serviceInfoChar282=Products Inquiry &serviceInfoChar276=1&serviceInfoChar278=1&serviceInfoChar272=0&serviceContent=CST ask about &subsNumber="
-                                                onclick="openLinkk(event) " target="_blank 170000 ">Fixed Products
-                                                Inquiry</a>
 
 
                                         <a href=" https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName=Line%20Type&srTypeId=159003059&t=1709416615886&tabId=sr0.3731879587166975&topUrl=&custid=&BMEWebToken=&serviceInfoChar107=2&serviceInfoChar111=1&serviceTitle=Line Type&serviceInfoChar282=Line Type&serviceInfoChar276=1&serviceInfoChar278=1&serviceInfoChar272=0&serviceContent=CST ask about Line Type handled&subsNumber="
@@ -1129,11 +1125,6 @@
                                         <a href="https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName=Call%20Price&srTypeId=159003045&t=1689252492572&tabId=sr0.5589723846069822&topUrl=&custid=&BMEWebToken=&serviceInfoChar107=2&serviceInfoChar111=1&serviceTitle= ​Call Price&serviceInfoChar282= ​Call Price &serviceInfoChar276=1&serviceInfoChar278=1&serviceInfoChar272=0&serviceContent=Inf CST about Call Price handled &subsNumber="
                                                 onclick="openLinkk(event) " target="_blank 170000 "
                                                 title=" ​سعر دقيقه خدمه العملاء">​​Fixed Voice ​Call Price</a>
-
-
-                                        <a href="https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName=Products%20Inquiry&srTypeId=159003003&t=1689339886454&tabId=sr0.20891412729903946&topUrl=&custid=&BMEWebToken=&serviceInfoChar107=2&serviceInfoChar111=1&serviceTitle=Products Inquiry&serviceInfoChar282=Products Inquiry &serviceInfoChar276=1&serviceInfoChar278=1&serviceInfoChar272=0&serviceContent=CST ask about  &subsNumber="
-                                                onclick="openLinkk(event) " target="_blank 170000 ">Fixed Voice Products
-                                                Inquiry</a>
 
 
                                         <a href="https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName=Benefit%20Customer&srTypeId=159003042&t=1689403044308&tabId=sr0.545480234354942&topUrl=&custid=&BMEWebToken=&serviceInfoChar107=2&serviceInfoChar111=1&serviceTitle=Benefit Customer&serviceInfoChar282=Benefit Customer &serviceInfoChar276=1&serviceInfoChar278=1&serviceInfoChar272=0&serviceContent=CST ask about Benefit Customer handled &subsNumber="
@@ -7619,7 +7610,7 @@ FBB Non Tech follow up--Installation Order--Call back to CRM">Call back to CRM <
 
                         <a class="toolsStyle" href=" http://ematrix/SearchPage.aspx" target="_blank 4775"> E Matrix</a>
 
-                        <a class="toolsStyle" href=" https://10.42.187.101:8080/expresse/login-page?sessionExpired=true "
+                        <a class="toolsStyle" href=" https://10.42.187.100:8080/expresse/login-page "
                                 target="_blank 4776">ASSIA</a>
 
                         <a class="toolsStyle" href=" https://10.19.44.2/ireport/app/analyzer/public/ " target="_blank 4777">
@@ -7860,6 +7851,23 @@ FBB Non Tech follow up--Installation Order--Call back to CRM">Call back to CRM <
                                                 <div class="dropdown-content">
 
                                                         <div dir="rtl">
+                                                                <div class="sub-dropdown" style="background-color: #fff9d7;">
+                                                                        <a href="#" class="no-search"> <i class="fa fa-caret-right"> </i>
+                                                                                Ramadan </a>
+                                                                        <div class="sub-dropdown-content">
+
+                                                                                <a href="https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName=Top-up%20Promo&srTypeId=100019064&t=1771556480362&tabId=sr0.161676764753579&topUrl=&custid=&serviceInfoChar107=2&serviceInfoChar111=1&serviceInfoChar112=0&BMEWebToken=null&serviceTitle=Top-up%20Promo&serviceInfoChar282=Top-up%20Promo&serviceInfoChar276=1&serviceInfoChar278=1&serviceInfoChar272=0&serviceContent=informed%20cst%20about%20Ramadan%20Top-up%20%20Promo%202026&subsNumber=" onclick="openLink(event)" target="_blank"
+                                                                                        title="Top-up Promo">Top-up Promo</a>
+                                                                                <a href="https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName=Cash%20Device&srTypeId=100019113&t=1771556480362&tabId=sr0.037532908879108&topUrl=&custid=&serviceInfoChar107=2&serviceInfoChar111=1&serviceInfoChar112=0&BMEWebToken=null&serviceTitle=Cash%20Device&serviceInfoChar282=Cash%20Device&serviceInfoChar276=1&serviceInfoChar278=1&serviceInfoChar272=0&serviceContent=informed%20cst%20about%20Ramadan%20Cash%20Devices%20Promo%202026&subsNumber=" onclick="openLink(event)" target="_blank"
+                                                                                        title="Cash Device">Cash Device</a>
+                                                                                <a href="https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName=CVM%20Q1&srTypeId=100019143&t=1771556480362&tabId=sr0.010738715191498&topUrl=&custid=&serviceInfoChar107=2&serviceInfoChar111=1&serviceInfoChar112=0&BMEWebToken=null&serviceTitle=CVM%20Q1&serviceInfoChar282=CVM%20Q1&serviceInfoChar276=1&serviceInfoChar278=1&serviceInfoChar272=0&serviceContent=informed%20cst%20about%20FBB%20Ramadan%20CVM%20Offer%202026&subsNumber=" onclick="openLink(event)" target="_blank"
+                                                                                        title="CVM Q1">CVM Q1</a>
+                                                                                <a href="https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName=Ramadan%20Game&srTypeId=100019145&t=1771556480362&tabId=sr0.47549608704715&topUrl=&custid=&serviceInfoChar107=2&serviceInfoChar111=1&serviceInfoChar112=0&BMEWebToken=null&serviceTitle=Ramadan%20Game&serviceInfoChar282=Ramadan%20Game&serviceInfoChar276=1&serviceInfoChar278=1&serviceInfoChar272=0&serviceContent=informed%20cst%20about%20Ramadan%20Game%20Kataflam%202026&subsNumber=" onclick="openLink(event)" target="_blank"
+                                                                                        title="Ramadan Game">Ramadan Game</a>
+
+                                                                        </div>
+                                                                </div>
+
                                                                 <a href="https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName=Other%20offer&srTypeId=100019004&t=1586104143286&tabId=sr0.38523261708122036&topUrl=&custid=&serviceInfoChar107=2&serviceInfoChar111=1&&BMEWebToken=null&serviceTitle= Other offer&serviceInfoChar282= Other offer&serviceInfoChar276=1&serviceInfoChar278=1&serviceInfoChar272=0&serviceContent=CST ask about new offers handled  &subsNumber="
                                                                         onclick="openLink(event)" target="_blank120"
                                                                         title="  ">Other Offer
@@ -7971,7 +7979,7 @@ FBB Non Tech follow up--Installation Order--Call back to CRM">Call back to CRM <
 
 
 
-                                                                <a href=" https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName=CVM%20Q1&srTypeId=100019045&t=1647275629213&tabId=sr0.9038867840091807&topUrl=&custid=&&BMEWebToken=null&serviceInfoChar107=2&serviceInfoChar111=1&serviceTitle=Offers and Campaigns&serviceInfoChar282=Offers and Campaigns &serviceInfoChar276=1&serviceInfoChar278=1&serviceInfoChar272=0&serviceContent=Informed CST about  Q1CVM offer policy&subsNumber="
+                                                                <a href=" https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName=CVM%20Q1&srTypeId=100019143&t=1647275629213&tabId=sr0.9038867840091807&topUrl=&custid=&&BMEWebToken=null&serviceInfoChar107=2&serviceInfoChar111=1&serviceTitle=Offers and Campaigns&serviceInfoChar282=Offers and Campaigns &serviceInfoChar276=1&serviceInfoChar278=1&serviceInfoChar272=0&serviceContent=Informed CST about  Q1CVM offer policy&subsNumber="
                                                                         onclick="openLink(event)"
                                                                         target="_blank 10 ">CVM Q1</a>
 
@@ -18086,6 +18094,7 @@ https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeNam
 
                                                 
 
+
                                                 </style>
 
                                                 <h1 style="color: #ccc">
@@ -18325,6 +18334,37 @@ https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeNam
     border-color: rgba(106,167,255,.55);
     box-shadow: 0 0 0 4px rgba(106,167,255,.16);
   }
+
+/* ===== Fix: datetime picker value not visible on some Chrome dark themes ===== */
+#outageNormalPanel input[type="datetime-local"]{
+  color: var(--text);
+  -webkit-text-fill-color: var(--text);
+}
+#outageNormalPanel input[type="datetime-local"]::-webkit-datetime-edit,
+#outageNormalPanel input[type="datetime-local"]::-webkit-datetime-edit-text,
+#outageNormalPanel input[type="datetime-local"]::-webkit-datetime-edit-month-field,
+#outageNormalPanel input[type="datetime-local"]::-webkit-datetime-edit-day-field,
+#outageNormalPanel input[type="datetime-local"]::-webkit-datetime-edit-year-field,
+#outageNormalPanel input[type="datetime-local"]::-webkit-datetime-edit-hour-field,
+#outageNormalPanel input[type="datetime-local"]::-webkit-datetime-edit-minute-field,
+#outageNormalPanel input[type="datetime-local"]::-webkit-datetime-edit-ampm-field{
+  color: var(--text);
+  -webkit-text-fill-color: var(--text);
+  opacity: 1;
+}
+#outageNormalPanel input[type="datetime-local"]::-webkit-calendar-picker-indicator{
+  filter: invert(1) brightness(1.15);
+  opacity: .9;
+  cursor: pointer;
+}
+/* ===== Field color upgrade (more contrast) ===== */
+#outageNormalPanel input, #outageNormalPanel select{
+  background: rgba(255,255,255,.085);
+  border-color: rgba(255,255,255,.24);
+}
+#outageNormalPanel input::placeholder{
+  color: rgba(234,240,255,.55);
+}
 #outageNormalPanel button {border-radius: var(--radius);}
 #outageNormalPanel .primary {
     background: linear-gradient(135deg, var(--accent), var(--accent2));
@@ -19099,7 +19139,105 @@ button {border-radius:999px !important;}
 #outageNormalPanel .iconBtn:focus-visible {
   box-shadow: 0 0 0 4px rgba(106,167,255,.18), 0 14px 34px rgba(0,0,0,.28) !important;
 }
-                                                                </style>
+
+#outageNormalPanel .outageLayout{
+  display:grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(360px, 520px);
+  gap: 18px;
+  align-items: start;
+  direction:ltr;
+}
+#outageNormalPanel .outageForm{direction:rtl;}
+#outageNormalPanel .outageResult{direction:rtl;}
+#outageNormalPanel .resultHeader{
+  font-weight: 900;
+  font-size: 13px;
+  opacity: .9;
+  margin: 8px 0 10px;
+}
+#outageNormalPanel .resultBox{
+  min-height: 360px;
+  max-height: 62vh;
+  overflow:auto;
+}
+#outageNormalPanel .resultObjection{margin-top:12px;}
+@media (max-width: 980px){
+  #outageNormalPanel .outageLayout{grid-template-columns: 1fr; }
+  #outageNormalPanel .resultBox{max-height:none;}
+}
+
+/* === MNDO polish overrides (fill + darker + pro selects) === */
+#outageNormalPanel{width:100% !important;}
+#outageNormalPanel .outageLayout{
+  grid-template-columns: 1fr 1fr !important;
+  align-items: stretch !important;
+  width: 100% !important;
+}
+#outageNormalPanel .outageForm,
+#outageNormalPanel .outageResult{
+  border: 1px solid rgba(255,255,255,.14) !important;
+  background: rgba(0,0,0,.58) !important;
+  border-radius: 16px !important;
+  padding: 14px !important;
+  min-height: 380px !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06) !important;
+}
+#outageNormalPanel .resultBox{
+  min-height: 420px !important;
+  background: rgba(0,0,0,.55) !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+}
+#outageNormalPanel .box{
+  background: rgba(0,0,0,.52) !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+}
+#outageNormalPanel input,
+#outageNormalPanel select{
+  background: rgba(0,0,0,.55) !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  color: rgba(255,255,255,.92) !important;
+}
+#outageNormalPanel select{
+  appearance:none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(255,255,255,.75) 50%),
+    linear-gradient(135deg, rgba(255,255,255,.75) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) calc(1em + 2px),
+    calc(100% - 13px) calc(1em + 2px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 34px !important;
+}
+#outageNormalPanel input:focus,
+#outageNormalPanel select:focus{
+  outline:none;
+  border-color: rgba(6,167,255,.55) !important;
+  box-shadow: 0 0 0 4px rgba(6,167,255,.12) !important;
+}
+#outageNormalPanel .controls button{
+  background: linear-gradient(135deg, rgba(6,167,255,.95), rgba(147,110,255,.92)) !important;
+  color:#081018 !important;
+}
+@media (max-width: 980px){
+  #outageNormalPanel .outageForm,
+  #outageNormalPanel .outageResult{ min-height: auto !important; }
+  #outageNormalPanel .resultBox{ min-height: 320px !important; }
+}
+/* === MNDO_FINAL_FIX_V11: Fill the whole SR Technical panel (remove centering/max-width) === */
+#outageNormalPanel{display:block !important; justify-content:initial !important; align-items:initial !important; background:transparent !important; padding:0 !important;}
+#outageNormalPanel .page{display:block !important; width:100% !important; padding:0 !important;}
+#outageNormalPanel .card{width:100% !important; max-width:none !important; margin:0 !important; padding:0 !important; background:transparent !important; border:none !important; box-shadow:none !important; backdrop-filter:none !important;}
+#outageNormalPanel .outageLayout{width:100% !important; grid-template-columns: 1fr 1fr !important; align-items:stretch !important;}
+#outageNormalPanel .outageForm, #outageNormalPanel .outageResult{min-width:0 !important;}
+#outageNormalPanel .outageResult{display:flex !important; flex-direction:column !important;}
+#outageNormalPanel .resultBox{flex:1 1 auto !important; min-height:420px !important; max-height:70vh !important;}
+@media (max-width: 980px){
+  #outageNormalPanel .outageLayout{grid-template-columns:1fr !important;}
+  #outageNormalPanel .resultBox{max-height:none !important;}
+}
+
+</style>
 <div class="page">
   <div class="card">
 
@@ -19220,17 +19358,13 @@ button {border-radius:999px !important;}
   <textarea id="inputText"></textarea>
 </div>
 
-<label style="margin-top:12px">الناتج (Text)</label>
-<div id="output" class="box"></div>
-
-<div id="objectionSection">
-  <div id="objectionBox" class="box"></div>
+  </div>
 </div>
+
 
 <script src="https://unpkg.com/tesseract.js@5.0.5/dist/tesseract.min.js"></script>
 
-<script>let officialOnly="",timerTick=null,lastOutageScript="";function autoSizeByValue(t,e=5,n=22){if(!t)return;const o=(t.value||"").trim(),i=o.length?o.length+1:e,r=Math.max(e,Math.min(n,i));try{t.setAttribute("size",String(r))}catch(t){}}async function copyText(t){const e=(t||"").trim();if(e)try{await navigator.clipboard.writeText(e),toast("✅ تم النسخ")}catch(t){const n=document.createElement("textarea");n.value=e,n.style.position="fixed",n.style.opacity="0",document.body.appendChild(n),n.select();try{document.execCommand("copy"),toast("✅ تم النسخ")}catch(t){}n.remove()}}function getCleanTextFromHtml(t){const e=document.createElement("div");return e.innerHTML=t||"",(e.innerText||e.textContent||"").trim()}function copyOutageScript(){const t=(document.getElementById("complaintId")?.value||"").trim(),e=document.querySelector("#output .highlight-box .hbBody");let n=e?e.textContent.trim():document.getElementById("output")?.innerText?.trim();n||(n=(lastOutageScript||"").trim());let o=n||"";return t&&!o.includes(t)&&(o+=(o?"\n\n":"")+`رقم الشكوى: ${t}`),copyText(o)}function toast(t){const e=document.getElementById("ocrStatus")||document.getElementById("formAlert");e&&(e.textContent=t,setTimeout(()=>{e.textContent===t&&(e.textContent="")},1200))}const HOUR=36e5,DAY=24*HOUR,pad2=t=>String(Math.max(0,t)).padStart(2,"0");function fmtDHMS(t){t<0&&(t=0);const e=Math.floor(t/DAY),n=Math.floor(t%DAY/HOUR),o=Math.floor(t%HOUR/6e4),i=Math.floor(t%6e4/1e3);return(e?e+"ي ":"")+pad2(n)+"س:"+pad2(o)+"د:"+pad2(i)+"ث"}function showTimer(t,e,n){function o(){const n=Date.now(),o=Math.max(1,e),i=Math.max(0,n-t),r=Math.floor(i/o),a=i-r*o,l=o-a;document.getElementById("cycleNumber").textContent=r+1,document.getElementById("elapsed").textContent=fmtDHMS(a),document.getElementById("remaining").textContent=fmtDHMS(l)}document.getElementById("timerBar").hidden=!1,document.getElementById("timerHint").textContent=n||"",timerTick&&clearInterval(timerTick),o(),timerTick=setInterval(o,1e3)}function relLabel(t){const e=new Date,n=new Date(t.getFullYear(),t.getMonth(),t.getDate()),o=new Date(e.getFullYear(),e.getMonth(),e.getDate()),i=Math.round((o-n)/DAY);return 0===i?"اليوم":1===i?"أمس":`يوم ${t.getDate()}/${t.getMonth()+1}/${t.getFullYear()}`}function ampm(t,e){return e?"am"===e.toLowerCase()?"صباحًا":"مساءً":t>=0&&t<12?"صباحًا":"مساءً"}function generateResponse(){const t=document.getElementById("inputText").value,e=document.getElementById("output");e.innerHTML="",document.getElementById("timerBar").hidden=!0,timerTick&&(clearInterval(timerTick),timerTick=null);const n=/\bunstable\b/i.test(t),o=/\bplanned\b/i.test(t);if(/Major Fault/i.test(t)&&/(سرقه|سرقة|اتلاف|إتلاف|صيانه|صيانة)/i.test(t)){const n=(t.match(/\b(\d{4,})\b/)||[])[1],o=[...t.matchAll(/(\d{4})-(\d{2})-(\d{2})[ \tT]+(\d{1,2}):(\d{2})\s*(AM|PM)?/gi)];if(!n||0===o.length)return void(e.textContent="⚠️ لم يتم العثور على رقم الشكوى أو توقيت صالح داخل النص.");const i=o[o.length-1];let[,r,a,l,s,c,d]=i;s=parseInt(s,10),d&&"pm"===d.toLowerCase()&&s<12&&(s+=12),d&&"am"===d.toLowerCase()&&12===s&&(s=0);const h=new Date(`${r}-${a}-${l}T${pad2(s)}:${c}:00`),g=new Date-h;if(g<0)return void(e.textContent="⚠️ التوقيت المدخل يسبق التوقيت الحالي.");let b=/(سرقه|سرقة|اتلاف|إتلاف)/i.test(t)?5:3;const m=b*DAY,u=`بنعتذر لحضرتك بكل صدق، وندرك أن انقطاع الخدمة أمر مزعج، لكن نود طمأنتك أن خطك ضمن مجموعة من الخطوط المتأثرة بعطل جسيم في الشبكة الأرضية، ويجري التعامل معه حاليًا من قِبل فرق الصيانة المختصة بأقصى سرعة ممكنة، مع توقع إتمام الإصلاح خلال (${b} أيام)${Math.floor(g/m)>=1?"":" من بدايتها"} ونشكرك على تفهمك ونقدر صبرك، ورقم الشكوى هو: ${n}`,p=Math.floor(g/DAY),$=Math.floor(g%DAY/HOUR),v=Math.floor(g%HOUR/6e4),f="📢 إحنا مقدرين جدًا إن العطل ده مأثر عليك، وبنأكد لك إنه تحت المتابعة المستمرة من فرق فنية متخصصة، وبيتم التعامل معاها بأعلى أولوية وبأقصى سرعة عشان ترجع الخدمة في أسرع وقت 💪";return officialOnly=u,e.innerHTML=`<div class="highlight-box"><div class="hbHead"><div class="hbTitle"><strong>✅ العطل الجسيم:</strong></div><button class="copyBtn" type="button" onclick="copyOutageScript()">⧉ نسخ اسكربت</button></div><div class="hbBody">${u}</div></div>\n<div class="highlight-box"><strong>💬 المتابعة:</strong><br>${f}</div>\n<div class="highlight-box"><strong>⏳ الوقت:</strong><br>⏱️ مر ${p} يوم و ${$} س و ${v} د من بداية العطل.</div>`,void showTimer(h.getTime(),m,`الدورة = ${b} يوم (SLA)`)}if(n){const n=(t.match(/\b(\d{4,})\b/)||[])[1];try{const t=document.getElementById("complaintId");t&&n&&(!t.value||t.value.trim().length<String(n).length)&&(t.disabled=!1,t.readOnly=!1,t.removeAttribute("readonly"),t.value=n,"function"==typeof autoSizeByValue&&autoSizeByValue(t,5,24))}catch(t){}const i=[...t.matchAll(/(\d{4})-(\d{2})-(\d{2})[ \tT]+(\d{1,2}):(\d{2})\s*(AM|PM)?/gi)];if(!n||0===i.length)return void(e.textContent="⚠️ لم يتم العثور على رقم الشكوى أو توقيت صالح داخل النص.");if(o&&i.length>=2){const t=i[i.length-2];let[,o,r,a,l,s,c]=t;l=parseInt(l,10),c&&"pm"===c.toLowerCase()&&l<12&&(l+=12),c&&"am"===c.toLowerCase()&&12===l&&(l=0);const d=new Date(`${o}-${r}-${a}T${pad2(l)}:${s}:00`),h=new Date;if(d<h)return void(e.textContent="⚠️ هذا العطل المخطط قد انتهى بالفعل.");const g=relLabel(d),b=ampm(parseInt(t[4],10),t[6]),m=`بعتذر لحضرتك جدا ونحب نطمن حضرتك إن الشركة بتجري حاليًا بعض أعمال التحديث لتحسين الخدمة، والتي قد تؤثر علي خدمه الانترنت عند بعض العملاء منها خط حضرتك وجاري العمل علي انهائها في اسرع وقت وبشكل كامل قبل  (الساعه ${`${parseInt(t[4],10)}:${t[5]} ${b} ${g}`}) ورقم الشكوى ${n} 🙏 نشكرك على تواصلك مع وي، مع كامل اعتذارنا عن أي إزعاج مؤقت`,u=d.getTime()-h.getTime();return officialOnly=m,e.innerHTML=`<div class="highlight-box"><div class="hbHead"><div class="hbTitle"><strong>✅ العطل المخطط Unstable:</strong></div><button class="copyBtn" type="button" onclick="copyOutageScript()">⧉ نسخ اسكربت</button></div><div class="hbBody">${m}</div>`,void showTimer(h.getTime(),Math.max(u,1),"عدّ تنازلي حتى الموعد المخطط")}const r=i[i.length-1];let[,a,l,s,c,d,h]=r;c=parseInt(c,10),h&&"pm"===h.toLowerCase()&&c<12&&(c+=12),h&&"am"===h.toLowerCase()&&12===c&&(c=0);const g=new Date(`${a}-${l}-${s}T${pad2(c)}:${d}:00`),b=new Date-g;if(b<0)return void(e.textContent="⚠️ التوقيت المدخل يسبق التوقيت الحالي.");const m=b/HOUR,u=Math.floor(b/6e4%60),p=relLabel(g),$=ampm(parseInt(r[4],10),r[6]),v=`${parseInt(r[4],10)}:${r[5]} ${$} ${p}`;let f="",y="",T=4*HOUR,w="الدورة = 4 ساعات";m<=4?(f=`بعتذر لحضرتك جدا ونحب نطمن حضرتك إن الشركة بتجري حاليًا بعض أعمال التحديث لتحسين الخدمة، والتي قد تؤثر علي خدمه الانترنت عند بعض العملاء منها خط حضرتك وجاري العمل علي انهائها في اسرع وقت خلال 4 ساعات من توقيت  (الساعه ${v}) ورقم الشكوى ${n} 🙏 نشكرك على تواصلك مع وي، مع كامل اعتذارنا عن أي إزعاج مؤقت`,y="📢  بنقدّر جدًا شعور حضرتك، وبنأكد لك إننا متابعين اتمام التحديثات دى لحظة بلحظة وبأقصى جديه، لإن راحتك ورضاك أولوية بالنسبة لينا 🙏<br>الفرق المختصه شغالة بأقصى سرعة عشان ننهي التحديثات قبل المدة المحددة، ونرجع الخدمة بأفضل أداء ممكن.",T=4*HOUR,w="الدورة = 4 ساعات"):m<=24?(f=`بعتذر لحضرتك جدا ونحب نطمن حضرتك إن الشركة بتجري حاليًا بعض أعمال التحديث لتحسين الخدمة، والتي قد تؤثر علي خدمه الانترنت عند بعض العملاء منها خط حضرتك وجاري العمل علي انهائها في اسرع وقت خلال 24 ساعه من توقيت  (الساعه ${v}) ورقم الشكوى ${n} 🙏 نشكرك على تواصلك مع وي، مع كامل اعتذارنا عن أي إزعاج مؤقت`,y="💬 كل هدفنا إن حضرتك تستمتع بخدمة مستقرة وأداء أفضل، وعشان كده فرقنا المختصه بهذه التحديثات شغالة بأقصى سرعة لإنهاء العمل في أسرع وقت ممكن 💡<br>📢 إحنا مقدرين جدًا إن الموقف ده ممكن يكون سبب إزعاج لحضرتك، وبنأكد إننا متابعين الموضوع بكل جدية وبأعلى درجة أولوية عشان نرجّع الخدمة لحضرتك بأفضل صورة 🌟",T=24*HOUR,w="الدورة = 24 ساعة"):(f=`بعتذر لحضرتك جدا ونحب نطمن حضرتك إن الشركة بتجري حاليًا بعض أعمال التحديث لتحسين الخدمة، والتي قد تؤثر علي خدمه الانترنت عند بعض العملاء منها خط حضرتك وجاري العمل علي انهائها في اسرع وقت وبشكل كامل خلال 24 ساعه ورقم الشكوى ${n} 🙏 نشكرك على تواصلك مع وي، مع كامل اعتذارنا عن أي إزعاج مؤقت`,y="📢 بنطمن حضرتك إن التحديثات دي هدفها تحسين الخدمة وتطوير الشبكة عشان تستمتع بأفضل تجربة إنترنت 💡<br>🙏 نشكرك على صبرك وتعاونك، وصدقني رضاك بالنسبة لينا أهم حاجة، ونتمنى لك تجربة إنترنت أحسن من أي وقت فات 💖",T=24*HOUR,w="الدورة = 24 ساعة (متكررة)");const x=m<=24?`⏱️ مر ${Math.floor(m)} س و ${u} د.`:`⏱️ مر ${Math.floor(m/24)} يوم و ${Math.floor(m%24)} س و ${u} د.`;return officialOnly=f,e.innerHTML=`<div class="highlight-box"><div class="hbHead"><div class="hbTitle"><strong>✅ العطل Unstable:</strong></div><button class="copyBtn" type="button" onclick="copyOutageScript()">⧉ نسخ اسكربت</button></div><div class="hbBody">${f}</div></div>\n<div class="highlight-box"><strong>💬 المتابعة:</strong><br>${y}</div>\n<div class="highlight-box"><strong>⏳ الوقت:</strong><br>${x}</div>`,void showTimer(g.getTime(),T,w)}if(o){const n=(t.match(/\b(\d{4,})\b/)||[])[1],o=[...t.matchAll(/(\d{4})-(\d{2})-(\d{2})[ \t]+(\d{1,2}):(\d{2})\s*(AM|PM)?/gi)];if(!n||o.length<2)return void(e.textContent="⚠️ لم يتم العثور على رقم الشكوى أو وقت صالح لعطل مخطط.");const i=o[o.length-2];let[,r,a,l,s,c,d]=i;s=parseInt(s,10),d&&"pm"===d.toLowerCase()&&s<12&&(s+=12),d&&"am"===d.toLowerCase()&&12===s&&(s=0);const h=new Date(`${r}-${a}-${l}T${pad2(s)}:${c}:00`),g=new Date;if(h<g)return void(e.textContent="⚠️ هذا العطل المخطط كان من المفترض أن يحدث في الماضي، التاريخ قد انقضى.");const b=relLabel(h),m=ampm(parseInt(i[4],10),i[6]),u=`بعتذر لحضرتك جدا وحاليا جاري العمل على اصلاح العطل الفني اللي بيأثر على خدمة الانترنت الارضي في منطقتك بأسرع ما يمكن وبشكل كامل قبل (الساعه ${`${parseInt(i[4],10)}:${i[5]} ${m} ${b}`}) وان شاء الله المشكلة هتتحل مع حضرتك بشكل كامل بأسرع ما يمكن بدون أي تأخير ورقم الشكوى ${n}. نشكركم على ثقتكم وممتنين لحسن تعاونكم 🙏🌐`;officialOnly=u,e.innerHTML=`<div class="highlight-box"><div class="hbHead"><div class="hbTitle"><strong>✅ العطل المخطط:</strong></div><button class="copyBtn" type="button" onclick="copyOutageScript()">⧉ نسخ اسكربت</button></div><div class="hbBody">${u}</div>`;const p=h.getTime()-g.getTime();return void showTimer(g.getTime(),Math.max(p,1),"عدّ تنازلي حتى الموعد المخطط")}const i=(t.match(/\b(\d{4,})\b/)||[])[1],r=[...t.matchAll(/(\d{4})-(\d{2})-(\d{2})[ T]+(\d{1,2}):(\d{2})\s*(AM|PM)?/gi)];if(!i||0===r.length)return void(e.textContent="⚠️ لم يتم العثور على رقم الشكوى أو توقيت صالح داخل النص.");const a=r[r.length-1];let[,l,s,c,d,h,g]=a;d=parseInt(d,10),g&&"pm"===g.toLowerCase()&&d<12&&(d+=12),g&&"am"===g.toLowerCase()&&12===d&&(d=0);const b=new Date(`${l}-${s}-${c}T${pad2(d)}:${h}:00`),m=new Date;if(b>m)return void(e.textContent="⚠️ يوجد خطأ: التوقيت المدخل يسبق التوقيت الحالي. يرجى المراجعة.");const u=m-b,p=u/HOUR,$=Math.floor(u/6e4%60),v=relLabel(b),f=ampm(parseInt(a[4],10),a[6]),y=`${parseInt(a[4],10)}:${a[5]} ${f} ${v}`;let T="",w="",x=4*HOUR,M="الدورة = 4 ساعات";p<=4?(T=`بعتذر لحضرتك جدا وحاليا جارى العمل على اصلاح العطل الفني اللي بيأثر على خدمة الانترنت الارضى في منطقتك خلال 4 ساعات وده بداية من (الساعه ${y}) وان شاء الله المشكلة هتتحل مع حضرتك بشكل كامل باسرع ما يمكن\nورقم الشكوى ${i}. نشكركم على ثقتكم وممتنين لحسن تعاونكم 🙏🌐.`,w="📢 بنطمن حضرتك بكل تقدير وبأكد على اهتمامنا الكامل إن المشكلة حالياً تحت المتابعة الفعلية، وبيتم التعامل معاها باعلى اولويه وبأقصى سرعة ممكنة،\nوده لإنه عطل عام بيأثر على خدمة الإنترنت في بعض الخطوط، ومن ضمنهم للأسف خط حضرتك 💔\n🙏 إحنا مقدرين تمامًا إن انقطاع الخدمة ممكن يكون مزعج، وبنعتذرلك بشدة عن الموقف المزعج ده وتاثيره علي حضرتك\nوالمتوقع بإذن الله إن الخدمة ترجع بكامل كفاءتها خلال ٤ ساعات من بداية العطل ⏳",x=4*HOUR,M="الدورة = 4 ساعات"):p<=24?(T=`بعتذر لحضرتك جدا وحاليا جارى العمل على اصلاح العطل الفني اللي بيأثر على خدمة الانترنت الارضى في منطقتك خلال 24 ساعة وده بداية من (الساعه ${y}) وان شاء الله المشكلة هتتحل مع حضرتك بشكل كامل باسرع ما يمكن\nورقم الشكوى ${i}. نشكركم على ثقتكم وممتنين لحسن تعاونكم 🙏🌐.`,w="📢 بنطمن حضرتك بكل تقدير وبأكد على اهتمامنا الكامل إن المشكلة حالياً تحت المتابعة الفعلية، وبيتم التعامل معاها باعلى اولويه وبأقصى سرعة ممكنة،\nوده لإنه عطل عام بيأثر على خدمة الإنترنت في بعض الخطوط، ومن ضمنهم للأسف خط حضرتك 💔\n🙏 إحنا مقدرين تمامًا إن انقطاع الخدمة ممكن يكون مزعج، وبنعتذرلك بشدة عن الموقف المزعج ده وتاثيره علي حضرتك\nوالمتوقع بإذن الله إن الخدمة ترجع بكامل كفاءتها خلال 24 ساعه من بداية العطل ⏳",x=24*HOUR,M="الدورة = 24 ساعة"):(T=`بعتذر لحضرتك جدا وحاليا جارى العمل على اصلاح العطل الفني اللي بيأثر على خدمة الانترنت الارضى في منطقتك خلال 24 ساعه وان شاء الله المشكلة هتتحل مع حضرتك بشكل كامل باسرع ما يمكن\nورقم الشكوى ${i}. نعتذر بصدق عن التاخير و نشكركم على ثقتكم وممتنين لحسن تعاونكم 🙏🌐.`,w="بنطمن حضرتك بكل احترام إن المشكلة لسه تحت المتابعة الفعلية من فرقنا الفنية، وبيتم التعامل معاها باقصى سرعه ودرجة من الأولوية الممكنه\nوده لإن العطل للأسف مازال قائم وبيأثر على بعض الخطوط، من ضمنها خط حضرتك، وبنعتذرلك عن استمرار الانقطاع حتى الان 💔\n⚙️ وبما إن الـ 24 ساعة مدة الاصلاح المتوقعه انتهت دون حل نهائي، فتم تجديد مدة المتابعة 24 ساعة إضافية تلقائيًا، لضمان استمرار المتابعة الفنية لحين استعادة الخدمة بكامل كفاءتها بإذن الله.\n🙏 بنقدّر جدًا صبر حضرتك، وبنأكدلك إننا ملتزمين بحل المشكلة بشكل كامل لحد ما الخدمه ترجع بالشكل اللي يرضيك",x=24*HOUR,M="الدورة = 24 ساعة (متكررة)");const O=p<=24?`⏱️ مر ${Math.floor(p)} س و ${$} د.`:`⏱️ مر ${Math.floor(p/24)} يوم و ${Math.floor(p%24)} س و ${$} د.`;officialOnly=T,e.innerHTML=`<div class="highlight-box"><div class="hbHead"><div class="hbTitle"><strong>✅ الرد الرسمي:</strong></div><button class="copyBtn" type="button" onclick="copyOutageScript()">⧉ نسخ اسكربت</button></div><div class="hbBody">${T}</div></div>\n<div class="highlight-box"><strong>💬 تهدئة:</strong><br>${w}</div>\n<div class="highlight-box"><strong>⏳ الوقت:</strong><br>${O}</div>`,showTimer(b.getTime(),x,M)}function copyResponse(){officialOnly?navigator.clipboard.writeText(officialOnly).then(()=>alert("✅ تم نسخ الرد الرسمي بنجاح!")):alert("⚠️ مفيش رد رسمي لسه.")}function handleObjection(t){const e={exam:"💔 أنا حاسس جدًا بموقفك يا فندم، ومقدّر قد إيه ده الوقت حساس بالنسبالك، خصوصًا مع وجود امتحان – وفعلا مش بنتمنا أبدًا إنك تكون في الموقف ده.<br>\n🙏 بعتذرلك بكل احترام عن الإزعاج اللي سببه العطل، وبأكدلك إن المشكلة تحت أعلى أولوية فنية حاليًا، وبيتم متابعتها لحظة بلحظة عشان ترجع الخدمة بأسرع وقت ممكن. 💪📘",job:"💔 أنا مقدّر جدًا موقف حضرتك، وعارف إن انقطاع الخدمة بيأثر بشكل مباشر على شغلك، وده أكتر حاجة مش بنرضاها لحضرتك.<br>\n🙏 بعتذر لحضرتك بكل احترام عن الإزعاج اللي سببه العطل، وبأكدلك إن المشكلة عامة، لكن الاصلاح تحت أعلى أولوية حاليًا، والقسم لفنى شغال بالفعل على حلها بأقصى سرعة.<br>\n📢 وإن شاء الله في أقرب وقت الخدمة ترجع بكامل كفاءتهاو كل حاجة ترجع زي ما كانت وأفضل كمان 💼",bored:"📢 أنا آسف جدًا إنك وصلت للمرحلة دي من الزهق، وبصدق مقدّر تعبك واستياءك، وده حقك تمامًا، خاصة مع استمرار المشكلة.<br>\nومقدّر جدًا استياء حضرتك، وفعلاً أي تأخير في حل الخدمة بيكون مزعج جدًا، خاصة لما يتكرر أو يطول، وده حقك تزعل وتزهق.<br>\nبنعتذر لحضرتك جدًا، العطل الحالي للأسف عام، ومأثر على شريحة من الخطوط في نفس المنطقة، منها خط حضرتك.<br>\nحبينا نطمنك إن فرقنا الفنية شغالة عليه فعليًا بأعلى أولوية علشان نرجعلك الخدمة في أسرع وقت ممكن بإذن الله 💪🔧.<br>\n🙏 بنعتذرلك بشدة عن استمرار التأثير، وبنأكد إن كل الجهود شغالة عشان الخدمة ترجع بأسرع وقت.<br>\n🌟 مقدرين صبرك ووجودك معانا، وهدفنا نرجّعلك الخدمة بنفس الجودة اللي تستحقها، ونتمنى دعمك لحد ما نعدي الموقف ده.",ignore:"🙏 أنا متفهم تمامًا شعور حضرتك، ومقدر جدًا إن استمرار المشكلة بالشكل ده مسببلك ضيق، وحقك علينا لو حضرتك حاسس بعدم الاهتمام بسبب هذه المشكلات الغير مقصوده<br>\n🛠️ لكن أحب أطمنك إن العطل فعلاً تحت المتابعة الفعلية من فرقنا الفنية ، وبيتم التعامل معاه بأولوية قصوى.<br>\n💬 إحنا في صفك، ومكملين لحد ما الخدمة ترجع بكامل جودتها إن شاء الله وحقك تطلب تعويض عن الفتره بالكامل بعد حل المشكله",alternative:"🟢 أستاذ/ [العميل]، حضرتك من العملاء اللي بنعتز بيهم جدًا، وبنتفهم تمامًا قد إيه انقطاع الخدمة مأثر على يومك، وعشان الإنترنت بقى أساسي في كل تفاصيل حياتنا بنقدملك دعم إضافي من الشركة كنوع من التقدير لموقف حضرتك مع الاعتذار 🙏<br>\n🎁 ممكن أضيف لحضرتك 3 جيجا هدية على رقم موبايل WE توضحه،كحل مؤقت الان تقدر تستخدمهم لمدة يومين ياريت تبعتلي الرقم اللي تحب أضيف عليه الجيجات حالا 💚<br>\n🙌 ولو في أي إجراء أسرع نقدر نقدمه لحضرتك خلال المتابعة، بنأكد إننا مش هنتأخر ولا لحظة، لأن راحتك ورضاك دايمًا على رأس أولوياتنا.",noAlternative:"متفهمين تمامًا موقف حضرتك، وبنعتذرلك مرة تانية عن أي إزعاج سببه العطل، وصدقني لو في أي وسيلة نقدر نسرّع بيها الحل مش هنتأخر لحظة. وحقك يفندم تتابع لطلب التعويض على خطك للانترنت المنزلى بعد حل المشكله عشان نراجع الفتره بالكامل من بدايتها وحتى انتهاء الاصلاح.<br>\n🙌 وبنأكدلك إن المتابعة مستمرة بأعلى أولوية، وهدفنا الأساسي هو استعادة الخدمة في أسرع وقت ممكن ورضاك التام عن تجربتك معانا بإذن الله.",repeat:"أحب أطمن حضرتك إن صوتك بالفعل واصل للإدارة المختصة، وتم تسجيل ملاحظتك بخصوص تكرار الأعطال الخاص بحضرتك تحت رقم: (XX)، وبكل احترام بنقدّر انزعاجك تمامًا، وبنعتذرلك بصدق على أي إزعاج حاصل.<br>\n🙏 وبأمانة، لو أنا مكان حضرتك كنت هكون متضايق برضو، وده شيء بنفهمه تمامًا. بس بنوضح إن نوع الأعطال دي بيكون اضطراري وخارج عن إرادتنا، وغالبًا بيكون نتيجة لأسباب فنية أو ظروف خارجة، وبيأثر على عدد من العملاء في نفس الوقت.<br>\n⚙️ حاليًا في متابعة شاملة من الفرق المختصة لتقليل تكرار هذه المشكلات , والتعامل مع الأسباب الجذرية بشكل دائم.",pressure:"تمام يفندم بنفهم فعلا رغبة حضرتك في استعجال الحل، وبنقدّر حرصك الكبير على عودة الخدمة سريعًا.<br>\nبس حابب أوضح لحضرتك إن العطل اللي بيأثر على الخدمة حالياً هو عطل عام، وبيتم التعامل معاه فعليًا من قبل الفرق الفنية بأعلى أولوية وضمن خطة متابعة شاملة، علشان يتم إصلاحه بأسرع ما يمكن.<br>\n⏳ وبما إنه عطل عام، فبيتم بالفعل متابعته من الإدارة المختصة لحظيًا، وبالتالي مش محتاج طلب استعجال فردي، لإن كل الخطوط المتأثرة في نفس المنطقة تابعه لنفس العطل تحت التعامل الفني بدون اى تهاون وباستمرار – على مدار الساعة – لضمان رجوع الخدمة بأسرع وقت ممكن.<br>\n🙏 بنعتذرلك تاني على أي إزعاج حصل، وبنطمن حضرتك إننا ملتزمين بحل المشكلة في أقرب وقت باسرع ما يمكن",follow:"بنشكر حضرتك جدًا على سعة صدرك ومتابعتك المستمرة معانا، ومقدّرين جدًا وقتك ومجهودك في التواصل.<br>\nوبناكد لحضرتك ان العطل مازال جاري العمل عليه فعليا من خلال فرق الصيانة المختصة، وبنتعامل معاه كأولوية قصوى لضمان إنه يتم الانتهاء منه بأسرع ما يمكن، وبدون أي تكرار للمشكلة.<br>\n🙏 وبنعتذر لحضرتك عن استمرار العطل، وبنشتغل حاليًا بكل طاقتنا لإنهاء المشكلة من جذورها وعشان نتفادى انها متتكررش تاني بإذن الله، وبنطمن حضرتك الخدمة هترجع بشكل مستقر بكامل جودتها باسرع ما ممكن",notOnlyMe:"العطل بالفعل مش على خطك يفندم ولكن خطك متاثر ضمن خطوط تانى بعطل عام ونؤكد لك أن فريقنا الفني يعمل على مدار الساعة لحل المشكلة في أقرب وقت ممكن متوقع نظرًا لأن العطل يؤثر على أكثر من عميل، يتم اتخاذ جميع الإجراءات لضمان عودة الخدمة لك بأفضل جودة.",anger:"أنا مقدر جدًا استياء حضرتك أستاذ [الاسم]، وواثق إن اللي بتمر بيه فعلاً مزعج… ومهما كانت حدة كلامك، حضرتك على حق في زعلك، وده دورنا نسمع ونساعد.<br>\n🙏 وبعتذرلك بكل احترام عن أي تقصير أو تأخير حصل، وبأكد إن هدفنا الحقيقي هو رضاك التام، وإرجاع الخدمة في أسرع وقت ممكن.<br>\nالعطل للأسف عام ومش خاص بخط حضرتك فقط، لكنه فعليًا بيتابع بأولوية قصوى من فرقنا الفنية، وبيتم الشغل عليه حاليًا بدون أي تهاون.",useless:"🙏 أفهم تمامًا الإحباط اللي حضرتك حاسس بيه، ومقدر جدًا إنك شايف إن مفيش فايدة، بس باكد يفندم إحنا مش سايبين الموضوع، ومفيش لحظة بتمر من غير واحنا متابعين الاصلاح من جانب فرق مختصه باعلى اولويه ممكنه عشان الخدمه ترجع لحضرتك بدون اى تاخير<br>\nالعطل اللي حاصل حاليًا فعلاً عام، ومؤثر على مجموعة من الخطوط في نفس المنطقة، وبيتم التعامل معاه بشكل مباشر وتم تسجيل المتابعة لحضرتك ووضحت من خلالى مدى اهمية حل المشكله بالنسبه لحضرتك باسرع ما يمكن وباذن الله تتحل المشكله بدون اى تاخير على حضرتك تانى 🙌",whereTeam:"مقدر جدًا لحضرتك الإحساس ده، وفعلاً من حقك تستغرب لما متشوفش تحرُّك قدامك، لكن بأكدلك إن الفنيين شغالين على العطل فعليا، بس مش شرط يكونوا ظاهرين لحضرتك مباشرة لإن الشغل ممكن يكون في البوكس الرئيسي أو على الكابينة أو من داخل السنترال نفسه، حسب تتبع حالة العطل يفندم<br>\nبنعتذر لحضرتك عن الموقف المزعج جدًا ده، وبنأكدلك إن الخدمة هترجع بكامل كفاءتها بإذن الله في أقرب وقت، وإن فرق الصيانة المختصه مستمرة فى حل المشكله بدون اى توقف وباسرع ما يمكن بالفعل",lateNight:"بالفعل باحترم تماما مشاعرك ورد فعلك – ولو حضرتك شايف إن حصل تأخير أو تقصير، فأنا باعتذرلك بكل احترام<br>\nلكن يفندم حابب اوضح ان الأعطال دي بالتحديد بيتابعها الفنيين فعليًا بدون مواعيد عمل وبيشتغلوا عليها على مدار الساعة بكل جدية، لإننا عارفين قد إيه انقطاع الخدمة ممكن يأثر على حضرتك ومش نرضى ليك ابدا ان الخدمه تكون فاصله وخصوصا ان العطل عام وماثر على اكتر من عميل فى منطقتك يفندم<br>\n🙏 بنشتغل بكل التزام ومن غير تهاون لحين الانتهاء من الإصلاح بالكامل، وبنأكدلك إن صوتك مسموع وموصل للإدارة.",disconnect:"اللي حضرتك بتمُر بيه مش مقبول عندنا، وده مش المفروض يكون شكل الخدمة اللي توصلك، واللي حصل طول الفترة اللي فاتت مش هنعديه مرور الكرام.<br>\nعشان كده وصلت صوتك يفندم الى الاداره المختصه ووضحت مدى انزعاجك من تكرار هذه الاعطال وباكد لحضرتك بيتم التعامل مع العطل ده حاليًا من خلال فرق موجودة فعليًا في مناطق التأثير، وبيشتغلوا عليه من غير أي توقف – حتى خارج مواعيد العمل الرسمية ووارد المشكله تتحل الان او اى وقت خلال فترة الاصلاح المتوقع لحد ما الخدمة ترجع بافضل جودة ممكنه"};document.getElementById("objectionBox").innerHTML=`<div class='highlight-box'><strong>🎯 رد مهندل:</strong><br>${e[t]||"رد غير متاح حالياً."}</div>`}try{window.generateResponse&&Object.defineProperty(window,"generateResponse",{writable:!1,configurable:!1}),window.copyResponse&&Object.defineProperty(window,"copyResponse",{writable:!1,configurable:!1}),window.handleObjection&&Object.defineProperty(window,"handleObjection",{writable:!1,configurable:!1})}catch(t){}
-</script>
+
 
 <script>!function(){const e=e=>document.getElementById(e);function t(t,a,n){const o=e(t);if(!o)return;const i=()=>{let e=o.value&&o.value.trim().length?o.value.trim():"";e||"timePaste"===t||(e=o.placeholder||"");const i=Math.min(n,Math.max(a,e.length+1));o.style.width=i+"ch"};o.addEventListener("input",i),o.addEventListener("change",i),i()}function a(e){return(e||"").replace("T"," ")}function n(){const t=e("modeSelect").value,a=e("modeWrap").classList;a.remove("mode-unplanned","mode-planned"),a.add("planned"===t?"mode-planned":"mode-unplanned");const n=e("outageTypeUI");if(!t)return n.disabled=!0,n.value="",e("outageType").value="normal",void(e("majorReasonLegacy").value="صيانة");n.disabled=!1,n.value||(n.value="normal"),e("outageType").value=n.value||"normal";const o="planned"===t;[n.querySelector('option[value="major_maint"]'),n.querySelector('option[value="major_theft"]')].forEach(e=>{e&&(e.disabled=o,e.hidden=o)}),!o||"major_maint"!==n.value&&"major_theft"!==n.value||(n.value="normal");const i=n.value;let l="normal",s="صيانة";"unstable"===i?l="unstable":"major_maint"===i?(l="major",s="صيانة"):"major_theft"===i?(l="major",s="سرقة"):l="normal",e("outageType").value=l,e("majorReasonLegacy").value=s;const r=e("typeWrap").classList;r.remove("type-normal","type-unstable","type-major","type-majorMaint","type-majorTheft"),"unstable"===i?r.add("type-unstable"):"major_maint"===i?r.add("type-majorMaint"):"major_theft"===i?r.add("type-majorTheft"):r.add("type-normal")}function o(){e("timeLabel").textContent="planned"===e("modeSelect").value?"وقت الانتهاء (Planned) — اختار/الصق/Ctrl+V صورة":"وقت البداية (Unplanned) — اختار/الصق/Ctrl+V صورة"}function i(e){let t=(e||"").replace(/[\r\n]+/g," ").replace(/[^\x20-\x7E]+/g," ").replace(/\s+/g," ").trim();const a=[],n=/\b\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}\s*(AM|PM)?\b/gi,o=/\b\d{4}-\d{2}-\d{2}\s*\d{1,2}:\d{2}\s*(AM|PM)\b/gi,i=/\b\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}\s*(AM|PM)\b/gi;for(const e of t.matchAll(i))a.push(e[0]);for(const e of t.matchAll(o))a.push(e[0]);for(const e of t.matchAll(n))a.push(e[0]);const l=(t.match(/\b\d{4}-\d{2}-\d{2}\b/g)||[])[0],s=(t.match(/\b\d{1,2}:\d{2}\s*(AM|PM)\b/i)||[])[0];return l&&s&&a.push(`${l} ${s}`),Array.from(new Set(a.map(e=>e.replace(/\s+/g," ").trim())))}function l(e){const t=Date.parse(e);return isNaN(t)?NaN:t}let s=!1,r=null;async function c(){s&&r||(r=await Tesseract.createWorker("eng",1,{langPath:"https://tessdata.projectnaptha.com/4.0.0_fast"}),await r.setParameters({tessedit_pageseg_mode:"7",user_defined_dpi:"300",tessedit_char_whitelist:"0123456789:/- AaPpMm",preserve_interword_spaces:"1"}),s=!0)}async function d(t){const a=e("ocrStatus");try{a.textContent="OCR جاري…",await c();const n=async(e,a)=>{await r.setParameters({tessedit_pageseg_mode:String(e)});const n=await async function(e,t={}){const a=await createImageBitmap(e),n=t.scale||3,o=t.pad||0,i=t.mode||"gray",l=!1!==t.crop,s=a.width*n,r=a.height*n,c=document.createElement("canvas");c.width=s+2*o,c.height=r+2*o;const d=c.getContext("2d",{willReadFrequently:!0});d.fillStyle="#fff",d.fillRect(0,0,c.width,c.height),d.imageSmoothingEnabled=!0,d.imageSmoothingQuality="high",d.drawImage(a,o,o,s,r);const u=d.getImageData(0,0,c.width,c.height),m=u.data;let p=0,h=0;for(let e=0;e<m.length;e+=400)p+=.299*m[e]+.587*m[e+1]+.114*m[e+2],h++;const g=p/Math.max(1,h)<128,f=t.thr??(g?175:155);for(let e=0;e<m.length;e+=4){let t=m[e],a=m[e+1],n=m[e+2];g&&(t=255-t,a=255-a,n=255-n);const o=.299*t+.587*a+.114*n;if("binary"===i){const t=o>f?255:0;m[e]=m[e+1]=m[e+2]=t}else{const t=Math.max(0,Math.min(255,1.35*(o-128)+128));m[e]=m[e+1]=m[e+2]=t}m[e+3]=255}if(d.putImageData(u,0,0),l){const t=c.width,a=c.height,n=d.getImageData(0,0,t,a).data;let o=t,i=a,l=0,s=0,r=!1;for(let e=0;e<a;e+=1)for(let a=0;a<t;a+=1)n[4*(e*t+a)]<245&&(r=!0,a<o&&(o=a),e<i&&(i=e),a>l&&(l=a),e>s&&(s=e));if(r){const n=18;o=Math.max(0,o-n),i=Math.max(0,i-n),l=Math.min(t-1,l+n),s=Math.min(a-1,s+n);const r=l-o+1,d=s-i+1,u=document.createElement("canvas");u.width=r,u.height=d;const m=u.getContext("2d",{willReadFrequently:!0});return m.fillStyle="#fff",m.fillRect(0,0,r,d),m.drawImage(c,o,i,r,d,0,0,r,d),await new Promise(t=>u.toBlob(a=>t(a||e),"image/png"))}}return await new Promise(t=>c.toBlob(a=>t(a||e),"image/png"))}(t,a),{data:o}=await r.recognize(n),l=o&&o.text?o.text:"";return{text:l,dates:i(l)}};let o=await n(7,{scale:4,pad:10,mode:"gray",crop:!0}),s=o.dates,d=o.text;if(!s.length||!/(AM|PM)/i.test(d)){const e=await n(7,{scale:4,pad:10,mode:"binary",thr:160,crop:!0});if(d=(d||"")+" "+(e.text||""),s.length){if(!/(AM|PM)/i.test(s[0])){const e=d.match(/(AM|PM)/i);e&&(s=s.map(t=>/(AM|PM)/i.test(t)?t:t+" "+e[1].toUpperCase()))}}else s=e.dates}if(s.length&&!/(AM|PM)/i.test(s[0])){const e=((await n(8,{scale:5,pad:12,mode:"binary",thr:165,crop:!0})).text||"").match(/(AM|PM)/i);e&&(s=s.map(t=>t+" "+e[1].toUpperCase()))}if(!s.length)return void(a.textContent="فشل OCR. لو ممكن: الصق الوقت كنص أو جرّب لقطة أوضح/أكبر.");const u="planned"===e("modeSelect").value?function(e){let t=null,a=-1/0;for(const n of e){const e=l(n);!isNaN(e)&&e>a&&(a=e,t=n)}return t||e[0]||""}(s):s[0];e("timePaste").value=u,a.textContent=`تم استخراج: ${u}`}catch(t){console.error(t),e("ocrStatus").textContent="فشل OCR — جرّب صورة أوضح/أكبر."}}function u(){const t=(e("complaintId").value||"").trim(),n=e("modeSelect").value,o=e("outageType").value;let i=[];if("planned"===n&&i.push("planned"),"unstable"===o&&i.push("unstable"),"major"===o){const t=e("majorReasonLegacy").value||"صيانة";i.push(`Major Fault ${t} سيرفر`)}i.length||i.push("outage");const l=[];t&&l.push(`CID: ${t}`),l.push(i.join(" "));const s=(r=function(){const t=(e("timePaste").value||"").trim();if(t)return t;const n=(e("timePicker").value||"").trim();return n?a(n):""}())?/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(r)?a(r):r.trim():"";var r;if("unplanned"===n)s&&l.push(s);else{const e=a((new Date).toISOString().slice(0,16));s&&l.push(s),l.push(e)}return l.join("\n")}e("timePaste").addEventListener("paste",e=>{const t=e.clipboardData&&e.clipboardData.items;if(t)for(const a of t)if(a.type&&a.type.startsWith("image/")){e.preventDefault();const t=a.getAsFile();return void(t&&d(t))}}),e("modeSelect").value="",o(),n(),t("complaintId",8,14),t("timePaste",18,30),"requestIdleCallback"in window?window.requestIdleCallback(()=>{c().catch(()=>{})},{timeout:50}):window.setTimeout(()=>{c().catch(()=>{})},50),e("modeSelect").addEventListener("change",()=>{n(),o(),e("ocrStatus").textContent=""}),e("outageTypeUI").addEventListener("change",()=>{n(),e("ocrStatus").textContent=""}),e("genSimpleBtn").addEventListener("click",function(){if(e("modeSelect").value)if(e("outageTypeUI").value){e("inputText").value=u();try{e("complaintId").disabled=!1,e("complaintId").readOnly=!1,e("complaintId").removeAttribute("readonly")}catch(e){}autoSizeByValue(document.getElementById("complaintId"),5,24),autoSizeByValue(document.getElementById("timePaste"),14,40),autoSizeByValue(document.getElementById("timePicker"),16,24),"function"==typeof window.generateResponse&&window.generateResponse(),function(){const t=e("output");t&&t.innerHTML&&t.innerHTML.includes("highlight-box")&&(t.innerHTML=t.innerHTML.replace(/<br\s*\/?>/gi,'</div><div class="line">').replace(/(<div class=\"highlight-box\">)/i,'$1<div class="line">'))}()}else e("ocrStatus").textContent="اختار نوع الـ Outage.";else e("ocrStatus").textContent="اختار الوضع الأول."}),e("resetBtn").addEventListener("click",function(){e("complaintId").value="",autoSizeByValue(document.getElementById("complaintId"),5,24),e("modeSelect").value="",e("outageType").value="normal",e("majorReasonLegacy").value="صيانة",e("timePicker").value="",e("timePaste").value="",autoSizeByValue(document.getElementById("timePaste"),14,40),e("ocrStatus").textContent="",e("inputText").value="",e("output").innerHTML="",e("objectionBox").innerHTML="",e("timerBar").hidden=!0,e("timerHint").textContent="",n(),t("complaintId",8,14),t("timePaste",18,30),o()})}();
 </script>
@@ -19596,6 +19730,7 @@ button {border-radius:999px !important;}
 
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="app.js"></script>
+    <script src="safe-tool-upgrade.js"></script>
     <script src="outage-by-mail.js"></script>
     <!-- When the Tags overlay is open, hide all other elements via this CSS rule -->
     <style id="tagsOverlayCss">
@@ -19808,13 +19943,15 @@ button {border-radius:999px !important;}
   </div>
 </div>
 
-<script type="module" src="./support-chat.js"></script>
-<script type="module" src="./admin.js"></script>
 
 <script type="module" src="./suggestions.js"></script>
 
+<!-- Support + Admin UI wiring (modules) -->
+<script type="module" src="./support-chat.js"></script>
+<script type="module" src="./admin.js"></script>
+<script type="module" src="./admin-message-client.js"></script>
+
     <!-- Announcement client: handles admin announcements for all users -->
-    <script type="module" src="./admin-message-client.js"></script>
 
 	    <!-- Online users counter (Supabase Presence) next to the UA07 envelope -->
 	    <script type="module" src="./online-users-count.js"></script>
