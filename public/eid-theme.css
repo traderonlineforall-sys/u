@@ -163,8 +163,27 @@ body::before {
 }
 
 .eid-toggle-btn.is-off {
-  filter: saturate(0.55) brightness(0.84);
-  opacity: 0.84;
+  filter: none;
+  opacity: 1;
+  background:
+    radial-gradient(circle at 26% 22%, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 34%),
+    linear-gradient(180deg, rgba(68, 53, 18, 0.92), rgba(105, 77, 26, 0.94) 52%, rgba(74, 44, 15, 0.96) 100%) !important;
+  border-color: rgba(255, 222, 160, 0.28) !important;
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+}
+
+.eid-toggle-btn.is-off .eid-toggle-glyph {
+  opacity: 0.98;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.34));
+}
+
+.eid-toggle-btn.is-off .eid-toggle-orb {
+  opacity: 0.92;
+  box-shadow:
+    0 0 0 1px rgba(4, 8, 19, 0.44),
+    0 0 6px rgba(243, 211, 122, 0.24);
 }
 
 .eid-toggle-btn .eid-toggle-shell {
