@@ -1,123 +1,81 @@
-import https from "https";
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
+import https from 'https';
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-function badRequest(message) {
-  return NextResponse.json(
-    { status: 0, message, data: [] },
-    {
-      status: 400,
-      headers: {
-        "Cache-Control": "no-store",
-      },
-    }
-  );
-}
-
-function sanitizeAreaCode(value) {
-  const digits = String(value || "").replace(/\D/g, "");
-  if (!digits) return "";
-  return digits;
-}
-
-function sanitizeLandline(value) {
-  const digits = String(value || "").replace(/\D/g, "");
-  if (!digits) return "";
-  return digits;
-}
-
-function fetchFromInternalApi(pathnameWithQuery) {
+function requestInternal(url) {
   return new Promise((resolve, reject) => {
-    const req = https.request(
-      {
-        protocol: "https:",
-        hostname: "10.19.44.2",
-        port: 443,
-        path: pathnameWithQuery,
-        method: "GET",
-        rejectUnauthorized: false,
-        timeout: 4000,
-        headers: {
-          Accept: "application/json,text/plain,*/*",
-          "User-Agent": "SR-Tool-HayaKarima-Proxy/1.0",
-        },
+    const req = https.request(url, {
+      method: 'GET',
+      rejectUnauthorized: false,
+      headers: {
+        Accept: 'application/json, text/plain, */*',
+        'User-Agent': 'ua07-hk-proxy/1.0'
       },
-      (res) => {
-        let body = "";
-        res.setEncoding("utf8");
-        res.on("data", (chunk) => {
-          body += chunk;
+      timeout: 2600
+    }, (res) => {
+      let body = '';
+      res.setEncoding('utf8');
+      res.on('data', (chunk) => {
+        body += chunk;
+      });
+      res.on('end', () => {
+        resolve({
+          statusCode: res.statusCode || 200,
+          body
         });
-        res.on("end", () => {
-          const statusCode = Number(res.statusCode || 0);
-          if (statusCode < 200 || statusCode >= 300) {
-            reject(new Error(`Upstream returned ${statusCode || "unknown"}`));
-            return;
-          }
-          resolve(body);
-        });
-      }
-    );
-
-    req.on("timeout", () => {
-      req.destroy(new Error("Upstream timeout"));
+      });
     });
 
-    req.on("error", reject);
+    req.on('timeout', () => {
+      req.destroy(new Error('request timeout'));
+    });
+
+    req.on('error', (error) => {
+      reject(error);
+    });
+
     req.end();
   });
 }
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
-  const areaCode = sanitizeAreaCode(searchParams.get("area_code"));
-  const landline = sanitizeLandline(searchParams.get("landline"));
+  const areaCode = (searchParams.get('area_code') || '').trim();
+  const landline = (searchParams.get('landline') || '').trim();
 
-  if (!areaCode || !/^\d{2,3}$/.test(areaCode)) {
-    return badRequest("invalid area code");
+  if (!/^0\d+$/.test(areaCode) || !/^\d+$/.test(landline)) {
+    return NextResponse.json(
+      { status: -1, message: 'invalid haya karima parameters' },
+      { status: 400, headers: { 'cache-control': 'no-store' } }
+    );
   }
 
-  if (!landline || !/^\d{3,12}$/.test(landline)) {
-    return badRequest("invalid landline");
-  }
-
-  const upstreamPath = `/ireport/api/haya_karima_api.php?area_code=${encodeURIComponent(areaCode)}&landline=${encodeURIComponent(landline)}`;
+  const upstreamUrl = `https://10.19.44.2/ireport/api/haya_karima_api.php?area_code=${encodeURIComponent(areaCode)}&landline=${encodeURIComponent(landline)}`;
 
   try {
-    const raw = await fetchFromInternalApi(upstreamPath);
-    let parsed;
+    const upstream = await requestInternal(upstreamUrl);
+    let payload = null;
 
     try {
-      parsed = JSON.parse(raw);
-    } catch (_parseError) {
-      return NextResponse.json(
-        { status: 0, message: "invalid upstream response", data: [] },
-        {
-          status: 502,
-          headers: {
-            "Cache-Control": "no-store",
-          },
-        }
-      );
+      payload = JSON.parse(upstream.body);
+    } catch (error) {
+      payload = { status: -1, message: 'invalid upstream response', raw: upstream.body };
     }
 
-    return NextResponse.json(parsed, {
-      status: 200,
-      headers: {
-        "Cache-Control": "no-store",
-      },
+    return NextResponse.json(payload, {
+      status: upstream.statusCode >= 200 && upstream.statusCode < 300 ? 200 : 502,
+      headers: { 'cache-control': 'no-store' }
     });
-  } catch (_error) {
+  } catch (error) {
     return NextResponse.json(
-      { status: 0, message: "proxy unavailable", data: [] },
       {
-        status: 502,
-        headers: {
-          "Cache-Control": "no-store",
-        },
-      }
+        status: -1,
+        message: 'proxy request failed',
+        error: error instanceof Error ? error.message : 'unknown error'
+      },
+      { status: 502, headers: { 'cache-control': 'no-store' } }
     );
   }
 }
