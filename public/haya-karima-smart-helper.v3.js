@@ -1,6 +1,6 @@
 (function () {
   var STYLE_ID = 'hk-smart-helper-style';
-  var LINE_ID = 'hkSmartInlineLine';
+  var LINE_ID = 'hkSmartFloatingLine';
   var INPUT_ID = 'arabicNumber';
   var SEARCH_ID = 'searchInput';
   var PROXY_PATH = '/api/haya-karima';
@@ -73,21 +73,17 @@
     var style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = [
-      '.search-container{position:relative !important;}',
-      '#' + LINE_ID + '{display:none;position:absolute;left:50%;top:calc(100% + 6px);transform:translateX(-50%);width:180%;max-width:720px;min-height:16px;line-height:16px;font-size:12px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:10001;pointer-events:none;user-select:text;color:rgba(255,255,255,.88);text-shadow:0 1px 2px rgba(0,0,0,.55);}',
+      '#' + LINE_ID + '{display:none;position:fixed;left:50%;transform:translateX(-50%);min-width:300px;max-width:640px;min-height:16px;line-height:16px;font-size:12px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:9998;pointer-events:none;user-select:text;color:rgba(255,255,255,.88);text-shadow:0 1px 2px rgba(0,0,0,.55);}',
       '#' + LINE_ID + '.is-visible{display:block;}',
       '#' + LINE_ID + '.hk-loading{color:rgba(255,255,255,.82);}',
       '#' + LINE_ID + ' .hk-success{color:#9ff7ab;font-weight:600;}',
       '#' + LINE_ID + ' .hk-fail{color:#ff7e7e;font-weight:600;}',
-      '#' + LINE_ID + ' .hk-muted{color:rgba(255,255,255,.78);}',
+      '#' + LINE_ID + ' .hk-muted{color:rgba(255,255,255,.72);}',
       '#' + LINE_ID + ' .hk-added{color:rgba(255,255,255,.68);font-size:11px;padding-left:8px;}',
-      '@media (max-width: 900px){#' + LINE_ID + '{width:190%;max-width:92vw;font-size:11px;}}'
+      '#' + LINE_ID + ' .hk-raw{display:none;}',
+      '@media (max-width: 900px){#' + LINE_ID + '{max-width:92vw;font-size:11px;}}'
     ].join('');
     document.head.appendChild(style);
-  }
-
-  function getHost() {
-    return document.querySelector('.search-container') || document.body;
   }
 
   function ensureLine() {
@@ -98,22 +94,40 @@
     line.id = LINE_ID;
     line.setAttribute('aria-live', 'polite');
     line.setAttribute('title', 'Haya Karima check result');
-    getHost().appendChild(line);
+    document.body.appendChild(line);
     return line;
   }
 
-  function ensureLineAttached() {
+  function getAnchorRect() {
+    var search = document.getElementById(SEARCH_ID);
+    if (search && typeof search.getBoundingClientRect === 'function') {
+      var sr = search.getBoundingClientRect();
+      if (sr && sr.width > 0 && sr.height > 0) return sr;
+    }
+    var input = document.getElementById(INPUT_ID);
+    if (input && typeof input.getBoundingClientRect === 'function') {
+      var ir = input.getBoundingClientRect();
+      if (ir && ir.width > 0 && ir.height > 0) return ir;
+    }
+    return null;
+  }
+
+  function positionLine() {
     var line = ensureLine();
-    var host = getHost();
-    if (line.parentNode !== host) host.appendChild(line);
-    return line;
+    var rect = getAnchorRect();
+    if (!line || !rect) return;
+    var centerX = rect.left + (rect.width / 2);
+    line.style.left = centerX + 'px';
+    line.style.top = (rect.bottom + 10) + 'px';
+    line.style.width = Math.min(Math.max(rect.width, 320), 640) + 'px';
   }
 
   function setLineHTML(html, visible, className) {
-    var line = ensureLineAttached();
+    var line = ensureLine();
     if (!line) return;
     line.innerHTML = html || '';
     line.className = (visible ? 'is-visible ' : '') + (className || '');
+    positionLine();
   }
 
   function renderUnknown() {
@@ -146,32 +160,63 @@
   }
 
   function safeJsonParse(text) {
-    try { return JSON.parse(text); } catch (error) { return null; }
+    try {
+      return JSON.parse(text);
+    } catch (error) {
+      return null;
+    }
   }
 
   function fetchJson(url, options) {
     var controller = typeof AbortController === 'function' ? new AbortController() : null;
     var timeoutId = controller ? setTimeout(function () { controller.abort(); }, 2600) : null;
-    var requestOptions = { method: 'GET', cache: 'no-store', credentials: 'omit', headers: { 'Accept': 'application/json, text/plain, */*' } };
+    var requestOptions = {
+      method: 'GET',
+      cache: 'no-store',
+      credentials: 'omit',
+      headers: {
+        'Accept': 'application/json, text/plain, */*'
+      }
+    };
+
     if (controller) requestOptions.signal = controller.signal;
-    if (options) for (var key in options) if (Object.prototype.hasOwnProperty.call(options, key)) requestOptions[key] = options[key];
-    return fetch(url, requestOptions).then(function (response) {
-      return response.text().then(function (text) { return { ok: response.ok, status: response.status, text: text }; });
-    }).finally(function () { if (timeoutId) clearTimeout(timeoutId); });
+    if (options) {
+      for (var key in options) {
+        if (Object.prototype.hasOwnProperty.call(options, key)) {
+          requestOptions[key] = options[key];
+        }
+      }
+    }
+
+    return fetch(url, requestOptions)
+      .then(function (response) {
+        return response.text().then(function (text) {
+          return { ok: response.ok, status: response.status, text: text };
+        });
+      })
+      .finally(function () {
+        if (timeoutId) clearTimeout(timeoutId);
+      });
   }
 
   function requestHayaKarima(parsed) {
     if (cache[parsed.key]) return cache[parsed.key];
+
     var query = buildQuery(parsed);
     var sameOriginUrl = PROXY_PATH + '?' + query;
     var directUrl = DIRECT_API_BASE + '?' + query;
+
     cache[parsed.key] = fetchJson(sameOriginUrl)
       .then(function (result) {
         var payload = safeJsonParse(result.text);
-        if (result.ok && payload && (Number(payload.status) === 0 || Number(payload.status) === 1)) return payload;
+        if (result.ok && payload && (Number(payload.status) === 0 || Number(payload.status) === 1)) {
+          return payload;
+        }
         return fetchJson(directUrl, { mode: 'cors' }).then(function (directResult) {
           var directPayload = safeJsonParse(directResult.text);
-          if (directResult.ok && directPayload && (Number(directPayload.status) === 0 || Number(directPayload.status) === 1)) return directPayload;
+          if (directResult.ok && directPayload && (Number(directPayload.status) === 0 || Number(directPayload.status) === 1)) {
+            return directPayload;
+          }
           if (payload) return payload;
           if (directPayload) return directPayload;
           throw new Error('unable to parse haya karima response');
@@ -180,19 +225,40 @@
       .catch(function (error) {
         return { status: -1, message: (error && error.message) ? error.message : 'request failed' };
       });
+
     return cache[parsed.key];
   }
 
   function runCheck() {
     var input = document.getElementById(INPUT_ID);
-    if (!input) { setLineHTML('', false, ''); return; }
+    if (!input) {
+      setLineHTML('', false, '');
+      return;
+    }
+
     var parsed = parseLandline(input.value);
-    if (parsed.state === 'empty' || parsed.state === 'partial') { setLineHTML('', false, ''); return; }
-    if (parsed.state === 'unknown') { renderUnknown(); return; }
-    if (!parsed.landline || parsed.landline.length < 4) { setLineHTML('', false, ''); return; }
+    if (parsed.state === 'empty' || parsed.state === 'partial') {
+      setLineHTML('', false, '');
+      return;
+    }
+
+    if (parsed.state === 'unknown') {
+      renderUnknown();
+      return;
+    }
+
+    if (!parsed.landline || parsed.landline.length < 4) {
+      setLineHTML('', false, '');
+      return;
+    }
+
     var token = ++activeToken;
     renderLoading(parsed);
-    requestHayaKarima(parsed).then(function (payload) { if (token !== activeToken) return; renderResult(parsed, payload); });
+
+    requestHayaKarima(parsed).then(function (payload) {
+      if (token !== activeToken) return;
+      renderResult(parsed, payload);
+    });
   }
 
   function scheduleCheck() {
@@ -203,8 +269,10 @@
   function bind() {
     var input = document.getElementById(INPUT_ID);
     if (!input) return false;
-    ensureLineAttached();
-    if (input.dataset.hkSmartBound === '1') { scheduleCheck(); return true; }
+    if (input.dataset.hkSmartBound === '1') {
+      scheduleCheck();
+      return true;
+    }
     input.dataset.hkSmartBound = '1';
     ['input', 'keyup', 'change', 'blur'].forEach(function (eventName) {
       input.addEventListener(eventName, scheduleCheck, { passive: true });
@@ -214,16 +282,25 @@
   }
 
   function init() {
-    ensureLineAttached();
+    ensureLine();
     bind();
+    positionLine();
     setTimeout(bind, 250);
     setTimeout(bind, 900);
+    window.addEventListener('resize', positionLine, { passive: true });
+    window.addEventListener('scroll', positionLine, { passive: true });
     try {
-      var observer = new MutationObserver(function () { bind(); });
+      var observer = new MutationObserver(function () {
+        bind();
+        positionLine();
+      });
       observer.observe(document.documentElement, { childList: true, subtree: true });
     } catch (error) {}
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
-  else init();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
 })();
