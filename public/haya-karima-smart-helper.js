@@ -65,7 +65,7 @@
       '#' + LINE_ID + ' .hk-muted{color:rgba(255,255,255,.72);}',
       '#' + LINE_ID + ' .hk-sep{color:rgba(255,255,255,.45);padding:0 4px;}',
       // small input used for manual API JSON.  It inherits the floating line font-size
-      '#' + LINE_ID + ' .hk-input{margin-left:6px;padding:1px 4px;font-size:12px;border-radius:4px;border:1px solid rgba(255,255,255,.35);background-color:rgba(255,255,255,0.15);color:#ffffff;width:150px;}',
+      '#' + LINE_ID + ' .hk-input{margin-left:6px;padding:1px 4px;font-size:12px;border-radius:4px;border:1px solid rgba(255,255,255,.35);background-color:rgba(255,255,255,0.15);color:#ffffff;width:150px;position:relative;z-index:2;}',
       '#' + LINE_ID + ' .hk-input::placeholder{color:rgba(255,255,255,.55);}',
       // result area for manual JSON parsing
       '#' + LINE_ID + ' .hk-manual-result{margin-left:8px;font-weight:bold;}',
@@ -189,7 +189,7 @@
      */
     var html = '';
     html += '<a class="hk-link is-manual" href="' + url + '" data-popup-url="' + url + '" target="_blank" rel="noopener noreferrer">HK</a>';
-    html += '<input type="text" class="hk-input" id="hkRawInput" placeholder="أدخل النتيجة الخام هنا" />';
+    html += '<input type="text" class="hk-input" id="hkRawInput" placeholder="أدخل النتيجة الخام هنا" tabindex="0" />';
     html += '<span id="hkManualResult" class="hk-manual-result"></span>';
     setLineHTML(html, true);
     // Attach handler for the manual input when rendering completes
