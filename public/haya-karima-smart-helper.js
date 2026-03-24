@@ -257,6 +257,11 @@
     // Avoid attaching multiple listeners when re-rendering
     if (inputEl.dataset.hkManualBound === '1') return;
     inputEl.dataset.hkManualBound = '1';
+    // Stop propagation of click/mousedown events from the input so that the
+    // enclosing line's click handler does not interfere with focusing or pasting
+    inputEl.addEventListener('click', function (e) { e.stopPropagation(); });
+    inputEl.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+
     inputEl.addEventListener('input', function () {
       var value = (inputEl.value || '').trim();
       // Reset message when no input
