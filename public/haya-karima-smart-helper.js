@@ -1,18 +1,9 @@
 (function () {
   var STYLE_ID = 'hk-smart-helper-style';
-  var LINE_ID = 'hkSmartInlineLine';
+  var LINE_ID = 'hkSmartFloatingLine';
   var INPUT_ID = 'arabicNumber';
-  var PROXY_PATH = '/api/haya-karima';
-  var DIRECT_API_BASE = 'https://10.19.44.2/ireport/api/haya_karima_api.php';
-
-  // Longest-first matching; values are the area code without the leading zero.
+  var SEARCH_ID = 'searchInput';
   var CODES = ['97','96','95','93','92','88','86','84','82','69','68','66','65','64','62','57','55','50','48','47','46','45','40','18','13','3','2'];
-
-  var cache = Object.create(null);
-  var inflight = Object.create(null);
-  var lastValue = null;
-  var lastKey = null;
-  var activeToken = 0;
 
   function toEnglishDigits(value) {
     var map = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'};
@@ -21,6 +12,95 @@
 
   function digitsOnly(value) {
     return toEnglishDigits(value).replace(/\D/g, '');
+  }
+
+  function stripLeadingZeros(value) {
+    return String(value || '').replace(/^0+/, '');
+  }
+
+  function parseLandline(rawInput) {
+    var raw = stripLeadingZeros(digitsOnly(rawInput));
+    if (!raw) return { state: 'empty' };
+
+    var strippedArea = '';
+    for (var i = 0; i < CODES.length; i += 1) {
+      if (raw.indexOf(CODES[i]) === 0) {
+        strippedArea = CODES[i];
+        break;
+      }
+    }
+    if (!strippedArea) return { state: 'unknown', raw: raw };
+
+    var landline = raw.slice(strippedArea.length);
+    if (!landline) return { state: 'partial', raw: raw, strippedArea: strippedArea };
+
+    var areaCode = '0' + strippedArea;
+    var apiUrl = 'https://10.19.44.2/ireport/api/haya_karima_api.php?area_code=' +
+      encodeURIComponent(areaCode) + '&landline=' + encodeURIComponent(landline);
+
+    return { state: 'ready', raw: raw, areaCode: areaCode, landline: landline, apiUrl: apiUrl };
+  }
+
+  function ensureStyle() {
+    if (document.getElementById(STYLE_ID)) return;
+    var style = document.createElement('style');
+    style.id = STYLE_ID;
+    style.textContent = [
+      '#' + LINE_ID + '{display:none;position:fixed;left:50%;transform:translateX(-50%);min-width:300px;max-width:520px;height:16px;line-height:16px;font-size:12px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:9998;pointer-events:auto;user-select:text;color:rgba(255,255,255,.88);text-shadow:0 1px 2px rgba(0,0,0,.55);}',
+      '#' + LINE_ID + '.is-visible{display:block;}',
+      '#' + LINE_ID + ' .hk-ready{color:rgba(255,255,255,.88);}',
+      '#' + LINE_ID + ' .hk-link{color:#ffffff;text-decoration:none;border-bottom:1px dotted rgba(255,255,255,.35);}',
+      '#' + LINE_ID + ' .hk-link:hover{border-bottom-color:rgba(255,255,255,.8);}',
+      '#' + LINE_ID + ' .hk-link.is-manual{color:#ffd27a;}',
+      '#' + LINE_ID + ' .hk-copy{cursor:pointer;color:#d7efff;text-decoration:none;border-bottom:1px dotted rgba(215,239,255,.35);margin-right:8px;}',
+      '#' + LINE_ID + ' .hk-copy:hover{border-bottom-color:rgba(215,239,255,.8);}',
+      '#' + LINE_ID + ' .hk-muted{color:rgba(255,255,255,.72);}',
+      '#' + LINE_ID + ' .hk-sep{color:rgba(255,255,255,.45);padding:0 4px;}'
+    ].join('');
+    document.head.appendChild(style);
+  }
+
+  function ensureLine() {
+    ensureStyle();
+    var line = document.getElementById(LINE_ID);
+    if (line) return line;
+    line = document.createElement('div');
+    line.id = LINE_ID;
+    line.setAttribute('aria-live', 'polite');
+    line.setAttribute('title', 'Opens the official Haya Karima result directly, without browser-blocked inline fetch.');
+    document.body.appendChild(line);
+    return line;
+  }
+
+  function getAnchorRect() {
+    var search = document.getElementById(SEARCH_ID);
+    if (search && typeof search.getBoundingClientRect === 'function') {
+      var r = search.getBoundingClientRect();
+      if (r && r.width > 0 && r.height > 0) return r;
+    }
+    var input = document.getElementById(INPUT_ID);
+    if (input && typeof input.getBoundingClientRect === 'function') {
+      return input.getBoundingClientRect();
+    }
+    return null;
+  }
+
+  function positionLine() {
+    var line = ensureLine();
+    var rect = getAnchorRect();
+    if (!line || !rect) return;
+    var centerX = rect.left + (rect.width / 2);
+    line.style.left = centerX + 'px';
+    line.style.top = (rect.bottom + 10) + 'px';
+    line.style.width = Math.min(Math.max(rect.width, 300), 520) + 'px';
+  }
+
+  function setLineHTML(html, visible) {
+    var line = ensureLine();
+    if (!line) return;
+    line.innerHTML = html || '';
+    line.className = visible ? 'is-visible' : '';
+    positionLine();
   }
 
   function escapeHtml(value) {
@@ -32,252 +112,117 @@
       .replace(/'/g, '&#39;');
   }
 
-  function normalizeAddedOn(value) {
-    if (!value || String(value).indexOf('0000-00-00') === 0) return '';
-    return String(value);
-  }
 
-  function ensureStyle() {
-    if (document.getElementById(STYLE_ID)) return;
-    var style = document.createElement('style');
-    style.id = STYLE_ID;
-    style.textContent = [
-      '.search-container{position:relative !important;}',
-      '#' + LINE_ID + '{display:none;position:absolute;left:50%;top:calc(100% + 6px);transform:translateX(-50%);width:180%;max-width:720px;min-height:16px;line-height:16px;font-size:12px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:10001;pointer-events:none;user-select:text;color:rgba(255,255,255,.88);text-shadow:0 1px 2px rgba(0,0,0,.55);}',
-      '#' + LINE_ID + '.hk-loading{color:rgba(255,255,255,.82);}',
-      '#' + LINE_ID + ' .hk-success{color:#9ff7ab;font-weight:600;}',
-      '#' + LINE_ID + ' .hk-fail{color:#ff7e7e;font-weight:600;}',
-      '#' + LINE_ID + ' .hk-muted{color:rgba(255,255,255,.78);}',
-      '#' + LINE_ID + ' .hk-added{color:rgba(255,255,255,.68);font-size:11px;padding-left:8px;}',
-      '@media (max-width: 900px){#' + LINE_ID + '{width:190%;max-width:92vw;font-size:11px;}}'
-    ].join('');
-    document.head.appendChild(style);
-  }
 
-  function getHost() {
-    return document.querySelector('.search-container') || document.body;
-  }
-
-  function ensureLine() {
-    ensureStyle();
-    var line = document.getElementById(LINE_ID);
-    if (!line) {
-      line = document.createElement('div');
-      line.id = LINE_ID;
-      line.setAttribute('aria-live', 'polite');
-      line.setAttribute('title', 'Haya Karima check result');
+  function openPopup(url) {
+    try {
+      var w = 760;
+      var h = 230;
+      var dualLeft = window.screenLeft !== undefined ? window.screenLeft : screen.left;
+      var dualTop = window.screenTop !== undefined ? window.screenTop : screen.top;
+      var width = window.innerWidth || document.documentElement.clientWidth || screen.width;
+      var height = window.innerHeight || document.documentElement.clientHeight || screen.height;
+      var left = Math.max(0, dualLeft + ((width - w) / 2));
+      var top = Math.max(0, dualTop + ((height - h) / 2));
+      var popup = window.open(url, 'hkOfficialJsonPopup', 'toolbar=no,location=yes,status=no,menubar=no,scrollbars=yes,resizable=yes,width=' + w + ',height=' + h + ',left=' + left + ',top=' + top);
+      if (popup && typeof popup.focus === 'function') popup.focus();
+    } catch (e) {
+      window.open(url, '_blank', 'noopener,noreferrer');
     }
-    var host = getHost();
-    if (line.parentNode !== host) host.appendChild(line);
-    return line;
   }
 
-  function setVisible(line, visible) {
-    line.style.setProperty('display', visible ? 'block' : 'none', 'important');
-    line.style.setProperty('visibility', visible ? 'visible' : 'hidden', 'important');
-    line.style.setProperty('opacity', visible ? '1' : '0', 'important');
-  }
-
-  function setLineHTML(html, visible, className) {
-    var line = ensureLine();
-    line.innerHTML = html || '';
-    line.className = className || '';
-    setVisible(line, !!visible);
-  }
-
-  function hideLine() {
-    setLineHTML('', false, '');
-  }
-
-  function parseLandline(rawInput) {
-    var digits = digitsOnly(rawInput);
-    if (!digits) return { state: 'empty' };
-
-    // The tool may remove the first 0 from the full number; accept both forms.
-    var candidates = [digits];
-    if (digits.charAt(0) !== '0') candidates.push('0' + digits);
-
-    for (var c = 0; c < candidates.length; c += 1) {
-      var candidate = candidates[c];
-      for (var i = 0; i < CODES.length; i += 1) {
-        var strippedArea = CODES[i];
-        var fullArea = '0' + strippedArea;
-        if (candidate.indexOf(fullArea) === 0) {
-          var landline = candidate.slice(fullArea.length);
-          if (!landline) return { state: 'partial', raw: candidate, areaCode: fullArea, strippedArea: strippedArea };
-          return {
-            state: 'ready',
-            raw: candidate,
-            strippedArea: strippedArea,
-            areaCode: fullArea,
-            landline: landline,
-            key: fullArea + '|' + landline,
-            sourceDigits: digits
-          };
-        }
-      }
-    }
-
-    return { state: 'unknown', raw: digits };
-  }
-
-  function buildQuery(parsed) {
-    return 'area_code=' + encodeURIComponent(parsed.areaCode) + '&landline=' + encodeURIComponent(parsed.landline);
-  }
-
-  function renderUnknown(rawDigits) {
-    setLineHTML('<span class="hk-muted">حياه كريمة: كود أرضي غير معروف</span><span class="hk-added">' + escapeHtml(rawDigits || '') + '</span>', true, 'hk-muted');
-  }
-
-  function renderLoading(parsed) {
-    var label = escapeHtml(parsed.areaCode + ' - ' + parsed.landline);
-    setLineHTML('<span class="hk-muted">حياه كريمة: جاري الفحص...</span><span class="hk-added">' + label + '</span>', true, 'hk-loading');
-  }
-
-  function renderResult(parsed, payload) {
-    var label = escapeHtml(parsed.areaCode + ' - ' + parsed.landline);
-    var addedOn = normalizeAddedOn(payload && payload.data && payload.data.added_on);
-
-    if (payload && Number(payload.status) === 1) {
-      var successHtml = '<span class="hk-success">number ( ' + label + ' ) belongs to Haya Karima</span>';
-      if (addedOn) successHtml += '<span class="hk-added">added on : ' + escapeHtml(addedOn) + '</span>';
-      setLineHTML(successHtml, true, 'hk-success');
+  function copyText(text) {
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(function () {});
       return;
     }
-
-    if (payload && Number(payload.status) === 0) {
-      setLineHTML('<span class="hk-fail">number ( ' + label + ' ) does not exist</span>', true, 'hk-fail');
-      return;
-    }
-
-    var message = payload && payload.message ? escapeHtml(payload.message) : 'تعذر فحص حياه كريمة من هذه النسخة';
-    setLineHTML('<span class="hk-muted">حياه كريمة: ' + message + '</span><span class="hk-added">' + label + '</span>', true, 'hk-muted');
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', 'readonly');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    } catch (e) {}
   }
 
-  function safeJsonParse(text) {
-    try { return JSON.parse(text); } catch (error) { return null; }
-  }
-
-  function fetchJson(url, options) {
-    var controller = typeof AbortController === 'function' ? new AbortController() : null;
-    var timeoutId = controller ? setTimeout(function () { controller.abort(); }, 2600) : null;
-    var requestOptions = { method: 'GET', cache: 'no-store', credentials: 'omit', headers: { 'Accept': 'application/json, text/plain, */*' } };
-    if (controller) requestOptions.signal = controller.signal;
-    if (options) for (var key in options) if (Object.prototype.hasOwnProperty.call(options, key)) requestOptions[key] = options[key];
-    return fetch(url, requestOptions).then(function (response) {
-      return response.text().then(function (text) { return { ok: response.ok, status: response.status, text: text }; });
-    }).finally(function () { if (timeoutId) clearTimeout(timeoutId); });
-  }
-
-  function requestHayaKarima(parsed) {
-    if (cache[parsed.key]) return Promise.resolve(cache[parsed.key]);
-    if (inflight[parsed.key]) return inflight[parsed.key];
-
-    var query = buildQuery(parsed);
-    var sameOriginUrl = PROXY_PATH + '?' + query;
-    var directUrl = DIRECT_API_BASE + '?' + query;
-
-    inflight[parsed.key] = fetchJson(sameOriginUrl)
-      .then(function (result) {
-        var payload = safeJsonParse(result.text);
-        if (result.ok && payload && (Number(payload.status) === 0 || Number(payload.status) === 1)) return payload;
-        return fetchJson(directUrl, { mode: 'cors' }).then(function (directResult) {
-          var directPayload = safeJsonParse(directResult.text);
-          if (directResult.ok && directPayload && (Number(directPayload.status) === 0 || Number(directPayload.status) === 1)) return directPayload;
-          if (payload) return payload;
-          if (directPayload) return directPayload;
-          throw new Error('unable to parse haya karima response');
-        });
-      })
-      .catch(function (error) {
-        return { status: -1, message: (error && error.message) ? error.message : 'request failed' };
-      })
-      .then(function (payload) {
-        cache[parsed.key] = payload;
-        delete inflight[parsed.key];
-        return payload;
-      }, function (error) {
-        delete inflight[parsed.key];
-        throw error;
-      });
-
-    return inflight[parsed.key];
-  }
-
-  function processValue(rawValue) {
-    var parsed = parseLandline(rawValue);
-
-    if (parsed.state === 'empty') {
-      lastKey = null;
-      hideLine();
-      return;
-    }
-
-    if (parsed.state === 'unknown') {
-      lastKey = 'unknown|' + parsed.raw;
-      renderUnknown(parsed.raw);
-      return;
-    }
-
-    if (parsed.state === 'partial' || !parsed.landline || parsed.landline.length < 4) {
-      lastKey = null;
-      hideLine();
-      return;
-    }
-
-    // Always show immediate feedback even before the network resolves.
-    renderLoading(parsed);
-
-    if (lastKey === parsed.key && cache[parsed.key]) {
-      renderResult(parsed, cache[parsed.key]);
-      return;
-    }
-
-    lastKey = parsed.key;
-    var token = ++activeToken;
-    requestHayaKarima(parsed).then(function (payload) {
-      if (token !== activeToken) return;
-      renderResult(parsed, payload);
-    });
-  }
-
-  function bindInput(input) {
-    if (!input || input.dataset.hkSmartBound === '1') return;
-    input.dataset.hkSmartBound = '1';
-    var handler = function () {
-      var current = String(input.value || '');
-      if (current !== lastValue) {
-        lastValue = current;
-        processValue(current);
-      }
-    };
-    ['input', 'keyup', 'change', 'blur'].forEach(function (eventName) {
-      input.addEventListener(eventName, handler, { passive: true });
-    });
-  }
-
-  function tick() {
+  function renderFromInput() {
     var input = document.getElementById(INPUT_ID);
-    ensureLine();
-    if (!input) return;
-    bindInput(input);
-    var current = String(input.value || '');
-    if (current !== lastValue) {
-      lastValue = current;
-      processValue(current);
+    if (!input) return setLineHTML('', false);
+
+    var parsed = parseLandline(input.value);
+    if (parsed.state === 'empty' || parsed.state === 'partial') return setLineHTML('', false);
+    if (parsed.state === 'unknown') return setLineHTML('<span class="hk-muted">حياه كريمة: كود أرضي غير معروف</span>', true);
+    if (parsed.landline.length < 4) return setLineHTML('', false);
+
+    var label = escapeHtml(parsed.areaCode + ' - ' + parsed.landline);
+    var url = escapeHtml(parsed.apiUrl);
+    var html = '<span class="hk-ready">حياه كريمة الرسمي</span><span class="hk-sep">•</span><span class="hk-ready">' + label + '</span><span class="hk-sep">•</span><a class="hk-copy" href="#" data-copy-url="' + url + '">نسخ الرابط</a><a class="hk-link is-manual" href="' + url + '" data-popup-url="' + url + '" target="_blank" rel="noopener noreferrer">فتح النتيجة الرسمية</a>';
+    setLineHTML(html, true);
+  }
+
+  function scheduleRender() {
+    clearTimeout(scheduleRender._t);
+    scheduleRender._t = setTimeout(renderFromInput, 180);
+  }
+
+  function bind() {
+    var input = document.getElementById(INPUT_ID);
+    if (!input) return false;
+    if (input.dataset.hkSmartBound === '1') {
+      scheduleRender();
+      return true;
     }
+    input.dataset.hkSmartBound = '1';
+    ['input', 'keyup', 'change', 'blur'].forEach(function (eventName) {
+      input.addEventListener(eventName, scheduleRender, { passive: true });
+    });
+    scheduleRender();
+    return true;
+  }
+
+  function wireLineActions() {
+    var line = ensureLine();
+    if (!line || line.dataset.hkActionsBound === '1') return;
+    line.dataset.hkActionsBound = '1';
+    line.addEventListener('click', function (event) {
+      var target = event.target;
+      if (!target) return;
+      var popupUrl = target.getAttribute && target.getAttribute('data-popup-url');
+      if (popupUrl) {
+        event.preventDefault();
+        openPopup(popupUrl);
+        return;
+      }
+      var copyUrl = target.getAttribute && target.getAttribute('data-copy-url');
+      if (copyUrl) {
+        event.preventDefault();
+        copyText(copyUrl);
+      }
+    });
   }
 
   function init() {
-    ensureLine();
-    tick();
-    setInterval(tick, 300);
+    wireLineActions();
+    bind();
+    positionLine();
+    setTimeout(bind, 350);
+    setTimeout(bind, 900);
+    window.addEventListener('resize', positionLine, { passive: true });
+    window.addEventListener('scroll', positionLine, { passive: true });
     try {
-      var observer = new MutationObserver(function () { tick(); });
-      observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true });
-    } catch (error) {}
+      var observer = new MutationObserver(function () { bind(); positionLine(); });
+      observer.observe(document.documentElement, { childList: true, subtree: true });
+    } catch (e) {}
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
-  else init();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
 })();
