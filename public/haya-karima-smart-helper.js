@@ -9,6 +9,7 @@
   var cache = Object.create(null);
   var activeToken = 0;
   var renderTimer = null;
+  var lastObservedValue = null;
 
   function toEnglishDigits(value) {
     var map = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'};
@@ -114,6 +115,9 @@
     if (!line) return;
     line.innerHTML = html || '';
     line.className = (visible ? 'is-visible ' : '') + (className || '');
+    line.style.display = visible ? 'block' : 'none';
+    line.style.visibility = visible ? 'visible' : 'hidden';
+    line.style.opacity = visible ? '1' : '0';
   }
 
   function renderUnknown() {
@@ -200,6 +204,16 @@
     renderTimer = setTimeout(runCheck, 420);
   }
 
+  function watchValue() {
+    var input = document.getElementById(INPUT_ID);
+    if (!input) return;
+    var value = String(input.value || '');
+    if (value !== lastObservedValue) {
+      lastObservedValue = value;
+      scheduleCheck();
+    }
+  }
+
   function bind() {
     var input = document.getElementById(INPUT_ID);
     if (!input) return false;
@@ -219,9 +233,10 @@
     setTimeout(bind, 250);
     setTimeout(bind, 900);
     try {
-      var observer = new MutationObserver(function () { bind(); });
-      observer.observe(document.documentElement, { childList: true, subtree: true });
+      var observer = new MutationObserver(function () { bind(); watchValue(); });
+      observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, characterData: false });
     } catch (error) {}
+    setInterval(watchValue, 600);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
