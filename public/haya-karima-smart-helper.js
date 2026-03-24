@@ -3,7 +3,6 @@
   var LINE_ID = 'hkSmartFloatingLine';
   var INPUT_ID = 'arabicNumber';
   var SEARCH_ID = 'searchInput';
-  var VIEWER_PATH = 'haya-karima-viewer.html';
   var CODES = ['97','96','95','93','92','88','86','84','82','69','68','66','65','64','62','57','55','50','48','47','46','45','40','18','13','3','2'];
 
   function toEnglishDigits(value) {
@@ -17,14 +16,6 @@
 
   function stripLeadingZeros(value) {
     return String(value || '').replace(/^0+/, '');
-  }
-
-  function buildViewerUrl(areaCode, landline, apiUrl) {
-    var params = new URLSearchParams();
-    params.set('area_code', areaCode);
-    params.set('landline', landline);
-    params.set('api_url', apiUrl);
-    return VIEWER_PATH + '?' + params.toString();
   }
 
   function parseLandline(rawInput) {
@@ -46,23 +37,41 @@
     var areaCode = '0' + strippedArea;
     var apiUrl = 'https://10.19.44.2/ireport/api/haya_karima_api.php?area_code=' +
       encodeURIComponent(areaCode) + '&landline=' + encodeURIComponent(landline);
-    var viewerUrl = buildViewerUrl(areaCode, landline, apiUrl);
 
-    return { state: 'ready', raw: raw, areaCode: areaCode, landline: landline, apiUrl: apiUrl, viewerUrl: viewerUrl };
+    return { state: 'ready', raw: raw, areaCode: areaCode, landline: landline, apiUrl: apiUrl };
   }
 
   function ensureStyle() {
+    // create a style tag only once
     if (document.getElementById(STYLE_ID)) return;
     var style = document.createElement('style');
     style.id = STYLE_ID;
+    /*
+     * The floating line originally had a fixed height of 16px and used overflow
+     * clipping.  For the manual HK helper we relax those constraints so the
+     * additional form elements can be shown without truncation.  We keep
+     * positioning and sizing similar to the original but allow the height to
+     * grow based on its contents and make the overflow visible.
+     */
     style.textContent = [
-      '#' + LINE_ID + '{display:none;position:fixed;left:50%;transform:translateX(-50%);min-width:300px;max-width:560px;height:16px;line-height:16px;font-size:12px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:9998;pointer-events:auto;user-select:text;color:rgba(255,255,255,.88);text-shadow:0 1px 2px rgba(0,0,0,.55);}',
+      '#' + LINE_ID + '{display:none;position:fixed;left:50%;transform:translateX(-50%);min-width:300px;max-width:520px;padding:2px 4px;height:auto;line-height:16px;font-size:12px;text-align:center;white-space:nowrap;overflow:visible;z-index:9998;pointer-events:auto;user-select:text;color:rgba(255,255,255,.88);text-shadow:0 1px 2px rgba(0,0,0,.55);}',
       '#' + LINE_ID + '.is-visible{display:block;}',
+      // style for the ready text (not used in manual HK display but kept for completeness)
       '#' + LINE_ID + ' .hk-ready{color:rgba(255,255,255,.88);}',
-      '#' + LINE_ID + ' .hk-link{color:#ffd27a;text-decoration:none;border-bottom:1px dotted rgba(255,210,122,.5);}',
-      '#' + LINE_ID + ' .hk-link:hover{border-bottom-color:rgba(255,210,122,.95);}',
+      '#' + LINE_ID + ' .hk-link{color:#ffffff;text-decoration:none;border-bottom:1px dotted rgba(255,255,255,.35);}',
+      '#' + LINE_ID + ' .hk-link:hover{border-bottom-color:rgba(255,255,255,.8);}',
+      '#' + LINE_ID + ' .hk-link.is-manual{color:#ffd27a;}',
+      // muted state for unknown area code
       '#' + LINE_ID + ' .hk-muted{color:rgba(255,255,255,.72);}',
-      '#' + LINE_ID + ' .hk-sep{color:rgba(255,255,255,.45);padding:0 4px;}'
+      '#' + LINE_ID + ' .hk-sep{color:rgba(255,255,255,.45);padding:0 4px;}',
+      // small input used for manual API JSON.  It inherits the floating line font-size
+      '#' + LINE_ID + ' .hk-input{margin-left:6px;padding:1px 4px;font-size:12px;border-radius:4px;border:1px solid rgba(255,255,255,.35);background-color:rgba(255,255,255,0.15);color:#ffffff;width:150px;}',
+      '#' + LINE_ID + ' .hk-input::placeholder{color:rgba(255,255,255,.55);}',
+      // result area for manual JSON parsing
+      '#' + LINE_ID + ' .hk-manual-result{margin-left:8px;font-weight:bold;}',
+      // success and error colouring
+      '#' + LINE_ID + ' .hk-error{color:#ff6b6b;}',
+      '#' + LINE_ID + ' .hk-success{color:#6acd6a;}'
     ].join('');
     document.head.appendChild(style);
   }
@@ -74,7 +83,7 @@
     line = document.createElement('div');
     line.id = LINE_ID;
     line.setAttribute('aria-live', 'polite');
-    line.setAttribute('title', 'Shows a polished Haya Karima result viewer and falls back safely if browser/network limits block direct reading.');
+    line.setAttribute('title', 'Opens the official Haya Karima result directly, without browser-blocked inline fetch.');
     document.body.appendChild(line);
     return line;
   }
@@ -99,7 +108,7 @@
     var centerX = rect.left + (rect.width / 2);
     line.style.left = centerX + 'px';
     line.style.top = (rect.bottom + 10) + 'px';
-    line.style.width = Math.min(Math.max(rect.width, 300), 560) + 'px';
+    line.style.width = Math.min(Math.max(rect.width, 300), 520) + 'px';
   }
 
   function setLineHTML(html, visible) {
@@ -119,21 +128,42 @@
       .replace(/'/g, '&#39;');
   }
 
+
+
   function openPopup(url) {
     try {
       var w = 760;
-      var h = 460;
+      var h = 230;
       var dualLeft = window.screenLeft !== undefined ? window.screenLeft : screen.left;
       var dualTop = window.screenTop !== undefined ? window.screenTop : screen.top;
       var width = window.innerWidth || document.documentElement.clientWidth || screen.width;
       var height = window.innerHeight || document.documentElement.clientHeight || screen.height;
       var left = Math.max(0, dualLeft + ((width - w) / 2));
       var top = Math.max(0, dualTop + ((height - h) / 2));
-      var popup = window.open(url, 'hkOfficialViewerPopup', 'toolbar=no,location=yes,status=no,menubar=no,scrollbars=yes,resizable=yes,width=' + w + ',height=' + h + ',left=' + left + ',top=' + top);
+      var popup = window.open(url, 'hkOfficialJsonPopup', 'toolbar=no,location=yes,status=no,menubar=no,scrollbars=yes,resizable=yes,width=' + w + ',height=' + h + ',left=' + left + ',top=' + top);
       if (popup && typeof popup.focus === 'function') popup.focus();
     } catch (e) {
       window.open(url, '_blank', 'noopener,noreferrer');
     }
+  }
+
+  function copyText(text) {
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(function () {});
+      return;
+    }
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', 'readonly');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    } catch (e) {}
   }
 
   function renderFromInput() {
@@ -145,10 +175,25 @@
     if (parsed.state === 'unknown') return setLineHTML('<span class="hk-muted">حياه كريمة: كود أرضي غير معروف</span>', true);
     if (parsed.landline.length < 4) return setLineHTML('', false);
 
-    var label = escapeHtml(parsed.areaCode + ' - ' + parsed.landline);
-    var viewerUrl = escapeHtml(parsed.viewerUrl);
-    var html = '<span class="hk-ready">حياه كريمة</span><span class="hk-sep">•</span><span class="hk-ready">' + label + '</span><span class="hk-sep">•</span><a class="hk-link" href="' + viewerUrl + '" data-popup-url="' + viewerUrl + '" target="_blank" rel="noopener noreferrer">فتح النتيجة</a>';
+    var url = escapeHtml(parsed.apiUrl);
+    /*
+     * For the manual HK helper we simplify the floating line.  We hide the
+     * original "حياه كريمة" label and the landline/area code number and
+     * instead present a minimal clickable indicator "HK".  Clicking it
+     * continues to open the official API URL in a centred popup.  A small
+     * adjacent input allows the user to paste a raw JSON result from the API.
+     * When a valid JSON value is provided it is parsed and a status message is
+     * displayed: a red error if the status is 0, otherwise a green success
+     * including the record id and timestamp.  The separators and styling are
+     * defined in ensureStyle.
+     */
+    var html = '';
+    html += '<a class="hk-link is-manual" href="' + url + '" data-popup-url="' + url + '" target="_blank" rel="noopener noreferrer">HK</a>';
+    html += '<input type="text" class="hk-input" id="hkRawInput" placeholder="أدخل النتيجة الخام هنا" />';
+    html += '<span id="hkManualResult" class="hk-manual-result"></span>';
     setLineHTML(html, true);
+    // Attach handler for the manual input when rendering completes
+    attachManualInputHandler();
   }
 
   function scheduleRender() {
@@ -182,6 +227,68 @@
       if (popupUrl) {
         event.preventDefault();
         openPopup(popupUrl);
+        return;
+      }
+      var copyUrl = target.getAttribute && target.getAttribute('data-copy-url');
+      if (copyUrl) {
+        event.preventDefault();
+        copyText(copyUrl);
+      }
+    });
+  }
+
+  /**
+   * Attaches a one-off handler to the manual JSON input.  This handler
+   * listens for input events and attempts to parse the provided value as
+   * JSON.  If the structure matches the expected Haya Karima API response
+   * it will update a nearby result span to indicate whether the record
+   * belongs to the programme.  A status of 0 results in a red error
+   * message; a status of 1 displays a green success message along with the
+   * record id and added_on timestamp.  Invalid or empty JSON clears the
+   * message.  This function should be invoked after setLineHTML when the
+   * floating line is showing a manual input.
+   */
+  function attachManualInputHandler() {
+    var line = ensureLine();
+    if (!line) return;
+    var inputEl = line.querySelector('#hkRawInput');
+    var resultEl = line.querySelector('#hkManualResult');
+    if (!inputEl || !resultEl) return;
+    // Avoid attaching multiple listeners when re-rendering
+    if (inputEl.dataset.hkManualBound === '1') return;
+    inputEl.dataset.hkManualBound = '1';
+    inputEl.addEventListener('input', function () {
+      var value = (inputEl.value || '').trim();
+      // Reset message when no input
+      if (!value) {
+        resultEl.innerHTML = '';
+        return;
+      }
+      try {
+        var obj = JSON.parse(value);
+        // status==0: not part of HK
+        if (obj && typeof obj.status !== 'undefined' && obj.status == 0) {
+          resultEl.innerHTML = '<span class="hk-error">الرقم لا ينتمى الى حياه كريمه</span>';
+        } else if (obj && obj.status == 1) {
+          // status 1: record exists
+          var id = '';
+          var added = '';
+          if (obj.data && typeof obj.data === 'object') {
+            id = escapeHtml(obj.data.id || '');
+            added = escapeHtml(obj.data.added_on || '');
+          }
+          var parts = [];
+          parts.push('<span class="hk-success">تابع لحياه كريمه</span>');
+          if (id) parts.push('<span class="hk-sep">•</span><span class="hk-success">ID: ' + id + '</span>');
+          if (added) parts.push('<span class="hk-sep">•</span><span class="hk-success">' + added + '</span>');
+          resultEl.innerHTML = parts.join('');
+        } else {
+          // Unknown status or structure: clear
+          resultEl.innerHTML = '';
+        }
+      } catch (e) {
+        // If JSON.parse fails, clear the result
+        resultEl.innerHTML = '';
       }
     });
   }
