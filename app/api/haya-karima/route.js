@@ -1,81 +1,51 @@
 import { NextResponse } from 'next/server';
-import https from 'https';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-function requestInternal(url) {
-  return new Promise((resolve, reject) => {
-    const req = https.request(url, {
-      method: 'GET',
-      rejectUnauthorized: false,
-      headers: {
-        Accept: 'application/json, text/plain, */*',
-        'User-Agent': 'ua07-hk-proxy/1.0'
-      },
-      timeout: 2600
-    }, (res) => {
-      let body = '';
-      res.setEncoding('utf8');
-      res.on('data', (chunk) => {
-        body += chunk;
-      });
-      res.on('end', () => {
-        resolve({
-          statusCode: res.statusCode || 200,
-          body
-        });
-      });
-    });
-
-    req.on('timeout', () => {
-      req.destroy(new Error('request timeout'));
-    });
-
-    req.on('error', (error) => {
-      reject(error);
-    });
-
-    req.end();
-  });
+function digitsOnly(value) {
+  return String(value || '').replace(/\D/g, '');
 }
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
-  const areaCode = (searchParams.get('area_code') || '').trim();
-  const landline = (searchParams.get('landline') || '').trim();
+  const areaCode = digitsOnly(searchParams.get('area_code'));
+  const landline = digitsOnly(searchParams.get('landline'));
 
-  if (!/^0\d+$/.test(areaCode) || !/^\d+$/.test(landline)) {
-    return NextResponse.json(
-      { status: -1, message: 'invalid haya karima parameters' },
-      { status: 400, headers: { 'cache-control': 'no-store' } }
-    );
+  if (!areaCode || !landline) {
+    return NextResponse.json({ error: 'Missing area_code or landline' }, { status: 400 });
   }
 
   const upstreamUrl = `https://10.19.44.2/ireport/api/haya_karima_api.php?area_code=${encodeURIComponent(areaCode)}&landline=${encodeURIComponent(landline)}`;
 
-  try {
-    const upstream = await requestInternal(upstreamUrl);
-    let payload = null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 4000);
 
+  try {
+    const response = await fetch(upstreamUrl, {
+      method: 'GET',
+      cache: 'no-store',
+      signal: controller.signal,
+      headers: {
+        'accept': 'application/json,text/html;q=0.9,*/*;q=0.8'
+      }
+    });
+
+    const text = await response.text();
+    let payload;
     try {
-      payload = JSON.parse(upstream.body);
-    } catch (error) {
-      payload = { status: -1, message: 'invalid upstream response', raw: upstream.body };
+      payload = JSON.parse(text);
+    } catch (parseError) {
+      return NextResponse.json({ error: 'Invalid upstream payload', raw: text.slice(0, 500) }, { status: 502 });
     }
 
-    return NextResponse.json(payload, {
-      status: upstream.statusCode >= 200 && upstream.statusCode < 300 ? 200 : 502,
-      headers: { 'cache-control': 'no-store' }
-    });
+    return NextResponse.json(payload, { status: 200 });
   } catch (error) {
-    return NextResponse.json(
-      {
-        status: -1,
-        message: 'proxy request failed',
-        error: error instanceof Error ? error.message : 'unknown error'
-      },
-      { status: 502, headers: { 'cache-control': 'no-store' } }
-    );
+    const message = error && error.name === 'AbortError'
+      ? 'Upstream timeout'
+      : (error && error.message) || 'Unable to reach upstream';
+    return NextResponse.json({ error: message }, { status: 502 });
+  } finally {
+    clearTimeout(timeout);
   }
 }
