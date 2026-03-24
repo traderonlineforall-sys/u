@@ -3,6 +3,7 @@
   var LINE_ID = 'hkSmartFloatingLine';
   var INPUT_ID = 'arabicNumber';
   var SEARCH_ID = 'searchInput';
+  var RAW_INPUT_ID = 'hkRawApiInput';
   var CODES = ['97','96','95','93','92','88','86','84','82','69','68','66','65','64','62','57','55','50','48','47','46','45','40','18','13','3','2'];
 
   function toEnglishDigits(value) {
@@ -42,36 +43,25 @@
   }
 
   function ensureStyle() {
-    // create a style tag only once
     if (document.getElementById(STYLE_ID)) return;
     var style = document.createElement('style');
     style.id = STYLE_ID;
-    /*
-     * The floating line originally had a fixed height of 16px and used overflow
-     * clipping.  For the manual HK helper we relax those constraints so the
-     * additional form elements can be shown without truncation.  We keep
-     * positioning and sizing similar to the original but allow the height to
-     * grow based on its contents and make the overflow visible.
-     */
     style.textContent = [
-      '#' + LINE_ID + '{display:none;position:fixed;left:50%;transform:translateX(-50%);min-width:300px;max-width:520px;padding:2px 4px;height:auto;line-height:16px;font-size:12px;text-align:center;white-space:nowrap;overflow:visible;z-index:9998;pointer-events:auto;user-select:text;color:rgba(255,255,255,.88);text-shadow:0 1px 2px rgba(0,0,0,.55);}',
+      '#' + LINE_ID + '{display:none;position:fixed;left:50%;transform:translateX(-50%);min-width:300px;max-width:520px;min-height:30px;z-index:9998;pointer-events:auto;user-select:text;}',
       '#' + LINE_ID + '.is-visible{display:block;}',
-      // style for the ready text (not used in manual HK display but kept for completeness)
-      '#' + LINE_ID + ' .hk-ready{color:rgba(255,255,255,.88);}',
-      '#' + LINE_ID + ' .hk-link{color:#ffffff;text-decoration:none;border-bottom:1px dotted rgba(255,255,255,.35);}',
-      '#' + LINE_ID + ' .hk-link:hover{border-bottom-color:rgba(255,255,255,.8);}',
-      '#' + LINE_ID + ' .hk-link.is-manual{color:#ffd27a;}',
-      // muted state for unknown area code
-      '#' + LINE_ID + ' .hk-muted{color:rgba(255,255,255,.72);}',
-      '#' + LINE_ID + ' .hk-sep{color:rgba(255,255,255,.45);padding:0 4px;}',
-      // small input used for manual API JSON.  It inherits the floating line font-size
-      '#' + LINE_ID + ' .hk-input{margin-left:6px;padding:1px 4px;font-size:12px;border-radius:4px;border:1px solid rgba(255,255,255,.35);background-color:rgba(255,255,255,0.15);color:#ffffff;width:150px;position:relative;z-index:2;pointer-events:auto;}',
-      '#' + LINE_ID + ' .hk-input::placeholder{color:rgba(255,255,255,.55);}',
-      // result area for manual JSON parsing
-      '#' + LINE_ID + ' .hk-manual-result{margin-left:8px;font-weight:bold;}',
-      // success and error colouring
-      '#' + LINE_ID + ' .hk-error{color:#ff6b6b;}',
-      '#' + LINE_ID + ' .hk-success{color:#6acd6a;}'
+      '#' + LINE_ID + ' .hk-shell{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:nowrap;white-space:nowrap;}',
+      '#' + LINE_ID + ' .hk-pill{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:24px;padding:0 10px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:12px;font-weight:700;letter-spacing:.4px;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,.18);backdrop-filter:blur(2px);cursor:pointer;}',
+      '#' + LINE_ID + ' .hk-pill:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.34);}',
+      '#' + LINE_ID + ' .hk-raw{width:138px;height:24px;padding:0 9px;border-radius:7px;border:1px solid rgba(255,255,255,.2);background:rgba(9,17,29,.34);color:#fff;font-size:11px;outline:none;box-shadow:0 4px 12px rgba(0,0,0,.15);}',
+      '#' + LINE_ID + ' .hk-raw::placeholder{color:rgba(255,255,255,.55);}',
+      '#' + LINE_ID + ' .hk-raw:focus{border-color:rgba(255,255,255,.42);background:rgba(9,17,29,.5);}',
+      '#' + LINE_ID + ' .hk-status{display:inline-flex;align-items:center;max-width:300px;height:24px;padding:0 10px;border-radius:999px;font-size:11px;overflow:hidden;text-overflow:ellipsis;border:1px solid transparent;box-shadow:0 4px 12px rgba(0,0,0,.12);}',
+      '#' + LINE_ID + ' .hk-status.is-success{color:#dff7e8;background:rgba(18,108,61,.24);border-color:rgba(103,232,169,.26);}',
+      '#' + LINE_ID + ' .hk-status.is-error{color:#ffdada;background:rgba(145,29,29,.26);border-color:rgba(248,113,113,.28);}',
+      '#' + LINE_ID + ' .hk-status.is-warning{color:rgba(255,255,255,.86);background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.18);}',
+      '#' + LINE_ID + ' .hk-meta{font-weight:600;}',
+      '#' + LINE_ID + ' .hk-sep{padding:0 5px;opacity:.55;}',
+      '@media (max-width: 640px){#' + LINE_ID + '{max-width:94vw;}#' + LINE_ID + ' .hk-shell{gap:6px;}#' + LINE_ID + ' .hk-raw{width:112px;}#' + LINE_ID + ' .hk-status{max-width:160px;}}'
     ].join('');
     document.head.appendChild(style);
   }
@@ -83,7 +73,7 @@
     line = document.createElement('div');
     line.id = LINE_ID;
     line.setAttribute('aria-live', 'polite');
-    line.setAttribute('title', 'Opens the official Haya Karima result directly, without browser-blocked inline fetch.');
+    line.setAttribute('title', 'HK quick access');
     document.body.appendChild(line);
     return line;
   }
@@ -117,6 +107,7 @@
     line.innerHTML = html || '';
     line.className = visible ? 'is-visible' : '';
     positionLine();
+    wireLineActions();
   }
 
   function escapeHtml(value) {
@@ -127,8 +118,6 @@
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
   }
-
-
 
   function openPopup(url) {
     try {
@@ -147,23 +136,99 @@
     }
   }
 
-  function copyText(text) {
-    if (!text) return;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).catch(function () {});
+  function getRawInputValue() {
+    var rawInput = document.getElementById(RAW_INPUT_ID);
+    return rawInput ? rawInput.value : '';
+  }
+
+  function setRawStatus(status) {
+    window.__hkRawStatus = status || null;
+    scheduleRender();
+  }
+
+  function parseJsonSafe(text) {
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function buildStatusFromPayload(payload) {
+    if (!payload || typeof payload !== 'object') return { type: 'warning', text: 'تعذر قراءة نتيجة HK' };
+    if (String(payload.status) === '0') {
+      return { type: 'error', text: 'الرقم لا ينتمي إلى حياة كريمة' };
+    }
+    if (String(payload.status) === '1') {
+      var data = payload.data || {};
+      var id = data.id ? String(data.id) : '—';
+      var addedOn = data.added_on ? String(data.added_on) : '—';
+      return {
+        type: 'success',
+        html: 'تابع لحياة كريمة<span class="hk-sep">•</span><span class="hk-meta">ID: ' + escapeHtml(id) + '</span><span class="hk-sep">•</span><span class="hk-meta">' + escapeHtml(addedOn) + '</span>'
+      };
+    }
+    return { type: 'warning', text: 'نتيجة HK غير معروفة' };
+  }
+
+  function handleRawPayloadText(text) {
+    var normalized = String(text || '').trim();
+    if (!normalized) {
+      setRawStatus(null);
       return;
     }
-    try {
-      var ta = document.createElement('textarea');
-      ta.value = text;
-      ta.setAttribute('readonly', 'readonly');
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-    } catch (e) {}
+
+    var direct = parseJsonSafe(normalized);
+    if (direct) {
+      setRawStatus(buildStatusFromPayload(direct));
+      return;
+    }
+
+    if (/^https?:\/\//i.test(normalized)) {
+      setRawStatus({ type: 'warning', text: 'جاري قراءة نتيجة HK...' });
+      fetch(normalized, { credentials: 'include' })
+        .then(function (response) { return response.text(); })
+        .then(function (bodyText) {
+          var parsed = parseJsonSafe(bodyText);
+          if (!parsed) throw new Error('invalid-json');
+          setRawStatus(buildStatusFromPayload(parsed));
+        })
+        .catch(function () {
+          setRawStatus({ type: 'error', text: 'تعذر قراءة الرابط الخام' });
+        });
+      return;
+    }
+
+    var embedded = normalized.match(/\{[\s\S]*\}$/);
+    if (embedded) {
+      var parsedEmbedded = parseJsonSafe(embedded[0]);
+      if (parsedEmbedded) {
+        setRawStatus(buildStatusFromPayload(parsedEmbedded));
+        return;
+      }
+    }
+
+    setRawStatus({ type: 'error', text: 'صيغة raw غير صالحة' });
+  }
+
+  function getStatusHtml() {
+    var status = window.__hkRawStatus;
+    if (!status) return '';
+    var klass = status.type === 'success' ? 'is-success' : (status.type === 'error' ? 'is-error' : 'is-warning');
+    var content = status.html || escapeHtml(status.text || '');
+    return '<span class="hk-status ' + klass + '">' + content + '</span>';
+  }
+
+  function buildBaseHtml(popupUrl, extraHtml) {
+    var safeUrl = popupUrl ? escapeHtml(popupUrl) : '';
+    return '<div class="hk-shell"><a class="hk-pill" href="' + safeUrl + '" data-popup-url="' + safeUrl + '" target="_blank" rel="noopener noreferrer" title="Open HK result">HK</a><input id="' + RAW_INPUT_ID + '" class="hk-raw" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="Raw HK" title="Paste raw JSON or raw link" />' + (extraHtml || '') + '</div>';
+  }
+
+  function restoreRawInput() {
+    var rawInput = document.getElementById(RAW_INPUT_ID);
+    if (!rawInput) return;
+    var saved = window.__hkRawDraft || '';
+    if (rawInput.value !== saved) rawInput.value = saved;
   }
 
   function renderFromInput() {
@@ -172,28 +237,15 @@
 
     var parsed = parseLandline(input.value);
     if (parsed.state === 'empty' || parsed.state === 'partial') return setLineHTML('', false);
-    if (parsed.state === 'unknown') return setLineHTML('<span class="hk-muted">حياه كريمة: كود أرضي غير معروف</span>', true);
+    if (parsed.state === 'unknown') {
+      setLineHTML(buildBaseHtml('', '<span class="hk-status is-warning">حياه كريمة: كود أرضي غير معروف</span>'), true);
+      restoreRawInput();
+      return;
+    }
     if (parsed.landline.length < 4) return setLineHTML('', false);
 
-    var url = escapeHtml(parsed.apiUrl);
-    /*
-     * For the manual HK helper we simplify the floating line.  We hide the
-     * original "حياه كريمة" label and the landline/area code number and
-     * instead present a minimal clickable indicator "HK".  Clicking it
-     * continues to open the official API URL in a centred popup.  A small
-     * adjacent input allows the user to paste a raw JSON result from the API.
-     * When a valid JSON value is provided it is parsed and a status message is
-     * displayed: a red error if the status is 0, otherwise a green success
-     * including the record id and timestamp.  The separators and styling are
-     * defined in ensureStyle.
-     */
-    var html = '';
-    html += '<a class="hk-link is-manual" href="' + url + '" data-popup-url="' + url + '" target="_blank" rel="noopener noreferrer">HK</a>';
-    html += '<input type="text" class="hk-input" id="hkRawInput" placeholder="أدخل النتيجة الخام هنا" tabindex="0" />';
-    html += '<span id="hkManualResult" class="hk-manual-result"></span>';
-    setLineHTML(html, true);
-    // Attach handler for the manual input when rendering completes
-    attachManualInputHandler();
+    setLineHTML(buildBaseHtml(parsed.apiUrl, getStatusHtml()), true);
+    restoreRawInput();
   }
 
   function scheduleRender() {
@@ -220,101 +272,47 @@
     var line = ensureLine();
     if (!line || line.dataset.hkActionsBound === '1') return;
     line.dataset.hkActionsBound = '1';
+
     line.addEventListener('click', function (event) {
       var target = event.target;
       if (!target) return;
-      /*
-       * If the click originated on the manual JSON input (or its children)
-       * we bail out early.  Even though we stop propagation on the input
-       * itself, other listeners might still fire on this element.  We
-       * explicitly ignore clicks on the input so it can receive focus and
-       * paste operations without interference from this handler.
-       */
-      if (target.tagName === 'INPUT' || (target.closest && target.closest('.hk-input'))) {
-        return;
-      }
       var popupUrl = target.getAttribute && target.getAttribute('data-popup-url');
       if (popupUrl) {
         event.preventDefault();
         openPopup(popupUrl);
-        return;
       }
-      var copyUrl = target.getAttribute && target.getAttribute('data-copy-url');
-      if (copyUrl) {
+    });
+
+    line.addEventListener('input', function (event) {
+      var target = event.target;
+      if (!target || target.id !== RAW_INPUT_ID) return;
+      window.__hkRawDraft = target.value || '';
+      if (!target.value) setRawStatus(null);
+    });
+
+    line.addEventListener('change', function (event) {
+      var target = event.target;
+      if (!target || target.id !== RAW_INPUT_ID) return;
+      window.__hkRawDraft = target.value || '';
+      handleRawPayloadText(target.value);
+    });
+
+    line.addEventListener('keydown', function (event) {
+      var target = event.target;
+      if (!target || target.id !== RAW_INPUT_ID) return;
+      if (event.key === 'Enter') {
         event.preventDefault();
-        copyText(copyUrl);
+        window.__hkRawDraft = target.value || '';
+        handleRawPayloadText(target.value);
       }
-    });
-  }
-
-  /**
-   * Attaches a one-off handler to the manual JSON input.  This handler
-   * listens for input events and attempts to parse the provided value as
-   * JSON.  If the structure matches the expected Haya Karima API response
-   * it will update a nearby result span to indicate whether the record
-   * belongs to the programme.  A status of 0 results in a red error
-   * message; a status of 1 displays a green success message along with the
-   * record id and added_on timestamp.  Invalid or empty JSON clears the
-   * message.  This function should be invoked after setLineHTML when the
-   * floating line is showing a manual input.
-   */
-  function attachManualInputHandler() {
-    var line = ensureLine();
-    if (!line) return;
-    var inputEl = line.querySelector('#hkRawInput');
-    var resultEl = line.querySelector('#hkManualResult');
-    if (!inputEl || !resultEl) return;
-    // Avoid attaching multiple listeners when re-rendering
-    if (inputEl.dataset.hkManualBound === '1') return;
-    inputEl.dataset.hkManualBound = '1';
-    // Stop propagation of pointer/click/mouse events from the input so that the
-    // enclosing line's click handler does not interfere with focusing or pasting.
-    // We use multiple event types because different browsers may fire different
-    // sequences when focusing or pasting (e.g. pointerdown, mousedown, mouseup).
-    ['click', 'mousedown', 'mouseup', 'pointerdown', 'pointerup'].forEach(function(evt) {
-      inputEl.addEventListener(evt, function(e) {
-        // Stop the event from bubbling up the DOM and cancel any click
-        // listeners on ancestor elements.  We use stopImmediatePropagation to
-        // prevent other handlers at this level from running.
-        e.stopImmediatePropagation();
-        e.stopPropagation();
-      });
     });
 
-    inputEl.addEventListener('input', function () {
-      var value = (inputEl.value || '').trim();
-      // Reset message when no input
-      if (!value) {
-        resultEl.innerHTML = '';
-        return;
-      }
-      try {
-        var obj = JSON.parse(value);
-        // status==0: not part of HK
-        if (obj && typeof obj.status !== 'undefined' && obj.status == 0) {
-          resultEl.innerHTML = '<span class="hk-error">الرقم لا ينتمى الى حياه كريمه</span>';
-        } else if (obj && obj.status == 1) {
-          // status 1: record exists
-          var id = '';
-          var added = '';
-          if (obj.data && typeof obj.data === 'object') {
-            id = escapeHtml(obj.data.id || '');
-            added = escapeHtml(obj.data.added_on || '');
-          }
-          var parts = [];
-          parts.push('<span class="hk-success">تابع لحياه كريمه</span>');
-          if (id) parts.push('<span class="hk-sep">•</span><span class="hk-success">ID: ' + id + '</span>');
-          if (added) parts.push('<span class="hk-sep">•</span><span class="hk-success">' + added + '</span>');
-          resultEl.innerHTML = parts.join('');
-        } else {
-          // Unknown status or structure: clear
-          resultEl.innerHTML = '';
-        }
-      } catch (e) {
-        // If JSON.parse fails, clear the result
-        resultEl.innerHTML = '';
-      }
-    });
+    line.addEventListener('blur', function (event) {
+      var target = event.target;
+      if (!target || target.id !== RAW_INPUT_ID) return;
+      window.__hkRawDraft = target.value || '';
+      if (target.value) handleRawPayloadText(target.value);
+    }, true);
   }
 
   function init() {
