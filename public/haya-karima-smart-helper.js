@@ -65,7 +65,7 @@
       '#' + LINE_ID + ' .hk-muted{color:rgba(255,255,255,.72);}',
       '#' + LINE_ID + ' .hk-sep{color:rgba(255,255,255,.45);padding:0 4px;}',
       // small input used for manual API JSON.  It inherits the floating line font-size
-      '#' + LINE_ID + ' .hk-input{margin-left:6px;padding:1px 4px;font-size:12px;border-radius:4px;border:1px solid rgba(255,255,255,.35);background-color:rgba(255,255,255,0.15);color:#ffffff;width:150px;position:relative;z-index:2;}',
+      '#' + LINE_ID + ' .hk-input{margin-left:6px;padding:1px 4px;font-size:12px;border-radius:4px;border:1px solid rgba(255,255,255,.35);background-color:rgba(255,255,255,0.15);color:#ffffff;width:150px;position:relative;z-index:2;pointer-events:auto;}',
       '#' + LINE_ID + ' .hk-input::placeholder{color:rgba(255,255,255,.55);}',
       // result area for manual JSON parsing
       '#' + LINE_ID + ' .hk-manual-result{margin-left:8px;font-weight:bold;}',
@@ -223,6 +223,16 @@
     line.addEventListener('click', function (event) {
       var target = event.target;
       if (!target) return;
+      /*
+       * If the click originated on the manual JSON input (or its children)
+       * we bail out early.  Even though we stop propagation on the input
+       * itself, other listeners might still fire on this element.  We
+       * explicitly ignore clicks on the input so it can receive focus and
+       * paste operations without interference from this handler.
+       */
+      if (target.tagName === 'INPUT' || (target.closest && target.closest('.hk-input'))) {
+        return;
+      }
       var popupUrl = target.getAttribute && target.getAttribute('data-popup-url');
       if (popupUrl) {
         event.preventDefault();
@@ -257,10 +267,19 @@
     // Avoid attaching multiple listeners when re-rendering
     if (inputEl.dataset.hkManualBound === '1') return;
     inputEl.dataset.hkManualBound = '1';
-    // Stop propagation of click/mousedown events from the input so that the
-    // enclosing line's click handler does not interfere with focusing or pasting
-    inputEl.addEventListener('click', function (e) { e.stopPropagation(); });
-    inputEl.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+    // Stop propagation of pointer/click/mouse events from the input so that the
+    // enclosing line's click handler does not interfere with focusing or pasting.
+    // We use multiple event types because different browsers may fire different
+    // sequences when focusing or pasting (e.g. pointerdown, mousedown, mouseup).
+    ['click', 'mousedown', 'mouseup', 'pointerdown', 'pointerup'].forEach(function(evt) {
+      inputEl.addEventListener(evt, function(e) {
+        // Stop the event from bubbling up the DOM and cancel any click
+        // listeners on ancestor elements.  We use stopImmediatePropagation to
+        // prevent other handlers at this level from running.
+        e.stopImmediatePropagation();
+        e.stopPropagation();
+      });
+    });
 
     inputEl.addEventListener('input', function () {
       var value = (inputEl.value || '').trim();
