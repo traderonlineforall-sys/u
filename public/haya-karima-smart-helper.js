@@ -78,7 +78,7 @@
     var style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = [
-      '#' + LINE_ID + '{display:none;position:fixed;left:50%;transform:translateX(-50%);min-width:300px;max-width:560px;font-size:12px;text-align:center;z-index:2147483647;pointer-events:auto;user-select:text;color:rgba(255,255,255,.88);text-shadow:0 1px 2px rgba(0,0,0,.55);white-space:normal;overflow:visible;isolation:isolate;}',
+      '#' + LINE_ID + '{display:none;position:fixed;left:50%;transform:translateX(-50%);min-width:300px;max-width:560px;font-size:12px;text-align:center;z-index:2;pointer-events:auto;user-select:text;color:rgba(255,255,255,.88);text-shadow:0 1px 2px rgba(0,0,0,.55);white-space:normal;overflow:visible;isolation:isolate;}',
       '#' + LINE_ID + '.is-visible{display:block;}',
       '#' + LINE_ID + ',#' + LINE_ID + ' *{pointer-events:auto;}',
       '#' + LINE_ID + ' .hk-shell{display:flex;flex-direction:column;align-items:center;gap:5px;width:100%;}',
@@ -89,11 +89,11 @@
       '#' + LINE_ID + ' .hk-raw{flex:1 1 auto;min-width:0;width:100%;height:24px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(10,14,24,.72);box-shadow:inset 0 1px 0 rgba(255,255,255,.05);color:rgba(255,255,255,.94);font:inherit;direction:ltr;text-align:left;caret-color:#ffffff;-webkit-user-select:text;user-select:text;cursor:text;}',
       '#' + LINE_ID + ' .hk-raw::placeholder{color:rgba(255,255,255,.48);}',
       '#' + LINE_ID + ' .hk-raw:focus{outline:none;border-color:rgba(255,255,255,.28);box-shadow:0 0 0 3px rgba(255,255,255,.08);}',
-      '#' + LINE_ID + ' .hk-status{display:block;max-width:100%;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
+      '#' + LINE_ID + ' .hk-status{display:block;max-width:100%;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#ffffff;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.65);}',
       '#' + LINE_ID + ' .hk-status:empty{display:none;}',
-      '#' + LINE_ID + ' .hk-status.is-ok{color:#d7ffe7;}',
+      '#' + LINE_ID + ' .hk-status.is-ok{color:#d7ffe7;font-weight:700;}',
       '#' + LINE_ID + ' .hk-status.is-bad{color:#ff8686;font-weight:700;}',
-      '#' + LINE_ID + ' .hk-status.is-warn{color:rgba(255,255,255,.72);}',
+      '#' + LINE_ID + ' .hk-status.is-warn{color:#ffffff;font-weight:700;}',
       '#' + LINE_ID + ' .hk-muted{display:none;color:rgba(255,255,255,.72);}',
       '#' + LINE_ID + ' .hk-hidden{display:none !important;}'
     ].join('');
@@ -176,8 +176,8 @@
       rawInput.type = 'text';
       rawInput.spellcheck = false;
       rawInput.autocomplete = 'off';
-      rawInput.placeholder = 'الصق الرابط الخام أو JSON';
-      rawInput.title = 'الصق الرابط الخام أو JSON';
+      rawInput.placeholder = 'صلى على النبى ❤️';
+      rawInput.title = 'صلى على النبى ❤️';
 
       var status = makeElement('div', 'hk-status', RAW_STATUS_ID);
       var muted = makeElement('span', 'hk-muted');
