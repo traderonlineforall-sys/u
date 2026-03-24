@@ -3,8 +3,16 @@
   var LINE_ID = 'hkSmartFloatingLine';
   var INPUT_ID = 'arabicNumber';
   var SEARCH_ID = 'searchInput';
-  var RAW_INPUT_ID = 'hkRawApiInput';
+  var RAW_INPUT_ID = 'hkRawSourceInput';
+  var RAW_STATUS_ID = 'hkRawSourceStatus';
   var CODES = ['97','96','95','93','92','88','86','84','82','69','68','66','65','64','62','57','55','50','48','47','46','45','40','18','13','3','2'];
+
+  var helperState = {
+    identity: '',
+    rawValue: '',
+    statusText: '',
+    statusTone: ''
+  };
 
   function toEnglishDigits(value) {
     var map = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'};
@@ -47,21 +55,22 @@
     var style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = [
-      '#' + LINE_ID + '{display:none;position:fixed;left:50%;transform:translateX(-50%);min-width:300px;max-width:520px;min-height:30px;z-index:9998;pointer-events:auto;user-select:text;}',
+      '#' + LINE_ID + '{display:none;position:fixed;left:50%;transform:translateX(-50%);min-width:300px;max-width:560px;font-size:12px;text-align:center;z-index:9998;pointer-events:auto;user-select:text;color:rgba(255,255,255,.88);text-shadow:0 1px 2px rgba(0,0,0,.55);white-space:normal;overflow:visible;}',
       '#' + LINE_ID + '.is-visible{display:block;}',
-      '#' + LINE_ID + ' .hk-shell{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:nowrap;white-space:nowrap;}',
-      '#' + LINE_ID + ' .hk-pill{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:24px;padding:0 10px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:12px;font-weight:700;letter-spacing:.4px;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,.18);backdrop-filter:blur(2px);cursor:pointer;}',
-      '#' + LINE_ID + ' .hk-pill:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.34);}',
-      '#' + LINE_ID + ' .hk-raw{width:138px;height:24px;padding:0 9px;border-radius:7px;border:1px solid rgba(255,255,255,.2);background:rgba(9,17,29,.34);color:#fff;font-size:11px;outline:none;box-shadow:0 4px 12px rgba(0,0,0,.15);}',
-      '#' + LINE_ID + ' .hk-raw::placeholder{color:rgba(255,255,255,.55);}',
-      '#' + LINE_ID + ' .hk-raw:focus{border-color:rgba(255,255,255,.42);background:rgba(9,17,29,.5);}',
-      '#' + LINE_ID + ' .hk-status{display:inline-flex;align-items:center;max-width:300px;height:24px;padding:0 10px;border-radius:999px;font-size:11px;overflow:hidden;text-overflow:ellipsis;border:1px solid transparent;box-shadow:0 4px 12px rgba(0,0,0,.12);}',
-      '#' + LINE_ID + ' .hk-status.is-success{color:#dff7e8;background:rgba(18,108,61,.24);border-color:rgba(103,232,169,.26);}',
-      '#' + LINE_ID + ' .hk-status.is-error{color:#ffdada;background:rgba(145,29,29,.26);border-color:rgba(248,113,113,.28);}',
-      '#' + LINE_ID + ' .hk-status.is-warning{color:rgba(255,255,255,.86);background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.18);}',
-      '#' + LINE_ID + ' .hk-meta{font-weight:600;}',
-      '#' + LINE_ID + ' .hk-sep{padding:0 5px;opacity:.55;}',
-      '@media (max-width: 640px){#' + LINE_ID + '{max-width:94vw;}#' + LINE_ID + ' .hk-shell{gap:6px;}#' + LINE_ID + ' .hk-raw{width:112px;}#' + LINE_ID + ' .hk-status{max-width:160px;}}'
+      '#' + LINE_ID + ' .hk-shell{display:flex;flex-direction:column;align-items:center;gap:5px;width:100%;}',
+      '#' + LINE_ID + ' .hk-row{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;}',
+      '#' + LINE_ID + ' .hk-button{display:inline-flex;align-items:center;justify-content:center;min-width:42px;height:24px;padding:0 11px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);box-shadow:0 10px 22px rgba(0,0,0,.22);text-decoration:none;color:#ffffff;font-weight:700;letter-spacing:.08em;flex:0 0 auto;}',
+      '#' + LINE_ID + ' .hk-button:hover{border-color:rgba(255,255,255,.32);background:rgba(255,255,255,.12);}',
+      '#' + LINE_ID + ' .hk-button:focus{outline:none;box-shadow:0 0 0 3px rgba(255,255,255,.10),0 10px 22px rgba(0,0,0,.22);}',
+      '#' + LINE_ID + ' .hk-raw{flex:1 1 auto;min-width:0;width:100%;height:24px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(10,14,24,.56);box-shadow:inset 0 1px 0 rgba(255,255,255,.05);color:rgba(255,255,255,.94);font:inherit;direction:ltr;text-align:left;}',
+      '#' + LINE_ID + ' .hk-raw::placeholder{color:rgba(255,255,255,.48);}',
+      '#' + LINE_ID + ' .hk-raw:focus{outline:none;border-color:rgba(255,255,255,.28);box-shadow:0 0 0 3px rgba(255,255,255,.08);}',
+      '#' + LINE_ID + ' .hk-status{display:block;max-width:100%;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
+      '#' + LINE_ID + ' .hk-status:empty{display:none;}',
+      '#' + LINE_ID + ' .hk-status.is-ok{color:#d7ffe7;}',
+      '#' + LINE_ID + ' .hk-status.is-bad{color:#ff8686;font-weight:700;}',
+      '#' + LINE_ID + ' .hk-status.is-warn{color:rgba(255,255,255,.72);}',
+      '#' + LINE_ID + ' .hk-muted{color:rgba(255,255,255,.72);}'
     ].join('');
     document.head.appendChild(style);
   }
@@ -73,7 +82,7 @@
     line = document.createElement('div');
     line.id = LINE_ID;
     line.setAttribute('aria-live', 'polite');
-    line.setAttribute('title', 'HK quick access');
+    line.setAttribute('title', 'HK quick access and raw result status.');
     document.body.appendChild(line);
     return line;
   }
@@ -96,9 +105,10 @@
     var rect = getAnchorRect();
     if (!line || !rect) return;
     var centerX = rect.left + (rect.width / 2);
+    var viewportCap = Math.max(280, (window.innerWidth || document.documentElement.clientWidth || 320) - 24);
     line.style.left = centerX + 'px';
     line.style.top = (rect.bottom + 10) + 'px';
-    line.style.width = Math.min(Math.max(rect.width, 300), 520) + 'px';
+    line.style.width = Math.min(Math.max(rect.width, 320), 560, viewportCap) + 'px';
   }
 
   function setLineHTML(html, visible) {
@@ -107,7 +117,6 @@
     line.innerHTML = html || '';
     line.className = visible ? 'is-visible' : '';
     positionLine();
-    wireLineActions();
   }
 
   function escapeHtml(value) {
@@ -136,99 +145,162 @@
     }
   }
 
-  function getRawInputValue() {
-    var rawInput = document.getElementById(RAW_INPUT_ID);
-    return rawInput ? rawInput.value : '';
+  function clearRawState() {
+    helperState.rawValue = '';
+    helperState.statusText = '';
+    helperState.statusTone = '';
+    clearTimeout(scheduleRawCheck._t);
+    scheduleRawCheck._token = (scheduleRawCheck._token || 0) + 1;
   }
 
-  function setRawStatus(status) {
-    window.__hkRawStatus = status || null;
-    scheduleRender();
+  function renderReadyLine(parsed) {
+    var url = escapeHtml(parsed.apiUrl);
+    var rawValue = escapeHtml(helperState.rawValue);
+    var tone = helperState.statusTone ? ' ' + helperState.statusTone : '';
+    var statusText = escapeHtml(helperState.statusText);
+    var html = '' +
+      '<div class="hk-shell">' +
+        '<div class="hk-row">' +
+          '<a class="hk-button" href="' + url + '" data-popup-url="' + url + '" target="_blank" rel="noopener noreferrer" title="فتح النتيجة الرسمية">HK</a>' +
+          '<input id="' + RAW_INPUT_ID + '" class="hk-raw" type="text" spellcheck="false" autocomplete="off" value="' + rawValue + '" placeholder="الصق الرابط الخام أو JSON" title="الصق الرابط الخام أو JSON" />' +
+        '</div>' +
+        '<div id="' + RAW_STATUS_ID + '" class="hk-status' + tone + '">' + statusText + '</div>' +
+      '</div>';
+    setLineHTML(html, true);
   }
 
-  function parseJsonSafe(text) {
+  function validStamp(value) {
+    var text = String(value || '').trim();
+    if (!text || text === '0000-00-00 00:00:00') return '';
+    return text;
+  }
+
+  function setRawStatus(text, tone) {
+    helperState.statusText = text || '';
+    helperState.statusTone = tone || '';
+    var statusNode = document.getElementById(RAW_STATUS_ID);
+    if (statusNode) {
+      statusNode.className = 'hk-status' + (helperState.statusTone ? ' ' + helperState.statusTone : '');
+      statusNode.textContent = helperState.statusText;
+    }
+  }
+
+  function applyRawPayload(payload) {
+    var statusValue = payload && Object.prototype.hasOwnProperty.call(payload, 'status') ? Number(payload.status) : NaN;
+
+    if (statusValue === 0) {
+      return setRawStatus('الرقم لا ينتمي إلى حياة كريمة', 'is-bad');
+    }
+
+    if (statusValue === 1) {
+      var data = payload && payload.data && typeof payload.data === 'object' && !Array.isArray(payload.data) ? payload.data : {};
+      var pieces = ['تابع لحياة كريمة'];
+      if (data.id) pieces.push('ID ' + String(data.id));
+      var stamp = validStamp(data.last_edit_on) || validStamp(data.added_on);
+      if (stamp) pieces.push('التوقيت: ' + stamp);
+      return setRawStatus(pieces.join(' • '), 'is-ok');
+    }
+
+    return setRawStatus('تعذر تحديد حالة الرابط الخام', 'is-warn');
+  }
+
+  function tryParseJsonCandidate(value) {
+    var text = String(value || '').trim();
+    if (!text) return { ok: false };
+
+    var candidates = [text];
+    var firstBrace = text.indexOf('{');
+    var lastBrace = text.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+      candidates.push(text.slice(firstBrace, lastBrace + 1));
+    }
+
+    for (var i = 0; i < candidates.length; i += 1) {
+      try {
+        var parsed = JSON.parse(candidates[i]);
+        if (parsed && typeof parsed === 'object') {
+          return { ok: true, value: parsed };
+        }
+      } catch (e) {}
+    }
+
+    return { ok: false };
+  }
+
+  function looksLikeUrl(value) {
+    return /^https?:\/\//i.test(String(value || '').trim());
+  }
+
+  async function fetchRawPayloadFromUrl(url) {
+    var response = await fetch('/api/hk-raw?url=' + encodeURIComponent(url), {
+      method: 'GET',
+      cache: 'no-store',
+      headers: { 'Accept': 'application/json' }
+    });
+
+    var text = await response.text();
+    var parsed = tryParseJsonCandidate(text);
+    if (!response.ok) {
+      throw new Error(parsed.ok ? JSON.stringify(parsed.value) : (text || 'Fetch failed'));
+    }
+    if (!parsed.ok) {
+      throw new Error(text || 'Invalid JSON');
+    }
+    return parsed.value;
+  }
+
+  async function inspectRawValue(rawValue, token) {
+    var trimmed = String(rawValue || '').trim();
+    if (!trimmed) {
+      setRawStatus('', '');
+      return;
+    }
+
+    var direct = tryParseJsonCandidate(trimmed);
+    if (direct.ok) {
+      if (token !== scheduleRawCheck._token) return;
+      applyRawPayload(direct.value);
+      return;
+    }
+
+    if (!looksLikeUrl(trimmed)) {
+      if (token !== scheduleRawCheck._token) return;
+      setRawStatus('تعذر قراءة البيانات الخام', 'is-warn');
+      return;
+    }
+
+    if (token !== scheduleRawCheck._token) return;
+    setRawStatus('جارٍ فحص الرابط الخام…', 'is-warn');
+
     try {
-      return JSON.parse(text);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  function buildStatusFromPayload(payload) {
-    if (!payload || typeof payload !== 'object') return { type: 'warning', text: 'تعذر قراءة نتيجة HK' };
-    if (String(payload.status) === '0') {
-      return { type: 'error', text: 'الرقم لا ينتمي إلى حياة كريمة' };
-    }
-    if (String(payload.status) === '1') {
-      var data = payload.data || {};
-      var id = data.id ? String(data.id) : '—';
-      var addedOn = data.added_on ? String(data.added_on) : '—';
-      return {
-        type: 'success',
-        html: 'تابع لحياة كريمة<span class="hk-sep">•</span><span class="hk-meta">ID: ' + escapeHtml(id) + '</span><span class="hk-sep">•</span><span class="hk-meta">' + escapeHtml(addedOn) + '</span>'
-      };
-    }
-    return { type: 'warning', text: 'نتيجة HK غير معروفة' };
-  }
-
-  function handleRawPayloadText(text) {
-    var normalized = String(text || '').trim();
-    if (!normalized) {
-      setRawStatus(null);
-      return;
-    }
-
-    var direct = parseJsonSafe(normalized);
-    if (direct) {
-      setRawStatus(buildStatusFromPayload(direct));
-      return;
-    }
-
-    if (/^https?:\/\//i.test(normalized)) {
-      setRawStatus({ type: 'warning', text: 'جاري قراءة نتيجة HK...' });
-      fetch(normalized, { credentials: 'include' })
-        .then(function (response) { return response.text(); })
-        .then(function (bodyText) {
-          var parsed = parseJsonSafe(bodyText);
-          if (!parsed) throw new Error('invalid-json');
-          setRawStatus(buildStatusFromPayload(parsed));
-        })
-        .catch(function () {
-          setRawStatus({ type: 'error', text: 'تعذر قراءة الرابط الخام' });
-        });
-      return;
-    }
-
-    var embedded = normalized.match(/\{[\s\S]*\}$/);
-    if (embedded) {
-      var parsedEmbedded = parseJsonSafe(embedded[0]);
-      if (parsedEmbedded) {
-        setRawStatus(buildStatusFromPayload(parsedEmbedded));
+      var payload = await fetchRawPayloadFromUrl(trimmed);
+      if (token !== scheduleRawCheck._token) return;
+      applyRawPayload(payload);
+    } catch (error) {
+      if (token !== scheduleRawCheck._token) return;
+      var recovered = tryParseJsonCandidate(error && error.message ? error.message : '');
+      if (recovered.ok) {
+        applyRawPayload(recovered.value);
         return;
       }
+      setRawStatus('تعذر قراءة الرابط الخام', 'is-warn');
+    }
+  }
+
+  function scheduleRawCheck(value) {
+    helperState.rawValue = String(value || '');
+    clearTimeout(scheduleRawCheck._t);
+    scheduleRawCheck._token = (scheduleRawCheck._token || 0) + 1;
+    var token = scheduleRawCheck._token;
+
+    if (!helperState.rawValue.trim()) {
+      setRawStatus('', '');
+      return;
     }
 
-    setRawStatus({ type: 'error', text: 'صيغة raw غير صالحة' });
-  }
-
-  function getStatusHtml() {
-    var status = window.__hkRawStatus;
-    if (!status) return '';
-    var klass = status.type === 'success' ? 'is-success' : (status.type === 'error' ? 'is-error' : 'is-warning');
-    var content = status.html || escapeHtml(status.text || '');
-    return '<span class="hk-status ' + klass + '">' + content + '</span>';
-  }
-
-  function buildBaseHtml(popupUrl, extraHtml) {
-    var safeUrl = popupUrl ? escapeHtml(popupUrl) : '';
-    return '<div class="hk-shell"><a class="hk-pill" href="' + safeUrl + '" data-popup-url="' + safeUrl + '" target="_blank" rel="noopener noreferrer" title="Open HK result">HK</a><input id="' + RAW_INPUT_ID + '" class="hk-raw" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="Raw HK" title="Paste raw JSON or raw link" />' + (extraHtml || '') + '</div>';
-  }
-
-  function restoreRawInput() {
-    var rawInput = document.getElementById(RAW_INPUT_ID);
-    if (!rawInput) return;
-    var saved = window.__hkRawDraft || '';
-    if (rawInput.value !== saved) rawInput.value = saved;
+    scheduleRawCheck._t = setTimeout(function () {
+      inspectRawValue(helperState.rawValue, token);
+    }, 280);
   }
 
   function renderFromInput() {
@@ -236,16 +308,26 @@
     if (!input) return setLineHTML('', false);
 
     var parsed = parseLandline(input.value);
-    if (parsed.state === 'empty' || parsed.state === 'partial') return setLineHTML('', false);
-    if (parsed.state === 'unknown') {
-      setLineHTML(buildBaseHtml('', '<span class="hk-status is-warning">حياه كريمة: كود أرضي غير معروف</span>'), true);
-      restoreRawInput();
-      return;
+    if (parsed.state === 'empty' || parsed.state === 'partial') {
+      clearRawState();
+      return setLineHTML('', false);
     }
-    if (parsed.landline.length < 4) return setLineHTML('', false);
+    if (parsed.state === 'unknown') {
+      clearRawState();
+      return setLineHTML('<span class="hk-muted">حياه كريمة: كود أرضي غير معروف</span>', true);
+    }
+    if (parsed.landline.length < 4) {
+      clearRawState();
+      return setLineHTML('', false);
+    }
 
-    setLineHTML(buildBaseHtml(parsed.apiUrl, getStatusHtml()), true);
-    restoreRawInput();
+    var nextIdentity = parsed.areaCode + '-' + parsed.landline;
+    if (helperState.identity !== nextIdentity) {
+      helperState.identity = nextIdentity;
+      clearRawState();
+    }
+
+    renderReadyLine(parsed);
   }
 
   function scheduleRender() {
@@ -286,33 +368,16 @@
     line.addEventListener('input', function (event) {
       var target = event.target;
       if (!target || target.id !== RAW_INPUT_ID) return;
-      window.__hkRawDraft = target.value || '';
-      if (!target.value) setRawStatus(null);
+      scheduleRawCheck(target.value);
     });
 
-    line.addEventListener('change', function (event) {
+    line.addEventListener('paste', function (event) {
       var target = event.target;
       if (!target || target.id !== RAW_INPUT_ID) return;
-      window.__hkRawDraft = target.value || '';
-      handleRawPayloadText(target.value);
+      setTimeout(function () {
+        scheduleRawCheck(target.value);
+      }, 0);
     });
-
-    line.addEventListener('keydown', function (event) {
-      var target = event.target;
-      if (!target || target.id !== RAW_INPUT_ID) return;
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        window.__hkRawDraft = target.value || '';
-        handleRawPayloadText(target.value);
-      }
-    });
-
-    line.addEventListener('blur', function (event) {
-      var target = event.target;
-      if (!target || target.id !== RAW_INPUT_ID) return;
-      window.__hkRawDraft = target.value || '';
-      if (target.value) handleRawPayloadText(target.value);
-    }, true);
   }
 
   function init() {
