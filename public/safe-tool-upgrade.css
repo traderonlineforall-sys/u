@@ -47,6 +47,47 @@
   pointer-events: none;
 }
 
+/*
+ * UI/UX Enhancements (non-breaking)
+ *
+ * The following overrides improve the usability of the suggestions and messaging
+ * interfaces without altering any SR-specific content.  They darken the
+ * backgrounds for better contrast, enhance text legibility, remove arbitrary
+ * height restrictions, and introduce internal scrolling when necessary.  By
+ * placing these rules here (and loading this stylesheet after the main
+ * styles), we override defaults in a safe, isolated manner.
+ */
+
+/* Suggestions input: darker background, clear text, comfortable height */
+.suggestions-form textarea {
+  /* Darker, more professional panel for suggestion drafting */
+  background: rgba(24, 27, 37, 0.88);
+  color: rgba(255, 255, 255, 0.96);
+  border-color: rgba(255, 255, 255, 0.22);
+  /* Allow growing up to a larger height before scrolling */
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+/* Placeholder in suggestions input: slightly muted but readable */
+.suggestions-form textarea::placeholder {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* Support chat compose box: allow a taller input with internal scroll */
+.support-compose textarea {
+  max-height: 220px !important;
+  overflow-y: auto;
+}
+
+/* Admin announcement/envelope inputs: prevent endless growth */
+.admin-input {
+  max-height: 240px;
+  overflow-y: auto;
+  /* Keep the original ability to resize vertically if desired */
+  resize: vertical;
+}
+
 #Calculate {
   position: relative;
 }

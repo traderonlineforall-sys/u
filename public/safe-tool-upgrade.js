@@ -673,6 +673,142 @@
     tabs.appendChild(btn);
   }
 
+  /*
+   * =============================================================
+   * UI/UX Enhancements (non-breaking)
+   *
+   * The following helper functions implement lightweight behaviour fixes
+   * requested by the user.  They operate on the DOM after it is ready
+   * and do not modify any SR data or alter application logic.  Each
+   * function is self-contained and guarded against missing elements.
+   */
+
+  // Stabilise the top header area by debouncing synthetic resize events
+  // whenever the user edits the search or landline inputs.  Some
+  // browsers reposition the logo/envelope region after content changes.
+  function installTopStabilizer() {
+    var ids = ["searchInput", "arabicNumber", "arabiccNumber"];
+    var inputs = [];
+    ids.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) inputs.push(el);
+    });
+    if (!inputs.length) return;
+    var timer = null;
+    function triggerResize() {
+      // Use requestAnimationFrame to align with the next paint and avoid
+      // jank.  Dispatch a resize event to let existing layout code
+      // reposition the header elements if necessary.
+      window.requestAnimationFrame(function () {
+        try { window.dispatchEvent(new Event("resize")); } catch (err) {}
+      });
+    }
+    inputs.forEach(function (el) {
+      el.addEventListener("input", function () {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(triggerResize, 200);
+      });
+    });
+  }
+
+  // Ensure any form reset clears the landline fields.  The native reset
+  // behaviour sometimes omits these inputs; listen for the global
+  // `reset` event and explicitly empty the values.  Do not prevent
+  // default form resets.
+  function installResetFix() {
+    document.addEventListener("reset", function () {
+      try {
+        var a = document.getElementById("arabicNumber");
+        if (a) a.value = "";
+      } catch (err) {}
+      try {
+        var b = document.getElementById("arabiccNumber");
+        if (b) b.value = "";
+      } catch (err) {}
+    });
+  }
+
+  // Remove maxlength on the suggestions input and auto-grow up to a
+  // comfortable height before introducing scrolling.  This enhances
+  // readability when drafting long suggestions.
+  function installSuggestionsEnhancements() {
+    var input = document.getElementById("suggestionInput");
+    if (!input) return;
+    try { input.removeAttribute("maxlength"); } catch (err) {}
+    var maxHeight = 220;
+    function autoGrow() {
+      // Temporarily reset height to allow shrinking.
+      input.style.height = "auto";
+      var h = input.scrollHeight;
+      if (h > maxHeight) {
+        h = maxHeight;
+        input.style.overflowY = "auto";
+      } else {
+        input.style.overflowY = "hidden";
+      }
+      input.style.height = h + "px";
+    }
+    input.addEventListener("input", autoGrow);
+    // Initialize height on first load
+    autoGrow();
+  }
+
+  // Adjust the size behaviour of the support message box and admin envelope
+  // input.  These fields should not grow indefinitely; they adopt a
+  // similar height limit to the suggestions input and enable internal
+  // scrolling for overflow.
+  function installEnvelopeEnhancements() {
+    // Support chat message input
+    var msgInput = document.getElementById("supportMessageInput");
+    if (msgInput) {
+      var maxMsgHeight = 220;
+      var autoGrowMsg = function () {
+        msgInput.style.height = "auto";
+        var h = msgInput.scrollHeight;
+        if (h > maxMsgHeight) {
+          h = maxMsgHeight;
+          msgInput.style.overflowY = "auto";
+        } else {
+          msgInput.style.overflowY = "hidden";
+        }
+        msgInput.style.height = h + "px";
+      };
+      msgInput.addEventListener("input", autoGrowMsg);
+      autoGrowMsg();
+    }
+    // Admin envelope input (announcement panel)
+    var envInput = document.getElementById("adminAnnouncementEnvelopeInput");
+    if (envInput) {
+      envInput.style.maxHeight = "240px";
+      envInput.style.overflowY = "auto";
+    }
+  }
+
+  // Remove any tooltip/title attribute from Re-subscribe SR links.  Only
+  // affects UI by eliminating the hover popup; underlying links remain
+  // untouched.
+  function removeResubscribeTooltip() {
+    var links = Array.prototype.slice.call(document.querySelectorAll("a"));
+    links.forEach(function (a) {
+      try {
+        var text = (a.textContent || "").trim();
+        if (/Re-?subscribe/i.test(text) && a.hasAttribute("title")) {
+          a.removeAttribute("title");
+        }
+      } catch (err) {}
+    });
+  }
+
+  // Register our enhancements on DOM ready.  Keep this separate from
+  // other initializers to avoid coupling behaviours.
+  onReady(function () {
+    installTopStabilizer();
+    installResetFix();
+    installSuggestionsEnhancements();
+    installEnvelopeEnhancements();
+    removeResubscribeTooltip();
+  });
+
   onReady(function () {
     insertFixedVoiceLabel();
     wrapOpenCity();
