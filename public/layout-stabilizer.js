@@ -26,6 +26,9 @@ const PRESERVE_VALUE_IDS = ['arabicNumber', 'arabiccNumber', 'searchInput'];
 const EDIT_LOCK_MS = 420;
 const BURST_MS = 850;
 const MIN_SETTLE_GAP_MS = 90;
+const BASELINE_REPAIR_INTERVAL_MS = 1400;
+const BASELINE_TOLERANCE_PX = 3;
+const BASELINE_CAPTURE_DELAY_MS = 240;
 
 let rafId = 0;
 let settleTimer = 0;
@@ -42,6 +45,9 @@ let initialized = false;
 let suppressProgrammaticMarks = false;
 let editLockUntil = 0;
 let pendingRepair = false;
+let baselineTimer = 0;
+let baselineCaptureTimer = 0;
+let baselineMap = new Map();
 
 function isMeaningfulValue(value) {
   return String(value || '').trim() !== '';
@@ -168,6 +174,7 @@ function runSettleBurst() {
   lastRun = now;
 
   kickResize();
+  scheduleBaselineCapture();
   clearTimeout(settleTimer);
   clearTimeout(settleTimerLate);
   settleTimer = setTimeout(kickResize, 90);
@@ -267,6 +274,76 @@ function startBurst(duration = BURST_MS) {
   const until = performance.now() + duration;
   if (until > burstUntil) burstUntil = until;
   if (!burstRaf) burstRaf = requestAnimationFrame(burstTick);
+}
+
+
+function getBaselineElements() {
+  return getWatchedElements().filter((el) => el && el.isConnected);
+}
+
+function shouldIgnoreBaselineForElement(el) {
+  if (!(el instanceof Element)) return true;
+  if (el.id === 'searchResults') return true;
+  return false;
+}
+
+function captureBaseline() {
+  if (isEditingLocked()) return;
+  const next = new Map();
+  for (const el of getBaselineElements()) {
+    if (shouldIgnoreBaselineForElement(el)) continue;
+    const r = el.getBoundingClientRect();
+    next.set(el, {
+      top: Math.round(r.top),
+      left: Math.round(r.left),
+      width: Math.round(r.width),
+      height: Math.round(r.height),
+    });
+  }
+  if (next.size) baselineMap = next;
+}
+
+function scheduleBaselineCapture(delay = BASELINE_CAPTURE_DELAY_MS) {
+  clearTimeout(baselineCaptureTimer);
+  baselineCaptureTimer = setTimeout(() => {
+    captureBaseline();
+  }, delay);
+}
+
+function hasBaselineDrift() {
+  if (!baselineMap || !baselineMap.size) return false;
+
+  for (const [el, base] of baselineMap.entries()) {
+    if (!el || !el.isConnected) continue;
+    if (shouldIgnoreBaselineForElement(el)) continue;
+    const r = el.getBoundingClientRect();
+    const top = Math.round(r.top);
+    const left = Math.round(r.left);
+    const width = Math.round(r.width);
+    const height = Math.round(r.height);
+
+    if (
+      Math.abs(top - base.top) > BASELINE_TOLERANCE_PX ||
+      Math.abs(left - base.left) > BASELINE_TOLERANCE_PX ||
+      Math.abs(width - base.width) > BASELINE_TOLERANCE_PX ||
+      Math.abs(height - base.height) > BASELINE_TOLERANCE_PX
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function ensureBaselineRepairLoop() {
+  if (baselineTimer) return;
+  baselineTimer = window.setInterval(() => {
+    if (document.hidden || isEditingLocked()) return;
+    if (hasBaselineDrift()) {
+      requestRepair(900);
+      scheduleBaselineCapture(320);
+    }
+  }, BASELINE_REPAIR_INTERVAL_MS);
 }
 
 function shouldTrackEventTarget(target) {
@@ -388,6 +465,7 @@ function refreshObservers() {
   }
 
   lastSignature = buildSignature();
+  scheduleBaselineCapture(180);
 }
 
 function initDocumentEvents() {
@@ -479,6 +557,8 @@ function initDocumentEvents() {
 function init() {
   if (initialized) {
     refreshObservers();
+    ensureBaselineRepairLoop();
+    scheduleBaselineCapture(220);
     requestRepair(900);
     return;
   }
@@ -486,6 +566,8 @@ function init() {
   initialized = true;
   refreshObservers();
   initDocumentEvents();
+  ensureBaselineRepairLoop();
+  scheduleBaselineCapture(220);
   requestRepair(900);
   setTimeout(() => { requestRepair(700); }, 180);
   setTimeout(() => { requestRepair(700); }, 700);
@@ -501,19 +583,23 @@ if (document.readyState === 'loading') {
 window.addEventListener('load', init, { once: true });
 window.addEventListener('pageshow', () => {
   setTimeout(() => { requestRepair(900); }, 0);
+  setTimeout(() => { scheduleBaselineCapture(120); }, 180);
 });
 window.addEventListener('orientationchange', () => {
   requestRepair(900);
+  scheduleBaselineCapture(260);
 }, { passive: true });
 window.addEventListener('resize', () => {
   setTimeout(refreshObservers, 30);
   requestRepair(1200);
+  scheduleBaselineCapture(260);
 }, { passive: true });
 
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
     setTimeout(() => { requestRepair(900); }, 50);
     setTimeout(() => { requestRepair(900); }, 180);
+    setTimeout(() => { scheduleBaselineCapture(120); }, 260);
   }
 });
 
