@@ -50,17 +50,6 @@ function escapeHtml(s = "") {
     .replaceAll("'", "&#39;");
 }
 
-function autoSizeSuggestionInput() {
-  if (!elInput) return;
-  const maxPx = Math.min(260, Math.round((window.innerHeight || 620) * 0.42));
-  try {
-    elInput.style.height = "auto";
-    const next = Math.max(54, Math.min(elInput.scrollHeight || 54, maxPx));
-    elInput.style.height = next + "px";
-    elInput.style.overflowY = (elInput.scrollHeight || 0) > maxPx ? "auto" : "hidden";
-  } catch {}
-}
-
 function setStatus(message, type = "info") {
   elStatus.textContent = message || "";
   elStatus.dataset.type = type;
@@ -286,7 +275,6 @@ async function addSuggestion() {
   }
 
   elInput.value = "";
-  autoSizeSuggestionInput();
   setStatus("Added ✅", "success");
   // If realtime is not available for some reason, reload as fallback
   await loadSuggestions();
@@ -475,17 +463,6 @@ function init() {
   supabase = sharedSupabase;
 
   // Initial load
-
-if (elInput) {
-  try {
-    elInput.removeAttribute('maxlength');
-    elInput.addEventListener('input', autoSizeSuggestionInput, { passive: true });
-    window.addEventListener('resize', autoSizeSuggestionInput, { passive: true });
-    setTimeout(autoSizeSuggestionInput, 0);
-    setTimeout(autoSizeSuggestionInput, 180);
-  } catch {}
-}
-
   loadSuggestions();
 
   // Realtime updates (INSERT only)
