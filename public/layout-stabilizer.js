@@ -4,12 +4,9 @@
 // Keep the top row steady (search + Haya Karima line + UA07 logo + AHT/Tags)
 // inside the same tab, without needing Reset or switching tabs.
 //
-// Strategy:
-// - Reuse the existing placement logic in app.js by dispatching a synthetic resize.
-// - Preserve typed values before each settle.
-// - Watch only the relevant top-header elements.
-// - Run a short requestAnimationFrame burst after real interactions so if the
-//   header drifts a little, it gets corrected immediately with very low cost.
+// Important UX rule:
+// Never interfere while the user is actively typing or deleting in search / landline inputs.
+// Layout repair is deferred until typing stops briefly or focus leaves the field.
 
 const WATCH_IDS = [
   'searchInput',
@@ -26,12 +23,14 @@ const WATCH_IDS = [
 ];
 
 const PRESERVE_VALUE_IDS = ['arabicNumber', 'arabiccNumber', 'searchInput'];
-const BURST_MS = 1200;
-const MIN_SETTLE_GAP_MS = 70;
+const EDIT_LOCK_MS = 420;
+const BURST_MS = 1100;
+const MIN_SETTLE_GAP_MS = 90;
 
 let rafId = 0;
 let settleTimer = 0;
 let settleTimerLate = 0;
+let idleReleaseTimer = 0;
 let burstRaf = 0;
 let burstUntil = 0;
 let observer = null;
@@ -41,6 +40,8 @@ let lastRun = 0;
 let lastSignature = '';
 let initialized = false;
 let suppressProgrammaticMarks = false;
+let editLockUntil = 0;
+let pendingRepair = false;
 
 function isMeaningfulValue(value) {
   return String(value || '').trim() !== '';
@@ -53,6 +54,45 @@ function getEditStamp(el) {
 function markAsUserEdited(el) {
   if (!el || suppressProgrammaticMarks) return;
   el.__mndoUserEditStamp = Date.now();
+}
+
+function isTextEntryElement(el) {
+  return !!(el instanceof Element && (
+    el.matches('input, textarea') ||
+    el.isContentEditable
+  ));
+}
+
+function isProtectedEditingTarget(el) {
+  if (!(el instanceof Element)) return false;
+  if (PRESERVE_VALUE_IDS.includes(el.id)) return true;
+  if (el.closest('.search-container')) return true;
+  return false;
+}
+
+function isEditingLocked() {
+  const ae = document.activeElement;
+  if (isTextEntryElement(ae) && isProtectedEditingTarget(ae)) {
+    return true;
+  }
+  return Date.now() < editLockUntil;
+}
+
+function noteEditingActivity(target) {
+  if (!(target instanceof Element)) return;
+  if (!isProtectedEditingTarget(target)) return;
+
+  editLockUntil = Date.now() + EDIT_LOCK_MS;
+  pendingRepair = true;
+
+  clearTimeout(idleReleaseTimer);
+  idleReleaseTimer = setTimeout(() => {
+    if (!isEditingLocked() && pendingRepair) {
+      pendingRepair = false;
+      scheduleSettle();
+      startBurst(650);
+    }
+  }, EDIT_LOCK_MS + 30);
 }
 
 function snapshotPreservedValues() {
@@ -86,21 +126,12 @@ function restorePreservedValues(snapshot) {
     if (!wantedValue) continue;
     if (currentValue === wantedValue) continue;
     if (userChangedAfterSnapshot) continue;
+    if (isActive) continue;
 
-    if (!isMeaningfulValue(currentValue) || !isActive) {
+    if (!isMeaningfulValue(currentValue)) {
       try {
         suppressProgrammaticMarks = true;
         el.value = wantedValue;
-        if (
-          typeof item.selectionStart === 'number' &&
-          typeof item.selectionEnd === 'number' &&
-          typeof el.setSelectionRange === 'function' &&
-          document.activeElement === el
-        ) {
-          el.setSelectionRange(item.selectionStart, item.selectionEnd);
-        }
-        el.dispatchEvent(new Event('input', { bubbles: true }));
-        el.dispatchEvent(new Event('change', { bubbles: true }));
       } catch {}
       finally {
         suppressProgrammaticMarks = false;
@@ -110,6 +141,11 @@ function restorePreservedValues(snapshot) {
 }
 
 function kickResize() {
+  if (isEditingLocked()) {
+    pendingRepair = true;
+    return;
+  }
+
   const snapshot = snapshotPreservedValues();
 
   try {
@@ -122,6 +158,11 @@ function kickResize() {
 }
 
 function runSettleBurst() {
+  if (isEditingLocked()) {
+    pendingRepair = true;
+    return;
+  }
+
   const now = Date.now();
   if (now - lastRun < MIN_SETTLE_GAP_MS) return;
   lastRun = now;
@@ -134,11 +175,24 @@ function runSettleBurst() {
 }
 
 function scheduleSettle() {
+  if (isEditingLocked()) {
+    pendingRepair = true;
+    return;
+  }
   if (rafId) return;
   rafId = requestAnimationFrame(() => {
     rafId = 0;
     runSettleBurst();
   });
+}
+
+function requestRepair(duration = BURST_MS) {
+  if (isEditingLocked()) {
+    pendingRepair = true;
+    return;
+  }
+  scheduleSettle();
+  startBurst(duration);
 }
 
 function getWatchedElements() {
@@ -183,6 +237,13 @@ function stopBurst() {
 
 function burstTick() {
   burstRaf = 0;
+
+  if (isEditingLocked()) {
+    pendingRepair = true;
+    stopBurst();
+    return;
+  }
+
   const now = performance.now();
   const signature = buildSignature();
 
@@ -199,6 +260,10 @@ function burstTick() {
 }
 
 function startBurst(duration = BURST_MS) {
+  if (isEditingLocked()) {
+    pendingRepair = true;
+    return;
+  }
   const until = performance.now() + duration;
   if (until > burstUntil) burstUntil = until;
   if (!burstRaf) burstRaf = requestAnimationFrame(burstTick);
@@ -227,16 +292,23 @@ function wireElementEvents(el) {
   if (!el || wired.has(el)) return;
   wired.add(el);
 
-  const events = [
-    'input', 'change', 'focus', 'blur', 'keyup', 'mouseup', 'click',
-    'transitionend', 'animationend'
-  ];
+  const events = ['change', 'blur', 'mouseup', 'click', 'transitionend', 'animationend'];
 
   for (const evt of events) {
     try {
-      el.addEventListener(evt, () => {
-        scheduleSettle();
-        startBurst();
+      el.addEventListener(evt, (event) => {
+        const target = event && event.target instanceof Element ? event.target : el;
+        if (isProtectedEditingTarget(target) && (evt === 'change' || evt === 'blur')) {
+          noteEditingActivity(target);
+          setTimeout(() => {
+            if (!isEditingLocked()) {
+              pendingRepair = false;
+              requestRepair(650);
+            }
+          }, 25);
+          return;
+        }
+        requestRepair();
       }, { passive: true });
     } catch {}
   }
@@ -248,8 +320,7 @@ function refreshObservers() {
 
   if (!resizeObserver && 'ResizeObserver' in window) {
     resizeObserver = new ResizeObserver(() => {
-      scheduleSettle();
-      startBurst(700);
+      requestRepair(700);
     });
   }
 
@@ -282,10 +353,7 @@ function refreshObservers() {
       }
 
       if (shouldRefresh) refreshObservers();
-      if (shouldSettle) {
-        scheduleSettle();
-        startBurst();
-      }
+      if (shouldSettle) requestRepair();
     });
 
     observer.observe(document.body, {
@@ -302,70 +370,98 @@ function refreshObservers() {
 function initDocumentEvents() {
   document.addEventListener('beforeinput', (event) => {
     const target = event.target;
-    if (target instanceof Element && PRESERVE_VALUE_IDS.includes(target.id) && event.isTrusted) {
-      markAsUserEdited(target);
+    if (target instanceof Element && event.isTrusted) {
+      if (PRESERVE_VALUE_IDS.includes(target.id)) markAsUserEdited(target);
+      if (isProtectedEditingTarget(target)) noteEditingActivity(target);
     }
   }, { passive: true, capture: true });
 
   document.addEventListener('input', (event) => {
     const target = event.target;
-    if (target instanceof Element && PRESERVE_VALUE_IDS.includes(target.id) && event.isTrusted) {
-      markAsUserEdited(target);
+    if (target instanceof Element && event.isTrusted) {
+      if (PRESERVE_VALUE_IDS.includes(target.id)) markAsUserEdited(target);
+      if (isProtectedEditingTarget(target)) {
+        noteEditingActivity(target);
+        return;
+      }
     }
     if (shouldTrackEventTarget(target)) {
-      scheduleSettle();
-      startBurst();
+      requestRepair();
     }
   }, { passive: true, capture: true });
 
   document.addEventListener('click', (event) => {
-    if (shouldTrackEventTarget(event.target)) {
-      scheduleSettle();
-      startBurst(900);
+    const target = event.target;
+    if (isProtectedEditingTarget(target)) {
+      noteEditingActivity(target);
+      return;
+    }
+    if (shouldTrackEventTarget(target)) {
+      requestRepair(900);
     }
   }, { passive: true, capture: true });
 
   document.addEventListener('focusin', (event) => {
-    if (shouldTrackEventTarget(event.target)) {
-      startBurst(900);
+    const target = event.target;
+    if (isProtectedEditingTarget(target)) {
+      noteEditingActivity(target);
+      stopBurst();
+      return;
+    }
+    if (shouldTrackEventTarget(target)) {
+      startBurst(700);
+    }
+  }, { passive: true, capture: true });
+
+  document.addEventListener('focusout', (event) => {
+    const target = event.target;
+    if (isProtectedEditingTarget(target)) {
+      editLockUntil = Date.now() + 80;
+      pendingRepair = true;
+      setTimeout(() => {
+        if (!isEditingLocked()) {
+          pendingRepair = false;
+          requestRepair(650);
+        }
+      }, 100);
     }
   }, { passive: true, capture: true });
 
   document.addEventListener('keydown', (event) => {
     const target = event.target;
-    if (target instanceof Element && PRESERVE_VALUE_IDS.includes(target.id) && event.isTrusted) {
-      markAsUserEdited(target);
+    if (target instanceof Element && event.isTrusted) {
+      if (PRESERVE_VALUE_IDS.includes(target.id)) markAsUserEdited(target);
+      if (isProtectedEditingTarget(target)) noteEditingActivity(target);
     }
   }, { passive: true, capture: true });
 
   document.addEventListener('paste', (event) => {
     const target = event.target;
-    if (target instanceof Element && PRESERVE_VALUE_IDS.includes(target.id) && event.isTrusted) {
-      markAsUserEdited(target);
+    if (target instanceof Element && event.isTrusted) {
+      if (PRESERVE_VALUE_IDS.includes(target.id)) markAsUserEdited(target);
+      if (isProtectedEditingTarget(target)) noteEditingActivity(target);
     }
   }, { passive: true, capture: true });
 
   window.addEventListener('scroll', () => {
-    startBurst(500);
+    requestRepair(500);
   }, { passive: true });
 }
 
 function init() {
   if (initialized) {
     refreshObservers();
-    scheduleSettle();
-    startBurst(900);
+    requestRepair(900);
     return;
   }
 
   initialized = true;
   refreshObservers();
   initDocumentEvents();
-  scheduleSettle();
-  startBurst(1500);
-  setTimeout(() => { scheduleSettle(); startBurst(800); }, 180);
-  setTimeout(() => { scheduleSettle(); startBurst(800); }, 700);
-  setTimeout(() => { scheduleSettle(); startBurst(800); }, 1400);
+  requestRepair(1200);
+  setTimeout(() => { requestRepair(700); }, 180);
+  setTimeout(() => { requestRepair(700); }, 700);
+  setTimeout(() => { requestRepair(700); }, 1400);
 }
 
 if (document.readyState === 'loading') {
@@ -376,27 +472,26 @@ if (document.readyState === 'loading') {
 
 window.addEventListener('load', init, { once: true });
 window.addEventListener('pageshow', () => {
-  setTimeout(() => { scheduleSettle(); startBurst(1200); }, 0);
+  setTimeout(() => { requestRepair(1200); }, 0);
 });
 window.addEventListener('orientationchange', () => {
-  scheduleSettle();
-  startBurst(1200);
+  requestRepair(1200);
 }, { passive: true });
 window.addEventListener('resize', () => {
   setTimeout(refreshObservers, 30);
-  startBurst(1200);
+  requestRepair(1200);
 }, { passive: true });
 
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
-    setTimeout(() => { scheduleSettle(); startBurst(1200); }, 50);
-    setTimeout(() => { scheduleSettle(); startBurst(900); }, 180);
+    setTimeout(() => { requestRepair(1200); }, 50);
+    setTimeout(() => { requestRepair(900); }, 180);
   }
 });
 
 if (document.fonts && typeof document.fonts.ready?.then === 'function') {
   document.fonts.ready.then(() => {
-    setTimeout(() => { scheduleSettle(); startBurst(800); }, 0);
-    setTimeout(() => { scheduleSettle(); startBurst(800); }, 120);
+    setTimeout(() => { requestRepair(800); }, 0);
+    setTimeout(() => { requestRepair(800); }, 120);
   }).catch(() => {});
 }
