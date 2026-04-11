@@ -14,8 +14,15 @@ const WATCH_IDS = [
   'arabicNumber',
   'arabiccNumber',
   'hkSmartFloatingLine',
+  'hkRawSourceInput',
+  'hkRawSourceStatus',
   'MNDO_UA07_LOGO3',
   'UA07_LUX_LOGO_BETWEEN',
+  'UA07_SECRET_ENVELOPE_WRAP',
+  'UA07_SECRET_ENVELOPE',
+  'UA07_ONLINE_COUNT',
+  'EID_TOGGLE_BTN',
+  'UA07_UPDATE_ICON',
   'mndoQueryTimer',
   'bat2',
   'copyBtn',
@@ -29,6 +36,11 @@ const MIN_SETTLE_GAP_MS = 90;
 const BASELINE_REPAIR_INTERVAL_MS = 1400;
 const BASELINE_TOLERANCE_PX = 3;
 const BASELINE_CAPTURE_DELAY_MS = 240;
+const CLUSTER_CAPTURE_DELAY_MS = 280;
+const CLUSTER_REPAIR_INTERVAL_MS = 950;
+const CLUSTER_TOLERANCE_PX = 2;
+const CLUSTER_REL_TOLERANCE_PX = 3;
+
 
 let rafId = 0;
 let settleTimer = 0;
@@ -48,6 +60,11 @@ let pendingRepair = false;
 let baselineTimer = 0;
 let baselineCaptureTimer = 0;
 let baselineMap = new Map();
+let clusterBaseline = null;
+let clusterTimer = 0;
+let clusterCaptureTimer = 0;
+let clusterRepairQueued = false;
+
 
 function isMeaningfulValue(value) {
   return String(value || '').trim() !== '';
@@ -175,6 +192,7 @@ function runSettleBurst() {
 
   kickResize();
   scheduleBaselineCapture();
+  scheduleClusterBaselineCapture();
   clearTimeout(settleTimer);
   clearTimeout(settleTimerLate);
   settleTimer = setTimeout(kickResize, 90);
@@ -277,6 +295,192 @@ function startBurst(duration = BURST_MS) {
 }
 
 
+
+function injectTopClusterStabilityStyle() {
+  if (document.getElementById('mndo-top-cluster-stability-style')) return;
+  const style = document.createElement('style');
+  style.id = 'mndo-top-cluster-stability-style';
+  style.textContent = `
+    #UA07_SECRET_ENVELOPE_WRAP {
+      display: inline-flex !important;
+      flex-wrap: nowrap !important;
+      white-space: nowrap !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 6px !important;
+    }
+    #UA07_SECRET_ENVELOPE_WRAP > * {
+      flex: 0 0 auto !important;
+    }
+    #UA07_ONLINE_COUNT,
+    #EID_TOGGLE_BTN,
+    #UA07_SECRET_ENVELOPE,
+    #UA07_UPDATE_ICON {
+      flex-shrink: 0 !important;
+    }
+    #MNDO_UA07_LOGO3,
+    #hkSmartFloatingLine {
+      backface-visibility: hidden;
+      transform-style: preserve-3d;
+    }
+  `;
+  (document.head || document.documentElement).appendChild(style);
+}
+
+function getRect(el) {
+  if (!(el instanceof Element) || !el.isConnected) return null;
+  const r = el.getBoundingClientRect();
+  if (!r || !isFinite(r.left) || !isFinite(r.top) || !r.width || !r.height) return null;
+  return {
+    top: Math.round(r.top),
+    left: Math.round(r.left),
+    right: Math.round(r.right),
+    bottom: Math.round(r.bottom),
+    width: Math.round(r.width),
+    height: Math.round(r.height),
+    centerX: Math.round(r.left + (r.width / 2)),
+    centerY: Math.round(r.top + (r.height / 2)),
+  };
+}
+
+function collectClusterState() {
+  const search = document.getElementById('searchInput') || document.querySelector('.search-container input');
+  const logo = document.getElementById('MNDO_UA07_LOGO3') || document.getElementById('UA07_LUX_LOGO_BETWEEN');
+  const hk = document.getElementById('hkSmartFloatingLine');
+  const wrap = document.getElementById('UA07_SECRET_ENVELOPE_WRAP');
+  const env = document.getElementById('UA07_SECRET_ENVELOPE');
+  const pill = document.getElementById('UA07_ONLINE_COUNT');
+  const toggle = document.getElementById('EID_TOGGLE_BTN');
+  const update = document.getElementById('UA07_UPDATE_ICON');
+  const aht = document.getElementById('mndoQueryTimer');
+
+  const sr = getRect(search);
+  const lr = getRect(logo);
+  if (!sr || !lr) return null;
+
+  const hr = getRect(hk);
+  const wr = getRect(wrap);
+  const er = getRect(env);
+  const pr = getRect(pill);
+  const tr = getRect(toggle);
+  const ur = getRect(update);
+  const ar = getRect(aht);
+
+  return {
+    hasHk: !!hr,
+    hasWrap: !!wr,
+    hasEnv: !!er,
+    hasPill: !!pr,
+    hasToggle: !!tr,
+    hasUpdate: !!ur,
+    hasAht: !!ar,
+    logoTopToSearch: lr.top - sr.top,
+    logoLeftToSearch: lr.left - sr.left,
+    logoCenterToSearchCenter: lr.centerX - sr.centerX,
+    hkTopToSearchBottom: hr ? (hr.top - sr.bottom) : null,
+    hkCenterToSearchCenter: hr ? (hr.centerX - sr.centerX) : null,
+    hkWidth: hr ? hr.width : null,
+    wrapTopToLogoTop: wr ? (wr.top - lr.top) : null,
+    wrapCenterToLogoCenter: wr ? (wr.centerX - lr.centerX) : null,
+    wrapWidth: wr ? wr.width : null,
+    envCenterToWrapCenter: (wr && er) ? (er.centerX - wr.centerX) : null,
+    pillCenterToWrapCenter: (wr && pr) ? (pr.centerX - wr.centerX) : null,
+    toggleCenterToWrapCenter: (wr && tr) ? (tr.centerX - wr.centerX) : null,
+    updateCenterToWrapCenter: (wr && ur) ? (ur.centerX - wr.centerX) : null,
+    ahtTopToSearchTop: ar ? (ar.top - sr.top) : null,
+  };
+}
+
+function sameNumber(a, b, tol = CLUSTER_TOLERANCE_PX) {
+  if (a == null || b == null) return a == null && b == null;
+  return Math.abs(Number(a) - Number(b)) <= tol;
+}
+
+function captureClusterBaseline() {
+  if (isEditingLocked()) return;
+  const state = collectClusterState();
+  if (!state) return;
+  clusterBaseline = state;
+}
+
+function scheduleClusterBaselineCapture(delay = CLUSTER_CAPTURE_DELAY_MS) {
+  clearTimeout(clusterCaptureTimer);
+  clusterCaptureTimer = setTimeout(() => {
+    if (!clusterRepairQueued && !document.hidden) {
+      captureClusterBaseline();
+    }
+  }, delay);
+}
+
+function hasClusterDrift() {
+  if (!clusterBaseline) return false;
+  const cur = collectClusterState();
+  if (!cur) return false;
+  const checks = [
+    ['logoTopToSearch', CLUSTER_TOLERANCE_PX],
+    ['logoLeftToSearch', CLUSTER_TOLERANCE_PX],
+    ['logoCenterToSearchCenter', CLUSTER_TOLERANCE_PX],
+    ['hkTopToSearchBottom', CLUSTER_REL_TOLERANCE_PX],
+    ['hkCenterToSearchCenter', CLUSTER_REL_TOLERANCE_PX],
+    ['wrapTopToLogoTop', CLUSTER_REL_TOLERANCE_PX],
+    ['wrapCenterToLogoCenter', CLUSTER_REL_TOLERANCE_PX],
+    ['envCenterToWrapCenter', CLUSTER_REL_TOLERANCE_PX],
+    ['pillCenterToWrapCenter', CLUSTER_REL_TOLERANCE_PX],
+    ['toggleCenterToWrapCenter', CLUSTER_REL_TOLERANCE_PX],
+    ['updateCenterToWrapCenter', CLUSTER_REL_TOLERANCE_PX],
+    ['ahtTopToSearchTop', CLUSTER_REL_TOLERANCE_PX],
+  ];
+
+  for (const [key, tol] of checks) {
+    if (!sameNumber(cur[key], clusterBaseline[key], tol)) return true;
+  }
+
+  if (cur.hasHk !== clusterBaseline.hasHk) return true;
+  if (cur.hasWrap !== clusterBaseline.hasWrap) return true;
+  if (cur.hasEnv !== clusterBaseline.hasEnv) return true;
+  if (cur.hasPill !== clusterBaseline.hasPill) return true;
+  if (cur.hasToggle !== clusterBaseline.hasToggle) return true;
+  if (cur.hasUpdate !== clusterBaseline.hasUpdate) return true;
+  if (cur.hasAht !== clusterBaseline.hasAht) return true;
+
+  return false;
+}
+
+function queueClusterRepair() {
+  if (clusterRepairQueued || isEditingLocked()) {
+    if (isEditingLocked()) pendingRepair = true;
+    return;
+  }
+  clusterRepairQueued = true;
+  requestRepair(950);
+  setTimeout(() => {
+    clusterRepairQueued = false;
+    if (!hasClusterDrift()) {
+      captureClusterBaseline();
+      return;
+    }
+    requestRepair(950);
+    setTimeout(() => {
+      clusterRepairQueued = false;
+      if (!hasClusterDrift()) captureClusterBaseline();
+    }, 260);
+  }, 220);
+}
+
+function ensureClusterRepairLoop() {
+  if (clusterTimer) return;
+  clusterTimer = window.setInterval(() => {
+    if (document.hidden || isEditingLocked()) return;
+    if (!clusterBaseline) {
+      captureClusterBaseline();
+      return;
+    }
+    if (hasClusterDrift()) {
+      queueClusterRepair();
+    }
+  }, CLUSTER_REPAIR_INTERVAL_MS);
+}
+
 function getBaselineElements() {
   return getWatchedElements().filter((el) => el && el.isConnected);
 }
@@ -357,7 +561,9 @@ function shouldTrackEventTarget(target) {
     cls.includes('mndo') ||
     target.closest('.search-container') ||
     target.closest('#MNDO_AHT_TAGS_STACK') ||
-    target.closest('#hkSmartFloatingLine')
+    target.closest('#hkSmartFloatingLine') ||
+    target.closest('#UA07_SECRET_ENVELOPE_WRAP') ||
+    target.closest('#MNDO_UA07_LOGO3')
   ) {
     return true;
   }
@@ -371,7 +577,7 @@ function isRelevantMutationNode(node) {
 
   try {
     if (node.querySelector && node.querySelector(
-      '#searchInput, #searchResults, #arabicNumber, #arabiccNumber, #hkSmartFloatingLine, #MNDO_UA07_LOGO3, #UA07_LUX_LOGO_BETWEEN, #mndoQueryTimer, #bat2, #copyBtn, #copyBtn1, .search-container, #MNDO_AHT_TAGS_STACK'
+      '#searchInput, #searchResults, #arabicNumber, #arabiccNumber, #hkSmartFloatingLine, #hkRawSourceInput, #hkRawSourceStatus, #MNDO_UA07_LOGO3, #UA07_LUX_LOGO_BETWEEN, #UA07_SECRET_ENVELOPE_WRAP, #UA07_SECRET_ENVELOPE, #UA07_ONLINE_COUNT, #EID_TOGGLE_BTN, #UA07_UPDATE_ICON, #mndoQueryTimer, #bat2, #copyBtn, #copyBtn1, .search-container, #MNDO_AHT_TAGS_STACK'
     )) {
       return true;
     }
@@ -413,6 +619,7 @@ function refreshObservers() {
   if (!resizeObserver && 'ResizeObserver' in window) {
     resizeObserver = new ResizeObserver(() => {
       requestRepair(700);
+      scheduleClusterBaselineCapture(260);
     });
   }
 
@@ -466,6 +673,7 @@ function refreshObservers() {
 
   lastSignature = buildSignature();
   scheduleBaselineCapture(180);
+  scheduleClusterBaselineCapture(220);
 }
 
 function initDocumentEvents() {
@@ -555,10 +763,13 @@ function initDocumentEvents() {
 }
 
 function init() {
+  injectTopClusterStabilityStyle();
   if (initialized) {
     refreshObservers();
     ensureBaselineRepairLoop();
+    ensureClusterRepairLoop();
     scheduleBaselineCapture(220);
+    scheduleClusterBaselineCapture(260);
     requestRepair(900);
     return;
   }
@@ -567,7 +778,9 @@ function init() {
   refreshObservers();
   initDocumentEvents();
   ensureBaselineRepairLoop();
+  ensureClusterRepairLoop();
   scheduleBaselineCapture(220);
+  scheduleClusterBaselineCapture(260);
   requestRepair(900);
   setTimeout(() => { requestRepair(700); }, 180);
   setTimeout(() => { requestRepair(700); }, 700);
@@ -584,15 +797,18 @@ window.addEventListener('load', init, { once: true });
 window.addEventListener('pageshow', () => {
   setTimeout(() => { requestRepair(900); }, 0);
   setTimeout(() => { scheduleBaselineCapture(120); }, 180);
+  setTimeout(() => { scheduleClusterBaselineCapture(160); }, 220);
 });
 window.addEventListener('orientationchange', () => {
   requestRepair(900);
   scheduleBaselineCapture(260);
+  scheduleClusterBaselineCapture(320);
 }, { passive: true });
 window.addEventListener('resize', () => {
   setTimeout(refreshObservers, 30);
   requestRepair(1200);
   scheduleBaselineCapture(260);
+  scheduleClusterBaselineCapture(320);
 }, { passive: true });
 
 document.addEventListener('visibilitychange', () => {
@@ -600,6 +816,7 @@ document.addEventListener('visibilitychange', () => {
     setTimeout(() => { requestRepair(900); }, 50);
     setTimeout(() => { requestRepair(900); }, 180);
     setTimeout(() => { scheduleBaselineCapture(120); }, 260);
+    setTimeout(() => { scheduleClusterBaselineCapture(160); }, 300);
   }
 });
 
@@ -607,5 +824,6 @@ if (document.fonts && typeof document.fonts.ready?.then === 'function') {
   document.fonts.ready.then(() => {
     setTimeout(() => { requestRepair(800); }, 0);
     setTimeout(() => { requestRepair(800); }, 120);
+    setTimeout(() => { scheduleClusterBaselineCapture(160); }, 180);
   }).catch(() => {});
 }
