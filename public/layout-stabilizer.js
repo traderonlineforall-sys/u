@@ -40,9 +40,19 @@ let wired = new WeakSet();
 let lastRun = 0;
 let lastSignature = '';
 let initialized = false;
+let suppressProgrammaticMarks = false;
 
 function isMeaningfulValue(value) {
   return String(value || '').trim() !== '';
+}
+
+function getEditStamp(el) {
+  return el && typeof el.__mndoUserEditStamp === 'number' ? el.__mndoUserEditStamp : 0;
+}
+
+function markAsUserEdited(el) {
+  if (!el || suppressProgrammaticMarks) return;
+  el.__mndoUserEditStamp = Date.now();
 }
 
 function snapshotPreservedValues() {
@@ -54,6 +64,7 @@ function snapshotPreservedValues() {
       value: isTextLike ? String(el.value || '') : '',
       selectionStart: el && typeof el.selectionStart === 'number' ? el.selectionStart : null,
       selectionEnd: el && typeof el.selectionEnd === 'number' ? el.selectionEnd : null,
+      editStamp: getEditStamp(el),
     };
   });
 }
@@ -69,12 +80,16 @@ function restorePreservedValues(snapshot) {
     const currentValue = String(el.value || '');
     const wantedValue = String(item.value || '');
     const isActive = document.activeElement === el;
+    const currentEditStamp = getEditStamp(el);
+    const userChangedAfterSnapshot = currentEditStamp > Number(item.editStamp || 0);
 
     if (!wantedValue) continue;
     if (currentValue === wantedValue) continue;
+    if (userChangedAfterSnapshot) continue;
 
     if (!isMeaningfulValue(currentValue) || !isActive) {
       try {
+        suppressProgrammaticMarks = true;
         el.value = wantedValue;
         if (
           typeof item.selectionStart === 'number' &&
@@ -87,6 +102,9 @@ function restorePreservedValues(snapshot) {
         el.dispatchEvent(new Event('input', { bubbles: true }));
         el.dispatchEvent(new Event('change', { bubbles: true }));
       } catch {}
+      finally {
+        suppressProgrammaticMarks = false;
+      }
     }
   }
 }
@@ -282,8 +300,19 @@ function refreshObservers() {
 }
 
 function initDocumentEvents() {
+  document.addEventListener('beforeinput', (event) => {
+    const target = event.target;
+    if (target instanceof Element && PRESERVE_VALUE_IDS.includes(target.id) && event.isTrusted) {
+      markAsUserEdited(target);
+    }
+  }, { passive: true, capture: true });
+
   document.addEventListener('input', (event) => {
-    if (shouldTrackEventTarget(event.target)) {
+    const target = event.target;
+    if (target instanceof Element && PRESERVE_VALUE_IDS.includes(target.id) && event.isTrusted) {
+      markAsUserEdited(target);
+    }
+    if (shouldTrackEventTarget(target)) {
       scheduleSettle();
       startBurst();
     }
@@ -299,6 +328,20 @@ function initDocumentEvents() {
   document.addEventListener('focusin', (event) => {
     if (shouldTrackEventTarget(event.target)) {
       startBurst(900);
+    }
+  }, { passive: true, capture: true });
+
+  document.addEventListener('keydown', (event) => {
+    const target = event.target;
+    if (target instanceof Element && PRESERVE_VALUE_IDS.includes(target.id) && event.isTrusted) {
+      markAsUserEdited(target);
+    }
+  }, { passive: true, capture: true });
+
+  document.addEventListener('paste', (event) => {
+    const target = event.target;
+    if (target instanceof Element && PRESERVE_VALUE_IDS.includes(target.id) && event.isTrusted) {
+      markAsUserEdited(target);
     }
   }, { passive: true, capture: true });
 
