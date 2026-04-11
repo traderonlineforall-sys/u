@@ -24,7 +24,7 @@ const WATCH_IDS = [
 
 const PRESERVE_VALUE_IDS = ['arabicNumber', 'arabiccNumber', 'searchInput'];
 const EDIT_LOCK_MS = 420;
-const BURST_MS = 1100;
+const BURST_MS = 850;
 const MIN_SETTLE_GAP_MS = 90;
 
 let rafId = 0;
@@ -288,6 +288,21 @@ function shouldTrackEventTarget(target) {
   return false;
 }
 
+function isRelevantMutationNode(node) {
+  if (!(node instanceof Element)) return false;
+  if (shouldTrackEventTarget(node)) return true;
+
+  try {
+    if (node.querySelector && node.querySelector(
+      '#searchInput, #searchResults, #arabicNumber, #arabiccNumber, #hkSmartFloatingLine, #MNDO_UA07_LOGO3, #UA07_LUX_LOGO_BETWEEN, #mndoQueryTimer, #bat2, #copyBtn, #copyBtn1, .search-container, #MNDO_AHT_TAGS_STACK'
+    )) {
+      return true;
+    }
+  } catch {}
+
+  return false;
+}
+
 function wireElementEvents(el) {
   if (!el || wired.has(el)) return;
   wired.add(el);
@@ -339,9 +354,17 @@ function refreshObservers() {
 
       for (const m of mutations) {
         if (m.type === 'childList') {
-          shouldRefresh = true;
-          shouldSettle = true;
-          break;
+          const targetRelevant = isRelevantMutationNode(m.target);
+          const addedRelevant = Array.from(m.addedNodes || []).some(isRelevantMutationNode);
+          const removedRelevant = Array.from(m.removedNodes || []).some(isRelevantMutationNode);
+
+          if (targetRelevant || addedRelevant || removedRelevant) {
+            shouldRefresh = true;
+            shouldSettle = true;
+            break;
+          }
+
+          continue;
         }
         if (m.type === 'attributes') {
           const t = m.target;
@@ -443,8 +466,13 @@ function initDocumentEvents() {
     }
   }, { passive: true, capture: true });
 
+  let scrollRepairRaf = 0;
   window.addEventListener('scroll', () => {
-    requestRepair(500);
+    if (scrollRepairRaf || isEditingLocked()) return;
+    scrollRepairRaf = requestAnimationFrame(() => {
+      scrollRepairRaf = 0;
+      scheduleSettle();
+    });
   }, { passive: true });
 }
 
@@ -458,10 +486,10 @@ function init() {
   initialized = true;
   refreshObservers();
   initDocumentEvents();
-  requestRepair(1200);
+  requestRepair(900);
   setTimeout(() => { requestRepair(700); }, 180);
   setTimeout(() => { requestRepair(700); }, 700);
-  setTimeout(() => { requestRepair(700); }, 1400);
+  setTimeout(() => { requestRepair(550); }, 1200);
 }
 
 if (document.readyState === 'loading') {
@@ -472,10 +500,10 @@ if (document.readyState === 'loading') {
 
 window.addEventListener('load', init, { once: true });
 window.addEventListener('pageshow', () => {
-  setTimeout(() => { requestRepair(1200); }, 0);
+  setTimeout(() => { requestRepair(900); }, 0);
 });
 window.addEventListener('orientationchange', () => {
-  requestRepair(1200);
+  requestRepair(900);
 }, { passive: true });
 window.addEventListener('resize', () => {
   setTimeout(refreshObservers, 30);
@@ -484,7 +512,7 @@ window.addEventListener('resize', () => {
 
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
-    setTimeout(() => { requestRepair(1200); }, 50);
+    setTimeout(() => { requestRepair(900); }, 50);
     setTimeout(() => { requestRepair(900); }, 180);
   }
 });
