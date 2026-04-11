@@ -2,13 +2,14 @@
 //
 // Goal:
 // Keep the top row steady (search + Haya Karima line + UA07 logo + AHT/Tags)
-// without requiring the user to manually press Reset.
+// inside the same tab, without needing Reset or switching tabs.
 //
 // Strategy:
-// - Reuse the existing placement logic already wired in app.js by dispatching
-//   a lightweight synthetic resize event.
-// - Trigger that settle only when relevant top-header elements change.
-// - Debounce aggressively so we avoid visible jumping or heavy observers.
+// - Reuse the existing placement logic in app.js by dispatching a synthetic resize.
+// - Preserve typed values before each settle.
+// - Watch only the relevant top-header elements.
+// - Run a short requestAnimationFrame burst after real interactions so if the
+//   header drifts a little, it gets corrected immediately with very low cost.
 
 const WATCH_IDS = [
   'searchInput',
@@ -24,15 +25,21 @@ const WATCH_IDS = [
   'copyBtn1'
 ];
 
-const PRESERVE_VALUE_IDS = ['arabicNumber', 'arabiccNumber'];
+const PRESERVE_VALUE_IDS = ['arabicNumber', 'arabiccNumber', 'searchInput'];
+const BURST_MS = 1200;
+const MIN_SETTLE_GAP_MS = 70;
 
 let rafId = 0;
 let settleTimer = 0;
 let settleTimerLate = 0;
+let burstRaf = 0;
+let burstUntil = 0;
 let observer = null;
 let resizeObserver = null;
 let wired = new WeakSet();
 let lastRun = 0;
+let lastSignature = '';
+let initialized = false;
 
 function isMeaningfulValue(value) {
   return String(value || '').trim() !== '';
@@ -41,9 +48,10 @@ function isMeaningfulValue(value) {
 function snapshotPreservedValues() {
   return PRESERVE_VALUE_IDS.map((id) => {
     const el = document.getElementById(id);
+    const isTextLike = el && ('value' in el);
     return {
       id,
-      value: el ? String(el.value || '') : '',
+      value: isTextLike ? String(el.value || '') : '',
       selectionStart: el && typeof el.selectionStart === 'number' ? el.selectionStart : null,
       selectionEnd: el && typeof el.selectionEnd === 'number' ? el.selectionEnd : null,
     };
@@ -54,18 +62,26 @@ function restorePreservedValues(snapshot) {
   if (!Array.isArray(snapshot) || !snapshot.length) return;
 
   for (const item of snapshot) {
-    if (!item || !isMeaningfulValue(item.value)) continue;
-
+    if (!item) continue;
     const el = document.getElementById(item.id);
-    if (!el) continue;
+    if (!el || !('value' in el)) continue;
 
     const currentValue = String(el.value || '');
+    const wantedValue = String(item.value || '');
     const isActive = document.activeElement === el;
 
-    if (!isMeaningfulValue(currentValue) && !isActive) {
+    if (!wantedValue) continue;
+    if (currentValue === wantedValue) continue;
+
+    if (!isMeaningfulValue(currentValue) || !isActive) {
       try {
-        el.value = item.value;
-        if (typeof item.selectionStart === 'number' && typeof item.selectionEnd === 'number' && typeof el.setSelectionRange === 'function') {
+        el.value = wantedValue;
+        if (
+          typeof item.selectionStart === 'number' &&
+          typeof item.selectionEnd === 'number' &&
+          typeof el.setSelectionRange === 'function' &&
+          document.activeElement === el
+        ) {
           el.setSelectionRange(item.selectionStart, item.selectionEnd);
         }
         el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -89,12 +105,10 @@ function kickResize() {
 
 function runSettleBurst() {
   const now = Date.now();
-  // Guard against very tight loops.
-  if (now - lastRun < 70) return;
+  if (now - lastRun < MIN_SETTLE_GAP_MS) return;
   lastRun = now;
 
   kickResize();
-  // Catch late style/font/layout shifts.
   clearTimeout(settleTimer);
   clearTimeout(settleTimerLate);
   settleTimer = setTimeout(kickResize, 90);
@@ -119,7 +133,76 @@ function getWatchedElements() {
   const searchContainer = document.querySelector('.search-container');
   if (searchContainer) out.push(searchContainer);
 
+  const header = document.querySelector('header');
+  if (header) out.push(header);
+
   return out;
+}
+
+function buildSignature() {
+  const elements = getWatchedElements();
+  if (!elements.length) return '';
+
+  return elements.map((el) => {
+    const r = el.getBoundingClientRect();
+    return [
+      el.id || el.className || el.tagName,
+      Math.round(r.left),
+      Math.round(r.top),
+      Math.round(r.width),
+      Math.round(r.height)
+    ].join(':');
+  }).join('|');
+}
+
+function stopBurst() {
+  burstUntil = 0;
+  if (burstRaf) {
+    cancelAnimationFrame(burstRaf);
+    burstRaf = 0;
+  }
+}
+
+function burstTick() {
+  burstRaf = 0;
+  const now = performance.now();
+  const signature = buildSignature();
+
+  if (signature && lastSignature && signature !== lastSignature) {
+    scheduleSettle();
+  }
+  if (signature) lastSignature = signature;
+
+  if (now < burstUntil) {
+    burstRaf = requestAnimationFrame(burstTick);
+  } else {
+    stopBurst();
+  }
+}
+
+function startBurst(duration = BURST_MS) {
+  const until = performance.now() + duration;
+  if (until > burstUntil) burstUntil = until;
+  if (!burstRaf) burstRaf = requestAnimationFrame(burstTick);
+}
+
+function shouldTrackEventTarget(target) {
+  if (!(target instanceof Element)) return false;
+  if (target.id && WATCH_IDS.includes(target.id)) return true;
+
+  const cls = typeof target.className === 'string' ? target.className : '';
+  if (
+    cls.includes('search') ||
+    cls.includes('hk-') ||
+    cls.includes('mndo') ||
+    target.closest('.search-container') ||
+    target.closest('#MNDO_AHT_TAGS_STACK') ||
+    target.closest('#hkSmartFloatingLine')
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 function wireElementEvents(el) {
@@ -133,7 +216,10 @@ function wireElementEvents(el) {
 
   for (const evt of events) {
     try {
-      el.addEventListener(evt, scheduleSettle, { passive: true });
+      el.addEventListener(evt, () => {
+        scheduleSettle();
+        startBurst();
+      }, { passive: true });
     } catch {}
   }
 }
@@ -143,12 +229,15 @@ function refreshObservers() {
   elements.forEach(wireElementEvents);
 
   if (!resizeObserver && 'ResizeObserver' in window) {
-    resizeObserver = new ResizeObserver(() => scheduleSettle());
+    resizeObserver = new ResizeObserver(() => {
+      scheduleSettle();
+      startBurst(700);
+    });
   }
 
   if (resizeObserver) {
     try { resizeObserver.disconnect(); } catch {}
-    elements.forEach(el => {
+    elements.forEach((el) => {
       try { resizeObserver.observe(el); } catch {}
     });
     try { resizeObserver.observe(document.body); } catch {}
@@ -167,23 +256,18 @@ function refreshObservers() {
         }
         if (m.type === 'attributes') {
           const t = m.target;
-          if (!t || !(t instanceof Element)) continue;
-          const id = t.id || '';
-          const cls = typeof t.className === 'string' ? t.className : '';
-          if (
-            WATCH_IDS.includes(id) ||
-            cls.includes('search') ||
-            cls.includes('hk-') ||
-            id.includes('UA07') ||
-            id.includes('mndo')
-          ) {
+          if (!(t instanceof Element)) continue;
+          if (shouldTrackEventTarget(t)) {
             shouldSettle = true;
           }
         }
       }
 
       if (shouldRefresh) refreshObservers();
-      if (shouldSettle) scheduleSettle();
+      if (shouldSettle) {
+        scheduleSettle();
+        startBurst();
+      }
     });
 
     observer.observe(document.body, {
@@ -193,14 +277,52 @@ function refreshObservers() {
       attributeFilter: ['style', 'class']
     });
   }
+
+  lastSignature = buildSignature();
+}
+
+function initDocumentEvents() {
+  document.addEventListener('input', (event) => {
+    if (shouldTrackEventTarget(event.target)) {
+      scheduleSettle();
+      startBurst();
+    }
+  }, { passive: true, capture: true });
+
+  document.addEventListener('click', (event) => {
+    if (shouldTrackEventTarget(event.target)) {
+      scheduleSettle();
+      startBurst(900);
+    }
+  }, { passive: true, capture: true });
+
+  document.addEventListener('focusin', (event) => {
+    if (shouldTrackEventTarget(event.target)) {
+      startBurst(900);
+    }
+  }, { passive: true, capture: true });
+
+  window.addEventListener('scroll', () => {
+    startBurst(500);
+  }, { passive: true });
 }
 
 function init() {
+  if (initialized) {
+    refreshObservers();
+    scheduleSettle();
+    startBurst(900);
+    return;
+  }
+
+  initialized = true;
   refreshObservers();
+  initDocumentEvents();
   scheduleSettle();
-  setTimeout(scheduleSettle, 180);
-  setTimeout(scheduleSettle, 700);
-  setTimeout(scheduleSettle, 1400);
+  startBurst(1500);
+  setTimeout(() => { scheduleSettle(); startBurst(800); }, 180);
+  setTimeout(() => { scheduleSettle(); startBurst(800); }, 700);
+  setTimeout(() => { scheduleSettle(); startBurst(800); }, 1400);
 }
 
 if (document.readyState === 'loading') {
@@ -210,20 +332,28 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('load', init, { once: true });
-window.addEventListener('pageshow', () => setTimeout(scheduleSettle, 0));
-window.addEventListener('orientationchange', scheduleSettle, { passive: true });
-window.addEventListener('resize', () => setTimeout(refreshObservers, 30), { passive: true });
+window.addEventListener('pageshow', () => {
+  setTimeout(() => { scheduleSettle(); startBurst(1200); }, 0);
+});
+window.addEventListener('orientationchange', () => {
+  scheduleSettle();
+  startBurst(1200);
+}, { passive: true });
+window.addEventListener('resize', () => {
+  setTimeout(refreshObservers, 30);
+  startBurst(1200);
+}, { passive: true });
 
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
-    setTimeout(scheduleSettle, 50);
-    setTimeout(scheduleSettle, 180);
+    setTimeout(() => { scheduleSettle(); startBurst(1200); }, 50);
+    setTimeout(() => { scheduleSettle(); startBurst(900); }, 180);
   }
 });
 
 if (document.fonts && typeof document.fonts.ready?.then === 'function') {
   document.fonts.ready.then(() => {
-    setTimeout(scheduleSettle, 0);
-    setTimeout(scheduleSettle, 120);
+    setTimeout(() => { scheduleSettle(); startBurst(800); }, 0);
+    setTimeout(() => { scheduleSettle(); startBurst(800); }, 120);
   }).catch(() => {});
 }
