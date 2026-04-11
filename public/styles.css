@@ -1461,6 +1461,17 @@ a:hover {
                                 margin: 0px;
                         }
 
+                        /* Fixed-size slot for replaced SR buttons.
+                           Keeps the row layout stable even if the label length changes. */
+                        .singlelink-fixed-slot {
+                                display: inline-block;
+                                width: 152px;
+                                box-sizing: border-box;
+                                white-space: nowrap;
+                                overflow: hidden;
+                                text-overflow: ellipsis;
+                        }
+
 
                         .navbar a {
                                 float: left;
