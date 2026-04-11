@@ -2334,13 +2334,16 @@ A:link {
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
-    width: min(520px, calc(100vw - 28px));
+    width: min(880px, calc(100vw - 28px));
+    max-height: min(70vh, calc(100vh - 56px));
     border-radius: 18px;
     border: 1px solid rgba(255,255,255,0.18);
-    background: rgba(16,18,28,0.92);
+    background: rgba(16,18,28,0.94);
     box-shadow: 0 22px 70px rgba(0,0,0,0.75);
     padding: 16px 16px 14px;
     color: rgba(255,255,255,0.92);
+    display: flex;
+    flex-direction: column;
   }
   #UA07_SECRET_MODAL .ua07-secret-head{
     display: flex;
@@ -2359,7 +2362,12 @@ A:link {
     color: #ff1a1a;
     letter-spacing: 0.3px;
   }
-  #UA07_SECRET_MODAL .ua07-secret-body{ padding-top: 12px; }
+  #UA07_SECRET_MODAL .ua07-secret-body{
+    padding-top: 12px;
+    overflow: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
   #UA07_SECRET_MODAL .ua07-secret-lead{
     font-size: 16px;
     font-weight: 800;
@@ -2371,6 +2379,10 @@ A:link {
     margin: 6px 0;
     color: rgba(255,255,255,0.88);
   }
+  #UA07_SECRET_MODAL .ua07-secret-body::-webkit-scrollbar{ width: 10px; }
+  #UA07_SECRET_MODAL .ua07-secret-body::-webkit-scrollbar-track{ background: rgba(255,255,255,0.04); border-radius: 999px; }
+  #UA07_SECRET_MODAL .ua07-secret-body::-webkit-scrollbar-thumb{ background: rgba(255,255,255,0.18); border-radius: 999px; border: 2px solid rgba(255,255,255,0.04); }
+  #UA07_SECRET_MODAL .ua07-secret-body::-webkit-scrollbar-thumb:hover{ background: rgba(255,255,255,0.26); }
   #UA07_SECRET_MODAL .ua07-secret-actions{
     display: flex;
     justify-content: flex-start;
