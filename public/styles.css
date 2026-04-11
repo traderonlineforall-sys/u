@@ -2607,27 +2607,32 @@ A:link {
 
 .suggestions-form textarea{
   flex:1;
-  padding: 12px 12px;
+  padding: 13px 14px;
   border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.16);
-  background: rgba(255,255,255,.10);
-  color: rgba(235,238,255,.92);
+  border: 1px solid rgba(255,255,255,.20);
+  background: rgba(10,16,30,.88);
+  color: rgba(248,250,255,.98);
+  caret-color: rgba(255,255,255,.95);
+  font-size: 14px;
+  font-weight: 500;
   outline: none;
   box-sizing: border-box;
   resize: none;
-  min-height: 44px;
-  max-height: 140px;
-  line-height: 1.35;
+  min-height: 58px;
+  max-height: min(48vh, 420px);
+  line-height: 1.5;
   white-space: pre-wrap;
+  overflow-y: auto;
 }
 
 .suggestions-form textarea::placeholder{
-  color: rgba(235,238,255,.45);
+  color: rgba(235,238,255,.62);
 }
 
 .suggestions-form textarea:focus{
-  border-color: rgba(129,199,132,.55);
-  box-shadow: 0 0 0 3px rgba(129,199,132,.20);
+  border-color: rgba(129,199,132,.72);
+  box-shadow: 0 0 0 3px rgba(129,199,132,.18), 0 10px 26px rgba(0,0,0,.18);
+  background: rgba(8,14,26,.94);
 }
 
 .suggestions-form button{

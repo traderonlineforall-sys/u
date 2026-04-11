@@ -55,6 +55,16 @@ function setStatus(message, type = "info") {
   elStatus.dataset.type = type;
 }
 
+function autoSizeTextarea(el){
+  if(!el) return;
+  const maxHeight = Math.min(Math.max(window.innerHeight * 0.48, 180), 420);
+  el.style.height = "auto";
+  el.style.overflowY = "hidden";
+  const next = Math.min(Math.max(el.scrollHeight, 58), maxHeight);
+  el.style.height = `${next}px`;
+  el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
+}
+
 function isConfigured() {
   return (
     typeof SUPABASE_URL === "string" &&
@@ -275,6 +285,7 @@ async function addSuggestion() {
   }
 
   elInput.value = "";
+  autoSizeTextarea(elInput);
   setStatus("Added ✅", "success");
   // If realtime is not available for some reason, reload as fallback
   await loadSuggestions();
@@ -437,6 +448,9 @@ function wire() {
 
   // Add suggestion
   elBtn?.addEventListener("click", addSuggestion);
+  elInput?.addEventListener("input", () => autoSizeTextarea(elInput));
+  elInput?.addEventListener("focus", () => autoSizeTextarea(elInput));
+  window.addEventListener("resize", () => autoSizeTextarea(elInput), { passive: true });
   elInput?.addEventListener("keydown", (e) => {
     // Textarea UX: Enter posts, Shift+Enter inserts newline
     if (e.key === "Enter" && !e.shiftKey) {
@@ -450,6 +464,7 @@ function init() {
   if (!elInput || !elBtn || !elStatus || !elList) return;
 
   wire();
+  autoSizeTextarea(elInput);
 
   if (!isConfigured()) {
     setStatus(`Configuration is missing. Please contact ${ADMIN_NAME}.`, "error");
