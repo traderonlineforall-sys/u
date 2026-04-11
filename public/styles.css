@@ -4261,3 +4261,118 @@ A:link {
   .support-chat-body{ grid-template-columns: 1fr; }
   .support-users{ max-height: 132px; }
 }
+
+
+/* ===== Targeted UI refinement: Suggestions full-panel contrast + Support envelope sizing ===== */
+.suggestions-panel{
+  background:
+    radial-gradient(circle at top, rgba(124,144,255,0.12), transparent 34%),
+    linear-gradient(180deg, rgba(12,14,22,0.97), rgba(8,10,16,0.965));
+  border: 1px solid rgba(255,255,255,.14);
+  box-shadow:
+    0 20px 56px rgba(0,0,0,.46),
+    inset 0 1px 0 rgba(255,255,255,.03);
+  color: rgba(245,247,255,.96);
+}
+
+.suggestions-modal{
+  width: min(940px, calc(100% - 24px));
+}
+
+.suggestions-header h2,
+.suggestion-name,
+.suggestion-text{
+  color: rgba(247,249,255,.97);
+}
+
+.suggestions-subtitle,
+.suggestion-meta,
+.suggestions-meta-row,
+.suggestion-when{
+  color: rgba(226,231,248,.74);
+}
+
+.suggestions-form textarea{
+  background: linear-gradient(180deg, rgba(20,24,36,.95), rgba(14,18,28,.94));
+  border-color: rgba(255,255,255,.18);
+  color: rgba(247,249,255,.98);
+}
+
+.suggestions-form textarea::placeholder{
+  color: rgba(220,226,246,.48);
+}
+
+.suggestions-list{
+  background:
+    linear-gradient(180deg, rgba(10,12,19,.92), rgba(8,10,16,.88));
+  border-color: rgba(255,255,255,.14);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+.suggestion-item{
+  background: linear-gradient(180deg, rgba(28,32,46,.88), rgba(18,22,34,.9));
+  border-color: rgba(255,255,255,.12);
+  box-shadow: 0 8px 24px rgba(0,0,0,.22);
+}
+
+.suggestion-item.has-replies{
+  box-shadow:
+    0 12px 30px rgba(0,0,0,.32),
+    0 0 0 1px rgba(255,215,120,.12) inset,
+    0 0 22px rgba(255,215,120,.08);
+}
+
+.suggestions-empty{
+  color: rgba(235,240,255,.66);
+}
+
+/* Support envelope / chat modal: keep a stable comfortable size and scroll long content */
+.support-chat{
+  width: min(920px, calc(100vw - 24px));
+  height: min(600px, calc(100vh - 32px));
+  max-height: calc(100vh - 32px);
+}
+
+.support-messages{
+  min-width: 0;
+}
+
+.support-messages-list{
+  min-height: 0;
+  overflow: auto;
+}
+
+.support-msg{
+  max-width: min(78%, 620px);
+}
+
+.support-msg-text{
+  max-height: 240px;
+  overflow: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.18) transparent;
+}
+
+.support-msg-text::-webkit-scrollbar{
+  width: 8px;
+}
+.support-msg-text::-webkit-scrollbar-thumb{
+  background: rgba(255,255,255,0.16);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+@media (max-width: 860px){
+  .support-chat{
+    width: min(100vw, 100vw);
+    height: min(100vh, 100vh);
+  }
+  .support-msg{
+    max-width: min(88%, 100%);
+  }
+  .support-msg-text{
+    max-height: 220px;
+  }
+}
