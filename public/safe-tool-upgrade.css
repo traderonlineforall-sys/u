@@ -1,3 +1,25 @@
+
+#MNDO_TOP_CHROME_PAGE_LOCK {
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  width: 0;
+  height: 0;
+  overflow: visible !important;
+  pointer-events: none;
+  z-index: 9002;
+}
+
+#MNDO_TOP_CHROME_PAGE_LOCK > * {
+  pointer-events: auto;
+}
+
+#MNDO_TOP_CHROME_PAGE_LOCK #MNDO_UA07_LOGO3,
+#MNDO_TOP_CHROME_PAGE_LOCK #UA07_LUX_LOGO_BETWEEN,
+#MNDO_TOP_CHROME_PAGE_LOCK #hkSmartFloatingLine {
+  margin: 0 !important;
+}
+
 /* === Safe Tool Upgrade: isolated UI additions (non-breaking) === */
 
 #tabs .tab-utility-btn {

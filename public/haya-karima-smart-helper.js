@@ -26,11 +26,7 @@
     rawToken: 0,
     resizeBound: false,
     popupBound: false,
-    inputListeners: [],
-    lockedLeft: null,
-    lockedTop: null,
-    lockedWidth: null,
-    isLocked: false
+    inputListeners: []
   };
 
   function toEnglishDigits(value) {
@@ -267,57 +263,33 @@
     return null;
   }
 
-  function getPageOffsetX() {
-    return window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0;
+  function emitLineState(reason) {
+    try {
+      var line = helperState.dom && helperState.dom.line ? helperState.dom.line : document.getElementById(LINE_ID);
+      window.dispatchEvent(new CustomEvent('mndo:hk-line-state', {
+        detail: {
+          reason: reason || '',
+          visible: !!(line && line.classList && line.classList.contains('is-visible'))
+        }
+      }));
+    } catch (error) {}
   }
 
-  function getPageOffsetY() {
-    return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-  }
+  function positionLine() {
+    var dom = ensureDom();
+    var rect = getAnchorRect();
+    if (!dom || !dom.line || !rect) return;
+    if (dom.line.dataset.mndoTopChromeLocked === '1') return;
 
-  function computeLinePlacement(rect) {
-    if (!rect) return null;
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 320;
     var viewportCap = Math.max(280, viewportWidth - 24);
     var width = Math.min(Math.max(rect.width, 320), 560, viewportCap);
-    var centerX = getPageOffsetX() + rect.left + (rect.width / 2);
-    return {
-      left: Math.round(centerX - (width / 2)),
-      top: Math.round(getPageOffsetY() + rect.bottom + 10),
-      width: Math.round(width)
-    };
-  }
+    var pageX = window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0;
+    var pageY = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
 
-  function applyLockedPlacement(dom, placement) {
-    if (!dom || !dom.line || !placement) return false;
-    dom.line.style.left = placement.left + 'px';
-    dom.line.style.top = placement.top + 'px';
-    dom.line.style.width = placement.width + 'px';
-    return true;
-  }
-
-  function positionLine(forceMeasure) {
-    var dom = ensureDom();
-    if (!dom || !dom.line) return false;
-
-    if (helperState.isLocked && !forceMeasure) {
-      return applyLockedPlacement(dom, {
-        left: helperState.lockedLeft,
-        top: helperState.lockedTop,
-        width: helperState.lockedWidth
-      });
-    }
-
-    var rect = getAnchorRect();
-    var placement = computeLinePlacement(rect);
-    if (!placement) return false;
-
-    helperState.lockedLeft = placement.left;
-    helperState.lockedTop = placement.top;
-    helperState.lockedWidth = placement.width;
-    helperState.isLocked = true;
-
-    return applyLockedPlacement(dom, placement);
+    dom.line.style.left = Math.round(pageX + rect.left + ((rect.width - width) / 2)) + 'px';
+    dom.line.style.top = Math.round(pageY + rect.bottom + 10) + 'px';
+    dom.line.style.width = Math.round(width) + 'px';
   }
 
   function showLine() {
@@ -325,12 +297,14 @@
     dom.line.classList.add('is-visible');
     dom.line.setAttribute('aria-hidden', 'false');
     positionLine();
+    emitLineState('show');
   }
 
   function hideLine() {
     var dom = ensureDom();
     dom.line.classList.remove('is-visible');
     dom.line.setAttribute('aria-hidden', 'true');
+    emitLineState('hide');
   }
 
   function showMuted(text) {
@@ -644,7 +618,7 @@
     helperState.observer = new MutationObserver(function () {
       var rebound = bindInput();
       if (rebound) {
-        positionLine(false);
+        positionLine();
       }
     });
 
@@ -656,6 +630,7 @@
   function bindWindowEvents() {
     if (helperState.resizeBound) return;
     helperState.resizeBound = true;
+    window.addEventListener('resize', positionLine, { passive: true });
   }
 
   function init() {
@@ -663,11 +638,10 @@
     bindInput();
     bindWindowEvents();
     startObserver();
-    positionLine(true);
-    setTimeout(function () { bindInput(); positionLine(true); }, 200);
-    setTimeout(function () { bindInput(); positionLine(true); }, 600);
-    setTimeout(function () { bindInput(); positionLine(true); }, 1200);
-    setTimeout(function () { bindInput(); positionLine(true); }, 1800);
+    positionLine();
+    emitLineState('init');
+    setTimeout(function () { bindInput(); positionLine(); emitLineState('settle-200'); }, 200);
+    setTimeout(function () { bindInput(); positionLine(); emitLineState('settle-600'); }, 600);
   }
 
   if (document.readyState === 'loading') {
