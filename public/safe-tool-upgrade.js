@@ -683,272 +683,258 @@
    * function is self-contained and guarded against missing elements.
    */
 
-  // Stabilise the top header area using a lightweight observer-based
-  // coordinator instead of mimicking the reset button.  The header
-  // elements (logo / envelope / online count / HK line / timer stack)
-  // are positioned by app.js and the helper scripts on `resize`, but
-  // typing in the landline field can change layout without producing a
-  // real resize event.  This coordinator watches the small set of anchor
-  // elements that matter, detects actual drift, and only then nudges the
-  // existing layout code once the interaction has settled.
-  function installTopStabilizer() {
-    var watchedIds = [
-      "searchInput",
-      "arabicNumber",
-      "arabiccNumber",
-      "tabs",
-      "MNDO_UA07_LOGO3",
-      "UA07_SECRET_ENVELOPE_WRAP",
-      "UA07_ONLINE_COUNT",
-      "MNDO_AHT_TAGS_STACK",
-      "mndoQueryTimer",
-      "bat2",
-      "hkSmartFloatingLine"
-    ];
+    // Dock the floating top chrome (UA07 logo + envelope row + HK helper)
+  // into fixed wrappers so it stays visually stable during typing and
+  // no longer depends on synthetic reset/resize workarounds.
+  function installFixedTopChrome() {
+    if (window.__mndoFixedTopChromeInstalled) return;
+    window.__mndoFixedTopChromeInstalled = true;
 
-    var attached = Object.create(null);
-    var resizeObserver = null;
-    var mutationObserver = null;
-    var retryTimer = 0;
-    var retryCount = 0;
-    var inputIdleTimer = 0;
-    var queuedTimer = 0;
-    var queuedRaf = 0;
-    var pendingReason = "";
-    var pendingForce = false;
-    var lastPulseAt = 0;
-    var lastAnchorKey = "";
-    var lastInputValue = "";
-    var settleLockedUntil = 0;
+    var STYLE_ID = "mndoFixedTopChromeStyle";
+    var CLUSTER_ID = "MNDO_FIXED_TOP_CLUSTER";
+    var HK_WRAP_ID = "MNDO_FIXED_HK_WRAP";
+    var timer = 0;
+    var observer = null;
 
-    function getRect(el) {
+    function setImp(el, prop, value) {
+      if (!el) return;
+      try { el.style.setProperty(prop, value, "important"); } catch (err) {}
+    }
+
+    function ensureStyle() {
+      if (document.getElementById(STYLE_ID)) return;
+      var style = document.createElement("style");
+      style.id = STYLE_ID;
+      style.textContent = [
+        '#' + CLUSTER_ID + '{position:fixed !important;z-index:9000 !important;display:flex !important;flex-direction:column !important;align-items:center !important;justify-content:flex-start !important;gap:6px !important;pointer-events:none !important;contain:layout style paint;}',
+        '#' + CLUSTER_ID + ' > *{pointer-events:auto !important;}',
+        '#' + HK_WRAP_ID + '{position:fixed !important;z-index:9000 !important;display:block !important;pointer-events:auto !important;contain:layout style paint;}',
+        '#' + HK_WRAP_ID + ' > #hkSmartFloatingLine{position:static !important;left:auto !important;top:auto !important;right:auto !important;bottom:auto !important;transform:none !important;width:100% !important;min-width:0 !important;max-width:100% !important;}'
+      ].join('');
+      document.head.appendChild(style);
+    }
+
+    function findLogo() {
+      return document.getElementById("MNDO_UA07_LOGO3")
+        || document.getElementById("UA07_LUX_LOGO_BETWEEN");
+    }
+
+    function findEnvelope() {
+      return document.getElementById("UA07_SECRET_ENVELOPE_WRAP");
+    }
+
+    function findHkLine() {
+      return document.getElementById("hkSmartFloatingLine");
+    }
+
+    function rectOf(el) {
       if (!el || typeof el.getBoundingClientRect !== "function") return null;
       var r = el.getBoundingClientRect();
-      if (!r) return null;
+      if (!r || !r.width || !r.height) return null;
       return {
-        left: Number(r.left || 0),
-        top: Number(r.top || 0),
-        right: Number(r.right || 0),
-        bottom: Number(r.bottom || 0),
-        width: Number(r.width || 0),
-        height: Number(r.height || 0)
+        left: r.left,
+        top: r.top,
+        width: r.width,
+        height: r.height,
+        right: r.right,
+        bottom: r.bottom,
+        centerX: r.left + (r.width / 2)
       };
     }
 
-    function hasBox(rect) {
-      return !!(rect && (rect.width > 0 || rect.height > 0));
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
     }
 
-    function metric(el) {
-      var rect = getRect(el);
-      if (!hasBox(rect)) return null;
-      return {
-        left: Math.round(rect.left),
-        top: Math.round(rect.top),
-        width: Math.round(rect.width),
-        height: Math.round(rect.height),
-        right: Math.round(rect.right),
-        bottom: Math.round(rect.bottom),
-        centerX: Math.round(rect.left + (rect.width / 2)),
-        centerY: Math.round(rect.top + (rect.height / 2))
-      };
-    }
-
-    function getElements() {
-      return {
-        search: document.getElementById("searchInput"),
-        landline: document.getElementById("arabicNumber"),
-        fbb: document.getElementById("arabiccNumber"),
-        tabs: document.getElementById("tabs"),
-        logo: document.getElementById("MNDO_UA07_LOGO3") || document.getElementById("MNDO_UA07_LOGO") || document.getElementById("UA07_LUX_LOGO_BETWEEN"),
-        envelope: document.getElementById("UA07_SECRET_ENVELOPE_WRAP"),
-        online: document.getElementById("UA07_ONLINE_COUNT"),
-        hkLine: document.getElementById("hkSmartFloatingLine"),
-        timerStack: document.getElementById("MNDO_AHT_TAGS_STACK"),
-        timer: document.getElementById("mndoQueryTimer"),
-        tags: document.getElementById("bat2")
-      };
-    }
-
-    function buildAnchorKey(els) {
-      var parts = [];
-      ["search", "landline", "fbb", "tabs"].forEach(function (name) {
-        var m = metric(els[name]);
-        if (!m) return;
-        parts.push(name + ":" + [m.left, m.top, m.width, m.height].join(","));
-      });
-      return parts.join("|");
-    }
-
-    function calcDrift(els) {
-      var drift = 0;
-      var search = metric(els.search);
-      var logo = metric(els.logo);
-      var envelope = metric(els.envelope);
-      var hkLine = metric(els.hkLine);
-      var timer = metric(els.timerStack || els.timer);
-
-      if (search && logo) {
-        drift = Math.max(drift, Math.abs(search.centerY - logo.centerY));
+    function ensureCluster() {
+      var wrap = document.getElementById(CLUSTER_ID);
+      if (!wrap) {
+        wrap = document.createElement("div");
+        wrap.id = CLUSTER_ID;
+        document.body.appendChild(wrap);
       }
-
-      if (logo && envelope) {
-        drift = Math.max(drift, Math.abs(logo.centerX - envelope.centerX));
-        drift = Math.max(drift, Math.abs((logo.top + 50) - envelope.top));
-      }
-
-      if (search && hkLine && !(els.hkLine && els.hkLine.getAttribute && els.hkLine.getAttribute("aria-hidden") === "true")) {
-        drift = Math.max(drift, Math.abs((search.bottom + 10) - hkLine.top));
-        drift = Math.max(drift, Math.abs(search.centerX - hkLine.centerX));
-      }
-
-      if (search && timer) {
-        drift = Math.max(drift, Math.max(0, search.top - timer.top - 22));
-        drift = Math.max(drift, Math.max(0, timer.top - (search.bottom + 26)));
-      }
-
-      return drift;
+      return wrap;
     }
 
-    function needsPulse(els) {
-      return calcDrift(els) > 8;
+    function ensureHkWrap() {
+      var wrap = document.getElementById(HK_WRAP_ID);
+      if (!wrap) {
+        wrap = document.createElement("div");
+        wrap.id = HK_WRAP_ID;
+        document.body.appendChild(wrap);
+      }
+      return wrap;
     }
 
-    function firePulse() {
-      var now = Date.now();
-      if (now - lastPulseAt < 120) return false;
-      lastPulseAt = now;
-      settleLockedUntil = now + 120;
-      try { window.dispatchEvent(new Event("resize")); } catch (err) {}
+    function dockLogoAndEnvelope() {
+      var logo = findLogo();
+      var envelope = findEnvelope();
+      if (!logo || !envelope) return false;
+
+      var logoRect = rectOf(logo);
+      var envelopeRect = rectOf(envelope);
+      if (!logoRect || !envelopeRect) return false;
+
+      var wrap = ensureCluster();
+      var width = Math.round(Math.max(logoRect.width, envelopeRect.width));
+      var centerX = logoRect.centerX;
+      var left = Math.round(centerX - (width / 2));
+      left = clamp(left, 6, Math.max(6, (window.innerWidth || document.documentElement.clientWidth || 320) - width - 6));
+      var top = Math.round(Math.min(logoRect.top, envelopeRect.top));
+      var gap = Math.round(envelopeRect.top - (logoRect.top + logoRect.height));
+      if (!isFinite(gap)) gap = 6;
+      gap = clamp(gap, 2, 14);
+
+      setImp(wrap, 'left', left + 'px');
+      setImp(wrap, 'top', top + 'px');
+      setImp(wrap, 'width', width + 'px');
+      setImp(wrap, 'gap', gap + 'px');
+
+      if (logo.parentNode !== wrap) wrap.appendChild(logo);
+      if (envelope.parentNode !== wrap) wrap.appendChild(envelope);
+
+      setImp(logo, 'position', 'static');
+      setImp(logo, 'top', 'auto');
+      setImp(logo, 'left', 'auto');
+      setImp(logo, 'right', 'auto');
+      setImp(logo, 'bottom', 'auto');
+      setImp(logo, 'margin', '0');
+      setImp(logo, 'transform', 'none');
+      setImp(logo, 'display', 'block');
+      setImp(logo, 'width', Math.round(logoRect.width) + 'px');
+      setImp(logo, 'height', Math.round(logoRect.height) + 'px');
+
+      setImp(envelope, 'position', 'static');
+      setImp(envelope, 'top', 'auto');
+      setImp(envelope, 'left', 'auto');
+      setImp(envelope, 'right', 'auto');
+      setImp(envelope, 'bottom', 'auto');
+      setImp(envelope, 'margin', '0');
+      setImp(envelope, 'transform', 'none');
+      setImp(envelope, 'display', 'inline-flex');
+      setImp(envelope, 'justify-content', 'center');
       return true;
     }
 
-    function settle(reason, force) {
-      queuedRaf = 0;
+    function dockHkLine() {
+      var line = findHkLine();
+      if (!line) return false;
 
-      var els = getElements();
-      var anchorKey = buildAnchorKey(els);
-      var anchorChanged = !!anchorKey && anchorKey !== lastAnchorKey;
-      var drifted = needsPulse(els);
+      var lineRect = rectOf(line);
+      if (!lineRect) return false;
 
-      if (!force && !anchorChanged && !drifted) return;
+      var wrap = ensureHkWrap();
+      var width = Math.round(lineRect.width);
+      var left = Math.round(lineRect.centerX - (width / 2));
+      left = clamp(left, 6, Math.max(6, (window.innerWidth || document.documentElement.clientWidth || 320) - width - 6));
 
-      if (anchorKey) lastAnchorKey = anchorKey;
+      setImp(wrap, 'left', left + 'px');
+      setImp(wrap, 'top', Math.round(lineRect.top) + 'px');
+      setImp(wrap, 'width', width + 'px');
 
-      if (!firePulse()) return;
+      if (line.parentNode !== wrap) wrap.appendChild(line);
+
+      setImp(line, 'position', 'static');
+      setImp(line, 'top', 'auto');
+      setImp(line, 'left', 'auto');
+      setImp(line, 'right', 'auto');
+      setImp(line, 'bottom', 'auto');
+      setImp(line, 'transform', 'none');
+      setImp(line, 'width', '100%');
+      setImp(line, 'min-width', '0');
+      setImp(line, 'max-width', '100%');
+      return true;
+    }
+
+    function settleFixedChrome() {
+      ensureStyle();
+      dockLogoAndEnvelope();
+      dockHkLine();
+    }
+
+    function scheduleSettle(delay) {
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        window.requestAnimationFrame(function () {
+          window.requestAnimationFrame(settleFixedChrome);
+        });
+      }, typeof delay === 'number' ? delay : 0);
+    }
+
+    function bindRechecks() {
+      ["searchInput", "arabicNumber", "arabiccNumber"].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el || el.dataset.mndoFixedTopBound === '1') return;
+        el.dataset.mndoFixedTopBound = '1';
+        ["input", "change", "blur"].forEach(function (evt) {
+          el.addEventListener(evt, function () {
+            scheduleSettle(120);
+          });
+        });
+      });
+    }
+
+    function startObserver() {
+      if (observer || !document.body || typeof MutationObserver !== 'function') return;
+      observer = new MutationObserver(function (mutations) {
+        var needsSettle = false;
+        for (var i = 0; i < mutations.length; i += 1) {
+          var m = mutations[i];
+          if (m.type === 'childList') {
+            needsSettle = true;
+            break;
+          }
+          var target = m.target;
+          if (m.type === 'attributes' && target && (
+            target.id === 'hkSmartFloatingLine'
+            || target.id === 'MNDO_UA07_LOGO3'
+            || target.id === 'UA07_LUX_LOGO_BETWEEN'
+            || target.id === 'UA07_SECRET_ENVELOPE_WRAP'
+          )) {
+            needsSettle = true;
+            break;
+          }
+        }
+        if (needsSettle) scheduleSettle(40);
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'style']
+      });
 
       setTimeout(function () {
-        var after = getElements();
-        if (Date.now() < settleLockedUntil && !needsPulse(after)) return;
-        if (needsPulse(after)) firePulse();
-      }, 150);
+        try {
+          if (observer) observer.disconnect();
+        } catch (err) {}
+        observer = null;
+      }, 15000);
     }
 
-    function schedule(reason, delay, force) {
-      pendingReason = reason || pendingReason || "top-stabilizer";
-      pendingForce = pendingForce || !!force;
+    bindRechecks();
+    startObserver();
+    scheduleSettle(0);
+    setTimeout(function () { bindRechecks(); scheduleSettle(120); }, 120);
+    setTimeout(function () { bindRechecks(); scheduleSettle(400); }, 400);
+    setTimeout(function () { bindRechecks(); scheduleSettle(900); }, 900);
 
-      if (queuedTimer) clearTimeout(queuedTimer);
-      queuedTimer = setTimeout(function () {
-        queuedTimer = 0;
-        if (queuedRaf) return;
-        queuedRaf = window.requestAnimationFrame(function () {
-          var forceNow = pendingForce;
-          var reasonNow = pendingReason;
-          pendingForce = false;
-          pendingReason = "";
-          settle(reasonNow, forceNow);
-        });
-      }, typeof delay === "number" ? delay : 0);
-    }
-
-    function bindInput(el) {
-      if (!el || el.__mndoTopStabilizerBound) return;
-      el.__mndoTopStabilizerBound = "1";
-
-      el.addEventListener("input", function () {
-        var value = String(el.value || "");
-        if (el.id === "arabicNumber" || el.id === "arabiccNumber") {
-          if (value === lastInputValue) return;
-          lastInputValue = value;
-        }
-        if (inputIdleTimer) clearTimeout(inputIdleTimer);
-        inputIdleTimer = setTimeout(function () {
-          schedule("input-idle:" + el.id, 0, false);
-        }, 170);
-      });
-
-      ["change", "blur", "paste"].forEach(function (evtName) {
-        el.addEventListener(evtName, function () {
-          schedule(evtName + ":" + el.id, evtName === "blur" ? 40 : 70, false);
-        });
-      });
-    }
-
-    function bindElementObservers(el, id) {
-      if (!el || attached[id]) return;
-      attached[id] = true;
-
-      if (resizeObserver) {
-        try { resizeObserver.observe(el); } catch (err) {}
-      }
-
-      if (mutationObserver && (id === "MNDO_UA07_LOGO3" || id === "UA07_SECRET_ENVELOPE_WRAP" || id === "hkSmartFloatingLine" || id === "MNDO_AHT_TAGS_STACK")) {
-        try { mutationObserver.observe(el, { attributes: true, attributeFilter: ["style", "class", "aria-hidden"] }); } catch (err) {}
-      }
-
-      if (id === "searchInput" || id === "arabicNumber" || id === "arabiccNumber") {
-        bindInput(el);
-      }
-    }
-
-    function bindAvailableElements() {
-      watchedIds.forEach(function (id) {
-        bindElementObservers(document.getElementById(id), id);
-      });
-
-      retryCount += 1;
-      var missingCore = !document.getElementById("searchInput") || !document.getElementById("MNDO_UA07_LOGO3");
-      var missingObserved = watchedIds.some(function (id) { return !attached[id]; });
-      if ((missingCore || missingObserved) && retryCount < 50) {
-        retryTimer = setTimeout(bindAvailableElements, 250);
-      }
-    }
-
-    if ("ResizeObserver" in window) {
-      resizeObserver = new ResizeObserver(function () {
-        schedule("resize-observer", 36, false);
-      });
-    }
-
-    mutationObserver = new MutationObserver(function () {
-      schedule("attribute-mut", 30, false);
+    window.addEventListener('load', function () { scheduleSettle(40); }, { once: true });
+    window.addEventListener('pageshow', function () { scheduleSettle(40); });
+    window.addEventListener('resize', function () { scheduleSettle(120); }, { passive: true });
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) scheduleSettle(80);
     });
-
-    bindAvailableElements();
-
-    // Expose a safe manual hook for any future patch without touching app.js.
-    window.__mndoSettleTopChrome = function () {
-      schedule("manual", 0, true);
-    };
-
-    window.addEventListener("load", function () { schedule("load", 60, true); }, { once: true });
-    window.addEventListener("pageshow", function () { schedule("pageshow", 40, true); });
-    window.addEventListener("resize", function () {
-      // Keep internal state in sync with real resizes without bouncing endlessly.
-      lastAnchorKey = buildAnchorKey(getElements()) || lastAnchorKey;
-    }, { passive: true });
-
-    document.addEventListener("visibilitychange", function () {
-      if (!document.hidden) schedule("visible", 80, true);
-    });
-
-    // Initial settle after the dynamic header pieces are injected.
-    schedule("boot", 120, true);
-    setTimeout(function () { schedule("boot-2", 0, true); }, 420);
   }
 
-  // Ensure any form reset clears the landline fields.  The native reset
+  // Keep the old entry-point name, but route it to the fixed docking
+  // implementation instead of synthetic resize nudges.
+  function installTopStabilizer() {
+    installFixedTopChrome();
+  }
+
+// Ensure any form reset clears the landline fields.  The native reset
   // behaviour sometimes omits these inputs; listen for the global
   // `reset` event and explicitly empty the values.  Do not prevent
   // default form resets.
