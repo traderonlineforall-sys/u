@@ -683,110 +683,151 @@
    * function is self-contained and guarded against missing elements.
    */
 
-  // Lock the UA07 upper chrome (logo + envelope/theme/online count + HK helper)
-  // to a stable document position.  This keeps the cluster as part of the
-  // page so it scrolls naturally, while preventing drift caused by later
-  // resize-based re-positioning code.
+  // Keep the top chrome stable in its original on-screen positions.
+  // We intentionally do NOT dispatch synthetic resize events on input,
+  // because that was the main reason the UA07 logo/header cluster drifted.
   function installTopStabilizer() {
-    var anchorId = "MNDO_TOP_CHROME_ANCHOR";
-    var styleId = "mndoTopChromeAnchorStyle";
-    var observer = null;
-    var raf = 0;
+    return;
+  }
 
-    function injectStyle() {
-      if (document.getElementById(styleId)) return;
-      var style = document.createElement("style");
-      style.id = styleId;
-      style.textContent = [
-        "body #" + anchorId + "{position:absolute !important; z-index:9001 !important; display:flex !important; flex-direction:column !important; align-items:center !important; justify-content:flex-start !important; gap:10px !important; transform:translateX(-50%) !important; pointer-events:none !important; width:max-content !important; max-width:calc(100vw - 24px) !important;}",
-        "body #" + anchorId + " > *{pointer-events:auto !important;}",
-        "body #" + anchorId + " #MNDO_UA07_LOGO3{position:relative !important; top:0 !important; left:0 !important; right:auto !important; bottom:auto !important; margin:0 !important; transform:none !important;}",
-        "body #" + anchorId + " #hkSmartFloatingLine{position:static !important; top:auto !important; left:auto !important; right:auto !important; bottom:auto !important; transform:none !important; margin:0 !important; max-width:min(560px, calc(100vw - 24px)) !important; z-index:auto !important;}",
-        "body #" + anchorId + " #hkSmartFloatingLine:not(.is-visible){display:none !important;}"
-      ].join("");
-      document.head.appendChild(style);
-    }
+  function installTopChromeLock() {
+    var state = {
+      logo: null,
+      hk: null,
+      raf: 0,
+      allowRelockUntil: 0,
+      observers: Object.create(null)
+    };
 
-    function ensureAnchor() {
-      var anchor = document.getElementById(anchorId);
-      if (!anchor) {
-        anchor = document.createElement("div");
-        anchor.id = anchorId;
-        document.body.appendChild(anchor);
-      }
-      return anchor;
+    function now() {
+      return Date.now ? Date.now() : new Date().getTime();
     }
 
     function pageRect(el) {
-      if (!el || !el.getBoundingClientRect) return null;
+      if (!el || typeof el.getBoundingClientRect !== "function") return null;
       var rect = el.getBoundingClientRect();
-      if (!rect || (!rect.width && !rect.height)) return null;
+      if (!rect || rect.width <= 0 || rect.height <= 0) return null;
       var sx = window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0;
       var sy = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
       return {
-        top: rect.top + sy,
-        left: rect.left + sx,
-        width: rect.width,
-        height: rect.height,
-        centerX: rect.left + sx + (rect.width / 2)
+        left: Math.round(sx + rect.left),
+        top: Math.round(sy + rect.top),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height)
       };
     }
 
-    function moveIntoAnchor(anchor, node) {
-      if (!anchor || !node || node.parentNode === anchor) return;
-      anchor.appendChild(node);
+    function setLockedBox(el, box) {
+      if (!el || !box) return;
+      el.style.setProperty("position", "absolute", "important");
+      el.style.setProperty("left", box.left + "px", "important");
+      el.style.setProperty("top", box.top + "px", "important");
+      el.style.setProperty("right", "auto", "important");
+      el.style.setProperty("bottom", "auto", "important");
+      el.style.setProperty("margin", "0", "important");
+      el.style.setProperty("transform", "none", "important");
+      if (box.width > 0) el.style.setProperty("width", box.width + "px", "important");
+      if (box.height > 0) el.style.setProperty("height", box.height + "px", "important");
     }
 
-    function lockNow() {
-      raf = 0;
-      injectStyle();
-
-      var logo = document.getElementById("MNDO_UA07_LOGO3");
-      if (!logo) return false;
-
-      var anchor = ensureAnchor();
-      var anchorLocked = anchor.dataset.locked === "1";
-      var rect = !anchorLocked ? pageRect(logo) : null;
-      if (!anchorLocked && !rect) return false;
-
-      if (!anchorLocked) {
-        anchor.style.left = Math.round(rect.centerX) + "px";
-        anchor.style.top = Math.round(rect.top) + "px";
-        anchor.dataset.locked = "1";
-      }
-
-      moveIntoAnchor(anchor, logo);
-
-      var hkLine = document.getElementById("hkSmartFloatingLine");
-      if (hkLine) {
-        moveIntoAnchor(anchor, hkLine);
-      }
-
+    function capture(which) {
+      var id = which === "logo" ? "MNDO_UA07_LOGO3" : "hkSmartFloatingLine";
+      var el = document.getElementById(id);
+      if (!el) return false;
+      var box = pageRect(el);
+      if (!box) return false;
+      state[which] = box;
+      setLockedBox(el, box);
+      bindObserver(which, el);
       return true;
     }
 
-    function scheduleLock() {
-      if (raf) return;
-      raf = window.requestAnimationFrame(lockNow);
+    function restore(which) {
+      var id = which === "logo" ? "MNDO_UA07_LOGO3" : "hkSmartFloatingLine";
+      var el = document.getElementById(id);
+      var box = state[which];
+      if (!el || !box) return;
+      setLockedBox(el, box);
     }
 
-    scheduleLock();
-    setTimeout(scheduleLock, 120);
-    setTimeout(scheduleLock, 400);
-    setTimeout(scheduleLock, 900);
-    setTimeout(scheduleLock, 1600);
-    setTimeout(scheduleLock, 2600);
+    function bindObserver(which, el) {
+      if (!el || typeof MutationObserver === "undefined") return;
+      var existing = state.observers[which];
+      if (existing && existing.el === el) return;
+      if (existing && existing.mo) {
+        try { existing.mo.disconnect(); } catch (err) {}
+      }
+      var mo = new MutationObserver(function () {
+        if (now() < state.allowRelockUntil) return;
+        restore(which);
+      });
+      try {
+        mo.observe(el, { attributes: true, attributeFilter: ["style", "class"] });
+        state.observers[which] = { el: el, mo: mo };
+      } catch (err) {}
+    }
 
-    window.addEventListener("load", scheduleLock, { once: true });
-    window.addEventListener("pageshow", function () { setTimeout(scheduleLock, 0); });
+    function recalc() {
+      state.allowRelockUntil = now() + 900;
+      capture("logo");
+      capture("hk");
+      window.setTimeout(function () {
+        capture("logo");
+        capture("hk");
+        state.allowRelockUntil = 0;
+      }, 180);
+      window.setTimeout(function () {
+        capture("logo");
+        capture("hk");
+        state.allowRelockUntil = 0;
+      }, 520);
+    }
+
+    function scheduleRecalc() {
+      if (state.raf) cancelAnimationFrame(state.raf);
+      state.raf = requestAnimationFrame(function () {
+        state.raf = 0;
+        recalc();
+      });
+    }
+
+    // Initial settle after the original scripts finish placing the elements.
+    window.setTimeout(scheduleRecalc, 900);
+    window.setTimeout(scheduleRecalc, 1600);
+
     window.addEventListener("resize", function () {
-      var anchor = document.getElementById(anchorId);
-      if (anchor && anchor.dataset.locked === "1") return;
-      scheduleLock();
+      scheduleRecalc();
+    });
+    window.addEventListener("pageshow", function () {
+      window.setTimeout(scheduleRecalc, 50);
     });
 
-    observer = new MutationObserver(function () { scheduleLock(); });
-    observer.observe(document.body, { childList: true, subtree: true });
+    document.addEventListener("click", function (event) {
+      var t = event.target;
+      if (!t) return;
+      if ((t.closest && t.closest("#headerResetBtn")) || (t.closest && t.closest("#tabs .tablinks"))) {
+        window.setTimeout(scheduleRecalc, 120);
+        window.setTimeout(scheduleRecalc, 420);
+      }
+    }, true);
+
+    if (typeof MutationObserver !== "undefined") {
+      var rootMo = new MutationObserver(function () {
+        if (!state.logo && document.getElementById("MNDO_UA07_LOGO3")) scheduleRecalc();
+        if (!state.hk && document.getElementById("hkSmartFloatingLine")) scheduleRecalc();
+      });
+      try {
+        rootMo.observe(document.documentElement, { childList: true, subtree: true });
+      } catch (err) {}
+    }
+
+    ["arabicNumber", "arabiccNumber"].forEach(function (id) {
+      var input = document.getElementById(id);
+      if (!input) return;
+      input.addEventListener("input", function () {
+        if (!state.hk) window.setTimeout(scheduleRecalc, 140);
+      }, { passive: true });
+    });
   }
 
   // Ensure any form reset clears the landline fields.  The native reset
@@ -881,6 +922,7 @@
   // other initializers to avoid coupling behaviours.
   onReady(function () {
     installTopStabilizer();
+    installTopChromeLock();
     installResetFix();
     installSuggestionsEnhancements();
     installEnvelopeEnhancements();
