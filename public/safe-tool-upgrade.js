@@ -683,258 +683,113 @@
    * function is self-contained and guarded against missing elements.
    */
 
-    // Dock the floating top chrome (UA07 logo + envelope row + HK helper)
-  // into fixed wrappers so it stays visually stable during typing and
-  // no longer depends on synthetic reset/resize workarounds.
-  function installFixedTopChrome() {
-    if (window.__mndoFixedTopChromeInstalled) return;
-    window.__mndoFixedTopChromeInstalled = true;
-
-    var STYLE_ID = "mndoFixedTopChromeStyle";
-    var CLUSTER_ID = "MNDO_FIXED_TOP_CLUSTER";
-    var HK_WRAP_ID = "MNDO_FIXED_HK_WRAP";
-    var timer = 0;
+  // Lock the UA07 upper chrome (logo + envelope/theme/online count + HK helper)
+  // to a stable document position.  This keeps the cluster as part of the
+  // page so it scrolls naturally, while preventing drift caused by later
+  // resize-based re-positioning code.
+  function installTopStabilizer() {
+    var anchorId = "MNDO_TOP_CHROME_ANCHOR";
+    var styleId = "mndoTopChromeAnchorStyle";
     var observer = null;
+    var raf = 0;
 
-    function setImp(el, prop, value) {
-      if (!el) return;
-      try { el.style.setProperty(prop, value, "important"); } catch (err) {}
-    }
-
-    function ensureStyle() {
-      if (document.getElementById(STYLE_ID)) return;
+    function injectStyle() {
+      if (document.getElementById(styleId)) return;
       var style = document.createElement("style");
-      style.id = STYLE_ID;
+      style.id = styleId;
       style.textContent = [
-        '#' + CLUSTER_ID + '{position:fixed !important;z-index:9000 !important;display:flex !important;flex-direction:column !important;align-items:center !important;justify-content:flex-start !important;gap:6px !important;pointer-events:none !important;contain:layout style paint;}',
-        '#' + CLUSTER_ID + ' > *{pointer-events:auto !important;}',
-        '#' + HK_WRAP_ID + '{position:fixed !important;z-index:9000 !important;display:block !important;pointer-events:auto !important;contain:layout style paint;}',
-        '#' + HK_WRAP_ID + ' > #hkSmartFloatingLine{position:static !important;left:auto !important;top:auto !important;right:auto !important;bottom:auto !important;transform:none !important;width:100% !important;min-width:0 !important;max-width:100% !important;}'
-      ].join('');
+        "body #" + anchorId + "{position:absolute !important; z-index:9001 !important; display:flex !important; flex-direction:column !important; align-items:center !important; justify-content:flex-start !important; gap:10px !important; transform:translateX(-50%) !important; pointer-events:none !important; width:max-content !important; max-width:calc(100vw - 24px) !important;}",
+        "body #" + anchorId + " > *{pointer-events:auto !important;}",
+        "body #" + anchorId + " #MNDO_UA07_LOGO3{position:relative !important; top:0 !important; left:0 !important; right:auto !important; bottom:auto !important; margin:0 !important; transform:none !important;}",
+        "body #" + anchorId + " #hkSmartFloatingLine{position:static !important; top:auto !important; left:auto !important; right:auto !important; bottom:auto !important; transform:none !important; margin:0 !important; max-width:min(560px, calc(100vw - 24px)) !important; z-index:auto !important;}",
+        "body #" + anchorId + " #hkSmartFloatingLine:not(.is-visible){display:none !important;}"
+      ].join("");
       document.head.appendChild(style);
     }
 
-    function findLogo() {
-      return document.getElementById("MNDO_UA07_LOGO3")
-        || document.getElementById("UA07_LUX_LOGO_BETWEEN");
+    function ensureAnchor() {
+      var anchor = document.getElementById(anchorId);
+      if (!anchor) {
+        anchor = document.createElement("div");
+        anchor.id = anchorId;
+        document.body.appendChild(anchor);
+      }
+      return anchor;
     }
 
-    function findEnvelope() {
-      return document.getElementById("UA07_SECRET_ENVELOPE_WRAP");
-    }
-
-    function findHkLine() {
-      return document.getElementById("hkSmartFloatingLine");
-    }
-
-    function rectOf(el) {
-      if (!el || typeof el.getBoundingClientRect !== "function") return null;
-      var r = el.getBoundingClientRect();
-      if (!r || !r.width || !r.height) return null;
+    function pageRect(el) {
+      if (!el || !el.getBoundingClientRect) return null;
+      var rect = el.getBoundingClientRect();
+      if (!rect || (!rect.width && !rect.height)) return null;
+      var sx = window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0;
+      var sy = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
       return {
-        left: r.left,
-        top: r.top,
-        width: r.width,
-        height: r.height,
-        right: r.right,
-        bottom: r.bottom,
-        centerX: r.left + (r.width / 2)
+        top: rect.top + sy,
+        left: rect.left + sx,
+        width: rect.width,
+        height: rect.height,
+        centerX: rect.left + sx + (rect.width / 2)
       };
     }
 
-    function clamp(value, min, max) {
-      return Math.min(Math.max(value, min), max);
+    function moveIntoAnchor(anchor, node) {
+      if (!anchor || !node || node.parentNode === anchor) return;
+      anchor.appendChild(node);
     }
 
-    function ensureCluster() {
-      var wrap = document.getElementById(CLUSTER_ID);
-      if (!wrap) {
-        wrap = document.createElement("div");
-        wrap.id = CLUSTER_ID;
-        document.body.appendChild(wrap);
+    function lockNow() {
+      raf = 0;
+      injectStyle();
+
+      var logo = document.getElementById("MNDO_UA07_LOGO3");
+      if (!logo) return false;
+
+      var anchor = ensureAnchor();
+      var anchorLocked = anchor.dataset.locked === "1";
+      var rect = !anchorLocked ? pageRect(logo) : null;
+      if (!anchorLocked && !rect) return false;
+
+      if (!anchorLocked) {
+        anchor.style.left = Math.round(rect.centerX) + "px";
+        anchor.style.top = Math.round(rect.top) + "px";
+        anchor.dataset.locked = "1";
       }
-      return wrap;
-    }
 
-    function ensureHkWrap() {
-      var wrap = document.getElementById(HK_WRAP_ID);
-      if (!wrap) {
-        wrap = document.createElement("div");
-        wrap.id = HK_WRAP_ID;
-        document.body.appendChild(wrap);
+      moveIntoAnchor(anchor, logo);
+
+      var hkLine = document.getElementById("hkSmartFloatingLine");
+      if (hkLine) {
+        moveIntoAnchor(anchor, hkLine);
       }
-      return wrap;
-    }
 
-    function dockLogoAndEnvelope() {
-      var logo = findLogo();
-      var envelope = findEnvelope();
-      if (!logo || !envelope) return false;
-
-      var logoRect = rectOf(logo);
-      var envelopeRect = rectOf(envelope);
-      if (!logoRect || !envelopeRect) return false;
-
-      var wrap = ensureCluster();
-      var width = Math.round(Math.max(logoRect.width, envelopeRect.width));
-      var centerX = logoRect.centerX;
-      var left = Math.round(centerX - (width / 2));
-      left = clamp(left, 6, Math.max(6, (window.innerWidth || document.documentElement.clientWidth || 320) - width - 6));
-      var top = Math.round(Math.min(logoRect.top, envelopeRect.top));
-      var gap = Math.round(envelopeRect.top - (logoRect.top + logoRect.height));
-      if (!isFinite(gap)) gap = 6;
-      gap = clamp(gap, 2, 14);
-
-      setImp(wrap, 'left', left + 'px');
-      setImp(wrap, 'top', top + 'px');
-      setImp(wrap, 'width', width + 'px');
-      setImp(wrap, 'gap', gap + 'px');
-
-      if (logo.parentNode !== wrap) wrap.appendChild(logo);
-      if (envelope.parentNode !== wrap) wrap.appendChild(envelope);
-
-      setImp(logo, 'position', 'static');
-      setImp(logo, 'top', 'auto');
-      setImp(logo, 'left', 'auto');
-      setImp(logo, 'right', 'auto');
-      setImp(logo, 'bottom', 'auto');
-      setImp(logo, 'margin', '0');
-      setImp(logo, 'transform', 'none');
-      setImp(logo, 'display', 'block');
-      setImp(logo, 'width', Math.round(logoRect.width) + 'px');
-      setImp(logo, 'height', Math.round(logoRect.height) + 'px');
-
-      setImp(envelope, 'position', 'static');
-      setImp(envelope, 'top', 'auto');
-      setImp(envelope, 'left', 'auto');
-      setImp(envelope, 'right', 'auto');
-      setImp(envelope, 'bottom', 'auto');
-      setImp(envelope, 'margin', '0');
-      setImp(envelope, 'transform', 'none');
-      setImp(envelope, 'display', 'inline-flex');
-      setImp(envelope, 'justify-content', 'center');
       return true;
     }
 
-    function dockHkLine() {
-      var line = findHkLine();
-      if (!line) return false;
-
-      var lineRect = rectOf(line);
-      if (!lineRect) return false;
-
-      var wrap = ensureHkWrap();
-      var width = Math.round(lineRect.width);
-      var left = Math.round(lineRect.centerX - (width / 2));
-      left = clamp(left, 6, Math.max(6, (window.innerWidth || document.documentElement.clientWidth || 320) - width - 6));
-
-      setImp(wrap, 'left', left + 'px');
-      setImp(wrap, 'top', Math.round(lineRect.top) + 'px');
-      setImp(wrap, 'width', width + 'px');
-
-      if (line.parentNode !== wrap) wrap.appendChild(line);
-
-      setImp(line, 'position', 'static');
-      setImp(line, 'top', 'auto');
-      setImp(line, 'left', 'auto');
-      setImp(line, 'right', 'auto');
-      setImp(line, 'bottom', 'auto');
-      setImp(line, 'transform', 'none');
-      setImp(line, 'width', '100%');
-      setImp(line, 'min-width', '0');
-      setImp(line, 'max-width', '100%');
-      return true;
+    function scheduleLock() {
+      if (raf) return;
+      raf = window.requestAnimationFrame(lockNow);
     }
 
-    function settleFixedChrome() {
-      ensureStyle();
-      dockLogoAndEnvelope();
-      dockHkLine();
-    }
+    scheduleLock();
+    setTimeout(scheduleLock, 120);
+    setTimeout(scheduleLock, 400);
+    setTimeout(scheduleLock, 900);
+    setTimeout(scheduleLock, 1600);
+    setTimeout(scheduleLock, 2600);
 
-    function scheduleSettle(delay) {
-      clearTimeout(timer);
-      timer = setTimeout(function () {
-        window.requestAnimationFrame(function () {
-          window.requestAnimationFrame(settleFixedChrome);
-        });
-      }, typeof delay === 'number' ? delay : 0);
-    }
-
-    function bindRechecks() {
-      ["searchInput", "arabicNumber", "arabiccNumber"].forEach(function (id) {
-        var el = document.getElementById(id);
-        if (!el || el.dataset.mndoFixedTopBound === '1') return;
-        el.dataset.mndoFixedTopBound = '1';
-        ["input", "change", "blur"].forEach(function (evt) {
-          el.addEventListener(evt, function () {
-            scheduleSettle(120);
-          });
-        });
-      });
-    }
-
-    function startObserver() {
-      if (observer || !document.body || typeof MutationObserver !== 'function') return;
-      observer = new MutationObserver(function (mutations) {
-        var needsSettle = false;
-        for (var i = 0; i < mutations.length; i += 1) {
-          var m = mutations[i];
-          if (m.type === 'childList') {
-            needsSettle = true;
-            break;
-          }
-          var target = m.target;
-          if (m.type === 'attributes' && target && (
-            target.id === 'hkSmartFloatingLine'
-            || target.id === 'MNDO_UA07_LOGO3'
-            || target.id === 'UA07_LUX_LOGO_BETWEEN'
-            || target.id === 'UA07_SECRET_ENVELOPE_WRAP'
-          )) {
-            needsSettle = true;
-            break;
-          }
-        }
-        if (needsSettle) scheduleSettle(40);
-      });
-
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['class', 'style']
-      });
-
-      setTimeout(function () {
-        try {
-          if (observer) observer.disconnect();
-        } catch (err) {}
-        observer = null;
-      }, 15000);
-    }
-
-    bindRechecks();
-    startObserver();
-    scheduleSettle(0);
-    setTimeout(function () { bindRechecks(); scheduleSettle(120); }, 120);
-    setTimeout(function () { bindRechecks(); scheduleSettle(400); }, 400);
-    setTimeout(function () { bindRechecks(); scheduleSettle(900); }, 900);
-
-    window.addEventListener('load', function () { scheduleSettle(40); }, { once: true });
-    window.addEventListener('pageshow', function () { scheduleSettle(40); });
-    window.addEventListener('resize', function () { scheduleSettle(120); }, { passive: true });
-    document.addEventListener('visibilitychange', function () {
-      if (!document.hidden) scheduleSettle(80);
+    window.addEventListener("load", scheduleLock, { once: true });
+    window.addEventListener("pageshow", function () { setTimeout(scheduleLock, 0); });
+    window.addEventListener("resize", function () {
+      var anchor = document.getElementById(anchorId);
+      if (anchor && anchor.dataset.locked === "1") return;
+      scheduleLock();
     });
+
+    observer = new MutationObserver(function () { scheduleLock(); });
+    observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  // Keep the old entry-point name, but route it to the fixed docking
-  // implementation instead of synthetic resize nudges.
-  function installTopStabilizer() {
-    installFixedTopChrome();
-  }
-
-// Ensure any form reset clears the landline fields.  The native reset
+  // Ensure any form reset clears the landline fields.  The native reset
   // behaviour sometimes omits these inputs; listen for the global
   // `reset` event and explicitly empty the values.  Do not prevent
   // default form resets.
