@@ -683,144 +683,13 @@
    * function is self-contained and guarded against missing elements.
    */
 
-  // Keep the top chrome stable in its original on-screen positions.
-  // We intentionally do NOT dispatch synthetic resize events on input,
-  // because that was the main reason the UA07 logo/header cluster drifted.
+  // The original file used synthetic `resize` events while the user typed
+  // in the top inputs.  That workaround made the floating logo/header tools
+  // jump even though the page width itself had not changed.  Keep this hook
+  // as a deliberate no-op so the rest of the upgrade file stays untouched
+  // while the top area behaves like normal page content.
   function installTopStabilizer() {
     return;
-  }
-
-  function installTopChromeLock() {
-    var state = {
-      logo: null,
-      hk: null,
-      raf: 0,
-      allowRelockUntil: 0,
-      observers: Object.create(null)
-    };
-
-    function now() {
-      return Date.now ? Date.now() : new Date().getTime();
-    }
-
-    function pageRect(el) {
-      if (!el || typeof el.getBoundingClientRect !== "function") return null;
-      var rect = el.getBoundingClientRect();
-      if (!rect || rect.width <= 0 || rect.height <= 0) return null;
-      var sx = window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0;
-      var sy = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-      return {
-        left: Math.round(sx + rect.left),
-        top: Math.round(sy + rect.top),
-        width: Math.round(rect.width),
-        height: Math.round(rect.height)
-      };
-    }
-
-    function setLockedBox(el, box) {
-      if (!el || !box) return;
-      el.style.setProperty("position", "absolute", "important");
-      el.style.setProperty("left", box.left + "px", "important");
-      el.style.setProperty("top", box.top + "px", "important");
-      el.style.setProperty("right", "auto", "important");
-      el.style.setProperty("bottom", "auto", "important");
-      el.style.setProperty("margin", "0", "important");
-      el.style.setProperty("transform", "none", "important");
-      if (box.width > 0) el.style.setProperty("width", box.width + "px", "important");
-      if (box.height > 0) el.style.setProperty("height", box.height + "px", "important");
-    }
-
-    function capture(which) {
-      var id = "MNDO_UA07_LOGO3";
-      var el = document.getElementById(id);
-      if (!el) return false;
-      var box = pageRect(el);
-      if (!box) return false;
-      state[which] = box;
-      setLockedBox(el, box);
-      bindObserver(which, el);
-      return true;
-    }
-
-    function restore(which) {
-      var id = "MNDO_UA07_LOGO3";
-      var el = document.getElementById(id);
-      var box = state[which];
-      if (!el || !box) return;
-      setLockedBox(el, box);
-    }
-
-    function bindObserver(which, el) {
-      if (!el || typeof MutationObserver === "undefined") return;
-      var existing = state.observers[which];
-      if (existing && existing.el === el) return;
-      if (existing && existing.mo) {
-        try { existing.mo.disconnect(); } catch (err) {}
-      }
-      var mo = new MutationObserver(function () {
-        if (now() < state.allowRelockUntil) return;
-        restore(which);
-      });
-      try {
-        mo.observe(el, { attributes: true, attributeFilter: ["style", "class"] });
-        state.observers[which] = { el: el, mo: mo };
-      } catch (err) {}
-    }
-
-    function recalc() {
-      state.allowRelockUntil = now() + 900;
-      capture("logo");
-      window.setTimeout(function () {
-        capture("logo");
-        state.allowRelockUntil = 0;
-      }, 180);
-      window.setTimeout(function () {
-        capture("logo");
-        state.allowRelockUntil = 0;
-      }, 520);
-    }
-
-    function scheduleRecalc() {
-      if (state.raf) cancelAnimationFrame(state.raf);
-      state.raf = requestAnimationFrame(function () {
-        state.raf = 0;
-        recalc();
-      });
-    }
-
-    // Initial settle after the original scripts finish placing the elements.
-    window.setTimeout(scheduleRecalc, 900);
-    window.setTimeout(scheduleRecalc, 1600);
-
-    window.addEventListener("resize", function () {
-      scheduleRecalc();
-    });
-    window.addEventListener("pageshow", function () {
-      window.setTimeout(scheduleRecalc, 50);
-    });
-
-    document.addEventListener("click", function (event) {
-      var t = event.target;
-      if (!t) return;
-      if ((t.closest && t.closest("#headerResetBtn")) || (t.closest && t.closest("#tabs .tablinks"))) {
-        window.setTimeout(scheduleRecalc, 120);
-        window.setTimeout(scheduleRecalc, 420);
-      }
-    }, true);
-
-    if (typeof MutationObserver !== "undefined") {
-      var rootMo = new MutationObserver(function () {
-        if (!state.logo && document.getElementById("MNDO_UA07_LOGO3")) scheduleRecalc();
-      });
-      try {
-        rootMo.observe(document.documentElement, { childList: true, subtree: true });
-      } catch (err) {}
-    }
-
-    ["arabicNumber", "arabiccNumber"].forEach(function (id) {
-      var input = document.getElementById(id);
-      if (!input) return;
-    });
   }
 
   // Ensure any form reset clears the landline fields.  The native reset
@@ -915,7 +784,6 @@
   // other initializers to avoid coupling behaviours.
   onReady(function () {
     installTopStabilizer();
-    installTopChromeLock();
     installResetFix();
     installSuggestionsEnhancements();
     installEnvelopeEnhancements();
