@@ -683,13 +683,128 @@
    * function is self-contained and guarded against missing elements.
    */
 
-  // The original file used synthetic `resize` events while the user typed
-  // in the top inputs.  That workaround made the floating logo/header tools
-  // jump even though the page width itself had not changed.  Keep this hook
-  // as a deliberate no-op so the rest of the upgrade file stays untouched
-  // while the top area behaves like normal page content.
+  function getPageOffsetX() {
+    return window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0;
+  }
+
+  function getPageOffsetY() {
+    return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+  }
+
+  function readLockedRect(el) {
+    if (!el) return null;
+    var left = parseFloat(el.dataset.mndoLockedLeft || "");
+    var top = parseFloat(el.dataset.mndoLockedTop || "");
+    var width = parseFloat(el.dataset.mndoLockedWidth || "");
+    var height = parseFloat(el.dataset.mndoLockedHeight || "");
+    if (!Number.isFinite(left) || !Number.isFinite(top) || !Number.isFinite(width) || !Number.isFinite(height)) {
+      return null;
+    }
+    return { left: left, top: top, width: width, height: height };
+  }
+
+  function writeLockedRect(el, rect) {
+    if (!el || !rect) return;
+    el.dataset.mndoLockedLeft = String(rect.left);
+    el.dataset.mndoLockedTop = String(rect.top);
+    el.dataset.mndoLockedWidth = String(rect.width);
+    el.dataset.mndoLockedHeight = String(rect.height);
+  }
+
+  function applyLockedRect(el, rect) {
+    if (!el || !rect) return;
+    el.style.position = "absolute";
+    el.style.left = Math.round(rect.left) + "px";
+    el.style.top = Math.round(rect.top) + "px";
+    el.style.width = Math.round(rect.width) + "px";
+    el.style.height = Math.round(rect.height) + "px";
+    el.style.right = "auto";
+    el.style.bottom = "auto";
+    el.style.margin = "0";
+    el.style.transform = "none";
+  }
+
+  function measureElementPageRect(el) {
+    if (!el || typeof el.getBoundingClientRect !== "function") return null;
+    var rect = el.getBoundingClientRect();
+    if (!rect || rect.width <= 0 || rect.height <= 0) return null;
+    return {
+      left: getPageOffsetX() + rect.left,
+      top: getPageOffsetY() + rect.top,
+      width: rect.width,
+      height: rect.height
+    };
+  }
+
+  function bindLogoPageLockObserver(el) {
+    if (!el || el.__mndoLogoPageLockObserver || typeof MutationObserver === "undefined") return;
+    var syncing = false;
+    var observer = new MutationObserver(function () {
+      if (syncing) return;
+      var rect = readLockedRect(el);
+      if (!rect) return;
+      syncing = true;
+      applyLockedRect(el, rect);
+      window.setTimeout(function () { syncing = false; }, 0);
+    });
+    try {
+      observer.observe(el, { attributes: true, attributeFilter: ["style", "class"] });
+      el.__mndoLogoPageLockObserver = observer;
+    } catch (err) {}
+  }
+
+  function lockLogoToOriginalPagePosition(forceRefresh) {
+    var logo = document.getElementById("MNDO_UA07_LOGO3");
+    if (!logo) return false;
+
+    var rect = !forceRefresh ? readLockedRect(logo) : null;
+    if (!rect) {
+      rect = measureElementPageRect(logo);
+      if (!rect) return false;
+      writeLockedRect(logo, rect);
+    }
+
+    applyLockedRect(logo, rect);
+    bindLogoPageLockObserver(logo);
+    return true;
+  }
+
+  window.__mndoLockTopChrome = function () {
+    lockLogoToOriginalPagePosition(false);
+  };
+
+  // Keep the UA07 logo/envelope cluster pinned to its settled page coordinates.
+  // This removes the old synthetic resize workaround and avoids movement while
+  // editing the landline/search fields.
   function installTopStabilizer() {
-    return;
+    var ids = ["searchInput", "arabicNumber", "arabiccNumber"];
+    var inputs = [];
+    ids.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) inputs.push(el);
+    });
+
+    function settleLockedChrome(forceRefresh) {
+      window.requestAnimationFrame(function () {
+        lockLogoToOriginalPagePosition(Boolean(forceRefresh));
+      });
+    }
+
+    [80, 220, 550, 1100, 1800].forEach(function (delay) {
+      setTimeout(function () { settleLockedChrome(delay >= 1100); }, delay);
+    });
+    window.addEventListener("pageshow", function () { settleLockedChrome(false); });
+
+    if (!inputs.length) return;
+    var timer = null;
+    inputs.forEach(function (el) {
+      el.addEventListener("input", function () {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(function () {
+          settleLockedChrome(false);
+        }, 120);
+      });
+    });
   }
 
   // Ensure any form reset clears the landline fields.  The native reset

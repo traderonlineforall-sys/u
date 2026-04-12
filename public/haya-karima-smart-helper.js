@@ -26,7 +26,11 @@
     rawToken: 0,
     resizeBound: false,
     popupBound: false,
-    inputListeners: []
+    inputListeners: [],
+    lockedLeft: null,
+    lockedTop: null,
+    lockedWidth: null,
+    isLocked: false
   };
 
   function toEnglishDigits(value) {
@@ -80,7 +84,7 @@
     var style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = [
-      '#' + LINE_ID + '{display:none;position:absolute;left:50%;transform:translateX(-50%);min-width:300px;max-width:560px;font-size:12px;text-align:center;z-index:2;pointer-events:auto;user-select:text;color:rgba(255,255,255,.88);text-shadow:0 1px 2px rgba(0,0,0,.55);white-space:normal;overflow:visible;isolation:isolate;}',
+      '#' + LINE_ID + '{display:none;position:absolute;left:0;top:0;transform:none;min-width:300px;max-width:560px;font-size:12px;text-align:center;z-index:2;pointer-events:auto;user-select:text;color:rgba(255,255,255,.88);text-shadow:0 1px 2px rgba(0,0,0,.55);white-space:normal;overflow:visible;isolation:isolate;}',
       '#' + LINE_ID + '.is-visible{display:block;}',
       '#' + LINE_ID + ',#' + LINE_ID + ' *{pointer-events:auto;}',
       '#' + LINE_ID + ' .hk-shell{display:flex;flex-direction:column;align-items:center;gap:5px;width:100%;}',
@@ -263,20 +267,57 @@
     return null;
   }
 
-  function positionLine() {
-    var dom = ensureDom();
-    var rect = getAnchorRect();
-    if (!dom || !dom.line || !rect) return;
+  function getPageOffsetX() {
+    return window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0;
+  }
 
-    var scrollX = window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0;
-    var scrollY = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-    var centerX = scrollX + rect.left + (rect.width / 2);
+  function getPageOffsetY() {
+    return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+  }
+
+  function computeLinePlacement(rect) {
+    if (!rect) return null;
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 320;
     var viewportCap = Math.max(280, viewportWidth - 24);
+    var width = Math.min(Math.max(rect.width, 320), 560, viewportCap);
+    var centerX = getPageOffsetX() + rect.left + (rect.width / 2);
+    return {
+      left: Math.round(centerX - (width / 2)),
+      top: Math.round(getPageOffsetY() + rect.bottom + 10),
+      width: Math.round(width)
+    };
+  }
 
-    dom.line.style.left = centerX + 'px';
-    dom.line.style.top = (scrollY + rect.bottom + 10) + 'px';
-    dom.line.style.width = Math.min(Math.max(rect.width, 320), 560, viewportCap) + 'px';
+  function applyLockedPlacement(dom, placement) {
+    if (!dom || !dom.line || !placement) return false;
+    dom.line.style.left = placement.left + 'px';
+    dom.line.style.top = placement.top + 'px';
+    dom.line.style.width = placement.width + 'px';
+    return true;
+  }
+
+  function positionLine(forceMeasure) {
+    var dom = ensureDom();
+    if (!dom || !dom.line) return false;
+
+    if (helperState.isLocked && !forceMeasure) {
+      return applyLockedPlacement(dom, {
+        left: helperState.lockedLeft,
+        top: helperState.lockedTop,
+        width: helperState.lockedWidth
+      });
+    }
+
+    var rect = getAnchorRect();
+    var placement = computeLinePlacement(rect);
+    if (!placement) return false;
+
+    helperState.lockedLeft = placement.left;
+    helperState.lockedTop = placement.top;
+    helperState.lockedWidth = placement.width;
+    helperState.isLocked = true;
+
+    return applyLockedPlacement(dom, placement);
   }
 
   function showLine() {
@@ -601,10 +642,9 @@
     if (helperState.observer || typeof MutationObserver === 'undefined') return;
 
     helperState.observer = new MutationObserver(function () {
-      var previousInput = helperState.boundInput;
       var rebound = bindInput();
-      if (rebound && helperState.boundInput !== previousInput) {
-        positionLine();
+      if (rebound) {
+        positionLine(false);
       }
     });
 
@@ -616,7 +656,6 @@
   function bindWindowEvents() {
     if (helperState.resizeBound) return;
     helperState.resizeBound = true;
-    window.addEventListener('resize', positionLine, { passive: true });
   }
 
   function init() {
@@ -624,9 +663,11 @@
     bindInput();
     bindWindowEvents();
     startObserver();
-    positionLine();
-    setTimeout(function () { bindInput(); positionLine(); }, 200);
-    setTimeout(function () { bindInput(); positionLine(); }, 600);
+    positionLine(true);
+    setTimeout(function () { bindInput(); positionLine(true); }, 200);
+    setTimeout(function () { bindInput(); positionLine(true); }, 600);
+    setTimeout(function () { bindInput(); positionLine(true); }, 1200);
+    setTimeout(function () { bindInput(); positionLine(true); }, 1800);
   }
 
   if (document.readyState === 'loading') {
