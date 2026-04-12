@@ -1,23 +1,29 @@
-
-#MNDO_TOP_CHROME_PAGE_LOCK {
-  position: absolute !important;
-  left: 0 !important;
-  top: 0 !important;
-  width: 0;
-  height: 0;
-  overflow: visible !important;
-  pointer-events: none;
-  z-index: 9002;
+/* === Top chrome page stage === */
+body,
+#myBody {
+  position: relative;
 }
 
-#MNDO_TOP_CHROME_PAGE_LOCK > * {
+#ua07TopChromeStage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  min-height: 220px;
+  pointer-events: none;
+  z-index: 9000;
+}
+
+#ua07TopChromeStage > * {
   pointer-events: auto;
 }
 
-#MNDO_TOP_CHROME_PAGE_LOCK #MNDO_UA07_LOGO3,
-#MNDO_TOP_CHROME_PAGE_LOCK #UA07_LUX_LOGO_BETWEEN,
-#MNDO_TOP_CHROME_PAGE_LOCK #hkSmartFloatingLine {
-  margin: 0 !important;
+#ua07TopChromeStage #MNDO_UA07_LOGO3 {
+  z-index: 9000 !important;
+}
+
+#ua07TopChromeStage #hkSmartFloatingLine {
+  z-index: 9001 !important;
 }
 
 /* === Safe Tool Upgrade: isolated UI additions (non-breaking) === */

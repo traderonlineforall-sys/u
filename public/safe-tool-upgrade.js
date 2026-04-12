@@ -683,252 +683,112 @@
    * function is self-contained and guarded against missing elements.
    */
 
-
-  /*
-   * Rebuild the floating top chrome as a page-locked cluster.
-   *
-   * The original logo / envelope / online counter / theme toggle and the
-   * H.K helper are injected and positioned by independent patches.  That made
-   * them drift whenever other code dispatched resize-driven placement logic.
-   *
-   * The implementation below keeps the original nodes and their existing IDs,
-   * but re-parents them into one page-level anchor after their initial render.
-   * The anchor itself is attached to the document (not the viewport), so the
-   * cluster scrolls naturally with the page like any other tool element.
-   */
-  var topChromeLockState = {
-    installed: false,
-    anchor: null,
-    baseline: null,
-    logoEl: null,
-    hkEl: null,
-    logoRect: null,
-    hkRect: null,
-    raf: 0,
-    forceMeasure: false,
-    domObserver: null
-  };
-
-  function getPageX() {
-    return window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0;
-  }
-
-  function getPageY() {
-    return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-  }
-
-  function getDocRect(el) {
-    if (!el || typeof el.getBoundingClientRect !== "function") return null;
-    var r = el.getBoundingClientRect();
-    if (!r) return null;
-    if (!(r.width > 0 || r.height > 0)) return null;
-    var pageX = getPageX();
-    var pageY = getPageY();
+  function getPageOffset() {
     return {
-      left: r.left + pageX,
-      top: r.top + pageY,
-      width: r.width,
-      height: r.height,
-      right: r.left + pageX + r.width,
-      bottom: r.top + pageY + r.height
+      x: window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0,
+      y: window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0
     };
   }
 
-  function getTopChromeLogo() {
-    return document.getElementById("MNDO_UA07_LOGO3")
-      || document.getElementById("UA07_LUX_LOGO_BETWEEN")
-      || document.getElementById("MNDO_UA07_LOGO");
+  function ensureTopChromeStage() {
+    var stage = document.getElementById("ua07TopChromeStage");
+    if (stage) return stage;
+
+    stage = document.createElement("div");
+    stage.id = "ua07TopChromeStage";
+    stage.setAttribute("aria-hidden", "true");
+
+    var root = document.body || document.documentElement;
+    if (root && root.appendChild) {
+      root.appendChild(stage);
+    }
+    return stage;
   }
 
-  function getTopChromeHK() {
-    return document.getElementById("hkSmartFloatingLine");
-  }
-
-  function buildBaseline(rects) {
-    var usable = rects.filter(Boolean);
-    if (!usable.length) return null;
-    var left = usable[0].left;
-    var top = usable[0].top;
-    var right = usable[0].right;
-    var bottom = usable[0].bottom;
-    usable.slice(1).forEach(function (rect) {
-      if (rect.left < left) left = rect.left;
-      if (rect.top < top) top = rect.top;
-      if (rect.right > right) right = rect.right;
-      if (rect.bottom > bottom) bottom = rect.bottom;
+  function ensureElementStyleLock(el, applyLockedStyles) {
+    if (!el || el.__ua07StyleLockObserver) return;
+    var syncing = false;
+    var observer = new MutationObserver(function (records) {
+      if (syncing) return;
+      var shouldRepair = records.some(function (record) {
+        return record.type === "attributes" && record.attributeName === "style";
+      });
+      if (!shouldRepair) return;
+      syncing = true;
+      try { applyLockedStyles(); } catch (err) {}
+      syncing = false;
     });
-    return {
-      left: Math.round(left),
-      top: Math.round(top),
-      width: Math.ceil(right - left),
-      height: Math.ceil(bottom - top)
-    };
+    observer.observe(el, { attributes: true, attributeFilter: ["style"] });
+    el.__ua07StyleLockObserver = observer;
   }
 
-  function ensureTopChromeAnchor() {
-    var anchor = document.getElementById("MNDO_TOP_CHROME_PAGE_LOCK");
-    if (!anchor) {
-      anchor = document.createElement("div");
-      anchor.id = "MNDO_TOP_CHROME_PAGE_LOCK";
-      document.body.appendChild(anchor);
-    }
-    topChromeLockState.anchor = anchor;
-    return anchor;
-  }
+  function lockElementIntoTopChrome(el, options) {
+    if (!el || typeof el.getBoundingClientRect !== "function") return false;
 
-  function setImportantStyle(el, prop, value) {
-    if (!el || !el.style) return;
-    el.style.setProperty(prop, value, "important");
-  }
+    var rect = el.getBoundingClientRect();
+    if (!rect || rect.width <= 0 || rect.height <= 0) return false;
 
-  function applyAnchorBox(baseline) {
-    if (!baseline) return;
-    var anchor = ensureTopChromeAnchor();
-    setImportantStyle(anchor, "position", "absolute");
-    setImportantStyle(anchor, "left", baseline.left + "px");
-    setImportantStyle(anchor, "top", baseline.top + "px");
-    setImportantStyle(anchor, "width", Math.max(1, baseline.width) + "px");
-    setImportantStyle(anchor, "height", Math.max(1, baseline.height) + "px");
-    setImportantStyle(anchor, "pointer-events", "none");
-    setImportantStyle(anchor, "overflow", "visible");
-    setImportantStyle(anchor, "z-index", "9002");
-  }
+    var page = getPageOffset();
+    var left = Math.round(page.x + rect.left);
+    var top = Math.round(page.y + rect.top);
+    var width = Math.round(rect.width);
+    var height = Math.round(rect.height);
+    var stage = ensureTopChromeStage();
+    if (!stage) return false;
 
-  function lockNodeIntoAnchor(kind, el, rect) {
-    var baseline = topChromeLockState.baseline;
-    if (!baseline || !el || !rect) return;
-
-    var anchor = ensureTopChromeAnchor();
-    if (el.parentNode !== anchor) anchor.appendChild(el);
-
-    el.__mndoTopChromeApplying = true;
-    try {
-      el.dataset.mndoTopChromeLocked = "1";
-      el.dataset.mndoTopChromeRole = kind;
-    } catch (err) {}
-
-    setImportantStyle(el, "position", "absolute");
-    setImportantStyle(el, "left", Math.round(rect.left - baseline.left) + "px");
-    setImportantStyle(el, "top", Math.round(rect.top - baseline.top) + "px");
-    setImportantStyle(el, "right", "auto");
-    setImportantStyle(el, "bottom", "auto");
-    setImportantStyle(el, "margin", "0");
-    setImportantStyle(el, "transform", "none");
-    setImportantStyle(el, "pointer-events", "auto");
-
-    if (kind === "logo") {
-      setImportantStyle(el, "width", Math.round(rect.width) + "px");
-      setImportantStyle(el, "height", Math.round(rect.height) + "px");
-    } else if (kind === "hk") {
-      var lockedWidth = Math.round(rect.width);
-      setImportantStyle(el, "width", lockedWidth + "px");
-      setImportantStyle(el, "min-width", lockedWidth + "px");
-      setImportantStyle(el, "max-width", lockedWidth + "px");
+    if (el.parentNode !== stage) {
+      stage.appendChild(el);
     }
 
-    setTimeout(function () {
-      el.__mndoTopChromeApplying = false;
-    }, 0);
-  }
+    var allowPointer = !options || options.pointerEvents !== false;
+    var keepTransform = !!(options && options.keepTransform);
 
-  function guardLockedNode(kind, el) {
-    if (!el || el.__mndoTopChromeGuard || typeof MutationObserver === "undefined") return;
-    var observer = new MutationObserver(function () {
-      if (el.__mndoTopChromeApplying) return;
-      requestTopChromeLock(false);
-    });
-    observer.observe(el, { attributes: true, attributeFilter: ["style", "class"] });
-    el.__mndoTopChromeGuard = observer;
-  }
-
-  function applyTopChromeLock(forceMeasure) {
-    var logo = getTopChromeLogo();
-    var hk = getTopChromeHK();
-    var logoRect = getDocRect(logo);
-    var hkVisible = !!(hk && hk.classList && hk.classList.contains("is-visible"));
-    var hkRect = hkVisible ? getDocRect(hk) : null;
-
-    if (!logoRect && !hkRect) return false;
-
-    var needsFreshBaseline = !topChromeLockState.baseline || !!forceMeasure || (!!hkRect && !topChromeLockState.hkRect);
-    if (needsFreshBaseline) {
-      topChromeLockState.baseline = buildBaseline([logoRect, hkRect]);
-      applyAnchorBox(topChromeLockState.baseline);
-    } else {
-      applyAnchorBox(topChromeLockState.baseline);
+    function applyLockedStyles() {
+      el.dataset.ua07TopLocked = "1";
+      el.style.setProperty("position", "absolute", "important");
+      el.style.setProperty("left", left + "px", "important");
+      el.style.setProperty("top", top + "px", "important");
+      el.style.setProperty("right", "auto", "important");
+      el.style.setProperty("bottom", "auto", "important");
+      el.style.setProperty("margin", "0", "important");
+      el.style.setProperty("z-index", String(options && options.zIndex ? options.zIndex : 9000), "important");
+      if (!keepTransform) {
+        el.style.setProperty("transform", "none", "important");
+      }
+      if (width > 0) el.style.setProperty("width", width + "px", "important");
+      if (height > 0) el.style.setProperty("height", height + "px", "important");
+      el.style.setProperty("pointer-events", allowPointer ? "auto" : "none", "important");
     }
 
-    if (logo && logoRect) {
-      topChromeLockState.logoEl = logo;
-      topChromeLockState.logoRect = logoRect;
-      lockNodeIntoAnchor("logo", logo, logoRect);
-      guardLockedNode("logo", logo);
-    }
-
-    if (hk && hkRect) {
-      topChromeLockState.hkEl = hk;
-      topChromeLockState.hkRect = hkRect;
-      lockNodeIntoAnchor("hk", hk, hkRect);
-      guardLockedNode("hk", hk);
-    }
-
+    applyLockedStyles();
+    ensureElementStyleLock(el, applyLockedStyles);
     return true;
   }
 
-  function requestTopChromeLock(forceMeasure) {
-    if (forceMeasure) topChromeLockState.forceMeasure = true;
-    if (topChromeLockState.raf) return;
-    topChromeLockState.raf = window.requestAnimationFrame(function () {
-      topChromeLockState.raf = 0;
-      var force = topChromeLockState.forceMeasure;
-      topChromeLockState.forceMeasure = false;
-      applyTopChromeLock(force);
-    });
-  }
-
-  function installTopChromeDomObserver() {
-    if (topChromeLockState.domObserver || typeof MutationObserver === "undefined") return;
-    var root = document.body || document.documentElement;
-    if (!root) return;
-    topChromeLockState.domObserver = new MutationObserver(function () {
-      requestTopChromeLock(false);
-    });
-    topChromeLockState.domObserver.observe(root, { childList: true, subtree: true });
-  }
-
   function installTopChromeLock() {
-    if (topChromeLockState.installed) return;
-    topChromeLockState.installed = true;
+    window.__ua07TopChrome = {
+      ensureStage: ensureTopChromeStage,
+      lockElement: lockElementIntoTopChrome,
+      getPageOffset: getPageOffset
+    };
 
-    installTopChromeDomObserver();
+    var tries = 0;
+    var timer = setInterval(function () {
+      tries += 1;
+      var logo = document.getElementById("MNDO_UA07_LOGO3");
+      var done = false;
+      if (logo) {
+        done = lockElementIntoTopChrome(logo, { pointerEvents: false, zIndex: 9000, keepTransform: false });
+      }
+      if (done || tries > 30) {
+        clearInterval(timer);
+      }
+    }, 150);
 
-    requestTopChromeLock(true);
-    setTimeout(function () { requestTopChromeLock(true); }, 120);
-    setTimeout(function () { requestTopChromeLock(true); }, 360);
-    setTimeout(function () { requestTopChromeLock(true); }, 900);
-    setTimeout(function () { requestTopChromeLock(true); }, 1400);
-
-    window.addEventListener("load", function () {
-      requestTopChromeLock(true);
-      setTimeout(function () { requestTopChromeLock(true); }, 180);
-    }, { once: true });
-
-    window.addEventListener("pageshow", function () {
-      requestTopChromeLock(true);
-    });
-
-    window.addEventListener("resize", function () {
-      setTimeout(function () { requestTopChromeLock(true); }, 120);
-    });
-
-    window.addEventListener("mndo:hk-line-state", function () {
-      requestTopChromeLock(true);
-    });
-  }
-
-  // Keep the historical name so the existing onReady registration remains intact.
-  function installTopStabilizer() {
-    installTopChromeLock();
+    setTimeout(function () {
+      var logo = document.getElementById("MNDO_UA07_LOGO3");
+      if (logo) lockElementIntoTopChrome(logo, { pointerEvents: false, zIndex: 9000, keepTransform: false });
+    }, 1200);
   }
 
   // Ensure any form reset clears the landline fields.  The native reset
@@ -1022,7 +882,7 @@
   // Register our enhancements on DOM ready.  Keep this separate from
   // other initializers to avoid coupling behaviours.
   onReady(function () {
-    installTopStabilizer();
+    installTopChromeLock();
     installResetFix();
     installSuggestionsEnhancements();
     installEnvelopeEnhancements();
