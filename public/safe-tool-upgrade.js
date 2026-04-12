@@ -683,112 +683,14 @@
    * function is self-contained and guarded against missing elements.
    */
 
-  function getPageOffset() {
-    return {
-      x: window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0,
-      y: window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0
-    };
-  }
-
-  function ensureTopChromeStage() {
-    var stage = document.getElementById("ua07TopChromeStage");
-    if (stage) return stage;
-
-    stage = document.createElement("div");
-    stage.id = "ua07TopChromeStage";
-    stage.setAttribute("aria-hidden", "true");
-
-    var root = document.body || document.documentElement;
-    if (root && root.appendChild) {
-      root.appendChild(stage);
-    }
-    return stage;
-  }
-
-  function ensureElementStyleLock(el, applyLockedStyles) {
-    if (!el || el.__ua07StyleLockObserver) return;
-    var syncing = false;
-    var observer = new MutationObserver(function (records) {
-      if (syncing) return;
-      var shouldRepair = records.some(function (record) {
-        return record.type === "attributes" && record.attributeName === "style";
-      });
-      if (!shouldRepair) return;
-      syncing = true;
-      try { applyLockedStyles(); } catch (err) {}
-      syncing = false;
-    });
-    observer.observe(el, { attributes: true, attributeFilter: ["style"] });
-    el.__ua07StyleLockObserver = observer;
-  }
-
-  function lockElementIntoTopChrome(el, options) {
-    if (!el || typeof el.getBoundingClientRect !== "function") return false;
-
-    var rect = el.getBoundingClientRect();
-    if (!rect || rect.width <= 0 || rect.height <= 0) return false;
-
-    var page = getPageOffset();
-    var left = Math.round(page.x + rect.left);
-    var top = Math.round(page.y + rect.top);
-    var width = Math.round(rect.width);
-    var height = Math.round(rect.height);
-    var stage = ensureTopChromeStage();
-    if (!stage) return false;
-
-    if (el.parentNode !== stage) {
-      stage.appendChild(el);
-    }
-
-    var allowPointer = !options || options.pointerEvents !== false;
-    var keepTransform = !!(options && options.keepTransform);
-
-    function applyLockedStyles() {
-      el.dataset.ua07TopLocked = "1";
-      el.style.setProperty("position", "absolute", "important");
-      el.style.setProperty("left", left + "px", "important");
-      el.style.setProperty("top", top + "px", "important");
-      el.style.setProperty("right", "auto", "important");
-      el.style.setProperty("bottom", "auto", "important");
-      el.style.setProperty("margin", "0", "important");
-      el.style.setProperty("z-index", String(options && options.zIndex ? options.zIndex : 9000), "important");
-      if (!keepTransform) {
-        el.style.setProperty("transform", "none", "important");
-      }
-      if (width > 0) el.style.setProperty("width", width + "px", "important");
-      if (height > 0) el.style.setProperty("height", height + "px", "important");
-      el.style.setProperty("pointer-events", allowPointer ? "auto" : "none", "important");
-    }
-
-    applyLockedStyles();
-    ensureElementStyleLock(el, applyLockedStyles);
-    return true;
-  }
-
-  function installTopChromeLock() {
-    window.__ua07TopChrome = {
-      ensureStage: ensureTopChromeStage,
-      lockElement: lockElementIntoTopChrome,
-      getPageOffset: getPageOffset
-    };
-
-    var tries = 0;
-    var timer = setInterval(function () {
-      tries += 1;
-      var logo = document.getElementById("MNDO_UA07_LOGO3");
-      var done = false;
-      if (logo) {
-        done = lockElementIntoTopChrome(logo, { pointerEvents: false, zIndex: 9000, keepTransform: false });
-      }
-      if (done || tries > 30) {
-        clearInterval(timer);
-      }
-    }, 150);
-
-    setTimeout(function () {
-      var logo = document.getElementById("MNDO_UA07_LOGO3");
-      if (logo) lockElementIntoTopChrome(logo, { pointerEvents: false, zIndex: 9000, keepTransform: false });
-    }, 1200);
+  // Preserve the original core placement of the top chrome.
+  // A previous patch dispatched synthetic resize events while typing in
+  // the search/landline inputs.  That was the direct cause of the logo /
+  // envelope / HK region shifting during input.  Keep this hook as a
+  // deliberate no-op so the rest of the file remains untouched and the
+  // original appearance is preserved exactly.
+  function installTopStabilizer() {
+    return;
   }
 
   // Ensure any form reset clears the landline fields.  The native reset
@@ -882,7 +784,7 @@
   // Register our enhancements on DOM ready.  Keep this separate from
   // other initializers to avoid coupling behaviours.
   onReady(function () {
-    installTopChromeLock();
+    installTopStabilizer();
     installResetFix();
     installSuggestionsEnhancements();
     installEnvelopeEnhancements();

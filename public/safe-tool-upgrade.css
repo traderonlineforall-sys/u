@@ -1,31 +1,3 @@
-/* === Top chrome page stage === */
-body,
-#myBody {
-  position: relative;
-}
-
-#ua07TopChromeStage {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  min-height: 220px;
-  pointer-events: none;
-  z-index: 9000;
-}
-
-#ua07TopChromeStage > * {
-  pointer-events: auto;
-}
-
-#ua07TopChromeStage #MNDO_UA07_LOGO3 {
-  z-index: 9000 !important;
-}
-
-#ua07TopChromeStage #hkSmartFloatingLine {
-  z-index: 9001 !important;
-}
-
 /* === Safe Tool Upgrade: isolated UI additions (non-breaking) === */
 
 #tabs .tab-utility-btn {

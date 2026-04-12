@@ -5,17 +5,7 @@
 // slightly off until a refresh. Triggering a few safe "resize" events after load
 // helps the existing layout logic settle without touching the core tool logic.
 
-function isTopChromeLocked() {
-  try {
-    var logo = document.getElementById("MNDO_UA07_LOGO3");
-    return !!(window.__ua07TopChrome && logo && logo.dataset && logo.dataset.ua07TopLocked === "1");
-  } catch {
-    return false;
-  }
-}
-
 function kickResize() {
-  if (isTopChromeLocked()) return;
   try {
     window.dispatchEvent(new Event("resize"));
   } catch {}
@@ -38,7 +28,7 @@ window.addEventListener("pageshow", () => setTimeout(burst, 0));
 
 // When returning to the tab
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && !isTopChromeLocked()) setTimeout(kickResize, 80);
+  if (!document.hidden) setTimeout(kickResize, 80);
 });
 
 // NOTE: We intentionally avoid a MutationObserver here.
