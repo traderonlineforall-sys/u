@@ -731,7 +731,7 @@
     }
 
     function capture(which) {
-      var id = which === "logo" ? "MNDO_UA07_LOGO3" : "hkSmartFloatingLine";
+      var id = "MNDO_UA07_LOGO3";
       var el = document.getElementById(id);
       if (!el) return false;
       var box = pageRect(el);
@@ -743,7 +743,7 @@
     }
 
     function restore(which) {
-      var id = which === "logo" ? "MNDO_UA07_LOGO3" : "hkSmartFloatingLine";
+      var id = "MNDO_UA07_LOGO3";
       var el = document.getElementById(id);
       var box = state[which];
       if (!el || !box) return;
@@ -770,15 +770,12 @@
     function recalc() {
       state.allowRelockUntil = now() + 900;
       capture("logo");
-      capture("hk");
       window.setTimeout(function () {
         capture("logo");
-        capture("hk");
         state.allowRelockUntil = 0;
       }, 180);
       window.setTimeout(function () {
         capture("logo");
-        capture("hk");
         state.allowRelockUntil = 0;
       }, 520);
     }
@@ -814,7 +811,6 @@
     if (typeof MutationObserver !== "undefined") {
       var rootMo = new MutationObserver(function () {
         if (!state.logo && document.getElementById("MNDO_UA07_LOGO3")) scheduleRecalc();
-        if (!state.hk && document.getElementById("hkSmartFloatingLine")) scheduleRecalc();
       });
       try {
         rootMo.observe(document.documentElement, { childList: true, subtree: true });
@@ -824,9 +820,6 @@
     ["arabicNumber", "arabiccNumber"].forEach(function (id) {
       var input = document.getElementById(id);
       if (!input) return;
-      input.addEventListener("input", function () {
-        if (!state.hk) window.setTimeout(scheduleRecalc, 140);
-      }, { passive: true });
     });
   }
 
