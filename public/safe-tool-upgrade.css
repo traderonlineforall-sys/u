@@ -368,6 +368,25 @@
     0 0 0 1px rgba(255,255,255,0.08);
 }
 
+/* ===== Position stability fixes =====
+   Prevent the UA07 logo and the envelope/online/theme cluster from drifting
+   around when interacting with the tool.  By promoting these containers to
+   `position: fixed` we anchor them relative to the viewport so they stay
+   in place even during scrolling or dynamic layout changes.  The top and
+   horizontal alignment mirror the default positioning after a layout reset.
+*/
+#MNDO_UA07_LOGO3 {
+  position: fixed !important;
+  /* Let JavaScript compute top/left values relative to the viewport */
+}
+#UA07_SECRET_ENVELOPE_WRAP {
+  position: fixed !important;
+  top: 50px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  /* Maintain the flex gap and z-index defined elsewhere */
+}
+
 #tabs .tab-utility-btn.is-reset:hover {
   filter: brightness(1.12) saturate(1.08);
   box-shadow:
@@ -430,50 +449,6 @@
   padding: 10px 13px;
   border-radius: 15px;
   font-size: 18px;
-}
-
-/*
- * SR_FIX
- *
- * Several floating UI elements in the SR tool (the UA07 logo, the secret envelope
- * row containing the online counter and Eid toggle, and the H.K. helper box)
- * were originally positioned absolutely and were recalculated on every resize.
- * In some browsers or after heavy use these elements would drift or require a
- * manual reset to return them to their intended positions.  To provide a
- * professional, stable experience, we convert these elements to fixed
- * positioning relative to the viewport.  They will no longer move when the
- * page scrolls or dynamic scripts reflow the layout.  The top offsets have
- * been chosen to stack the elements neatly at the top of the interface.
- */
-
-/* Keep the UA07 premium logo fixed relative to the viewport */
-#MNDO_UA07_LOGO3 {
-  /* Convert the logo positioning from absolute to fixed so it stays anchored
-     relative to the viewport rather than the document when scrolling.  We do
-     not override top/left here – the existing JavaScript continues to set
-     these values based on the search bar position. */
-  position: fixed !important;
-  /* Raise the z-index slightly above the default to ensure it remains on top */
-  z-index: 10000 !important;
-}
-
-/* Keep the envelope/online-count/toggle row fixed relative to the viewport */
-#UA07_SECRET_ENVELOPE_WRAP {
-  position: fixed !important;
-  /* Do not override the top/left computed by existing scripts – they will
-     continue to set these values appropriately. */
-  z-index: 10000 !important;
-  /* Preserve the original flex layout */
-  display: flex !important;
-  align-items: center !important;
-}
-
-/* Keep the Haya Karima smart helper floating line fixed relative to the viewport */
-#hkSmartFloatingLine {
-  position: fixed !important;
-  /* Leave top/left positioning to the injected inline style.  By switching
-     from absolute to fixed, the element remains anchored when scrolling. */
-  z-index: 10000 !important;
 }
 
 .smart-calc-preview {

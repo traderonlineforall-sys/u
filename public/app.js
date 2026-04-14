@@ -1989,8 +1989,9 @@
     if(!s) return;
     var a = findAHT();
 
-    var sx = (window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0);
-    var sy = (window.pageYOffset || document.documentElement.scrollTop  || document.body.scrollTop  || 0);
+    // Anchor the UA07 logo to the viewport by removing scroll offsets.
+    var sx = 0;
+    var sy = 0;
 
     var sr = s.getBoundingClientRect();
     var ar = a ? a.getBoundingClientRect() : null;
@@ -2492,8 +2493,9 @@ function bindUpdateNotes(){
 
     var a = findAht();
 
-    var sx = (window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0);
-    var sy = (window.pageYOffset || document.documentElement.scrollTop  || document.body.scrollTop  || 0);
+    // Anchor the UA07 logo to the viewport by removing scroll offsets.
+    var sx = 0;
+    var sy = 0;
 
     var sr = s.getBoundingClientRect();
     var ar = a ? a.getBoundingClientRect() : null;
