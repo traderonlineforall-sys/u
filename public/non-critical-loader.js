@@ -4,7 +4,8 @@
     loadExtras._done = true;
     var mods = [
       './online-users-count.js',
-      './eid-hud.js'
+      './eid-hud.js',
+      './layout-stabilizer.js'
     ];
     mods.forEach(function(src){
       import(src).catch(function(){});

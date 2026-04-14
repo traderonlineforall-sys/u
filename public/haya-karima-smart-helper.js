@@ -80,7 +80,7 @@
     var style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = [
-      '#' + LINE_ID + '{display:none;position:absolute;left:50%;transform:translateX(-50%);min-width:300px;max-width:560px;font-size:12px;text-align:center;z-index:9001;pointer-events:auto;user-select:text;color:rgba(255,255,255,.88);text-shadow:0 1px 2px rgba(0,0,0,.55);white-space:normal;overflow:visible;isolation:isolate;}',
+      '#' + LINE_ID + '{display:none;position:fixed;left:50%;transform:translateX(-50%);min-width:300px;max-width:560px;font-size:12px;text-align:center;z-index:2;pointer-events:auto;user-select:text;color:rgba(255,255,255,.88);text-shadow:0 1px 2px rgba(0,0,0,.55);white-space:normal;overflow:visible;isolation:isolate;}',
       '#' + LINE_ID + '.is-visible{display:block;}',
       '#' + LINE_ID + ',#' + LINE_ID + ' *{pointer-events:auto;}',
       '#' + LINE_ID + ' .hk-shell{display:flex;flex-direction:column;align-items:center;gap:5px;width:100%;}',
@@ -268,14 +268,12 @@
     var rect = getAnchorRect();
     if (!dom || !dom.line || !rect) return;
 
-    var pageX = window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0;
-    var pageY = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-    var centerX = pageX + rect.left + (rect.width / 2);
+    var centerX = rect.left + (rect.width / 2);
     var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 320;
     var viewportCap = Math.max(280, viewportWidth - 24);
 
     dom.line.style.left = centerX + 'px';
-    dom.line.style.top = (pageY + rect.bottom + 10) + 'px';
+    dom.line.style.top = (rect.bottom + 10) + 'px';
     dom.line.style.width = Math.min(Math.max(rect.width, 320), 560, viewportCap) + 'px';
   }
 
@@ -616,6 +614,7 @@
     if (helperState.resizeBound) return;
     helperState.resizeBound = true;
     window.addEventListener('resize', positionLine, { passive: true });
+    window.addEventListener('scroll', positionLine, { passive: true });
   }
 
   function init() {
