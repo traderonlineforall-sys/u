@@ -4991,17 +4991,10 @@ function handlePasteForOcr(e){
       zone.focus();
     });
 
-    // Preload the FAST OCR worker when the page loads.  By eagerly
-    // initialising the worker here, the tessdata for the fast mode can
-    // download and compile in the background.  This eliminates the
-    // noticeable delay on the first extraction and makes the "Fast"
-    // experience feel instantaneous without sacrificing quality.
-    try {
-      ensureWorker('fast').catch(() => {});
-    } catch (_e) {
-      // ignore any errors during preloading; the worker will still be
-      // loaded on demand when runOcr() is invoked.
-    }
+    // Performance-safe behavior for weak devices:
+    // keep OCR fully on-demand instead of warming it during page load.
+    // The first OCR run may take a little longer, but normal page entry
+    // becomes noticeably lighter and avoids background CPU/memory work.
 
     setStatus('جاهز (اضغط داخل المربع ثم Ctrl+V)');
   });

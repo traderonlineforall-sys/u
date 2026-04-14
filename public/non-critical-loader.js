@@ -1,18 +1,26 @@
 (function(){
+  function safeImport(src){
+    return import(src).catch(function(){});
+  }
+
+  function loadLayoutFixes(){
+    if (loadLayoutFixes._done) return;
+    loadLayoutFixes._done = true;
+    safeImport('./layout-stabilizer.js');
+  }
+
   function loadExtras(){
     if (loadExtras._done) return;
     loadExtras._done = true;
-    var mods = [
+    [
       './online-users-count.js',
-      './eid-hud.js',
-      './layout-stabilizer.js'
-    ];
-    mods.forEach(function(src){
-      import(src).catch(function(){});
+      './eid-hud.js'
+    ].forEach(function(src){
+      safeImport(src);
     });
   }
 
-  function schedule(){
+  function scheduleExtras(){
     if ('requestIdleCallback' in window) {
       window.requestIdleCallback(loadExtras, { timeout: 1800 });
     } else {
@@ -21,8 +29,12 @@
   }
 
   if (document.readyState === 'complete') {
-    schedule();
+    loadLayoutFixes();
+    scheduleExtras();
   } else {
-    window.addEventListener('load', schedule, { once: true });
+    window.addEventListener('load', function(){
+      loadLayoutFixes();
+      scheduleExtras();
+    }, { once: true });
   }
 })();
