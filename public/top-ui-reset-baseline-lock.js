@@ -1,228 +1,234 @@
 (function(){
   "use strict";
 
+  var SEARCH_SELECTOR = "#searchInput";
+  var SEARCH_CONTAINER_SELECTOR = ".search-container";
   var LOGO_SELECTOR = "#MNDO_UA07_LOGO3";
   var HK_SELECTOR = "#hkSmartFloatingLine";
-  var SAMPLE_INTERVAL = 180;
-  var STABLE_SAMPLES = 3;
-  var EPS = 1.2;
-  var MAX_BOOT_WAIT = 10000;
+  var TIMER_SELECTOR = "#mndoQueryTimer";
+  var TIMER_WRAP_SELECTOR = "#MNDO_AHT_TAGS_STACK";
+  var RESET_SELECTORS = "#reset1, #bss_pkg, #mndoQTResetV10, button[type='reset'], input[type='reset']";
+  var STYLE_ID = "mndo-top-ui-reset-anchor-fix-v3";
 
-  var state = {
-    logo: { baseline: null, observer: null, last: null, stable: 0 },
-    hk:   { baseline: null, observer: null, last: null, stable: 0 }
-  };
+  var rafId = 0;
+  var burstTimer = 0;
+  var observer = null;
 
-  function now(){ return Date.now ? Date.now() : new Date().getTime(); }
-
+  function q(sel){ return document.querySelector(sel); }
+  function pageX(){ return window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0; }
+  function pageY(){ return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0; }
   function round(n){ return Math.round(Number(n) || 0); }
 
-  function isVisible(el){
-    if(!el) return false;
-    var cs = getComputedStyle(el);
-    if(cs.display === 'none' || cs.visibility === 'hidden') return false;
-    var r = el.getBoundingClientRect();
-    return !!(r.width > 0 && r.height > 0);
+  function ensureStyle(){
+    if (document.getElementById(STYLE_ID)) return;
+    var style = document.createElement("style");
+    style.id = STYLE_ID;
+    style.textContent = [
+      "/* Top UI anchor fix: header only, no SR logic touched */",
+      ".search-container{ position:relative !important; top:0 !important; margin-top:0 !important; padding-top:4px !important; }",
+      ".search-container .search-input, #searchInput{ margin-top:0 !important; top:auto !important; }",
+      "#MNDO_UA07_LOGO3{ position:absolute !important; right:auto !important; bottom:auto !important; margin:0 !important; z-index:9000 !important; transform:translateZ(0) !important; }",
+      "#hkSmartFloatingLine{ z-index:9000 !important; }"
+    ].join("\n");
+    (document.head || document.documentElement).appendChild(style);
   }
 
-  function getPageBox(el){
-    if(!isVisible(el)) return null;
-    var r = el.getBoundingClientRect();
-    return {
-      top: r.top + (window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0),
-      left: r.left + (window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0),
-      width: r.width,
-      height: r.height
-    };
+  function findSearchInput(){
+    return q(SEARCH_SELECTOR)
+      || q("input.search-input")
+      || q(".search-container input")
+      || q("input[type='search']")
+      || q("input[id*='search' i], input[class*='search' i]");
   }
 
-  function closeEnough(a, b){
-    if(!a || !b) return false;
-    return Math.abs(a.top - b.top) <= EPS &&
-           Math.abs(a.left - b.left) <= EPS &&
-           Math.abs(a.width - b.width) <= EPS &&
-           Math.abs(a.height - b.height) <= EPS;
+  function findSearchContainer(){
+    var input = findSearchInput();
+    if (!input) return q(SEARCH_CONTAINER_SELECTOR);
+    return input.closest(SEARCH_CONTAINER_SELECTOR) || input.parentElement || input;
   }
 
-  function forceLogoBaseline(el, box){
-    if(!el || !box) return;
-    el.style.setProperty('position', 'absolute', 'important');
-    el.style.setProperty('top', round(box.top) + 'px', 'important');
-    el.style.setProperty('left', round(box.left) + 'px', 'important');
-    el.style.setProperty('width', round(box.width) + 'px', 'important');
-    el.style.setProperty('height', round(box.height) + 'px', 'important');
-    el.style.setProperty('right', 'auto', 'important');
-    el.style.setProperty('bottom', 'auto', 'important');
-    el.style.setProperty('margin', '0', 'important');
-    el.style.setProperty('transform', 'translateZ(0)', 'important');
-    el.setAttribute('data-top-lock-logo', '1');
-  }
-
-  function forceHkBaseline(el, box){
-    if(!el || !box) return;
-    el.style.setProperty('position', 'absolute', 'important');
-    el.style.setProperty('top', round(box.top) + 'px', 'important');
-    el.style.setProperty('left', round(box.left) + 'px', 'important');
-    el.style.setProperty('width', round(box.width) + 'px', 'important');
-    el.style.setProperty('max-width', round(box.width) + 'px', 'important');
-    el.style.setProperty('min-width', round(box.width) + 'px', 'important');
-    el.style.setProperty('right', 'auto', 'important');
-    el.style.setProperty('bottom', 'auto', 'important');
-    el.style.setProperty('margin', '0', 'important');
-    el.style.setProperty('transform', 'none', 'important');
-    el.setAttribute('data-top-lock-hk', '1');
-  }
-
-  function observeAndRestore(which, selector, applyBaseline){
-    var slot = state[which];
-    var el = document.querySelector(selector);
-    if(!el) return false;
-    if(slot.observer && slot.observer.__boundEl === el) return true;
-    if(slot.observer){
-      try { slot.observer.disconnect(); } catch(e){}
-      slot.observer = null;
+  function findTimerRect(){
+    var wrap = q(TIMER_WRAP_SELECTOR);
+    if (wrap) {
+      var wr = wrap.getBoundingClientRect();
+      if (wr.width > 0 && wr.height > 0) return wr;
     }
-    if(typeof MutationObserver === 'undefined') return true;
-    var busy = false;
-    var obs = new MutationObserver(function(){
-      if(busy) return;
-      if(!slot.baseline) return;
-      busy = true;
-      try {
-        applyBaseline(el, slot.baseline);
-      } catch(e) {}
-      busy = false;
-    });
-    try {
-      obs.observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
-      obs.__boundEl = el;
-      slot.observer = obs;
-    } catch(e) {}
+    var timer = q(TIMER_SELECTOR);
+    if (timer) {
+      var tr = timer.getBoundingClientRect();
+      if (tr.width > 0 && tr.height > 0) return tr;
+    }
+    return null;
+  }
+
+  function normalizeSearch(){
+    ensureStyle();
+
+    var container = findSearchContainer();
+    var input = findSearchInput();
+    if (!container || !input) return false;
+
+    container.style.setProperty("position", "relative", "important");
+    container.style.setProperty("top", "0px", "important");
+    container.style.setProperty("margin-top", "0px", "important");
+    container.style.setProperty("padding-top", "4px", "important");
+    container.style.removeProperty("transform");
+
+    input.style.setProperty("margin-top", "0px", "important");
+    input.style.removeProperty("top");
+    input.style.removeProperty("transform");
+
+    var header = input.closest("header, .top-bar, .header-wrapper, .header, .topHeader");
+    if (header) {
+      header.style.setProperty("margin-top", "0px", "important");
+      header.style.setProperty("padding-top", "4px", "important");
+      header.style.removeProperty("top");
+      header.style.removeProperty("transform");
+    }
+
     return true;
   }
 
-  function captureStable(which, selector, applyBaseline, allowHidden){
-    var slot = state[which];
-    var start = now();
-    function tick(){
-      var el = document.querySelector(selector);
-      if(!el || (!allowHidden && !isVisible(el))){
-        if(now() - start < MAX_BOOT_WAIT){
-          setTimeout(tick, SAMPLE_INTERVAL);
-        }
-        return;
-      }
-      var box = getPageBox(el);
-      if(!box){
-        if(now() - start < MAX_BOOT_WAIT){
-          setTimeout(tick, SAMPLE_INTERVAL);
-        }
-        return;
-      }
+  function placeLogo(){
+    var input = findSearchInput();
+    var logo = q(LOGO_SELECTOR);
+    if (!input || !logo) return false;
 
-      if(closeEnough(slot.last, box)) slot.stable += 1;
-      else slot.stable = 1;
-      slot.last = box;
+    var sr = input.getBoundingClientRect();
+    if (!(sr.width > 0 && sr.height > 0)) return false;
 
-      if(slot.stable >= STABLE_SAMPLES){
-        slot.baseline = box;
-        applyBaseline(el, box);
-        observeAndRestore(which, selector, applyBaseline);
-        return;
-      }
+    var ar = findTimerRect();
+    var sx = pageX();
+    var sy = pageY();
+    var logoW = logo.offsetWidth || 176;
+    var logoH = logo.offsetHeight || 48;
 
-      if(now() - start < MAX_BOOT_WAIT){
-        setTimeout(tick, SAMPLE_INTERVAL);
-      } else {
-        slot.baseline = box;
-        applyBaseline(el, box);
-        observeAndRestore(which, selector, applyBaseline);
-      }
+    var top = round(sy + sr.top + ((sr.height - logoH) / 2) - 1);
+    if (top < sy + 6) top = sy + 6;
+
+    var left;
+    if (ar && ar.left > sr.right + 12) {
+      var gapL = sx + sr.right + 10;
+      var gapR = sx + ar.left - 10 - logoW;
+      left = round((gapL + gapR) / 2);
+      if (left < gapL) left = gapL;
+      if (left > gapR) left = gapR;
+    } else {
+      left = round(sx + sr.right + 12);
     }
-    tick();
+
+    var minL = sx + 6;
+    var maxL = sx + Math.max(6, window.innerWidth - logoW - 6);
+    if (left < minL) left = minL;
+    if (left > maxL) left = maxL;
+
+    logo.style.setProperty("position", "absolute", "important");
+    logo.style.setProperty("top", top + "px", "important");
+    logo.style.setProperty("left", left + "px", "important");
+    logo.style.setProperty("width", logoW + "px", "important");
+    logo.style.setProperty("height", logoH + "px", "important");
+    logo.style.setProperty("right", "auto", "important");
+    logo.style.setProperty("bottom", "auto", "important");
+    logo.style.setProperty("margin", "0", "important");
+    logo.style.setProperty("transform", "translateZ(0)", "important");
+    return true;
   }
 
-  var recaptureTimer = 0;
-  function recaptureAll(delay){
-    clearTimeout(recaptureTimer);
-    recaptureTimer = setTimeout(function(){
-      state.logo.last = null; state.logo.stable = 0;
-      state.hk.last = null; state.hk.stable = 0;
-      captureStable('logo', LOGO_SELECTOR, forceLogoBaseline, false);
-      captureStable('hk', HK_SELECTOR, forceHkBaseline, false);
-    }, typeof delay === 'number' ? delay : 0);
+  function placeHK(){
+    var line = q(HK_SELECTOR);
+    var input = findSearchInput();
+    if (!line || !input) return false;
+    var sr = input.getBoundingClientRect();
+    if (!(sr.width > 0 && sr.height > 0)) return false;
+
+    var centerX = round(sr.left + (sr.width / 2));
+    var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 320;
+    var viewportCap = Math.max(280, viewportWidth - 24);
+    var width = Math.min(Math.max(sr.width, 320), 560, viewportCap);
+
+    line.style.setProperty("left", centerX + "px", "important");
+    line.style.setProperty("top", round(sr.bottom + 10) + "px", "important");
+    line.style.setProperty("width", round(width) + "px", "important");
+    line.style.setProperty("min-width", round(width) + "px", "important");
+    line.style.setProperty("max-width", round(width) + "px", "important");
+    line.style.setProperty("transform", "translateX(-50%)", "important");
+    return true;
   }
 
-  var relockRaf = 0;
-  function relockVisibleNow(){
-    relockRaf = 0;
-    var logo = document.querySelector(LOGO_SELECTOR);
-    if(logo && state.logo.baseline) forceLogoBaseline(logo, state.logo.baseline);
-    var hk = document.querySelector(HK_SELECTOR);
-    if(hk && state.hk.baseline && isVisible(hk)) forceHkBaseline(hk, state.hk.baseline);
+  function apply(){
+    rafId = 0;
+    normalizeSearch();
+    placeLogo();
+    placeHK();
   }
 
-  function scheduleRelock(){
-    if(relockRaf) return;
-    relockRaf = requestAnimationFrame(relockVisibleNow);
+  function schedule(){
+    if (rafId) return;
+    rafId = requestAnimationFrame(apply);
   }
 
-  function bindEvents(){
-    window.addEventListener('load', function(){
-      recaptureAll(1800);
-      setTimeout(function(){ recaptureAll(0); }, 3200);
-    }, { once: true });
+  function burst(){
+    clearTimeout(burstTimer);
+    schedule();
+    setTimeout(schedule, 60);
+    setTimeout(schedule, 180);
+    setTimeout(schedule, 420);
+    setTimeout(schedule, 900);
+    burstTimer = setTimeout(schedule, 1600);
+  }
 
-    window.addEventListener('resize', function(){
-      scheduleRelock();
-    }, { passive: true });
+  function bindObserver(){
+    if (observer || typeof MutationObserver === "undefined") return;
+    observer = new MutationObserver(function(muts){
+      for (var i = 0; i < muts.length; i += 1) {
+        var m = muts[i];
+        if (m.type === "childList" || (m.type === "attributes" && m.target)) {
+          schedule();
+          break;
+        }
+      }
+    });
+    try {
+      observer.observe(document.documentElement || document.body, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ["style", "class"]
+      });
+    } catch (e) {}
+  }
 
-    window.addEventListener('scroll', function(){
-      scheduleRelock();
-    }, { passive: true });
+  function boot(){
+    burst();
+    bindObserver();
 
-    document.addEventListener('visibilitychange', function(){
-      if(!document.hidden) setTimeout(scheduleRelock, 80);
+    window.addEventListener("resize", function(){ burst(); }, { passive:true });
+    window.addEventListener("scroll", function(){ schedule(); }, { passive:true });
+    window.addEventListener("pageshow", function(){ burst(); });
+    window.addEventListener("load", function(){ burst(); }, { once:true });
+
+    document.addEventListener("visibilitychange", function(){
+      if (!document.hidden) burst();
     });
 
-    window.addEventListener('pageshow', function(){
-      setTimeout(function(){ recaptureAll(180); }, 0);
-    });
-
-    document.addEventListener('click', function(e){
+    document.addEventListener("click", function(e){
       var t = e.target;
-      if(!t || !t.closest) return;
-      if(t.closest('#reset1, #bss_pkg, #mndoQTResetV10, button[type="reset"], input[type="reset"]')){
-        setTimeout(function(){ recaptureAll(200); }, 60);
-        setTimeout(function(){ recaptureAll(0); }, 700);
+      if (!t || !t.closest) return;
+      if (t.closest(RESET_SELECTORS)) {
+        setTimeout(burst, 50);
+        setTimeout(burst, 280);
+        setTimeout(burst, 850);
       }
     }, true);
 
-    if(typeof MutationObserver !== 'undefined'){
-      var bodyObserver = new MutationObserver(function(){
-        observeAndRestore('logo', LOGO_SELECTOR, forceLogoBaseline);
-        observeAndRestore('hk', HK_SELECTOR, forceHkBaseline);
-        var hk = document.querySelector(HK_SELECTOR);
-        if(hk && isVisible(hk) && !state.hk.baseline){
-          recaptureAll(120);
-        }
-      });
-      try {
-        bodyObserver.observe(document.documentElement || document.body, { childList: true, subtree: true });
-      } catch(e){}
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function(){ burst(); }).catch(function(){});
     }
   }
 
-  bindEvents();
-
-  if(document.readyState === 'complete'){
-    recaptureAll(1800);
-    setTimeout(function(){ recaptureAll(0); }, 3200);
-  } else if(document.readyState === 'interactive'){
-    recaptureAll(2200);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot, { once:true });
   } else {
-    document.addEventListener('DOMContentLoaded', function(){
-      recaptureAll(2200);
-    }, { once: true });
+    boot();
   }
 })();
