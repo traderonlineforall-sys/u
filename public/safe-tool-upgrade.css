@@ -368,25 +368,6 @@
     0 0 0 1px rgba(255,255,255,0.08);
 }
 
-/* ===== Position stability fixes =====
-   Prevent the UA07 logo and the envelope/online/theme cluster from drifting
-   around when interacting with the tool.  By promoting these containers to
-   `position: fixed` we anchor them relative to the viewport so they stay
-   in place even during scrolling or dynamic layout changes.  The top and
-   horizontal alignment mirror the default positioning after a layout reset.
-*/
-#MNDO_UA07_LOGO3 {
-  position: fixed !important;
-  /* Let JavaScript compute top/left values relative to the viewport */
-}
-#UA07_SECRET_ENVELOPE_WRAP {
-  position: fixed !important;
-  top: 50px !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  /* Maintain the flex gap and z-index defined elsewhere */
-}
-
 #tabs .tab-utility-btn.is-reset:hover {
   filter: brightness(1.12) saturate(1.08);
   box-shadow:
