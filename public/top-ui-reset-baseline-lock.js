@@ -1,280 +1,228 @@
 (function(){
   "use strict";
 
-  var SEARCH_SELECTOR = "#searchInput";
-  var SEARCH_CONTAINER_SELECTOR = ".search-container";
   var LOGO_SELECTOR = "#MNDO_UA07_LOGO3";
   var HK_SELECTOR = "#hkSmartFloatingLine";
-  var TIMER_SELECTOR = "#mndoQueryTimer";
-  var TIMER_WRAP_SELECTOR = "#MNDO_AHT_TAGS_STACK";
-  var RESET_SELECTORS = "#reset1, #bss_pkg, #mndoQTResetV10, button[type='reset'], input[type='reset']";
-  var STYLE_ID = "mndo-top-ui-stabilizer-style-v2";
+  var SAMPLE_INTERVAL = 180;
+  var STABLE_SAMPLES = 3;
+  var EPS = 1.2;
+  var MAX_BOOT_WAIT = 10000;
 
-  var rafId = 0;
-  var burstTimer = 0;
-  var docObserver = null;
-  var logoObserver = null;
-  var searchObserver = null;
+  var state = {
+    logo: { baseline: null, observer: null, last: null, stable: 0 },
+    hk:   { baseline: null, observer: null, last: null, stable: 0 }
+  };
 
-  function injectStyle(){
-    var old = document.getElementById(STYLE_ID);
-    if (old) return old;
-    var style = document.createElement("style");
-    style.id = STYLE_ID;
-    style.textContent = [
-      "/* Final top UI stabilizer: header only, no SR logic touched */",
-      ".search-container{position:relative !important; top:0 !important; margin-top:0 !important; padding-top:4px !important; z-index:2147483646 !important;}",
-      ".search-container .search-input, #searchInput{margin-top:0 !important; box-sizing:border-box !important;}",
-      LOGO_SELECTOR + "{position:absolute !important; z-index:9000 !important; right:auto !important; bottom:auto !important; margin:0 !important; transform:translateZ(0) !important;}",
-      HK_SELECTOR + "{z-index:9000 !important;}"
-    ].join("\n");
-    (document.head || document.documentElement).appendChild(style);
-    return style;
-  }
+  function now(){ return Date.now ? Date.now() : new Date().getTime(); }
 
-  function q(sel){ return document.querySelector(sel); }
-
-  function findSearchInput(){
-    return q(SEARCH_SELECTOR)
-      || q("input.search-input")
-      || q(".search-container input")
-      || q("input[type='search']")
-      || q("input[id*='search' i], input[class*='search' i]");
-  }
-
-  function findSearchContainer(){
-    var input = findSearchInput();
-    if (!input) return q(SEARCH_CONTAINER_SELECTOR);
-    return input.closest(SEARCH_CONTAINER_SELECTOR) || input.parentElement || input;
-  }
-
-  function findTimerRect(){
-    var wrap = q(TIMER_WRAP_SELECTOR);
-    if (wrap) {
-      var wr = wrap.getBoundingClientRect();
-      if (wr.width > 0 && wr.height > 0) return wr;
-    }
-    var timer = q(TIMER_SELECTOR);
-    if (timer) {
-      var tr = timer.getBoundingClientRect();
-      if (tr.width > 0 && tr.height > 0) return tr;
-    }
-    return null;
-  }
-
-  function pageX(){ return window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0; }
-  function pageY(){ return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0; }
   function round(n){ return Math.round(Number(n) || 0); }
 
-  function normalizeSearch(){
-    injectStyle();
+  function isVisible(el){
+    if(!el) return false;
+    var cs = getComputedStyle(el);
+    if(cs.display === 'none' || cs.visibility === 'hidden') return false;
+    var r = el.getBoundingClientRect();
+    return !!(r.width > 0 && r.height > 0);
+  }
 
-    var container = findSearchContainer();
-    var input = findSearchInput();
-    if (!container || !input) return false;
+  function getPageBox(el){
+    if(!isVisible(el)) return null;
+    var r = el.getBoundingClientRect();
+    return {
+      top: r.top + (window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0),
+      left: r.left + (window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0),
+      width: r.width,
+      height: r.height
+    };
+  }
 
-    container.style.setProperty("position", "relative", "important");
-    container.style.setProperty("top", "0px", "important");
-    container.style.setProperty("margin-top", "0px", "important");
-    container.style.setProperty("padding-top", "4px", "important");
-    container.style.setProperty("z-index", "2147483646", "important");
+  function closeEnough(a, b){
+    if(!a || !b) return false;
+    return Math.abs(a.top - b.top) <= EPS &&
+           Math.abs(a.left - b.left) <= EPS &&
+           Math.abs(a.width - b.width) <= EPS &&
+           Math.abs(a.height - b.height) <= EPS;
+  }
 
-    // Keep the original horizontal look and avoid the old drifting top-nudge logic.
-    if (!container.style.transform || /translateX\(/i.test(container.style.transform) === false) {
-      container.style.setProperty("transform", "translateX(5%)", "important");
+  function forceLogoBaseline(el, box){
+    if(!el || !box) return;
+    el.style.setProperty('position', 'absolute', 'important');
+    el.style.setProperty('top', round(box.top) + 'px', 'important');
+    el.style.setProperty('left', round(box.left) + 'px', 'important');
+    el.style.setProperty('width', round(box.width) + 'px', 'important');
+    el.style.setProperty('height', round(box.height) + 'px', 'important');
+    el.style.setProperty('right', 'auto', 'important');
+    el.style.setProperty('bottom', 'auto', 'important');
+    el.style.setProperty('margin', '0', 'important');
+    el.style.setProperty('transform', 'translateZ(0)', 'important');
+    el.setAttribute('data-top-lock-logo', '1');
+  }
+
+  function forceHkBaseline(el, box){
+    if(!el || !box) return;
+    el.style.setProperty('position', 'absolute', 'important');
+    el.style.setProperty('top', round(box.top) + 'px', 'important');
+    el.style.setProperty('left', round(box.left) + 'px', 'important');
+    el.style.setProperty('width', round(box.width) + 'px', 'important');
+    el.style.setProperty('max-width', round(box.width) + 'px', 'important');
+    el.style.setProperty('min-width', round(box.width) + 'px', 'important');
+    el.style.setProperty('right', 'auto', 'important');
+    el.style.setProperty('bottom', 'auto', 'important');
+    el.style.setProperty('margin', '0', 'important');
+    el.style.setProperty('transform', 'none', 'important');
+    el.setAttribute('data-top-lock-hk', '1');
+  }
+
+  function observeAndRestore(which, selector, applyBaseline){
+    var slot = state[which];
+    var el = document.querySelector(selector);
+    if(!el) return false;
+    if(slot.observer && slot.observer.__boundEl === el) return true;
+    if(slot.observer){
+      try { slot.observer.disconnect(); } catch(e){}
+      slot.observer = null;
     }
-
-    input.style.setProperty("margin-top", "0px", "important");
-    input.style.setProperty("box-sizing", "border-box", "important");
-
-    // Clear accidental wrapper nudges introduced by older patches.
-    var header = input.closest("header, .top-bar, .header-wrapper, .header, .topHeader");
-    if (header) {
-      header.style.setProperty("margin-top", "0px", "important");
-      header.style.setProperty("padding-top", "4px", "important");
-      header.style.removeProperty("transform");
-      header.style.removeProperty("top");
-    }
-
-    return true;
-  }
-
-  function placeLogo(){
-    var input = findSearchInput();
-    var logo = q(LOGO_SELECTOR);
-    if (!input || !logo) return false;
-
-    var sr = input.getBoundingClientRect();
-    if (!(sr.width > 0 && sr.height > 0)) return false;
-
-    var ar = findTimerRect();
-    var sx = pageX();
-    var sy = pageY();
-
-    logo.style.setProperty("position", "absolute", "important");
-    logo.style.setProperty("right", "auto", "important");
-    logo.style.setProperty("bottom", "auto", "important");
-    logo.style.setProperty("margin", "0", "important");
-    logo.style.setProperty("transform", "translateZ(0)", "important");
-
-    var top = round(sy + sr.top + ((sr.height - (logo.offsetHeight || 48)) / 2) - 1);
-    if (top < sy + 6) top = sy + 6;
-
-    var left;
-    if (ar && ar.left > sr.right + 12) {
-      var gapL = sx + sr.right + 10;
-      var gapR = sx + ar.left - 10 - (logo.offsetWidth || 176);
-      left = round((gapL + gapR) / 2);
-      if (left < gapL) left = gapL;
-      if (left > gapR) left = gapR;
-    } else {
-      left = round(sx + sr.left - (logo.offsetWidth || 176) - 12);
-    }
-
-    var minL = sx + 6;
-    var maxL = sx + Math.max(6, window.innerWidth - (logo.offsetWidth || 176) - 6);
-    if (left < minL) left = minL;
-    if (left > maxL) left = maxL;
-
-    logo.style.setProperty("top", top + "px", "important");
-    logo.style.setProperty("left", left + "px", "important");
-    return true;
-  }
-
-  function placeHk(){
-    var input = findSearchInput();
-    var hk = q(HK_SELECTOR);
-    if (!input || !hk) return false;
-
-    var rect = input.getBoundingClientRect();
-    if (!(rect.width > 0 && rect.height > 0)) return false;
-
-    var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 320;
-    var viewportCap = Math.max(280, viewportWidth - 24);
-    var width = Math.min(Math.max(rect.width, 320), 560, viewportCap);
-
-    hk.style.setProperty("position", "fixed", "important");
-    hk.style.setProperty("left", round(rect.left + (rect.width / 2)) + "px", "important");
-    hk.style.setProperty("top", round(rect.bottom + 10) + "px", "important");
-    hk.style.setProperty("width", round(width) + "px", "important");
-    hk.style.setProperty("transform", "translateX(-50%)", "important");
-    return true;
-  }
-
-  function stabilizeNow(){
-    rafId = 0;
-    normalizeSearch();
-    placeLogo();
-    placeHk();
-  }
-
-  function schedule(){
-    if (rafId) return;
-    rafId = requestAnimationFrame(stabilizeNow);
-  }
-
-  function burst(delay){
-    clearTimeout(burstTimer);
-    burstTimer = setTimeout(function(){
-      schedule();
-      setTimeout(schedule, 90);
-      setTimeout(schedule, 260);
-      setTimeout(schedule, 700);
-    }, typeof delay === "number" ? delay : 0);
-  }
-
-  function observeSearch(){
-    var container = findSearchContainer();
-    if (!container || typeof MutationObserver === "undefined") return;
-    if (searchObserver && searchObserver.__boundEl === container) return;
-    if (searchObserver) {
-      try { searchObserver.disconnect(); } catch(e){}
-      searchObserver = null;
-    }
-
-    searchObserver = new MutationObserver(function(){ burst(0); });
-    searchObserver.__boundEl = container;
-    try {
-      searchObserver.observe(container, { attributes: true, attributeFilter: ["style", "class"] });
-    } catch(e){}
-  }
-
-  function observeLogo(){
-    var logo = q(LOGO_SELECTOR);
-    if (!logo || typeof MutationObserver === "undefined") return;
-    if (logoObserver && logoObserver.__boundEl === logo) return;
-    if (logoObserver) {
-      try { logoObserver.disconnect(); } catch(e){}
-      logoObserver = null;
-    }
-
+    if(typeof MutationObserver === 'undefined') return true;
     var busy = false;
-    logoObserver = new MutationObserver(function(){
-      if (busy) return;
+    var obs = new MutationObserver(function(){
+      if(busy) return;
+      if(!slot.baseline) return;
       busy = true;
-      burst(0);
-      setTimeout(function(){ busy = false; }, 40);
-    });
-    logoObserver.__boundEl = logo;
-    try {
-      logoObserver.observe(logo, { attributes: true, attributeFilter: ["style", "class"] });
-    } catch(e){}
-  }
-
-  function observeDocument(){
-    if (docObserver || typeof MutationObserver === "undefined") return;
-    docObserver = new MutationObserver(function(){
-      observeSearch();
-      observeLogo();
-      if (findSearchInput() && q(LOGO_SELECTOR)) burst(0);
+      try {
+        applyBaseline(el, slot.baseline);
+      } catch(e) {}
+      busy = false;
     });
     try {
-      docObserver.observe(document.documentElement || document.body, { childList: true, subtree: true });
-    } catch(e){}
+      obs.observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
+      obs.__boundEl = el;
+      slot.observer = obs;
+    } catch(e) {}
+    return true;
   }
 
-  function bind(){
-    window.addEventListener("load", function(){ burst(1200); }, { once: true });
-    window.addEventListener("pageshow", function(){ burst(0); });
-    window.addEventListener("resize", function(){ burst(40); }, { passive: true });
-    window.addEventListener("scroll", function(){ schedule(); }, { passive: true });
-
-    document.addEventListener("visibilitychange", function(){
-      if (!document.hidden) burst(60);
-    });
-
-    document.addEventListener("input", function(e){
-      var t = e.target;
-      if (!t || !t.matches) return;
-      if (t.matches(SEARCH_SELECTOR + ", #arabiccNumber, #arabicNumber")) {
-        burst(0);
+  function captureStable(which, selector, applyBaseline, allowHidden){
+    var slot = state[which];
+    var start = now();
+    function tick(){
+      var el = document.querySelector(selector);
+      if(!el || (!allowHidden && !isVisible(el))){
+        if(now() - start < MAX_BOOT_WAIT){
+          setTimeout(tick, SAMPLE_INTERVAL);
+        }
+        return;
       }
-    }, true);
-
-    document.addEventListener("click", function(e){
-      var t = e.target;
-      if (!t || !t.closest) return;
-      if (t.closest(RESET_SELECTORS)) {
-        burst(80);
+      var box = getPageBox(el);
+      if(!box){
+        if(now() - start < MAX_BOOT_WAIT){
+          setTimeout(tick, SAMPLE_INTERVAL);
+        }
+        return;
       }
-    }, true);
 
-    if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(function(){ burst(60); }).catch(function(){});
+      if(closeEnough(slot.last, box)) slot.stable += 1;
+      else slot.stable = 1;
+      slot.last = box;
+
+      if(slot.stable >= STABLE_SAMPLES){
+        slot.baseline = box;
+        applyBaseline(el, box);
+        observeAndRestore(which, selector, applyBaseline);
+        return;
+      }
+
+      if(now() - start < MAX_BOOT_WAIT){
+        setTimeout(tick, SAMPLE_INTERVAL);
+      } else {
+        slot.baseline = box;
+        applyBaseline(el, box);
+        observeAndRestore(which, selector, applyBaseline);
+      }
     }
-
-    observeDocument();
-    observeSearch();
-    observeLogo();
+    tick();
   }
 
-  bind();
+  var recaptureTimer = 0;
+  function recaptureAll(delay){
+    clearTimeout(recaptureTimer);
+    recaptureTimer = setTimeout(function(){
+      state.logo.last = null; state.logo.stable = 0;
+      state.hk.last = null; state.hk.stable = 0;
+      captureStable('logo', LOGO_SELECTOR, forceLogoBaseline, false);
+      captureStable('hk', HK_SELECTOR, forceHkBaseline, false);
+    }, typeof delay === 'number' ? delay : 0);
+  }
 
-  if (document.readyState === "complete") {
-    burst(900);
-  } else if (document.readyState === "interactive") {
-    burst(1200);
+  var relockRaf = 0;
+  function relockVisibleNow(){
+    relockRaf = 0;
+    var logo = document.querySelector(LOGO_SELECTOR);
+    if(logo && state.logo.baseline) forceLogoBaseline(logo, state.logo.baseline);
+    var hk = document.querySelector(HK_SELECTOR);
+    if(hk && state.hk.baseline && isVisible(hk)) forceHkBaseline(hk, state.hk.baseline);
+  }
+
+  function scheduleRelock(){
+    if(relockRaf) return;
+    relockRaf = requestAnimationFrame(relockVisibleNow);
+  }
+
+  function bindEvents(){
+    window.addEventListener('load', function(){
+      recaptureAll(1800);
+      setTimeout(function(){ recaptureAll(0); }, 3200);
+    }, { once: true });
+
+    window.addEventListener('resize', function(){
+      scheduleRelock();
+    }, { passive: true });
+
+    window.addEventListener('scroll', function(){
+      scheduleRelock();
+    }, { passive: true });
+
+    document.addEventListener('visibilitychange', function(){
+      if(!document.hidden) setTimeout(scheduleRelock, 80);
+    });
+
+    window.addEventListener('pageshow', function(){
+      setTimeout(function(){ recaptureAll(180); }, 0);
+    });
+
+    document.addEventListener('click', function(e){
+      var t = e.target;
+      if(!t || !t.closest) return;
+      if(t.closest('#reset1, #bss_pkg, #mndoQTResetV10, button[type="reset"], input[type="reset"]')){
+        setTimeout(function(){ recaptureAll(200); }, 60);
+        setTimeout(function(){ recaptureAll(0); }, 700);
+      }
+    }, true);
+
+    if(typeof MutationObserver !== 'undefined'){
+      var bodyObserver = new MutationObserver(function(){
+        observeAndRestore('logo', LOGO_SELECTOR, forceLogoBaseline);
+        observeAndRestore('hk', HK_SELECTOR, forceHkBaseline);
+        var hk = document.querySelector(HK_SELECTOR);
+        if(hk && isVisible(hk) && !state.hk.baseline){
+          recaptureAll(120);
+        }
+      });
+      try {
+        bodyObserver.observe(document.documentElement || document.body, { childList: true, subtree: true });
+      } catch(e){}
+    }
+  }
+
+  bindEvents();
+
+  if(document.readyState === 'complete'){
+    recaptureAll(1800);
+    setTimeout(function(){ recaptureAll(0); }, 3200);
+  } else if(document.readyState === 'interactive'){
+    recaptureAll(2200);
   } else {
-    document.addEventListener("DOMContentLoaded", function(){ burst(1200); }, { once: true });
+    document.addEventListener('DOMContentLoaded', function(){
+      recaptureAll(2200);
+    }, { once: true });
   }
 })();
