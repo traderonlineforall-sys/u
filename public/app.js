@@ -1914,10 +1914,6 @@
 (function(){
   "use strict";
 
-  // Disabled: legacy floating UA07 logo placer.
-  // The strict header lock module owns the final placement to prevent drift.
-  return;
-
   function ensure(){
     // If the newer UA07 logo exists, use it instead of injecting a duplicate luxury logo
     var existingNew = document.getElementById("MNDO_UA07_LOGO3");
@@ -2490,22 +2486,67 @@ function bindUpdateNotes(){
   }
 
   function place(){
-    // Disabled here on purpose.
-    // Final positioning is handled by strict-top-header-lock.js so the
-    // top cluster remains stable and does not reflow during work.
-    ensureLogo();
-    return false;
+    var logo = ensureLogo();
+    var s = findSearch();
+    if(!s) return false;
+
+    var a = findAht();
+
+    var sx = (window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0);
+    var sy = (window.pageYOffset || document.documentElement.scrollTop  || document.body.scrollTop  || 0);
+
+    var sr = s.getBoundingClientRect();
+    var ar = a ? a.getBoundingClientRect() : null;
+
+    // align with search input (page coordinates so it scrolls with the page)
+    var top = Math.round(sy + sr.top + (sr.height - logo.offsetHeight)/2) - 1;
+    if(top < (sy + 6)) top = sy + 6;
+
+    // center in the gap between search and AHT, else left of search
+    var left;
+    if(ar && (ar.left > sr.right + 12)){
+      var gapL = sx + sr.right + 10;
+      var gapR = sx + ar.left - 10 - logo.offsetWidth;
+      left = Math.round((gapL + gapR) / 2);
+      if(left < gapL) left = gapL;
+      if(left > gapR) left = gapR;
+    }else{
+      left = Math.round(sx + sr.left - logo.offsetWidth - 12);
+    }
+
+    // clamp
+    var minL = sx + 6;
+    var maxL = sx + Math.max(6, (window.innerWidth - logo.offsetWidth - 6));
+    if(left < minL) left = minL;
+    if(left > maxL) left = maxL;
+
+    logo.style.top = top + "px";
+    logo.style.left = left + "px";
+    return true;
   }
 
   function boot(){
-    // Build the UA07 cluster and bind its interactions only.
-    // Positioning is delegated to strict-top-header-lock.js.
-    ensureLogo();
+    // Try multiple times because the page is generated via document.write
+    var ok = place();
     bindSecretWarning();
     bindUpdateNotes();
-    setTimeout(ensureLogo, 120);
+    var tries = 0;
+    var t = setInterval(function(){
+      tries++;
+      if(place()){ bindSecretWarning();
+    bindUpdateNotes(); }
+      if(place() || tries > 35){ clearInterval(t); }
+    }, 200);
+
+    setTimeout(place, 120);
+    setTimeout(place, 350);
+    setTimeout(place, 900);
     setTimeout(bindSecretWarning, 140);
-    setTimeout(bindUpdateNotes, 180);
+    setTimeout(bindSecretWarning, 420);
+    setTimeout(bindSecretWarning, 980);
+
+    // Re-place on resize ONLY (no scroll listener -> it will scroll away like Tags)
+    window.addEventListener("resize", function(){ setTimeout(place, 40); setTimeout(bindSecretWarning, 60); });
   }
 
   if(document.readyState === "loading"){
