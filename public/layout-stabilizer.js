@@ -5,11 +5,12 @@
 //   important inputs.
 // - Keep the UA07 logo and HK smart helper aligned automatically if they drift.
 // - Avoid heavy work by throttling checks and never overlapping sync bursts.
+// - Prefer direct pinning back to the reset-default baseline before any reset-like sync.
 
 (function(){
   var VALUE_IDS = ["arabicNumber", "arabiccNumber", "searchInput"];
-  var DRIFT_THRESHOLD_PX = 14;
-  var MONITOR_INTERVAL_MS = 1400;
+  var DRIFT_THRESHOLD_PX = 10;
+  var MONITOR_INTERVAL_MS = 1000;
   var BASELINE_CAPTURE_DELAY_MS = 1350;
 
   var syncInFlight = false;
@@ -18,6 +19,8 @@
   var rafToken = 0;
   var lastAutoFixAt = 0;
   var lastSyncAt = 0;
+  var trackedObservers = { logo: null, hk: null };
+  var trackedElements = { logo: null, hk: null };
 
   var baselines = {
     logo: null,
@@ -82,6 +85,19 @@
     return document.getElementById("hkSmartFloatingLine") || null;
   }
 
+  function getStyleSnapshot(el) {
+    if (!el || !el.style) return null;
+    return {
+      position: el.style.position || "",
+      top: el.style.top || "",
+      left: el.style.left || "",
+      right: el.style.right || "",
+      bottom: el.style.bottom || "",
+      width: el.style.width || "",
+      transform: el.style.transform || ""
+    };
+  }
+
   function measureElement(el) {
     if (!isVisible(el)) return null;
     try {
@@ -102,6 +118,15 @@
     }
   }
 
+  function captureState(el) {
+    var measure = measureElement(el);
+    if (!measure) return null;
+    return {
+      measure: measure,
+      style: getStyleSnapshot(el)
+    };
+  }
+
   function hasMeaningfulDrift(base, current) {
     if (!base || !current) return false;
     if (base.mode !== current.mode) return true;
@@ -110,13 +135,65 @@
     return false;
   }
 
+  function optimizeTrackedElement(el) {
+    if (!el || !el.style) return;
+    try {
+      el.style.willChange = "top, left, transform";
+      if (!el.style.backfaceVisibility) el.style.backfaceVisibility = "hidden";
+      if (!el.style.transformOrigin) el.style.transformOrigin = "center top";
+    } catch (_) {}
+  }
+
+  function applyBaselineStyle(el, baseline) {
+    if (!el || !baseline || !baseline.style || !el.style) return false;
+    var s = baseline.style;
+    try {
+      if (s.position) el.style.position = s.position;
+      if (s.top) el.style.top = s.top;
+      if (s.left) el.style.left = s.left;
+      if (s.right) el.style.right = s.right;
+      if (s.bottom) el.style.bottom = s.bottom;
+      if (s.width) el.style.width = s.width;
+      if (s.transform) el.style.transform = s.transform;
+      optimizeTrackedElement(el);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function attachTrackedObserver(key, el) {
+    if (!el || !window.MutationObserver) return;
+    if (trackedObservers[key] && trackedElements[key] === el) return;
+    if (trackedObservers[key]) {
+      try { trackedObservers[key].disconnect(); } catch (_) {}
+      trackedObservers[key] = null;
+    }
+    trackedElements[key] = el;
+    try {
+      var observer = new MutationObserver(function(){
+        scheduleDriftCheck();
+      });
+      observer.observe(el, { attributes: true, attributeFilter: ["style", "class"] });
+      trackedObservers[key] = observer;
+    } catch (_) {}
+  }
+
+  function ensureTrackedObservers() {
+    attachTrackedObserver("logo", findLogo());
+    attachTrackedObserver("hk", findHk());
+  }
+
   function refreshBaselines() {
     var logo = findLogo();
     var hk = findHk();
-    var logoMeasure = measureElement(logo);
-    var hkMeasure = measureElement(hk);
-    if (logoMeasure) baselines.logo = logoMeasure;
-    if (hkMeasure) baselines.hk = hkMeasure;
+    optimizeTrackedElement(logo);
+    optimizeTrackedElement(hk);
+    ensureTrackedObservers();
+    var logoState = captureState(logo);
+    var hkState = captureState(hk);
+    if (logoState) baselines.logo = logoState;
+    if (hkState) baselines.hk = hkState;
   }
 
   function scheduleBaselineCapture() {
@@ -124,9 +201,7 @@
     baselineTimer = setTimeout(refreshBaselines, BASELINE_CAPTURE_DELAY_MS);
   }
 
-  function safeLayoutSync(options) {
-    options = options || {};
-
+  function safeLayoutSync() {
     if (syncInFlight) {
       scheduleBaselineCapture();
       return;
@@ -157,23 +232,64 @@
     }, 1200);
   }
 
+  function currentDriftState() {
+    var logoCurrent = measureElement(findLogo());
+    var hkCurrent = measureElement(findHk());
+
+    return {
+      logoCurrent: logoCurrent,
+      hkCurrent: hkCurrent,
+      logoDrifted: !!(baselines.logo && logoCurrent && hasMeaningfulDrift(baselines.logo.measure, logoCurrent)),
+      hkDrifted: !!(baselines.hk && hkCurrent && hasMeaningfulDrift(baselines.hk.measure, hkCurrent))
+    };
+  }
+
+  function tryDirectPin() {
+    var pinned = false;
+    var logo = findLogo();
+    var hk = findHk();
+    var state = currentDriftState();
+
+    if (state.logoDrifted && logo && baselines.logo) {
+      pinned = applyBaselineStyle(logo, baselines.logo) || pinned;
+    }
+    if (state.hkDrifted && hk && baselines.hk) {
+      pinned = applyBaselineStyle(hk, baselines.hk) || pinned;
+    }
+
+    if (pinned) {
+      kickResize();
+      kickScroll();
+    }
+
+    return pinned;
+  }
+
   function runAutoRealignIfNeeded() {
     if (document.hidden) return;
 
     var now = Date.now();
-    if (now - lastAutoFixAt < 1800) return;
-    if (now - lastSyncAt < 900) return;
+    if (now - lastAutoFixAt < 1500) return;
+    if (now - lastSyncAt < 700) return;
 
-    var logoCurrent = measureElement(findLogo());
-    var hkCurrent = measureElement(findHk());
-
-    var logoDrifted = !!(baselines.logo && logoCurrent && hasMeaningfulDrift(baselines.logo, logoCurrent));
-    var hkDrifted = !!(baselines.hk && hkCurrent && hasMeaningfulDrift(baselines.hk, hkCurrent));
-
-    if (!logoDrifted && !hkDrifted) return;
+    var state = currentDriftState();
+    if (!state.logoDrifted && !state.hkDrifted) return;
 
     lastAutoFixAt = now;
-    safeLayoutSync({ preserveNumbers: true, automatic: true });
+
+    if (tryDirectPin()) {
+      setTimeout(function(){
+        var postPin = currentDriftState();
+        if (postPin.logoDrifted || postPin.hkDrifted) {
+          safeLayoutSync();
+        } else {
+          scheduleBaselineCapture();
+        }
+      }, 120);
+      return;
+    }
+
+    safeLayoutSync();
   }
 
   function scheduleDriftCheck() {
@@ -187,6 +303,7 @@
   function armAutoMonitor() {
     if (monitorTimer) clearInterval(monitorTimer);
     monitorTimer = setInterval(function(){
+      ensureTrackedObservers();
       if (!document.hidden) scheduleDriftCheck();
     }, MONITOR_INTERVAL_MS);
   }
@@ -198,26 +315,26 @@
       var btn = t.closest("#headerResetBtn");
       if (!btn) return;
       setTimeout(function(){
-        safeLayoutSync({ preserveNumbers: false, automatic: false });
+        safeLayoutSync();
       }, 80);
     }, true);
   }
 
   if (document.readyState === "complete") {
     setTimeout(function(){
-      safeLayoutSync({ preserveNumbers: true, automatic: false });
+      safeLayoutSync();
     }, 0);
   } else {
     window.addEventListener("load", function(){
       setTimeout(function(){
-        safeLayoutSync({ preserveNumbers: true, automatic: false });
+        safeLayoutSync();
       }, 0);
     }, { once: true });
   }
 
   window.addEventListener("pageshow", function(){
     setTimeout(function(){
-      safeLayoutSync({ preserveNumbers: true, automatic: false });
+      safeLayoutSync();
     }, 0);
   });
 
@@ -227,7 +344,7 @@
   document.addEventListener("visibilitychange", function(){
     if (!document.hidden) {
       setTimeout(function(){
-        safeLayoutSync({ preserveNumbers: true, automatic: false });
+        safeLayoutSync();
       }, 80);
     }
   });

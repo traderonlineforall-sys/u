@@ -9,6 +9,18 @@
     safeImport('./layout-stabilizer.js');
   }
 
+  function loadUiModules(){
+    if (loadUiModules._done) return;
+    loadUiModules._done = true;
+    [
+      './suggestions.js',
+      './support-chat.js',
+      './admin.js'
+    ].forEach(function(src){
+      safeImport(src);
+    });
+  }
+
   function loadExtras(){
     if (loadExtras._done) return;
     loadExtras._done = true;
@@ -20,20 +32,36 @@
     });
   }
 
+  function scheduleUiModules(){
+    if (scheduleUiModules._armed) return;
+    scheduleUiModules._armed = true;
+
+    var eagerKick = setTimeout(loadUiModules, 700);
+
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(function(){
+        clearTimeout(eagerKick);
+        loadUiModules();
+      }, { timeout: 1800 });
+    }
+  }
+
   function scheduleExtras(){
     if ('requestIdleCallback' in window) {
-      window.requestIdleCallback(loadExtras, { timeout: 1800 });
+      window.requestIdleCallback(loadExtras, { timeout: 2200 });
     } else {
-      setTimeout(loadExtras, 900);
+      setTimeout(loadExtras, 1100);
     }
   }
 
   if (document.readyState === 'complete') {
     loadLayoutFixes();
+    scheduleUiModules();
     scheduleExtras();
   } else {
     window.addEventListener('load', function(){
       loadLayoutFixes();
+      scheduleUiModules();
       scheduleExtras();
     }, { once: true });
   }
