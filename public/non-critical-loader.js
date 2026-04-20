@@ -13,7 +13,6 @@
     if (loadUiModules._done) return;
     loadUiModules._done = true;
     [
-      './suggestions.js',
       './support-chat.js',
       './admin.js'
     ].forEach(function(src){

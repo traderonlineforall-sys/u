@@ -19803,7 +19803,9 @@ button {border-radius:999px !important;}
 </div>
 
 
-<!-- Suggestions / Support / Admin UI modules are loaded lazily by non-critical-loader.js -->
+<script type="module" src="./suggestions.js"></script>
+
+<!-- Support + Admin UI wiring (partly lazy-loaded for faster first paint) -->
 <script type="module" src="./admin-message-client.js"></script>
 
     <!-- Announcement client: handles admin announcements for all users -->
