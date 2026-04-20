@@ -1,3 +1,6 @@
+import { playUrgentBannerNotification } from "./notification-sound.js";
+import { getStableUserId } from "./stable-user-identity.js";
+
 // Dynamic Functions base (Vercel vs Netlify) - avoids hard-coded host checks
 function resolveFnBase() {
   if (window.__SR_FN_BASE) return Promise.resolve(window.__SR_FN_BASE);
@@ -44,6 +47,8 @@ const LS_SEEN_AT = "sr_admin_ann_seen_at";
 const LS_SEEN_KEY = "sr_admin_ann_seen_key";
 const LS_URGENT_DISMISSED_AT = "sr_admin_urgent_dismissed_at";
 const LS_URGENT_DISMISSED_KEY = "sr_admin_urgent_dismissed_key";
+const LS_URGENT_SHOW_COUNT_PREFIX = "sr_admin_urgent_show_count";
+const MAX_URGENT_SHOWS_PER_USER = 2;
 const URGENT_PREFIX = "URGENT_TICKER::";
 const ANNOUNCEMENT_POLL_MS = 25000;
 const SR_ANNOUNCEMENT_CHANNEL = (typeof BroadcastChannel !== "undefined") ? new BroadcastChannel("sr_admin_announcement_state") : null;
@@ -52,6 +57,49 @@ function announceStateChanged(kind, payload = {}) {
   try {
     SR_ANNOUNCEMENT_CHANNEL?.postMessage({ kind, ...payload });
   } catch {}
+}
+
+
+function simpleHashKey(input = ""){
+  let h = 2166136261;
+  const s = String(input || "");
+  for(let i = 0; i < s.length; i++){
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(16).padStart(8, "0");
+}
+
+function getUrgentShowStorageKey(annKey){
+  const safeAnnKey = String(annKey || "").trim();
+  if(!safeAnnKey) return "";
+  let uid = "anon";
+  try { uid = String(getStableUserId() || "anon").trim() || "anon"; } catch {}
+  return `${LS_URGENT_SHOW_COUNT_PREFIX}:${uid}:${simpleHashKey(safeAnnKey)}`;
+}
+
+function getUrgentShowCount(annKey){
+  try {
+    const k = getUrgentShowStorageKey(annKey);
+    if(!k) return 0;
+    const n = parseInt(localStorage.getItem(k) || "0", 10);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function bumpUrgentShowCount(annKey){
+  try {
+    const k = getUrgentShowStorageKey(annKey);
+    if(!k) return 0;
+    const next = getUrgentShowCount(annKey) + 1;
+    localStorage.setItem(k, String(next));
+    announceStateChanged("urgent-shown", { key: String(annKey || "") });
+    return next;
+  } catch {
+    return 0;
+  }
 }
 
 function escapeHtml(s = "") {
@@ -218,6 +266,21 @@ function setUrgentText(text){
 
 function showUrgent(createdAtIso, text, annKey){
   const wrap = ensureUrgentTicker();
+  const effectiveKey = String(annKey || createdAtIso || text || "").trim();
+  const isAlreadyVisibleSame = wrap.style.display === 'block' && wrap.dataset.urgentActiveKey === effectiveKey;
+
+  if(!isAlreadyVisibleSame){
+    const shownCount = getUrgentShowCount(effectiveKey);
+    if(shownCount >= MAX_URGENT_SHOWS_PER_USER){
+      wrap.style.display = 'none';
+      dismissUrgent(createdAtIso, effectiveKey);
+      return;
+    }
+    bumpUrgentShowCount(effectiveKey);
+    wrap.dataset.urgentActiveKey = effectiveKey;
+    try { playUrgentBannerNotification(); } catch {}
+  }
+
   setUrgentText(text);
   wrap.style.display = 'block';
 
@@ -226,7 +289,7 @@ function showUrgent(createdAtIso, text, annKey){
     ack.__bound = true;
     ack.addEventListener('click', ()=>{
       wrap.style.display = 'none';
-      dismissUrgent(createdAtIso, annKey);
+      dismissUrgent(createdAtIso, effectiveKey);
     });
   }
 }

@@ -139,6 +139,48 @@ export async function playSoftNotification() {
   note({ freq: 1046, type: "triangle", start: 0.12, dur: 0.22, vol: 0.070, harmonic: 0.018 });
 }
 
+
+// A slightly richer chime dedicated to the urgent moving banner.
+// الهدف: يبقى ملفت وجذاب، لكن يظل مهني ومش مزعج.
+export async function playUrgentBannerNotification() {
+  if (!enabled) return;
+  if (!ctx || !unlocked) return;
+  if (ctx.state !== "running") return;
+
+  const nowMs = Date.now();
+  if (nowMs - lastPlayedAt < 1800) return;
+  lastPlayedAt = nowMs;
+
+  const t0 = ctx.currentTime;
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.9, t0);
+  master.connect(ctx.destination);
+
+  function note({ freq = 880, start = 0, dur = 0.16, vol = 0.05, type = "triangle" }) {
+    const when = t0 + start;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, when);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), when + 0.014);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+    gain.connect(master);
+
+    const osc = ctx.createOscillator();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, when);
+    osc.frequency.exponentialRampToValueAtTime(freq * 1.02, when + dur * 0.5);
+    osc.connect(gain);
+
+    try {
+      osc.start(when);
+      osc.stop(when + dur + 0.02);
+    } catch {}
+  }
+
+  note({ freq: 659, start: 0.00, dur: 0.13, vol: 0.040, type: "triangle" });
+  note({ freq: 880, start: 0.10, dur: 0.16, vol: 0.052, type: "triangle" });
+  note({ freq: 1174, start: 0.22, dur: 0.24, vol: 0.062, type: "sine" });
+}
+
 // Auto unlock on first user gesture (this is where we create the AudioContext)
 (function armAutoUnlock() {
   const handler = () => {
