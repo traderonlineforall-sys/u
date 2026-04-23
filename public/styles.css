@@ -54,7 +54,7 @@ input.in1:focus::placeholder, input.in2:focus::placeholder,
                                 display: none;
                                 position: absolute;
                                 background-color: #f9f9f9;
-                                min-width: 120px;
+                                min-width: 86px;
                                 box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
                                 z-index: 1;
                         }
@@ -1411,7 +1411,7 @@ body {
                 border: none;
                 outline: none;
                 cursor: pointer;
-                padding: 14px 16px;
+                padding: 12px 14px;
                 transition: 0.3s;
                 font-size: 20px;
                 border-radius: 5PX;
@@ -1454,10 +1454,10 @@ a:hover {
                                 float: left;
                                 font-size: 16px;
                                 text-align: center;
-                                padding: 14px 16px;
+                                padding: 12px 14px;
                                 text-decoration: none;
                                 color: #f0f0f0;
-                                padding: 14px 16px;
+                                padding: 12px 14px;
                                 margin: 0px;
                         }
 
@@ -1478,7 +1478,7 @@ a:hover {
                                 font-size: 16px;
                                 color: #f0f0f0;
                                 text-align: center;
-                                padding: 14px 16px;
+                                padding: 12px 14px;
                                 text-decoration: none;
                         }
 
@@ -1487,7 +1487,7 @@ a:hover {
                                 border: none;
                                 outline: none;
                                 color: #f0f0f0;
-                                padding: 14px 16px;
+                                padding: 12px 14px;
                                 background-color: inherit;
                                 font-family: inherit;
                                 margin: 0;
@@ -3713,7 +3713,7 @@ A:link {
   position: relative;
   overflow: hidden;
   flex: 1;
-  min-width: 120px;
+  min-width: 86px;
 }
 .sr-urgent-marquee{
   display: flex;
@@ -4396,13 +4396,14 @@ A:link {
 
 .quota-summary-card {
   margin: 10px 0 14px;
-  padding: 14px 16px;
+  padding: 12px 14px;
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,0.18);
   background: linear-gradient(145deg, rgba(15,23,42,0.94), rgba(30,41,59,0.88));
   box-shadow: 0 12px 30px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.08);
   color: #fff;
-  max-width: 520px;
+  width: min(100%, 340px);
+  max-width: 340px;
   backdrop-filter: blur(8px);
 }
 
@@ -4440,23 +4441,25 @@ A:link {
 .quota-label {
   color: #dbeafe;
   font-weight: 700;
-  min-width: 120px;
+  min-width: 86px;
 }
 
 .quota-value {
   color: #fef08a;
   font-weight: 700;
   text-align: right;
-  line-height: 1.7;
+  line-height: 1.55;
   word-break: break-word;
+  max-width: 175px;
+  font-size: 14px;
 }
 
 .quota-approx {
-  display: inline-block;
-  margin-inline-start: 8px;
+  display: block;
+  margin-top: 3px;
   color: #bfdbfe;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .quota-copy-btn {

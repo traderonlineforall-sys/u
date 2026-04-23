@@ -2897,15 +2897,34 @@ function resetAllPackages() {
                                                                         };
                                                                 }
 
-                                                                function getApproximateQuotaText(rawValue) {
-                                                                        var numericValue = Number(rawValue);
-                                                                        if (!isFinite(numericValue)) return '';
+                                                                function getQuotaRawBytes() {
+                                                                        var remainingInput = document.getElementById('bss_pkg');
+                                                                        var packageLabel = document.getElementById('pq');
+                                                                        var BYTES_PER_GB = 1073741824;
+                                                                        var remainingBytes = Number(remainingInput && remainingInput.value ? remainingInput.value.trim() : '');
+                                                                        var packageGb = Number(packageLabel && packageLabel.textContent ? packageLabel.textContent.trim() : '');
+
+                                                                        if (!isFinite(remainingBytes) || remainingBytes < 0) remainingBytes = null;
+                                                                        if (!isFinite(packageGb) || packageGb < 0) packageGb = null;
+
+                                                                        var packageBytes = packageGb == null ? null : Math.round(packageGb * BYTES_PER_GB);
+                                                                        var consumedBytes = (packageBytes == null || remainingBytes == null) ? null : Math.max(packageBytes - remainingBytes, 0);
+
+                                                                        return {
+                                                                                packageBytes: packageBytes,
+                                                                                remainingBytes: remainingBytes,
+                                                                                consumedBytes: consumedBytes
+                                                                        };
+                                                                }
+
+                                                                function getApproximateQuotaTextFromBytes(rawBytes) {
+                                                                        var numericBytes = Number(rawBytes);
+                                                                        if (!isFinite(numericBytes) || numericBytes < 0) return '';
 
                                                                         var BYTES_PER_GB = 1073741824;
                                                                         var BYTES_PER_MB = 1048576;
-                                                                        var absBytes = Math.round(Math.abs(numericValue) * BYTES_PER_GB);
-                                                                        var wholeGb = Math.floor(absBytes / BYTES_PER_GB);
-                                                                        var remainingBytes = absBytes - (wholeGb * BYTES_PER_GB);
+                                                                        var wholeGb = Math.floor(numericBytes / BYTES_PER_GB);
+                                                                        var remainingBytes = numericBytes - (wholeGb * BYTES_PER_GB);
                                                                         var megaBytes = Math.round(remainingBytes / BYTES_PER_MB);
 
                                                                         if (megaBytes >= 1024) {
@@ -2918,7 +2937,7 @@ function resetAllPackages() {
                                                                         return '≈ ' + wholeGb + ' جيجا و' + megaBytes + ' ميجا';
                                                                 }
 
-                                                                function getQuotaDisplayData(rawValue) {
+                                                                function getQuotaDisplayData(rawValue, approxBytes) {
                                                                         var cleanValue = String(rawValue == null ? '' : rawValue).trim();
                                                                         if (cleanValue === '') {
                                                                                 return {
@@ -2938,7 +2957,7 @@ function resetAllPackages() {
                                                                         }
 
                                                                         var exactText = cleanValue + ' جيجا';
-                                                                        var approxText = Math.abs(numericValue - Math.trunc(numericValue)) > 1e-9 ? getApproximateQuotaText(cleanValue) : '';
+                                                                        var approxText = getApproximateQuotaTextFromBytes(approxBytes);
                                                                         var htmlText = approxText ? exactText + ' (' + approxText + ')' : exactText;
 
                                                                         return {
@@ -2948,9 +2967,9 @@ function resetAllPackages() {
                                                                         };
                                                                 }
 
-                                                                function setQuotaSummaryValue(targetNode, rawValue) {
+                                                                function setQuotaSummaryValue(targetNode, rawValue, approxBytes) {
                                                                         if (!targetNode) return;
-                                                                        var displayData = getQuotaDisplayData(rawValue);
+                                                                        var displayData = getQuotaDisplayData(rawValue, approxBytes);
                                                                         targetNode.textContent = displayData.exact;
 
                                                                         var oldApprox = targetNode.querySelector('.quota-approx');
@@ -2965,13 +2984,14 @@ function resetAllPackages() {
                                                                 }
 
                                                                 function buildQuotaSummaryHtml() {
+                                                                        var rawBytes = getQuotaRawBytes();
                                                                         var packageText = document.getElementById('pq') ? document.getElementById('pq').textContent.trim() : '';
                                                                         var remainingText = document.getElementById('rq') ? document.getElementById('rq').textContent.trim() : '';
                                                                         var consumedText = document.getElementById('cq') ? document.getElementById('cq').textContent.trim() : '';
 
-                                                                        var packageDisplay = getQuotaDisplayData(packageText).htmlText;
-                                                                        var remainingDisplay = getQuotaDisplayData(remainingText).htmlText;
-                                                                        var consumedDisplay = getQuotaDisplayData(consumedText).htmlText;
+                                                                        var packageDisplay = getQuotaDisplayData(packageText, null).htmlText;
+                                                                        var remainingDisplay = getQuotaDisplayData(remainingText, rawBytes.remainingBytes).htmlText;
+                                                                        var consumedDisplay = getQuotaDisplayData(consumedText, rawBytes.consumedBytes).htmlText;
 
                                                                         return `الباقه الاساسيه  :	${packageDisplay}<br>
 المتبقى  :	${remainingDisplay}<br>
@@ -2982,6 +3002,7 @@ function resetAllPackages() {
                                                                         var nodes = getQuotaSummaryNodes();
                                                                         if (!nodes.card || !nodes.packageValue || !nodes.remainingValue || !nodes.consumedValue) return;
 
+                                                                        var rawBytes = getQuotaRawBytes();
                                                                         var packageText = document.getElementById('pq') ? document.getElementById('pq').textContent.trim() : '';
                                                                         var remainingText = document.getElementById('rq') ? document.getElementById('rq').textContent.trim() : '';
                                                                         var consumedText = document.getElementById('cq') ? document.getElementById('cq').textContent.trim() : '';
@@ -2990,9 +3011,9 @@ function resetAllPackages() {
                                                                         nodes.card.hidden = !hasVisibleData;
                                                                         if (!hasVisibleData) return;
 
-                                                                        setQuotaSummaryValue(nodes.packageValue, packageText);
-                                                                        setQuotaSummaryValue(nodes.remainingValue, remainingText);
-                                                                        setQuotaSummaryValue(nodes.consumedValue, consumedText);
+                                                                        setQuotaSummaryValue(nodes.packageValue, packageText, null);
+                                                                        setQuotaSummaryValue(nodes.remainingValue, remainingText, rawBytes.remainingBytes);
+                                                                        setQuotaSummaryValue(nodes.consumedValue, consumedText, rawBytes.consumedBytes);
                                                                 }
 
                                                                 function copyQuotaSummaryHtml() {
