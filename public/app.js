@@ -2882,9 +2882,153 @@ function resetAllPackages() {
 
                                                                         $("#pq,#cq,#rq,#dstatus,#other_pkg").html('');
                                                                         $("#error").hide();
+                                                                        renderQuotaSummary();
                                                                 }
 
 
+
+                                                                function getQuotaSummaryNodes() {
+                                                                        return {
+                                                                                card: document.getElementById('quotaSummaryCard'),
+                                                                                packageValue: document.getElementById('quotaSummaryPackage'),
+                                                                                remainingValue: document.getElementById('quotaSummaryRemaining'),
+                                                                                consumedValue: document.getElementById('quotaSummaryConsumed'),
+                                                                                copyBtn: document.getElementById('quotaSummaryCopyBtn')
+                                                                        };
+                                                                }
+
+                                                                function getApproximateQuotaText(rawValue) {
+                                                                        var numericValue = Number(rawValue);
+                                                                        if (!isFinite(numericValue)) return '';
+                                                                        var absValue = Math.abs(numericValue);
+                                                                        var wholeGb = Math.floor(absValue + 1e-9);
+                                                                        var megaBytes = Math.round((absValue - wholeGb) * 1024);
+
+                                                                        if (megaBytes >= 1024) {
+                                                                                wholeGb += 1;
+                                                                                megaBytes = 0;
+                                                                        }
+
+                                                                        if (megaBytes <= 0) return '';
+                                                                        if (wholeGb <= 0) return '≈ ' + megaBytes + ' ميجا';
+                                                                        return '≈ ' + wholeGb + ' جيجا و' + megaBytes + ' ميجا';
+                                                                }
+
+                                                                function getQuotaDisplayData(rawValue) {
+                                                                        var cleanValue = String(rawValue == null ? '' : rawValue).trim();
+                                                                        if (cleanValue === '') {
+                                                                                return {
+                                                                                        exact: '—',
+                                                                                        approx: '',
+                                                                                        htmlText: '—'
+                                                                                };
+                                                                        }
+
+                                                                        var numericValue = Number(cleanValue);
+                                                                        if (!isFinite(numericValue)) {
+                                                                                return {
+                                                                                        exact: cleanValue,
+                                                                                        approx: '',
+                                                                                        htmlText: cleanValue
+                                                                                };
+                                                                        }
+
+                                                                        var exactText = cleanValue + ' جيجا';
+                                                                        var approxText = Math.abs(numericValue - Math.trunc(numericValue)) > 1e-9 ? getApproximateQuotaText(cleanValue) : '';
+                                                                        var htmlText = approxText ? exactText + ' (' + approxText + ')' : exactText;
+
+                                                                        return {
+                                                                                exact: exactText,
+                                                                                approx: approxText,
+                                                                                htmlText: htmlText
+                                                                        };
+                                                                }
+
+                                                                function setQuotaSummaryValue(targetNode, rawValue) {
+                                                                        if (!targetNode) return;
+                                                                        var displayData = getQuotaDisplayData(rawValue);
+                                                                        targetNode.textContent = displayData.exact;
+
+                                                                        var oldApprox = targetNode.querySelector('.quota-approx');
+                                                                        if (oldApprox) oldApprox.remove();
+
+                                                                        if (displayData.approx) {
+                                                                                var approxNode = document.createElement('span');
+                                                                                approxNode.className = 'quota-approx';
+                                                                                approxNode.textContent = displayData.approx;
+                                                                                targetNode.appendChild(approxNode);
+                                                                        }
+                                                                }
+
+                                                                function buildQuotaSummaryHtml() {
+                                                                        var packageText = document.getElementById('pq') ? document.getElementById('pq').textContent.trim() : '';
+                                                                        var remainingText = document.getElementById('rq') ? document.getElementById('rq').textContent.trim() : '';
+                                                                        var consumedText = document.getElementById('cq') ? document.getElementById('cq').textContent.trim() : '';
+
+                                                                        var packageDisplay = getQuotaDisplayData(packageText).htmlText;
+                                                                        var remainingDisplay = getQuotaDisplayData(remainingText).htmlText;
+                                                                        var consumedDisplay = getQuotaDisplayData(consumedText).htmlText;
+
+                                                                        return `الباقه الاساسيه  :	${packageDisplay}<br>
+المتبقى  :	${remainingDisplay}<br>
+الاستهلاك  :	${consumedDisplay}`;
+                                                                }
+
+                                                                function renderQuotaSummary() {
+                                                                        var nodes = getQuotaSummaryNodes();
+                                                                        if (!nodes.card || !nodes.packageValue || !nodes.remainingValue || !nodes.consumedValue) return;
+
+                                                                        var packageText = document.getElementById('pq') ? document.getElementById('pq').textContent.trim() : '';
+                                                                        var remainingText = document.getElementById('rq') ? document.getElementById('rq').textContent.trim() : '';
+                                                                        var consumedText = document.getElementById('cq') ? document.getElementById('cq').textContent.trim() : '';
+                                                                        var hasVisibleData = packageText !== '' || remainingText !== '' || consumedText !== '';
+
+                                                                        nodes.card.hidden = !hasVisibleData;
+                                                                        if (!hasVisibleData) return;
+
+                                                                        setQuotaSummaryValue(nodes.packageValue, packageText);
+                                                                        setQuotaSummaryValue(nodes.remainingValue, remainingText);
+                                                                        setQuotaSummaryValue(nodes.consumedValue, consumedText);
+                                                                }
+
+                                                                function copyQuotaSummaryHtml() {
+                                                                        var htmlText = buildQuotaSummaryHtml();
+                                                                        var nodes = getQuotaSummaryNodes();
+                                                                        var copyBtn = nodes.copyBtn;
+
+                                                                        function markCopied() {
+                                                                                if (!copyBtn) return;
+                                                                                var originalText = copyBtn.getAttribute('data-original-text') || copyBtn.textContent;
+                                                                                copyBtn.setAttribute('data-original-text', originalText);
+                                                                                copyBtn.textContent = 'تم النسخ';
+                                                                                copyBtn.classList.add('is-copied');
+                                                                                clearTimeout(copyBtn._quotaCopyTimer);
+                                                                                copyBtn._quotaCopyTimer = setTimeout(function () {
+                                                                                        copyBtn.textContent = originalText;
+                                                                                        copyBtn.classList.remove('is-copied');
+                                                                                }, 1500);
+                                                                        }
+
+                                                                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                                                                                navigator.clipboard.writeText(htmlText).then(markCopied).catch(function () {
+                                                                                        var tempArea = document.createElement('textarea');
+                                                                                        tempArea.value = htmlText;
+                                                                                        document.body.appendChild(tempArea);
+                                                                                        tempArea.select();
+                                                                                        document.execCommand('copy');
+                                                                                        document.body.removeChild(tempArea);
+                                                                                        markCopied();
+                                                                                });
+                                                                        } else {
+                                                                                var tempArea = document.createElement('textarea');
+                                                                                tempArea.value = htmlText;
+                                                                                document.body.appendChild(tempArea);
+                                                                                tempArea.select();
+                                                                                document.execCommand('copy');
+                                                                                document.body.removeChild(tempArea);
+                                                                                markCopied();
+                                                                        }
+                                                                }
 
                                                                 function calculate(now, config) {
 
@@ -2907,6 +3051,7 @@ function resetAllPackages() {
                                                                         } else {
                                                                                 $("#dstatus").html("").css("color", "#D0FA58");
                                                                         }
+                                                                        renderQuotaSummary();
                                                                 }
 
 
@@ -2928,7 +3073,13 @@ function resetAllPackages() {
                                                                         // Hiding 
 
                                                                         $("#other_pkg,#error").hide();
+                                                                        renderQuotaSummary();
 
+                                                                        var quotaCopyBtn = document.getElementById('quotaSummaryCopyBtn');
+                                                                        if (quotaCopyBtn && !quotaCopyBtn.dataset.bound) {
+                                                                                quotaCopyBtn.dataset.bound = 'true';
+                                                                                quotaCopyBtn.addEventListener('click', copyQuotaSummaryHtml);
+                                                                        }
 
                                                                         $("#pkgs").change(function () {
 
@@ -2961,7 +3112,7 @@ function resetAllPackages() {
                                                                                         var pq = pkg
 
                                                                                         $("#pq").html(pq);
-
+                                                                                        renderQuotaSummary();
 
 
                                                                                 }
@@ -2976,6 +3127,7 @@ function resetAllPackages() {
                                                                         pkg = $("#other_pkg").val().trim();
 
                                                                         $("#pq").html(pkg);
+                                                                        renderQuotaSummary();
 
                                                                         $("#bss_pkg").val("");
 
@@ -2999,11 +3151,14 @@ function resetAllPackages() {
 
                                                                                         } else if (curr_real != '') {
                                                                                                 $("#error").html("Please Enter valid number").show();
-                                                                                                $("#rq,#dstatus").html('');
+                                                                                                $("#rq,#cq,#dstatus").html('');
+                                                                                                renderQuotaSummary();
                                                                                         }
 
                                                                                 } else {
                                                                                         $("#error").html("Please Define CST Quota").show();
+                                                                                        $("#rq,#cq,#dstatus").html('');
+                                                                                        renderQuotaSummary();
                                                                                 }
 
                                                                         } else {

@@ -12,6 +12,7 @@
   var DRIFT_THRESHOLD_PX = 10;
   var MONITOR_INTERVAL_MS = 1000;
   var BASELINE_CAPTURE_DELAY_MS = 1350;
+  var USER_EDIT_GRACE_MS = 2600;
 
   var syncInFlight = false;
   var baselineTimer = 0;
@@ -21,11 +22,26 @@
   var lastSyncAt = 0;
   var trackedObservers = { logo: null, hk: null };
   var trackedElements = { logo: null, hk: null };
+  var lastUserEditAt = Object.create(null);
 
   var baselines = {
     logo: null,
     hk: null
   };
+
+  function markRecentUserEdit(id) {
+    if (!id) return;
+    lastUserEditAt[id] = Date.now();
+  }
+
+  function wasRecentlyEdited(id) {
+    var ts = lastUserEditAt[id] || 0;
+    return !!ts && (Date.now() - ts) < USER_EDIT_GRACE_MS;
+  }
+
+  function isProtectedLiveField(id) {
+    return id === "arabicNumber" || id === "arabiccNumber";
+  }
 
   function snapshotValues() {
     var out = {};
@@ -37,13 +53,21 @@
     return out;
   }
 
-  function restoreValues(snapshot) {
+  function restoreValues(snapshot, options) {
     if (!snapshot) return;
+    options = options || {};
     Object.keys(snapshot).forEach(function(id){
       var el = document.getElementById(id);
       if (!el) return;
       var saved = snapshot[id];
       if (typeof saved !== "string") return;
+
+      if (options.automatic && isProtectedLiveField(id)) {
+        if (document.activeElement === el || wasRecentlyEdited(id)) {
+          return;
+        }
+      }
+
       if (el.value !== saved) {
         el.value = saved;
         try {
@@ -201,7 +225,8 @@
     baselineTimer = setTimeout(refreshBaselines, BASELINE_CAPTURE_DELAY_MS);
   }
 
-  function safeLayoutSync() {
+  function safeLayoutSync(options) {
+    options = options || {};
     if (syncInFlight) {
       scheduleBaselineCapture();
       return;
@@ -214,18 +239,18 @@
 
     kickResize();
     setTimeout(function(){
-      restoreValues(snap);
+      restoreValues(snap, options);
       kickResize();
       kickScroll();
     }, 180);
 
     setTimeout(function(){
-      restoreValues(snap);
+      restoreValues(snap, options);
       kickResize();
     }, 650);
 
     setTimeout(function(){
-      restoreValues(snap);
+      restoreValues(snap, options);
       kickResize();
       syncInFlight = false;
       scheduleBaselineCapture();
@@ -281,7 +306,7 @@
       setTimeout(function(){
         var postPin = currentDriftState();
         if (postPin.logoDrifted || postPin.hkDrifted) {
-          safeLayoutSync();
+          safeLayoutSync({ automatic: true });
         } else {
           scheduleBaselineCapture();
         }
@@ -289,7 +314,7 @@
       return;
     }
 
-    safeLayoutSync();
+    safeLayoutSync({ automatic: true });
   }
 
   function scheduleDriftCheck() {
@@ -308,6 +333,18 @@
     }, MONITOR_INTERVAL_MS);
   }
 
+
+  function bindLiveEditProtection() {
+    ["input", "change", "paste", "keyup", "focusin"].forEach(function(eventName){
+      document.addEventListener(eventName, function(event){
+        var t = event && event.target;
+        if (!t || !t.id) return;
+        if (!isProtectedLiveField(t.id)) return;
+        markRecentUserEdit(t.id);
+      }, true);
+    });
+  }
+
   function bindManualResetBaselineRefresh() {
     document.addEventListener("click", function(event){
       var t = event && event.target;
@@ -315,26 +352,26 @@
       var btn = t.closest("#headerResetBtn");
       if (!btn) return;
       setTimeout(function(){
-        safeLayoutSync();
+        safeLayoutSync({ automatic: false, manualReset: true });
       }, 80);
     }, true);
   }
 
   if (document.readyState === "complete") {
     setTimeout(function(){
-      safeLayoutSync();
+      safeLayoutSync({ automatic: true });
     }, 0);
   } else {
     window.addEventListener("load", function(){
       setTimeout(function(){
-        safeLayoutSync();
+        safeLayoutSync({ automatic: true });
       }, 0);
     }, { once: true });
   }
 
   window.addEventListener("pageshow", function(){
     setTimeout(function(){
-      safeLayoutSync();
+      safeLayoutSync({ automatic: true });
     }, 0);
   });
 
@@ -344,11 +381,12 @@
   document.addEventListener("visibilitychange", function(){
     if (!document.hidden) {
       setTimeout(function(){
-        safeLayoutSync();
+        safeLayoutSync({ automatic: true });
       }, 80);
     }
   });
 
+  bindLiveEditProtection();
   bindManualResetBaselineRefresh();
   armAutoMonitor();
 })();
