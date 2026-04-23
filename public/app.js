@@ -2900,9 +2900,13 @@ function resetAllPackages() {
                                                                 function getApproximateQuotaText(rawValue) {
                                                                         var numericValue = Number(rawValue);
                                                                         if (!isFinite(numericValue)) return '';
-                                                                        var absValue = Math.abs(numericValue);
-                                                                        var wholeGb = Math.floor(absValue + 1e-9);
-                                                                        var megaBytes = Math.round((absValue - wholeGb) * 1024);
+
+                                                                        var BYTES_PER_GB = 1073741824;
+                                                                        var BYTES_PER_MB = 1048576;
+                                                                        var absBytes = Math.round(Math.abs(numericValue) * BYTES_PER_GB);
+                                                                        var wholeGb = Math.floor(absBytes / BYTES_PER_GB);
+                                                                        var remainingBytes = absBytes - (wholeGb * BYTES_PER_GB);
+                                                                        var megaBytes = Math.round(remainingBytes / BYTES_PER_MB);
 
                                                                         if (megaBytes >= 1024) {
                                                                                 wholeGb += 1;
