@@ -2937,6 +2937,19 @@ function resetAllPackages() {
                                                                         return '≈ ' + wholeGb + ' جيجا و' + megaBytes + ' ميجا';
                                                                 }
 
+                                                                function roundQuotaToHundredth(value) {
+                                                                        var numericValue = Number(value);
+                                                                        if (!isFinite(numericValue)) return null;
+                                                                        return Math.round((numericValue + Number.EPSILON) * 100) / 100;
+                                                                }
+
+                                                                function formatQuotaExactNumber(value) {
+                                                                        var roundedValue = roundQuotaToHundredth(value);
+                                                                        if (roundedValue == null) return '';
+                                                                        if (Number.isInteger(roundedValue)) return String(roundedValue);
+                                                                        return roundedValue.toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
+                                                                }
+
                                                                 function getQuotaDisplayData(rawValue, approxBytes) {
                                                                         var cleanValue = String(rawValue == null ? '' : rawValue).trim();
                                                                         if (cleanValue === '') {
@@ -2956,9 +2969,10 @@ function resetAllPackages() {
                                                                                 };
                                                                         }
 
-                                                                        var exactText = cleanValue + ' جيجا';
+                                                                        var exactNumberText = formatQuotaExactNumber(numericValue);
+                                                                        var exactText = exactNumberText + ' جيجا';
                                                                         var approxText = getApproximateQuotaTextFromBytes(approxBytes);
-                                                                        var htmlText = approxText ? exactText + ' (' + approxText + ')' : exactText;
+                                                                        var htmlText = exactText;
 
                                                                         return {
                                                                                 exact: exactText,
@@ -2984,14 +2998,13 @@ function resetAllPackages() {
                                                                 }
 
                                                                 function buildQuotaSummaryHtml() {
-                                                                        var rawBytes = getQuotaRawBytes();
                                                                         var packageText = document.getElementById('pq') ? document.getElementById('pq').textContent.trim() : '';
                                                                         var remainingText = document.getElementById('rq') ? document.getElementById('rq').textContent.trim() : '';
                                                                         var consumedText = document.getElementById('cq') ? document.getElementById('cq').textContent.trim() : '';
 
-                                                                        var packageDisplay = getQuotaDisplayData(packageText, null).htmlText;
-                                                                        var remainingDisplay = getQuotaDisplayData(remainingText, rawBytes.remainingBytes).htmlText;
-                                                                        var consumedDisplay = getQuotaDisplayData(consumedText, rawBytes.consumedBytes).htmlText;
+                                                                        var packageDisplay = getQuotaDisplayData(packageText, null).exact;
+                                                                        var remainingDisplay = getQuotaDisplayData(remainingText, null).exact;
+                                                                        var consumedDisplay = getQuotaDisplayData(consumedText, null).exact;
 
                                                                         return `الباقه الاساسيه  :	${packageDisplay}<br>
 المتبقى  :	${remainingDisplay}<br>
@@ -3079,6 +3092,24 @@ function resetAllPackages() {
                                                                         renderQuotaSummary();
                                                                 }
 
+                                                                function bindQuotaSummaryReset() {
+                                                                        var nodes = getQuotaSummaryNodes();
+                                                                        var quotaForm = nodes.card && nodes.card.closest ? nodes.card.closest('form') : null;
+                                                                        if (!quotaForm || quotaForm.dataset.quotaSummaryResetBound === 'true') return;
+                                                                        quotaForm.dataset.quotaSummaryResetBound = 'true';
+                                                                        quotaForm.addEventListener('reset', function () {
+                                                                                setTimeout(function () {
+                                                                                        clearall();
+                                                                                        var copyBtn = getQuotaSummaryNodes().copyBtn;
+                                                                                        if (copyBtn) {
+                                                                                                clearTimeout(copyBtn._quotaCopyTimer);
+                                                                                                copyBtn.textContent = copyBtn.getAttribute('data-original-text') || 'نسخ HTML';
+                                                                                                copyBtn.classList.remove('is-copied');
+                                                                                        }
+                                                                                }, 0);
+                                                                        });
+                                                                }
+
 
                                                                 function isnum(x) {
                                                                         var num = true;
@@ -3105,6 +3136,7 @@ function resetAllPackages() {
                                                                                 quotaCopyBtn.dataset.bound = 'true';
                                                                                 quotaCopyBtn.addEventListener('click', copyQuotaSummaryHtml);
                                                                         }
+                                                                        bindQuotaSummaryReset();
 
                                                                         $("#pkgs").change(function () {
 
