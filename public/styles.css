@@ -4388,3 +4388,118 @@ A:link {
     max-height: 220px;
   }
 }
+
+
+/* Quota calculator polished summary */
+#results {
+  display: none !important;
+}
+
+.quota-summary-card {
+  margin: 10px 0 14px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: linear-gradient(145deg, rgba(15,23,42,0.94), rgba(30,41,59,0.88));
+  box-shadow: 0 12px 30px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.08);
+  color: #fff;
+  width: min(100%, 340px);
+  max-width: 340px;
+  backdrop-filter: blur(8px);
+}
+
+.quota-summary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.quota-summary-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: .2px;
+  color: #f8fafc;
+}
+
+.quota-summary-lines {
+  display: grid;
+  gap: 10px;
+}
+
+.quota-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.quota-label {
+  color: #dbeafe;
+  font-weight: 700;
+  min-width: 86px;
+}
+
+.quota-value {
+  color: #fef08a;
+  font-weight: 700;
+  text-align: right;
+  line-height: 1.55;
+  word-break: break-word;
+  max-width: 175px;
+  font-size: 14px;
+}
+
+.quota-approx {
+  display: block;
+  margin-top: 3px;
+  color: #bfdbfe;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.quota-copy-btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-weight: 700;
+  color: #0f172a;
+  background: linear-gradient(135deg, #fef08a, #f59e0b);
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(245, 158, 11, 0.28);
+  transition: transform .16s ease, box-shadow .16s ease, opacity .16s ease;
+}
+
+.quota-copy-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(245, 158, 11, 0.34);
+}
+
+.quota-copy-btn:active {
+  transform: translateY(0);
+}
+
+.quota-copy-btn.is-copied {
+  background: linear-gradient(135deg, #86efac, #22c55e);
+  color: #052e16;
+}
+
+@media (max-width: 640px) {
+  .quota-line {
+    flex-direction: column;
+  }
+
+  .quota-value {
+    text-align: left;
+  }
+
+  .quota-summary-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

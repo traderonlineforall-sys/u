@@ -2882,9 +2882,168 @@ function resetAllPackages() {
 
                                                                         $("#pq,#cq,#rq,#dstatus,#other_pkg").html('');
                                                                         $("#error").hide();
+                                                                        renderQuotaSummary();
                                                                 }
 
 
+
+                                                                function getQuotaSummaryNodes() {
+                                                                        return {
+                                                                                card: document.getElementById('quotaSummaryCard'),
+                                                                                packageValue: document.getElementById('quotaSummaryPackage'),
+                                                                                remainingValue: document.getElementById('quotaSummaryRemaining'),
+                                                                                consumedValue: document.getElementById('quotaSummaryConsumed'),
+                                                                                copyBtn: document.getElementById('quotaSummaryCopyBtn')
+                                                                        };
+                                                                }
+
+                                                                function getQuotaRawBytes() {
+                                                                        var remainingInput = document.getElementById('bss_pkg');
+                                                                        var packageLabel = document.getElementById('pq');
+                                                                        var BYTES_PER_GB = 1073741824;
+                                                                        var remainingBytes = Number(remainingInput && remainingInput.value ? remainingInput.value.trim() : '');
+                                                                        var packageGb = Number(packageLabel && packageLabel.textContent ? packageLabel.textContent.trim() : '');
+
+                                                                        if (!isFinite(remainingBytes) || remainingBytes < 0) remainingBytes = null;
+                                                                        if (!isFinite(packageGb) || packageGb < 0) packageGb = null;
+
+                                                                        var packageBytes = packageGb == null ? null : Math.round(packageGb * BYTES_PER_GB);
+                                                                        var consumedBytes = (packageBytes == null || remainingBytes == null) ? null : Math.max(packageBytes - remainingBytes, 0);
+
+                                                                        return {
+                                                                                packageBytes: packageBytes,
+                                                                                remainingBytes: remainingBytes,
+                                                                                consumedBytes: consumedBytes
+                                                                        };
+                                                                }
+
+                                                                function getApproximateQuotaTextFromBytes(rawBytes) {
+                                                                        var numericBytes = Number(rawBytes);
+                                                                        if (!isFinite(numericBytes) || numericBytes < 0) return '';
+
+                                                                        var BYTES_PER_GB = 1073741824;
+                                                                        var BYTES_PER_MB = 1048576;
+                                                                        var wholeGb = Math.floor(numericBytes / BYTES_PER_GB);
+                                                                        var remainingBytes = numericBytes - (wholeGb * BYTES_PER_GB);
+                                                                        var megaBytes = Math.round(remainingBytes / BYTES_PER_MB);
+
+                                                                        if (megaBytes >= 1024) {
+                                                                                wholeGb += 1;
+                                                                                megaBytes = 0;
+                                                                        }
+
+                                                                        if (megaBytes <= 0) return '';
+                                                                        if (wholeGb <= 0) return '≈ ' + megaBytes + ' ميجا';
+                                                                        return '≈ ' + wholeGb + ' جيجا و' + megaBytes + ' ميجا';
+                                                                }
+
+                                                                function roundQuotaToHundredth(value) {
+                                                                        var numericValue = Number(value);
+                                                                        if (!isFinite(numericValue)) return null;
+                                                                        return Math.round((numericValue + Number.EPSILON) * 100) / 100;
+                                                                }
+
+                                                                function formatQuotaExactNumber(value) {
+                                                                        var roundedValue = roundQuotaToHundredth(value);
+                                                                        if (roundedValue == null) return '';
+                                                                        if (Number.isInteger(roundedValue)) return String(roundedValue);
+                                                                        return roundedValue.toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
+                                                                }
+
+                                                                function getQuotaDisplayData(rawValue, approxBytes) {
+                                                                        var cleanValue = String(rawValue == null ? '' : rawValue).trim();
+                                                                        if (cleanValue === '') {
+                                                                                return { exact: '—', approx: '', htmlText: '—' };
+                                                                        }
+
+                                                                        var numericValue = Number(cleanValue);
+                                                                        if (!isFinite(numericValue)) {
+                                                                                return { exact: cleanValue, approx: '', htmlText: cleanValue };
+                                                                        }
+
+                                                                        var exactNumberText = formatQuotaExactNumber(numericValue);
+                                                                        var exactText = exactNumberText + ' جيجا';
+                                                                        var approxText = getApproximateQuotaTextFromBytes(approxBytes);
+                                                                        return { exact: exactText, approx: approxText, htmlText: exactText };
+                                                                }
+
+                                                                function setQuotaSummaryValue(targetNode, rawValue, approxBytes) {
+                                                                        if (!targetNode) return;
+                                                                        var displayData = getQuotaDisplayData(rawValue, approxBytes);
+                                                                        targetNode.textContent = displayData.exact;
+                                                                        var oldApprox = targetNode.querySelector('.quota-approx');
+                                                                        if (oldApprox) oldApprox.remove();
+                                                                        if (displayData.approx) {
+                                                                                var approxNode = document.createElement('span');
+                                                                                approxNode.className = 'quota-approx';
+                                                                                approxNode.textContent = displayData.approx;
+                                                                                targetNode.appendChild(approxNode);
+                                                                        }
+                                                                }
+
+                                                                function buildQuotaSummaryHtml() {
+                                                                        var packageText = document.getElementById('pq') ? document.getElementById('pq').textContent.trim() : '';
+                                                                        var remainingText = document.getElementById('rq') ? document.getElementById('rq').textContent.trim() : '';
+                                                                        var consumedText = document.getElementById('cq') ? document.getElementById('cq').textContent.trim() : '';
+                                                                        var packageDisplay = getQuotaDisplayData(packageText, null).exact;
+                                                                        var remainingDisplay = getQuotaDisplayData(remainingText, null).exact;
+                                                                        var consumedDisplay = getQuotaDisplayData(consumedText, null).exact;
+                                                                        return `الباقه الاساسيه  :	${packageDisplay}<br>
+المتبقى  :	${remainingDisplay}<br>
+الاستهلاك  :	${consumedDisplay}`;
+                                                                }
+
+                                                                function renderQuotaSummary() {
+                                                                        var nodes = getQuotaSummaryNodes();
+                                                                        if (!nodes.card || !nodes.packageValue || !nodes.remainingValue || !nodes.consumedValue) return;
+                                                                        var rawBytes = getQuotaRawBytes();
+                                                                        var packageText = document.getElementById('pq') ? document.getElementById('pq').textContent.trim() : '';
+                                                                        var remainingText = document.getElementById('rq') ? document.getElementById('rq').textContent.trim() : '';
+                                                                        var consumedText = document.getElementById('cq') ? document.getElementById('cq').textContent.trim() : '';
+                                                                        var hasVisibleData = packageText !== '' || remainingText !== '' || consumedText !== '';
+                                                                        nodes.card.hidden = !hasVisibleData;
+                                                                        if (!hasVisibleData) return;
+                                                                        setQuotaSummaryValue(nodes.packageValue, packageText, null);
+                                                                        setQuotaSummaryValue(nodes.remainingValue, remainingText, rawBytes.remainingBytes);
+                                                                        setQuotaSummaryValue(nodes.consumedValue, consumedText, rawBytes.consumedBytes);
+                                                                }
+
+                                                                function copyQuotaSummaryHtml() {
+                                                                        var htmlText = buildQuotaSummaryHtml();
+                                                                        var nodes = getQuotaSummaryNodes();
+                                                                        var copyBtn = nodes.copyBtn;
+                                                                        function markCopied() {
+                                                                                if (!copyBtn) return;
+                                                                                var originalText = copyBtn.getAttribute('data-original-text') || copyBtn.textContent;
+                                                                                copyBtn.setAttribute('data-original-text', originalText);
+                                                                                copyBtn.textContent = 'تم النسخ';
+                                                                                copyBtn.classList.add('is-copied');
+                                                                                clearTimeout(copyBtn._quotaCopyTimer);
+                                                                                copyBtn._quotaCopyTimer = setTimeout(function () {
+                                                                                        copyBtn.textContent = originalText;
+                                                                                        copyBtn.classList.remove('is-copied');
+                                                                                }, 1500);
+                                                                        }
+                                                                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                                                                                navigator.clipboard.writeText(htmlText).then(markCopied).catch(function () {
+                                                                                        var tempArea = document.createElement('textarea');
+                                                                                        tempArea.value = htmlText;
+                                                                                        document.body.appendChild(tempArea);
+                                                                                        tempArea.select();
+                                                                                        document.execCommand('copy');
+                                                                                        document.body.removeChild(tempArea);
+                                                                                        markCopied();
+                                                                                });
+                                                                        } else {
+                                                                                var tempArea = document.createElement('textarea');
+                                                                                tempArea.value = htmlText;
+                                                                                document.body.appendChild(tempArea);
+                                                                                tempArea.select();
+                                                                                document.execCommand('copy');
+                                                                                document.body.removeChild(tempArea);
+                                                                                markCopied();
+                                                                        }
+                                                                }
 
                                                                 function calculate(now, config) {
 
@@ -2907,6 +3066,25 @@ function resetAllPackages() {
                                                                         } else {
                                                                                 $("#dstatus").html("").css("color", "#D0FA58");
                                                                         }
+                                                                        renderQuotaSummary();
+                                                                }
+
+                                                                function bindQuotaSummaryReset() {
+                                                                        var nodes = getQuotaSummaryNodes();
+                                                                        var quotaForm = nodes.card && nodes.card.closest ? nodes.card.closest('form') : null;
+                                                                        if (!quotaForm || quotaForm.dataset.quotaSummaryResetBound === 'true') return;
+                                                                        quotaForm.dataset.quotaSummaryResetBound = 'true';
+                                                                        quotaForm.addEventListener('reset', function () {
+                                                                                setTimeout(function () {
+                                                                                        clearall();
+                                                                                        var copyBtn = getQuotaSummaryNodes().copyBtn;
+                                                                                        if (copyBtn) {
+                                                                                                clearTimeout(copyBtn._quotaCopyTimer);
+                                                                                                copyBtn.textContent = copyBtn.getAttribute('data-original-text') || 'نسخ HTML';
+                                                                                                copyBtn.classList.remove('is-copied');
+                                                                                        }
+                                                                                }, 0);
+                                                                        });
                                                                 }
 
 
@@ -2928,7 +3106,14 @@ function resetAllPackages() {
                                                                         // Hiding 
 
                                                                         $("#other_pkg,#error").hide();
+                                                                        renderQuotaSummary();
 
+                                                                        var quotaCopyBtn = document.getElementById('quotaSummaryCopyBtn');
+                                                                        if (quotaCopyBtn && !quotaCopyBtn.dataset.bound) {
+                                                                                quotaCopyBtn.dataset.bound = 'true';
+                                                                                quotaCopyBtn.addEventListener('click', copyQuotaSummaryHtml);
+                                                                        }
+                                                                        bindQuotaSummaryReset();
 
                                                                         $("#pkgs").change(function () {
 
@@ -2961,7 +3146,7 @@ function resetAllPackages() {
                                                                                         var pq = pkg
 
                                                                                         $("#pq").html(pq);
-
+                                                                                        renderQuotaSummary();
 
 
                                                                                 }
@@ -2976,6 +3161,7 @@ function resetAllPackages() {
                                                                         pkg = $("#other_pkg").val().trim();
 
                                                                         $("#pq").html(pkg);
+                                                                        renderQuotaSummary();
 
                                                                         $("#bss_pkg").val("");
 
@@ -3000,10 +3186,12 @@ function resetAllPackages() {
                                                                                         } else if (curr_real != '') {
                                                                                                 $("#error").html("Please Enter valid number").show();
                                                                                                 $("#rq,#dstatus").html('');
+                                                                                                renderQuotaSummary();
                                                                                         }
 
                                                                                 } else {
                                                                                         $("#error").html("Please Define CST Quota").show();
+                                                                                        renderQuotaSummary();
                                                                                 }
 
                                                                         } else {
