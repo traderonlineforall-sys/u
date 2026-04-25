@@ -892,3 +892,222 @@ html.ua07-legacy-theme-live .sub-dropdown:hover > a {
     inset 0 -1px 0 rgba(255,0,0,0.25),
     0 8px 18px rgba(0,0,0,0.22) !important;
 }
+
+/* ===== UA07 Legacy 20 Theme V8: full-width calm wallpaper + clearer transparent glass =====
+   Scope: the new UA07 legacy theme only. Visual CSS only.
+   No width/height/padding/order/IDs/tool logic/workflow changes.
+*/
+html.ua07-legacy-theme-live,
+html.ua07-legacy-theme-live body {
+  background-color: #020202 !important;
+}
+
+html.ua07-legacy-theme-live body {
+  background-image:
+    linear-gradient(180deg,
+      rgba(0,0,0,0.22) 0%,
+      rgba(0,0,0,0.08) 26%,
+      rgba(0,0,0,0.04) 50%,
+      rgba(0,0,0,0.18) 78%,
+      rgba(0,0,0,0.44) 100%),
+    linear-gradient(90deg,
+      rgba(0,0,0,0.30) 0%,
+      rgba(0,0,0,0.05) 16%,
+      rgba(0,0,0,0.00) 50%,
+      rgba(0,0,0,0.05) 84%,
+      rgba(0,0,0,0.30) 100%),
+    radial-gradient(125% 92% at 50% 47%,
+      rgba(255,255,255,0.020) 0%,
+      rgba(0,0,0,0.00) 42%,
+      rgba(0,0,0,0.24) 100%),
+    url("./ua07-20-bg.webp?v=ua07legacy8"),
+    linear-gradient(135deg, #020203 0%, #090606 48%, #020203 100%) !important;
+  background-position:
+    center center,
+    center center,
+    center center,
+    center center,
+    center center !important;
+  background-size:
+    cover,
+    cover,
+    cover,
+    100% 100%,
+    cover !important;
+  background-repeat:
+    no-repeat,
+    no-repeat,
+    no-repeat,
+    no-repeat,
+    no-repeat !important;
+  background-attachment:
+    fixed,
+    fixed,
+    fixed,
+    fixed,
+    fixed !important;
+}
+
+/* Keep parent containers fully clear so the wallpaper shows through. */
+html.ua07-legacy-theme-live body .navbar,
+html.ua07-legacy-theme-live .navbar,
+html.ua07-legacy-theme-live .dropdown,
+html.ua07-legacy-theme-live .tabcontent {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Main menu buttons: clearer glass, much less blocky, still readable. */
+html.ua07-legacy-theme-live .dropdown .dropbtn,
+html.ua07-legacy-theme-live .navbar a,
+html.ua07-legacy-theme-live #singlelink {
+  color: rgba(255,255,255,0.99) !important;
+  background:
+    linear-gradient(180deg,
+      rgba(255,255,255,0.150) 0%,
+      rgba(255,255,255,0.055) 38%,
+      rgba(255,255,255,0.016) 100%),
+    linear-gradient(180deg,
+      rgba(8,10,13,0.135) 0%,
+      rgba(0,0,0,0.105) 62%,
+      rgba(78,0,0,0.075) 100%) !important;
+  background-color: rgba(255,255,255,0.035) !important;
+  border-color: rgba(255,255,255,0.22) !important;
+  text-shadow:
+    0 1px 2px rgba(0,0,0,1),
+    0 0 6px rgba(0,0,0,0.94),
+    0 0 1px rgba(255,255,255,0.40) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.26),
+    inset 0 0 0 1px rgba(255,255,255,0.11),
+    inset 0 -1px 0 rgba(255,255,255,0.045),
+    0 6px 15px rgba(0,0,0,0.15) !important;
+  backdrop-filter: blur(10px) brightness(0.90) contrast(1.08) saturate(1.12) !important;
+  -webkit-backdrop-filter: blur(10px) brightness(0.90) contrast(1.08) saturate(1.12) !important;
+}
+
+html.ua07-legacy-theme-live .dropdown:hover .dropbtn,
+html.ua07-legacy-theme-live #singlelink:hover,
+html.ua07-legacy-theme-live .navbar a:hover {
+  color: #fff !important;
+  background:
+    radial-gradient(130% 150% at 18% 0%, rgba(255,255,255,0.20), rgba(255,255,255,0) 43%),
+    linear-gradient(180deg,
+      rgba(255,255,255,0.115) 0%,
+      rgba(124,0,0,0.145) 48%,
+      rgba(0,0,0,0.095) 100%) !important;
+  background-color: rgba(80,0,0,0.105) !important;
+  border-color: rgba(255,255,255,0.31) !important;
+  text-shadow:
+    0 1px 2px rgba(0,0,0,1),
+    0 0 8px rgba(255,255,255,0.15) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.31),
+    inset 0 0 0 1px rgba(255,255,255,0.16),
+    inset 0 -1px 0 rgba(170,0,0,0.16),
+    0 8px 18px rgba(0,0,0,0.22),
+    0 0 14px rgba(145,0,0,0.12) !important;
+  backdrop-filter: blur(11px) brightness(0.94) contrast(1.10) saturate(1.18) !important;
+  -webkit-backdrop-filter: blur(11px) brightness(0.94) contrast(1.10) saturate(1.18) !important;
+}
+
+/* Secondary strip buttons: matching transparent glass instead of red/black blocks. */
+html.ua07-legacy-theme-live .mndo-tabs button,
+html.ua07-legacy-theme-live #mndoTabs button,
+html.ua07-legacy-theme-live .tab button,
+html.ua07-legacy-theme-live button.tablinks:not(#tabs .tablinks) {
+  background:
+    linear-gradient(180deg,
+      rgba(255,255,255,0.145) 0%,
+      rgba(255,255,255,0.045) 42%,
+      rgba(255,255,255,0.010) 100%),
+    linear-gradient(180deg,
+      rgba(8,10,13,0.120) 0%,
+      rgba(0,0,0,0.085) 66%,
+      rgba(84,0,0,0.065) 100%) !important;
+  background-color: rgba(255,255,255,0.030) !important;
+  color: rgba(255,255,255,0.985) !important;
+  border-color: rgba(255,255,255,0.19) !important;
+  text-shadow:
+    0 1px 2px rgba(0,0,0,1),
+    0 0 5px rgba(0,0,0,0.92),
+    0 0 1px rgba(255,255,255,0.28) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.24),
+    inset 0 0 0 1px rgba(255,255,255,0.10),
+    inset 0 -1px 0 rgba(255,255,255,0.035),
+    0 5px 12px rgba(0,0,0,0.14) !important;
+  backdrop-filter: blur(9px) brightness(0.90) contrast(1.08) saturate(1.12) !important;
+  -webkit-backdrop-filter: blur(9px) brightness(0.90) contrast(1.08) saturate(1.12) !important;
+}
+
+/* Open menus: glass panel; transparent enough to show the image, dark enough for text. */
+html.ua07-legacy-theme-live .dropdown-content,
+html.ua07-legacy-theme-live .dropdown-content[style],
+html.ua07-legacy-theme-live .sub-dropdown-content,
+html.ua07-legacy-theme-live .sub-dropdown-content[style] {
+  background:
+    radial-gradient(135% 115% at 14% 0%, rgba(255,255,255,0.145), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg,
+      rgba(255,255,255,0.070) 0%,
+      rgba(8,9,12,0.285) 45%,
+      rgba(36,0,0,0.235) 100%) !important;
+  background-color: rgba(5,5,7,0.280) !important;
+  color: rgba(255,255,255,0.99) !important;
+  border-color: rgba(255,255,255,0.22) !important;
+  text-shadow:
+    0 1px 2px rgba(0,0,0,1),
+    0 0 6px rgba(0,0,0,0.96) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.18),
+    inset 0 0 0 1px rgba(255,255,255,0.075),
+    0 18px 42px rgba(0,0,0,0.38),
+    0 0 16px rgba(110,0,0,0.10) !important;
+  backdrop-filter: blur(16px) brightness(0.84) contrast(1.13) saturate(1.18) !important;
+  -webkit-backdrop-filter: blur(16px) brightness(0.84) contrast(1.13) saturate(1.18) !important;
+}
+
+html.ua07-legacy-theme-live .sub-dropdown,
+html.ua07-legacy-theme-live .sub-dropdown[style] {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.055), rgba(0,0,0,0.105)) !important;
+  background-color: rgba(5,5,7,0.155) !important;
+  color: rgba(255,255,255,0.99) !important;
+  backdrop-filter: blur(12px) brightness(0.86) contrast(1.12) saturate(1.14) !important;
+  -webkit-backdrop-filter: blur(12px) brightness(0.86) contrast(1.12) saturate(1.14) !important;
+}
+
+html.ua07-legacy-theme-live .dropdown-content a,
+html.ua07-legacy-theme-live .sub-dropdown-content a,
+html.ua07-legacy-theme-live .sub-dropdown > a {
+  color: rgba(255,255,255,0.99) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.065), rgba(255,255,255,0.012)) !important;
+  background-color: rgba(255,255,255,0.016) !important;
+  text-shadow:
+    0 1px 2px rgba(0,0,0,1),
+    0 0 6px rgba(0,0,0,0.94),
+    0 0 1px rgba(255,255,255,0.24) !important;
+  box-shadow:
+    inset 0 -1px 0 rgba(255,255,255,0.060),
+    inset 0 1px 0 rgba(255,255,255,0.028) !important;
+}
+
+html.ua07-legacy-theme-live .sub-dropdown:hover,
+html.ua07-legacy-theme-live .sub-dropdown:hover[style],
+html.ua07-legacy-theme-live .dropdown-content a:hover,
+html.ua07-legacy-theme-live .sub-dropdown-content a:hover,
+html.ua07-legacy-theme-live .sub-dropdown:hover > a {
+  background:
+    radial-gradient(150% 150% at 14% 0%, rgba(255,255,255,0.22), rgba(255,255,255,0) 44%),
+    linear-gradient(90deg, rgba(134,0,0,0.335), rgba(255,255,255,0.055) 52%, rgba(0,0,0,0.145) 100%) !important;
+  background-color: rgba(88,0,0,0.220) !important;
+  color: #fff !important;
+  text-shadow:
+    0 1px 2px rgba(0,0,0,1),
+    0 0 8px rgba(255,255,255,0.13) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.20),
+    inset 0 -1px 0 rgba(255,0,0,0.16),
+    0 8px 18px rgba(0,0,0,0.20) !important;
+}
