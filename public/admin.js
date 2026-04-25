@@ -615,11 +615,16 @@ let clickTimer = null;
 function armLogo(el){
   if(!el || el.dataset.adminBound === "1") return;
   el.dataset.adminBound = "1";
-  el.style.cursor = "pointer";
-  el.addEventListener("click", ()=>{
+  try {
+    el.style.cursor = "pointer";
+    el.style.pointerEvents = "auto";
+    el.setAttribute("title", "Click 5 times to open Admin");
+  } catch(e){}
+  el.addEventListener("click", (evt)=>{
+    try { evt.stopPropagation(); } catch(e){}
     clickCount += 1;
     if(clickTimer) clearTimeout(clickTimer);
-    clickTimer = setTimeout(()=>{ clickCount = 0; }, 1200);
+    clickTimer = setTimeout(()=>{ clickCount = 0; }, 1800);
     if(clickCount >= 5){
       clickCount = 0;
       openAdmin();
@@ -637,12 +642,22 @@ function findAndArm(){
 
   if(!logoWrap) return;
 
-  // NOTE: The logo wrapper is styled with `pointer-events: none` in CSS.
-  // To keep the layout and avoid blocking other UI, we arm the inner SVG
-  // and force it to be clickable.
-  const clickTarget = logoWrap.querySelector("svg") || logoWrap;
-  try { clickTarget.style.pointerEvents = "auto"; } catch(e){}
-  armLogo(clickTarget);
+  // Support both the old SVG logo and the new image-based logo.
+  const clickTarget =
+    logoWrap.querySelector(".mndo-uwk07-logo-img") ||
+    logoWrap.querySelector("img") ||
+    logoWrap.querySelector("svg") ||
+    logoWrap;
+
+  try {
+    logoWrap.style.pointerEvents = "auto";
+    logoWrap.style.cursor = "pointer";
+    clickTarget.style.pointerEvents = "auto";
+    clickTarget.style.cursor = "pointer";
+  } catch(e){}
+
+  armLogo(logoWrap);
+  if(clickTarget !== logoWrap) armLogo(clickTarget);
 }
 
 findAndArm();
