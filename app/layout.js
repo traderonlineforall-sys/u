@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "UWK07",
+  title: "MyTime",
   icons: {
     icon: [
       { url: "/favicon.ico" },
