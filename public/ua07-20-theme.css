@@ -2,48 +2,51 @@
   UA07 Legacy 20 Theme (Safe Add-on)
   ----------------------------------
   Visual-only theme. No tool logic, IDs, workflow, dimensions, or layout order are changed.
-  V3: contained full-image background + safer luxury color palette for readability.
+  V4: wide tool-fit background + nested menus unified with the same black/silver/red luxury palette.
 */
 html.ua07-legacy-theme-live,
 html.ua07-legacy-theme-live body {
   min-height: 100%;
-  background-color: #050505 !important;
+  background-color: #030304 !important;
 }
 
-/* Main background:
-   - The original square image is rendered with background-size: contain to show it complete as much as possible.
-   - Gradients are placed above it to soften the white 20 mark and keep the tool readable.
-   - No pseudo-layer behind the root canvas is used, so the image will not disappear into a black screen. */
+/*
+  Main background:
+  - ua07-20-bg.webp is now art-directed as a wide tool viewport background.
+  - cover is safe here because the source file is already wide; it fills the tool without the old square side gaps.
+  - Multiple overlay gradients are intentionally above the image to keep the UI readable.
+*/
 html.ua07-legacy-theme-live body {
   background-image:
     linear-gradient(180deg,
-      rgba(0, 0, 0, 0.18) 0%,
-      rgba(0, 0, 0, 0.12) 22%,
-      rgba(0, 0, 0, 0.22) 56%,
-      rgba(0, 0, 0, 0.58) 100%),
-    radial-gradient(82% 64% at 50% 44%,
-      rgba(255, 255, 255, 0.03) 0%,
-      rgba(0, 0, 0, 0.08) 44%,
-      rgba(0, 0, 0, 0.44) 100%),
+      rgba(0, 0, 0, 0.58) 0%,
+      rgba(0, 0, 0, 0.30) 18%,
+      rgba(0, 0, 0, 0.18) 43%,
+      rgba(0, 0, 0, 0.46) 75%,
+      rgba(0, 0, 0, 0.78) 100%),
+    radial-gradient(120% 92% at 50% 39%,
+      rgba(255, 255, 255, 0.055) 0%,
+      rgba(0, 0, 0, 0.04) 34%,
+      rgba(0, 0, 0, 0.50) 100%),
     linear-gradient(90deg,
-      rgba(0, 0, 0, 0.82) 0%,
-      rgba(0, 0, 0, 0.34) 18%,
-      rgba(0, 0, 0, 0.05) 50%,
-      rgba(0, 0, 0, 0.34) 82%,
-      rgba(0, 0, 0, 0.82) 100%),
-    url("./ua07-20-bg.webp?v=ua07legacy3"),
-    linear-gradient(135deg, #030303 0%, #0d0d0f 44%, #030303 100%) !important;
+      rgba(0, 0, 0, 0.86) 0%,
+      rgba(0, 0, 0, 0.38) 13%,
+      rgba(0, 0, 0, 0.03) 49%,
+      rgba(0, 0, 0, 0.38) 87%,
+      rgba(0, 0, 0, 0.86) 100%),
+    url("./ua07-20-bg.webp?v=ua07legacy4"),
+    linear-gradient(135deg, #020203 0%, #101013 46%, #020203 100%) !important;
   background-position:
     center center,
     center center,
     center center,
-    center center,
+    center top,
     center center !important;
   background-size:
     cover,
     cover,
     cover,
-    contain,
+    cover,
     cover !important;
   background-repeat:
     no-repeat,
@@ -70,16 +73,17 @@ html.ua07-legacy-theme-live #arabiccNumber,
 html.ua07-legacy-theme-live .in1,
 html.ua07-legacy-theme-live .in2 {
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.055)) !important;
+    radial-gradient(150% 170% at 20% 0%, rgba(255,255,255,0.20), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg, rgba(30,30,34,0.90), rgba(5,5,6,0.92) 62%, rgba(38,0,0,0.72) 100%) !important;
   color: rgba(255,255,255,0.96) !important;
   -webkit-text-fill-color: rgba(255,255,255,0.96) !important;
   caret-color: rgba(255,255,255,0.95) !important;
-  border-color: rgba(255,255,255,0.24) !important;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.70) !important;
+  border-color: rgba(255,255,255,0.22) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.76) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.26),
-    inset 0 -10px 18px rgba(0,0,0,0.18),
-    0 10px 24px rgba(0,0,0,0.38),
+    inset 0 1px 0 rgba(255,255,255,0.24),
+    inset 0 -10px 18px rgba(0,0,0,0.20),
+    0 10px 24px rgba(0,0,0,0.45),
     0 0 0 1px rgba(255,255,255,0.04) !important;
 }
 html.ua07-legacy-theme-live #arabicNumber::placeholder,
@@ -99,9 +103,9 @@ html.ua07-legacy-theme-live #arabiccNumber:focus {
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.30),
     inset 0 -10px 18px rgba(0,0,0,0.18),
-    0 12px 28px rgba(0,0,0,0.44),
+    0 12px 28px rgba(0,0,0,0.48),
     0 0 0 1px rgba(255,255,255,0.08),
-    0 0 18px rgba(170,0,0,0.14) !important;
+    0 0 18px rgba(170,0,0,0.16) !important;
 }
 
 /* Copy / TT / SR / Tags small controls: colors only. */
@@ -112,28 +116,28 @@ html.ua07-legacy-theme-live #mndoSRTop,
 html.ua07-legacy-theme-live #mndoSRBottom,
 html.ua07-legacy-theme-live #bat2 {
   background:
-    radial-gradient(120% 160% at 18% 0%, rgba(255,255,255,0.24), rgba(255,255,255,0) 46%),
-    linear-gradient(180deg, rgba(42,42,46,0.94), rgba(12,12,14,0.94) 58%, rgba(38,0,0,0.90) 100%) !important;
-  color: rgba(255,255,255,0.95) !important;
-  border-color: rgba(255,255,255,0.22) !important;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.72) !important;
+    radial-gradient(120% 160% at 18% 0%, rgba(255,255,255,0.25), rgba(255,255,255,0) 46%),
+    linear-gradient(180deg, rgba(44,44,49,0.96), rgba(10,10,12,0.96) 58%, rgba(80,0,0,0.92) 100%) !important;
+  color: rgba(255,255,255,0.96) !important;
+  border-color: rgba(255,255,255,0.24) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.76) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.24),
-    inset 0 -1px 0 rgba(255,0,0,0.20),
-    0 10px 22px rgba(0,0,0,0.42) !important;
+    inset 0 1px 0 rgba(255,255,255,0.25),
+    inset 0 -1px 0 rgba(255,0,0,0.22),
+    0 10px 22px rgba(0,0,0,0.45) !important;
 }
 html.ua07-legacy-theme-live .toolsStyle:hover,
 html.ua07-legacy-theme-live #bat2:hover {
   background:
-    radial-gradient(120% 160% at 18% 0%, rgba(255,255,255,0.30), rgba(255,255,255,0) 46%),
-    linear-gradient(180deg, rgba(70,70,76,0.96), rgba(18,18,20,0.96) 48%, rgba(122,0,0,0.94) 100%) !important;
+    radial-gradient(120% 160% at 18% 0%, rgba(255,255,255,0.31), rgba(255,255,255,0) 46%),
+    linear-gradient(180deg, rgba(74,74,80,0.98), rgba(17,17,20,0.98) 48%, rgba(125,0,0,0.95) 100%) !important;
   color: #fff !important;
-  border-color: rgba(255,255,255,0.34) !important;
+  border-color: rgba(255,255,255,0.35) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.28),
-    inset 0 -1px 0 rgba(255,0,0,0.30),
-    0 12px 28px rgba(0,0,0,0.50),
-    0 0 16px rgba(160,0,0,0.18) !important;
+    inset 0 1px 0 rgba(255,255,255,0.29),
+    inset 0 -1px 0 rgba(255,0,0,0.32),
+    0 12px 28px rgba(0,0,0,0.52),
+    0 0 16px rgba(160,0,0,0.20) !important;
 }
 
 /* Search box: colors only. */
@@ -141,102 +145,162 @@ html.ua07-legacy-theme-live #searchInput,
 html.ua07-legacy-theme-live .search-container input[type="text"],
 html.ua07-legacy-theme-live .search-container input[type="search"] {
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.06)) !important;
+    radial-gradient(130% 150% at 18% 0%, rgba(255,255,255,0.16), rgba(255,255,255,0) 44%),
+    linear-gradient(180deg, rgba(28,28,32,0.70), rgba(6,6,8,0.72)) !important;
   color: #fff !important;
   -webkit-text-fill-color: #fff !important;
-  border-color: rgba(255,255,255,0.20) !important;
+  border-color: rgba(255,255,255,0.22) !important;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.22),
-    0 10px 26px rgba(0,0,0,0.42) !important;
+    0 10px 26px rgba(0,0,0,0.46) !important;
 }
-html.ua07-legacy-theme-live #searchInput::placeholder {
-  color: rgba(255,255,255,0.72) !important;
-}
+html.ua07-legacy-theme-live #searchInput::placeholder { color: rgba(255,255,255,0.72) !important; }
 html.ua07-legacy-theme-live .search-icon {
-  background: rgba(10,10,12,0.62) !important;
-  border-color: rgba(255,255,255,0.20) !important;
-  color: rgba(255,255,255,0.86) !important;
+  background: rgba(6,6,8,0.68) !important;
+  border-color: rgba(255,255,255,0.22) !important;
+  color: rgba(255,255,255,0.88) !important;
 }
 html.ua07-legacy-theme-live .search-results {
-  background: rgba(8,8,10,0.94) !important;
-  border-color: rgba(255,255,255,0.14) !important;
-  box-shadow: 0 18px 44px rgba(0,0,0,0.54) !important;
+  background: rgba(7,7,9,0.97) !important;
+  border-color: rgba(255,255,255,0.15) !important;
+  box-shadow: 0 18px 44px rgba(0,0,0,0.58) !important;
 }
-html.ua07-legacy-theme-live .search-results a {
-  color: rgba(255,255,255,0.92) !important;
-}
+html.ua07-legacy-theme-live .search-results a { color: rgba(255,255,255,0.93) !important; }
 html.ua07-legacy-theme-live .search-results a:hover,
 html.ua07-legacy-theme-live .highlight {
-  background: rgba(135,0,0,0.72) !important;
+  background: rgba(135,0,0,0.74) !important;
   color: #fff !important;
 }
 
 /* Main top tabs: colors only, preserving the existing flex/order/size rules. */
 html.ua07-legacy-theme-live #tabs .tablinks {
   background:
-    radial-gradient(130% 160% at 22% 0%, rgba(255,255,255,0.36), rgba(255,255,255,0) 42%),
-    linear-gradient(180deg, rgba(244,244,246,0.92), rgba(176,178,186,0.88)) !important;
-  color: rgba(10,10,12,0.94) !important;
-  border-color: rgba(255,255,255,0.26) !important;
-  text-shadow: 0 1px 0 rgba(255,255,255,0.35) !important;
+    radial-gradient(130% 160% at 22% 0%, rgba(255,255,255,0.42), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg, rgba(252,252,254,0.95), rgba(188,190,198,0.92) 62%, rgba(148,150,158,0.90) 100%) !important;
+  color: rgba(8,8,10,0.96) !important;
+  border-color: rgba(255,255,255,0.30) !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.42) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.62),
-    inset 0 -1px 0 rgba(0,0,0,0.18),
-    0 12px 22px rgba(0,0,0,0.36) !important;
+    inset 0 1px 0 rgba(255,255,255,0.72),
+    inset 0 -1px 0 rgba(0,0,0,0.22),
+    0 13px 24px rgba(0,0,0,0.40) !important;
 }
 html.ua07-legacy-theme-live #tabs .tablinks:hover {
   background:
-    radial-gradient(130% 160% at 22% 0%, rgba(255,255,255,0.42), rgba(255,255,255,0) 42%),
-    linear-gradient(180deg, rgba(255,255,255,0.96), rgba(202,204,210,0.92)) !important;
-  color: #070708 !important;
-  border-color: rgba(255,255,255,0.38) !important;
+    radial-gradient(130% 160% at 22% 0%, rgba(255,255,255,0.48), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(212,214,220,0.95)) !important;
+  color: #060607 !important;
+  border-color: rgba(255,255,255,0.42) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.76),
+    inset 0 -1px 0 rgba(0,0,0,0.20),
+    0 15px 27px rgba(0,0,0,0.46),
+    0 0 16px rgba(255,255,255,0.055) !important;
 }
 html.ua07-legacy-theme-live #tabs .tablinks.active {
   background:
-    radial-gradient(120% 150% at 22% 0%, rgba(255,255,255,0.34), rgba(255,255,255,0) 44%),
-    linear-gradient(180deg, rgba(170,0,0,0.96), rgba(84,0,0,0.96)) !important;
+    radial-gradient(120% 150% at 22% 0%, rgba(255,255,255,0.36), rgba(255,255,255,0) 44%),
+    linear-gradient(180deg, rgba(188,0,0,0.98), rgba(82,0,0,0.98)) !important;
   color: #fff !important;
-  border-color: rgba(255,255,255,0.30) !important;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.72) !important;
+  border-color: rgba(255,255,255,0.33) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.78) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.26),
-    inset 0 -1px 0 rgba(0,0,0,0.28),
-    0 14px 26px rgba(0,0,0,0.48),
-    0 0 18px rgba(160,0,0,0.18) !important;
+    inset 0 1px 0 rgba(255,255,255,0.28),
+    inset 0 -1px 0 rgba(0,0,0,0.30),
+    0 15px 28px rgba(0,0,0,0.54),
+    0 0 18px rgba(170,0,0,0.22) !important;
 }
 
-/* Dropdown and SR link area: colors only. */
+/* Main SR/nav buttons: stronger luxury surface without changing padding/width/order. */
 html.ua07-legacy-theme-live .dropdown .dropbtn,
 html.ua07-legacy-theme-live .navbar a,
 html.ua07-legacy-theme-live #singlelink {
-  color: rgba(255,255,255,0.94) !important;
-  background: linear-gradient(180deg, rgba(14,14,16,0.34), rgba(0,0,0,0.16)) !important;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.82) !important;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.055) !important;
+  color: rgba(255,255,255,0.96) !important;
+  background:
+    radial-gradient(140% 150% at 20% 0%, rgba(255,255,255,0.16), rgba(255,255,255,0) 46%),
+    linear-gradient(180deg, rgba(20,20,24,0.86), rgba(2,2,3,0.84) 62%, rgba(28,0,0,0.70) 100%) !important;
+  text-shadow:
+    0 1px 2px rgba(0,0,0,0.90),
+    0 0 7px rgba(255,255,255,0.07) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.14),
+    inset 0 0 0 1px rgba(255,255,255,0.075),
+    inset 0 -1px 0 rgba(140,0,0,0.32),
+    0 7px 18px rgba(0,0,0,0.26) !important;
 }
 html.ua07-legacy-theme-live .dropdown:hover .dropbtn,
 html.ua07-legacy-theme-live #singlelink:hover,
 html.ua07-legacy-theme-live .navbar a:hover {
   background:
-    radial-gradient(120% 160% at 18% 0%, rgba(255,255,255,0.22), rgba(255,255,255,0) 42%),
-    linear-gradient(180deg, rgba(120,0,0,0.86), rgba(22,22,24,0.88)) !important;
+    radial-gradient(140% 150% at 20% 0%, rgba(255,255,255,0.26), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg, rgba(126,0,0,0.92), rgba(27,27,31,0.92) 58%, rgba(5,5,7,0.92) 100%) !important;
   color: #fff !important;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.72) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.76), 0 0 8px rgba(255,255,255,0.12) !important;
   box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,0.14),
-    0 8px 18px rgba(0,0,0,0.30) !important;
+    inset 0 1px 0 rgba(255,255,255,0.22),
+    inset 0 0 0 1px rgba(255,255,255,0.15),
+    inset 0 -1px 0 rgba(255,0,0,0.26),
+    0 10px 22px rgba(0,0,0,0.38),
+    0 0 16px rgba(150,0,0,0.18) !important;
 }
-html.ua07-legacy-theme-live .dropdown-content {
-  background: rgba(8,8,10,0.96) !important;
-  border-color: rgba(255,255,255,0.16) !important;
-  box-shadow: 0 18px 46px rgba(0,0,0,0.58) !important;
+
+/* Dropdown + nested dropdown panels: unified black/silver/red theme; overrides old beige panels and inline #eee safely. */
+html.ua07-legacy-theme-live .dropdown-content,
+html.ua07-legacy-theme-live .sub-dropdown-content {
+  background:
+    radial-gradient(120% 120% at 18% 0%, rgba(255,255,255,0.13), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg, rgba(24,24,28,0.985), rgba(6,6,8,0.985) 52%, rgba(20,0,0,0.98) 100%) !important;
+  background-color: rgba(8,8,10,0.985) !important;
+  border-color: rgba(255,255,255,0.17) !important;
+  color: rgba(255,255,255,0.95) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.78) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.11),
+    inset 0 0 0 1px rgba(255,255,255,0.035),
+    0 18px 46px rgba(0,0,0,0.66),
+    0 0 18px rgba(120,0,0,0.16) !important;
+  backdrop-filter: blur(8px) saturate(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.05);
 }
-html.ua07-legacy-theme-live .dropdown-content a {
-  color: rgba(255,255,255,0.92) !important;
-  background: transparent !important;
+html.ua07-legacy-theme-live .sub-dropdown,
+html.ua07-legacy-theme-live .sub-dropdown[style] {
+  background:
+    linear-gradient(180deg, rgba(14,14,17,0.96), rgba(5,5,7,0.96)) !important;
+  background-color: rgba(8,8,10,0.98) !important;
+  color: rgba(255,255,255,0.95) !important;
 }
-html.ua07-legacy-theme-live .dropdown-content a:hover {
-  background: linear-gradient(90deg, rgba(140,0,0,0.86), rgba(34,34,38,0.88)) !important;
+html.ua07-legacy-theme-live .dropdown-content a,
+html.ua07-legacy-theme-live .sub-dropdown-content a,
+html.ua07-legacy-theme-live .sub-dropdown > a {
+  color: rgba(255,255,255,0.94) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.030), rgba(255,255,255,0.006)) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.84) !important;
+  box-shadow:
+    inset 0 -1px 0 rgba(255,255,255,0.055),
+    inset 0 1px 0 rgba(255,255,255,0.025) !important;
+}
+html.ua07-legacy-theme-live .sub-dropdown:hover,
+html.ua07-legacy-theme-live .sub-dropdown:hover[style],
+html.ua07-legacy-theme-live .dropdown-content a:hover,
+html.ua07-legacy-theme-live .sub-dropdown-content a:hover,
+html.ua07-legacy-theme-live .sub-dropdown:hover > a {
+  background:
+    radial-gradient(150% 150% at 14% 0%, rgba(255,255,255,0.24), rgba(255,255,255,0) 44%),
+    linear-gradient(90deg, rgba(132,0,0,0.94), rgba(34,34,39,0.94) 62%, rgba(9,9,11,0.95) 100%) !important;
+  background-color: rgba(92,0,0,0.94) !important;
+  color: #fff !important;
+  text-shadow:
+    0 1px 2px rgba(0,0,0,0.80),
+    0 0 8px rgba(255,255,255,0.10) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.16),
+    inset 0 -1px 0 rgba(255,0,0,0.22),
+    0 8px 18px rgba(0,0,0,0.28) !important;
+}
+html.ua07-legacy-theme-live .dropdown-content a:active,
+html.ua07-legacy-theme-live .sub-dropdown-content a:active {
+  background: linear-gradient(90deg, rgba(170,0,0,0.98), rgba(18,18,21,0.98)) !important;
   color: #fff !important;
 }
 
@@ -248,14 +312,14 @@ html.ua07-legacy-theme-live .suggestions-btn,
 html.ua07-legacy-theme-live .support-chat-toggle,
 html.ua07-legacy-theme-live #supportChatToggle {
   background:
-    radial-gradient(120% 160% at 18% 0%, rgba(255,255,255,0.22), rgba(255,255,255,0) 48%),
-    linear-gradient(180deg, rgba(46,46,50,0.95), rgba(12,12,14,0.94) 55%, rgba(72,0,0,0.92) 100%) !important;
-  color: rgba(255,255,255,0.96) !important;
-  border-color: rgba(255,255,255,0.22) !important;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.72) !important;
+    radial-gradient(120% 160% at 18% 0%, rgba(255,255,255,0.24), rgba(255,255,255,0) 48%),
+    linear-gradient(180deg, rgba(48,48,53,0.96), rgba(10,10,13,0.96) 55%, rgba(78,0,0,0.94) 100%) !important;
+  color: rgba(255,255,255,0.97) !important;
+  border-color: rgba(255,255,255,0.24) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.76) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.22),
-    0 12px 28px rgba(0,0,0,0.46) !important;
+    inset 0 1px 0 rgba(255,255,255,0.24),
+    0 12px 28px rgba(0,0,0,0.50) !important;
 }
 
 @media (max-width: 900px) {
@@ -264,7 +328,7 @@ html.ua07-legacy-theme-live #supportChatToggle {
       cover,
       cover,
       cover,
-      contain,
+      cover,
       cover !important;
     background-position:
       center center,
