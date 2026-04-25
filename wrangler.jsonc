@@ -1,12 +1,22 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "main": ".open-next/worker.js",
-  "name": "sr-tool",
+  "name": "sr-tool-cloudflare",
   "compatibility_date": "2026-04-24",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "directory": ".open-next/assets",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/",
+      "/login",
+      "/logout",
+      "/index.html",
+      "/Tags.html",
+      "/outage-generator.html",
+      "/outage-generator.protected.html",
+      "/api/*"
+    ]
   },
   "observability": {
     "enabled": true
