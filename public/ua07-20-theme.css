@@ -1,0 +1,84 @@
+/*
+  UA07 Legacy 20 Theme (Safe Add-on)
+  ----------------------------------
+  Visual-only theme. It does not change tool layout, element sizes, IDs,
+  buttons, quota logic, SR links, admin logic, or any workflow behavior.
+*/
+html.ua07-legacy-theme-live,
+html.ua07-legacy-theme-live body {
+  min-height: 100%;
+  background: #050506 !important;
+}
+
+html.ua07-legacy-theme-live::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -12;
+  pointer-events: none;
+  transform: translateZ(0);
+  background:
+    linear-gradient(180deg,
+      rgba(0, 0, 0, 0.42) 0%,
+      rgba(0, 0, 0, 0.24) 18%,
+      rgba(0, 0, 0, 0.20) 45%,
+      rgba(0, 0, 0, 0.46) 100%),
+    radial-gradient(70% 48% at 50% 30%, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0) 62%),
+    url("./ua07-20-bg.webp") center 35% / min(88vw, 1280px) auto no-repeat,
+    linear-gradient(135deg, #070708 0%, #111113 44%, #050506 100%);
+  opacity: 0.92;
+}
+
+html.ua07-legacy-theme-live::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -11;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 24% at 50% 0%, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 70%),
+    radial-gradient(34% 22% at 18% 18%, rgba(210, 0, 0, 0.18), rgba(210, 0, 0, 0) 74%),
+    radial-gradient(34% 22% at 82% 20%, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 74%),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.54), rgba(0, 0, 0, 0.08) 24%, rgba(0, 0, 0, 0.08) 76%, rgba(0, 0, 0, 0.54)),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.46) 100%);
+  opacity: 0.96;
+}
+
+html.ua07-legacy-theme-live body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.035) 50%, rgba(255,255,255,0)),
+    radial-gradient(78% 44% at 50% 110%, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.42) 72%, rgba(0, 0, 0, 0.72) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 0 160px rgba(0, 0, 0, 0.52);
+}
+
+html.ua07-legacy-theme-live .moon,
+html.ua07-legacy-theme-live .star {
+  display: none !important;
+}
+
+html.ua07-legacy-theme-live #EID_DECOR_LAYER,
+html.ua07-legacy-theme-live #EID_DECOR_LAYER .eid-art,
+html.ua07-legacy-theme-live #EID_DECOR_LAYER::before,
+html.ua07-legacy-theme-live #EID_DECOR_LAYER::after {
+  display: none !important;
+}
+
+@media (max-width: 900px) {
+  html.ua07-legacy-theme-live::before {
+    background:
+      linear-gradient(180deg,
+        rgba(0, 0, 0, 0.46) 0%,
+        rgba(0, 0, 0, 0.26) 20%,
+        rgba(0, 0, 0, 0.48) 100%),
+      radial-gradient(76% 42% at 50% 24%, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0) 66%),
+      url("./ua07-20-bg.webp") center 26% / 116vw auto no-repeat,
+      linear-gradient(135deg, #070708 0%, #111113 44%, #050506 100%);
+  }
+}
