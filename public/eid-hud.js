@@ -10,7 +10,7 @@ const LS_THEME_OFF = "sr_eid_theme_off";
 const LS_THEME_MODE = "sr_visual_theme_mode";
 const TOGGLE_BTN_ID = "EID_TOGGLE_BTN";
 const LEGACY_THEME_LINK_ID = "ua07LegacyThemeLink";
-const LEGACY_THEME_HREF = "ua07-20-theme.css";
+const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy2";
 const THEME_EID = "eid";
 const THEME_LEGACY = "legacy";
 const THEME_OFF = "off";
