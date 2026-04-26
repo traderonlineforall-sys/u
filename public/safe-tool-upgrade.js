@@ -768,8 +768,8 @@
 
 
 
-  // Keep FV mirrored to FBB when FV has a value.
-  // If FV is empty, FBB remains editable/manual without being cleared.
+  // Keep FV as the only editable source and mirror its value to FBB immediately.
+  // FBB is a display/copy field only; it must not become a second source of truth.
   function installLandlineMirrorSync() {
     var FV_ID = "arabicNumber";
     var FBB_ID = "arabiccNumber";
@@ -816,15 +816,6 @@
       if (!els.fv || !els.fbb) return;
 
       var fvRaw = els.fv.value || '';
-
-      if (String(fvRaw).replace(/\s+/g, '') === '') {
-        makeFbbEditable();
-        lastAppliedKey = '';
-        return;
-      }
-
-      makeFbbReadOnly();
-
       var digits = digitsOnly(fvRaw);
       var keepBareFbb = hasFbbToken(fvRaw);
       var nextFv = digits;
@@ -850,16 +841,6 @@
       try { els.fbb.setAttribute('aria-readonly', 'true'); } catch (err) {}
       try { els.fbb.setAttribute('title', 'FBB mirror only - write the number in FV below.'); } catch (err) {}
       try { els.fbb.style.cursor = 'default'; } catch (err) {}
-    }
-
-    function makeFbbEditable() {
-      var els = getEls();
-      if (!els.fbb) return;
-      try { els.fbb.readOnly = false; } catch (err) {}
-      try { els.fbb.removeAttribute('readonly'); } catch (err) {}
-      try { els.fbb.setAttribute('aria-readonly', 'false'); } catch (err) {}
-      try { els.fbb.removeAttribute('title'); } catch (err) {}
-      try { els.fbb.style.cursor = 'text'; } catch (err) {}
     }
 
     function armField(el) {
@@ -901,6 +882,7 @@
     function bind() {
       var els = getEls();
       if (!els.fv || !els.fbb) return false;
+      makeFbbReadOnly();
       armField(els.fv);
       guardFbbAgainstEdits();
       installConvertOverride();

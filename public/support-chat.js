@@ -385,7 +385,7 @@ function markActiveRoomSeenFromRows(rows){
   if(!Array.isArray(rows) || !rows.length) return;
   let latestIso = "";
   for(const r of rows){
-    if(r?.room_type !== activeRoom.type || r?.room_id !== activeRoom.room_id) continue;
+    if(!isRowInActiveRoom(r)) continue;
     latestIso = maxIso(latestIso, r?.created_at || "");
   }
   if(latestIso) markRoomSeenAt(activeRoom.type, activeRoom.room_id, latestIso);
@@ -601,15 +601,52 @@ async function loadUsers() {
   });
 }
 
+function isPublicRoomRow(m) {
+  return String(m?.room_type || "public") === "public";
+}
+
+function isRowInActiveRoom(m) {
+  if (!m) return false;
+  if (activeRoom.type === "public") return isPublicRoomRow(m);
+  return String(m.room_type || "") === activeRoom.type && String(m.room_id || "") === String(activeRoom.room_id || "");
+}
+
+function renderSupportMessageRow(m) {
+  const mine = m.sender_id === USER_ID;
+  const bundle = colorBundleForUserId(m.sender_id || m.sender_name || "");
+  const safeId = m.id == null ? "" : escapeHtml(String(m.id));
+  return `
+      <div class="support-msg ${mine ? "mine" : ""}" style="--u:${escapeHtml(bundle.accent)};--ubg:${escapeHtml(bundle.bg)};--uborder:${escapeHtml(bundle.border)}">
+        <div class="support-msg-meta">
+          <span class="support-msg-dot" aria-hidden="true"></span>
+          <span class="support-msg-name">${escapeHtml(m.sender_name || "User")}</span>
+          <span class="support-msg-time">${escapeHtml(fmtTime(m.created_at))}</span>
+          ${mine && safeId && !String(safeId).startsWith("local-") ? `<button class="support-del-btn" data-id="${safeId}" title="Delete">🗑️</button>` : ""}
+        </div>
+        ${renderMessageHtml(m)}
+      </div>
+    `;
+}
+
+function appendSupportMessage(m) {
+  if (!messagesList || !m) return;
+  messagesList.insertAdjacentHTML("beforeend", renderSupportMessageRow(m));
+  bindDeleteButtons();
+  messagesList.scrollTop = messagesList.scrollHeight;
+}
+
 async function loadMessages() {
-  const { type, room_id } = activeRoom;
-  const { data, error } = await supabase
+  let query = supabase
     .from("support_messages")
     .select("*")
-    .eq("room_type", type)
-    .eq("room_id", room_id)
     .order("created_at", { ascending: true })
-    .limit(200);
+    .limit(300);
+
+  if (activeRoom.type !== "public") {
+    query = query.eq("room_type", activeRoom.type).eq("room_id", activeRoom.room_id);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error(error);
@@ -617,21 +654,8 @@ async function loadMessages() {
     return;
   }
 
-  messagesList.innerHTML = (data || []).map(m => {
-    const mine = m.sender_id === USER_ID;
-    const bundle = colorBundleForUserId(m.sender_id || m.sender_name || "");
-    return `
-      <div class="support-msg ${mine ? "mine" : ""}" style="--u:${escapeHtml(bundle.accent)};--ubg:${escapeHtml(bundle.bg)};--uborder:${escapeHtml(bundle.border)}">
-        <div class="support-msg-meta">
-          <span class="support-msg-dot" aria-hidden="true"></span>
-          <span class="support-msg-name">${escapeHtml(m.sender_name || "User")}</span>
-          <span class="support-msg-time">${escapeHtml(fmtTime(m.created_at))}</span>
-          ${mine ? `<button class="support-del-btn" data-id="${m.id}" title="Delete">🗑️</button>` : ""}
-        </div>
-        ${renderMessageHtml(m)}
-      </div>
-    `;
-  }).join("");
+  const rows = (data || []).filter((m) => activeRoom.type === "public" ? isPublicRoomRow(m) : true);
+  messagesList.innerHTML = rows.map(renderSupportMessageRow).join("");
 
   // scroll to bottom
   bindDeleteButtons();
@@ -741,7 +765,7 @@ function subscribeRoom() {
       const rowNew = payload?.new || {};
       const rowOld = payload?.old || {};
       const row = Object.keys(rowNew).length ? rowNew : rowOld;
-      if (row.room_type === activeRoom.type && row.room_id === activeRoom.room_id) {
+      if (isRowInActiveRoom(row)) {
         loadMessages();
       }
       loadUsers();
@@ -767,7 +791,7 @@ function subscribeBackground(){
 
       // If the chat is open and we're currently viewing this room, mark it as read.
       const isChatOpen = chatOverlay?.style.display !== "none";
-      if(isChatOpen && row.room_type === activeRoom.type && row.room_id === activeRoom.room_id){
+      if(isChatOpen && isRowInActiveRoom(row)){
         markRoomSeenAt(activeRoom.type, activeRoom.room_id, row.created_at || new Date().toISOString());
         loadMessages();
       }
@@ -831,7 +855,10 @@ async function sendMessage() {
     room_id: activeRoom.room_id,
   };
 
-  const { error } = await supabase.from("support_messages").insert(payload);
+  const { data: insertedRows, error } = await supabase
+    .from("support_messages")
+    .insert(payload)
+    .select("*");
 
   sendBtn.disabled = false;
 
@@ -844,7 +871,24 @@ async function sendMessage() {
   msgInput.value = "";
   setSelectedFile(null);
   if(attachInput) attachInput.value = "";
+
+  // Show immediately inside Support, even when Realtime is delayed/disabled.
+  const inserted = Array.isArray(insertedRows) && insertedRows[0] ? insertedRows[0] : null;
+  appendSupportMessage(inserted || {
+    ...payload,
+    id: `local-${Date.now()}`,
+    created_at: new Date().toISOString(),
+  });
+  markRoomSeen(activeRoom.type, activeRoom.room_id);
   setStatus("");
+
+  // Then reload from Supabase so the local temporary row is replaced by the real saved row.
+  try {
+    await loadMessages();
+    await loadUsers();
+  } catch (refreshErr) {
+    console.warn("support refresh after send failed", refreshErr);
+  }
 }
 
 // ---------- UI wiring ----------

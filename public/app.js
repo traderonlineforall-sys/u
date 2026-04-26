@@ -152,8 +152,8 @@
 
 
 /* === ONLY INPUTS LOGIC (STRONG) ===
-- If landline (bottom) is empty -> leave FBB editable/manual.
-- If landline has a value, the normal FV -> FBB mirror still works.
+- If landline (bottom) is cleared -> clear FBB (top) automatically.
+- Also wraps convertNumber() so even if it refills FBB after clearing, we wipe it.
 */
 (function(){
   const landlineId = "arabicNumber";   // bottom
@@ -183,7 +183,13 @@
     const tv = t.value || "";
 
     if(landEmpty){
-      return;
+      if(!isEmpty(tv)){
+        t.value = "";
+        // trigger any listeners inside the tool
+        t.dispatchEvent(new Event("input", {bubbles:true}));
+        t.dispatchEvent(new Event("change", {bubbles:true}));
+        try{ t.dispatchEvent(new KeyboardEvent("keyup", {bubbles:true, key:"Backspace"})); }catch(e){}
+      }
     }
   }
 
