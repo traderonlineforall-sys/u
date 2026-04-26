@@ -601,13 +601,45 @@ async function loadUsers() {
   });
 }
 
+function renderSupportMessageRow(m) {
+  const mine = m.sender_id === USER_ID;
+  const bundle = colorBundleForUserId(m.sender_id || m.sender_name || "");
+  const safeId = m.id == null ? "" : escapeHtml(String(m.id));
+  return `
+      <div class="support-msg ${mine ? "mine" : ""}" style="--u:${escapeHtml(bundle.accent)};--ubg:${escapeHtml(bundle.bg)};--uborder:${escapeHtml(bundle.border)}">
+        <div class="support-msg-meta">
+          <span class="support-msg-dot" aria-hidden="true"></span>
+          <span class="support-msg-name">${escapeHtml(m.sender_name || "User")}</span>
+          <span class="support-msg-time">${escapeHtml(fmtTime(m.created_at))}</span>
+          ${mine && safeId && !String(safeId).startsWith("local-") ? `<button class="support-del-btn" data-id="${safeId}" title="Delete">🗑️</button>` : ""}
+        </div>
+        ${renderMessageHtml(m)}
+      </div>
+    `;
+}
+
+function appendSupportMessage(m) {
+  if (!messagesList || !m) return;
+  messagesList.insertAdjacentHTML("beforeend", renderSupportMessageRow(m));
+  bindDeleteButtons();
+  messagesList.scrollTop = messagesList.scrollHeight;
+}
+
 async function loadMessages() {
   const { type, room_id } = activeRoom;
-  const { data, error } = await supabase
+
+  // Public support must match what Admin shows: any row marked as public.
+  // Some deployments have legacy/public rows with a blank/null room_id, so do not hide them.
+  let query = supabase
     .from("support_messages")
     .select("*")
-    .eq("room_type", type)
-    .eq("room_id", room_id)
+    .eq("room_type", type);
+
+  if (type !== "public") {
+    query = query.eq("room_id", room_id);
+  }
+
+  const { data, error } = await query
     .order("created_at", { ascending: true })
     .limit(200);
 
@@ -617,21 +649,7 @@ async function loadMessages() {
     return;
   }
 
-  messagesList.innerHTML = (data || []).map(m => {
-    const mine = m.sender_id === USER_ID;
-    const bundle = colorBundleForUserId(m.sender_id || m.sender_name || "");
-    return `
-      <div class="support-msg ${mine ? "mine" : ""}" style="--u:${escapeHtml(bundle.accent)};--ubg:${escapeHtml(bundle.bg)};--uborder:${escapeHtml(bundle.border)}">
-        <div class="support-msg-meta">
-          <span class="support-msg-dot" aria-hidden="true"></span>
-          <span class="support-msg-name">${escapeHtml(m.sender_name || "User")}</span>
-          <span class="support-msg-time">${escapeHtml(fmtTime(m.created_at))}</span>
-          ${mine ? `<button class="support-del-btn" data-id="${m.id}" title="Delete">🗑️</button>` : ""}
-        </div>
-        ${renderMessageHtml(m)}
-      </div>
-    `;
-  }).join("");
+  messagesList.innerHTML = (data || []).map(renderSupportMessageRow).join("");
 
   // scroll to bottom
   bindDeleteButtons();
@@ -844,7 +862,22 @@ async function sendMessage() {
   msgInput.value = "";
   setSelectedFile(null);
   if(attachInput) attachInput.value = "";
+
+  // Show the sent message immediately, then force-refresh from Supabase.
+  // This keeps Support UI correct even if Realtime is delayed or disabled.
+  appendSupportMessage({
+    ...payload,
+    id: `local-${Date.now()}`,
+    created_at: new Date().toISOString(),
+  });
+  markRoomSeen(activeRoom.type, activeRoom.room_id);
   setStatus("");
+  try {
+    await loadMessages();
+    await loadUsers();
+  } catch (refreshErr) {
+    console.warn("support refresh after send failed", refreshErr);
+  }
 }
 
 // ---------- UI wiring ----------
