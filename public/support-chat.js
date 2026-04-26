@@ -385,7 +385,7 @@ function markActiveRoomSeenFromRows(rows){
   if(!Array.isArray(rows) || !rows.length) return;
   let latestIso = "";
   for(const r of rows){
-    if(r?.room_type !== activeRoom.type || r?.room_id !== activeRoom.room_id) continue;
+    if(!isRowInActiveRoom(r)) continue;
     latestIso = maxIso(latestIso, r?.created_at || "");
   }
   if(latestIso) markRoomSeenAt(activeRoom.type, activeRoom.room_id, latestIso);
@@ -601,6 +601,16 @@ async function loadUsers() {
   });
 }
 
+function isPublicRoomRow(m) {
+  return String(m?.room_type || "public") === "public";
+}
+
+function isRowInActiveRoom(m) {
+  if (!m) return false;
+  if (activeRoom.type === "public") return isPublicRoomRow(m);
+  return String(m.room_type || "") === activeRoom.type && String(m.room_id || "") === String(activeRoom.room_id || "");
+}
+
 function renderSupportMessageRow(m) {
   const mine = m.sender_id === USER_ID;
   const bundle = colorBundleForUserId(m.sender_id || m.sender_name || "");
@@ -626,22 +636,17 @@ function appendSupportMessage(m) {
 }
 
 async function loadMessages() {
-  const { type, room_id } = activeRoom;
-
-  // Public support must match what Admin shows: any row marked as public.
-  // Some deployments have legacy/public rows with a blank/null room_id, so do not hide them.
   let query = supabase
     .from("support_messages")
     .select("*")
-    .eq("room_type", type);
+    .order("created_at", { ascending: true })
+    .limit(300);
 
-  if (type !== "public") {
-    query = query.eq("room_id", room_id);
+  if (activeRoom.type !== "public") {
+    query = query.eq("room_type", activeRoom.type).eq("room_id", activeRoom.room_id);
   }
 
-  const { data, error } = await query
-    .order("created_at", { ascending: true })
-    .limit(200);
+  const { data, error } = await query;
 
   if (error) {
     console.error(error);
@@ -649,7 +654,8 @@ async function loadMessages() {
     return;
   }
 
-  messagesList.innerHTML = (data || []).map(renderSupportMessageRow).join("");
+  const rows = (data || []).filter((m) => activeRoom.type === "public" ? isPublicRoomRow(m) : true);
+  messagesList.innerHTML = rows.map(renderSupportMessageRow).join("");
 
   // scroll to bottom
   bindDeleteButtons();
@@ -759,7 +765,7 @@ function subscribeRoom() {
       const rowNew = payload?.new || {};
       const rowOld = payload?.old || {};
       const row = Object.keys(rowNew).length ? rowNew : rowOld;
-      if (row.room_type === activeRoom.type && row.room_id === activeRoom.room_id) {
+      if (isRowInActiveRoom(row)) {
         loadMessages();
       }
       loadUsers();
@@ -785,7 +791,7 @@ function subscribeBackground(){
 
       // If the chat is open and we're currently viewing this room, mark it as read.
       const isChatOpen = chatOverlay?.style.display !== "none";
-      if(isChatOpen && row.room_type === activeRoom.type && row.room_id === activeRoom.room_id){
+      if(isChatOpen && isRowInActiveRoom(row)){
         markRoomSeenAt(activeRoom.type, activeRoom.room_id, row.created_at || new Date().toISOString());
         loadMessages();
       }
@@ -849,7 +855,10 @@ async function sendMessage() {
     room_id: activeRoom.room_id,
   };
 
-  const { error } = await supabase.from("support_messages").insert(payload);
+  const { data: insertedRows, error } = await supabase
+    .from("support_messages")
+    .insert(payload)
+    .select("*");
 
   sendBtn.disabled = false;
 
@@ -863,15 +872,17 @@ async function sendMessage() {
   setSelectedFile(null);
   if(attachInput) attachInput.value = "";
 
-  // Show the sent message immediately, then force-refresh from Supabase.
-  // This keeps Support UI correct even if Realtime is delayed or disabled.
-  appendSupportMessage({
+  // Show immediately inside Support, even when Realtime is delayed/disabled.
+  const inserted = Array.isArray(insertedRows) && insertedRows[0] ? insertedRows[0] : null;
+  appendSupportMessage(inserted || {
     ...payload,
     id: `local-${Date.now()}`,
     created_at: new Date().toISOString(),
   });
   markRoomSeen(activeRoom.type, activeRoom.room_id);
   setStatus("");
+
+  // Then reload from Supabase so the local temporary row is replaced by the real saved row.
   try {
     await loadMessages();
     await loadUsers();

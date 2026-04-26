@@ -13,7 +13,7 @@
     if (loadUiModules._done) return;
     loadUiModules._done = true;
     [
-      './support-chat.js',
+      './support-chat.js?v=support-visible-20260426',
       './admin.js'
     ].forEach(function(src){
       safeImport(src);
