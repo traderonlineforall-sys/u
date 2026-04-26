@@ -3,30 +3,12 @@ import { supabase } from "./supabase-client.js";
 import { ADMIN_NAME } from "./supabase-config.js";
 import { getStableUserId, getStoredUserName, setStoredUserName } from "./stable-user-identity.js";
 import { playSoftNotification, unlockSound } from "./notification-sound.js";
-// Dynamic Functions base (Vercel vs Netlify) - avoids hard-coded host checks
+// Fixed Functions base for Cloudflare/Next.js.
+// No Vercel/Netlify probing and no startup ping, to keep requests lower and behavior deterministic.
+const SR_FN_BASE = "/api";
 function resolveFnBase() {
-  if (window.__SR_FN_BASE) return Promise.resolve(window.__SR_FN_BASE);
-  if (window.__SR_FN_BASE_PROM) return window.__SR_FN_BASE_PROM;
-
-  const tryBases = ['/api', '/.netlify/functions'];
-  window.__SR_FN_BASE_PROM = (async () => {
-    for (const base of tryBases) {
-      try {
-        const r = await fetch(base + '/admin-ping', { method: 'GET', cache: 'no-store' });
-        if (r && r.ok) {
-          window.__SR_FN_BASE = base;
-          return base;
-        }
-      } catch {}
-    }
-    // fallback (won't break UI; requests may fail gracefully)
-    window.__SR_FN_BASE = '/api';
-    return window.__SR_FN_BASE;
-  })();
-
-  return window.__SR_FN_BASE_PROM;
+  return Promise.resolve(SR_FN_BASE);
 }
-
 
 // ---------- User identity ----------
 const USER_ID = getStableUserId();

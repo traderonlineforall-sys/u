@@ -2242,47 +2242,7 @@
     el = document.createElement("div");
     el.id = "MNDO_UA07_LOGO3";
     el.innerHTML = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 74" aria-hidden="true">
-  <defs>
-    <linearGradient id="ua07g3" x1="14" y1="10" x2="266" y2="62" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#9AE6FF"/>
-      <stop offset="0.52" stop-color="#FF7AD9"/>
-      <stop offset="1" stop-color="#FFE08A"/>
-    </linearGradient>
-    <linearGradient id="ua07glass3" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="rgba(255,255,255,0.18)"/>
-      <stop offset="1" stop-color="rgba(255,255,255,0.06)"/>
-    </linearGradient>
-    <filter id="ua07glow3" x="-30%" y="-60%" width="160%" height="220%">
-      <feGaussianBlur stdDeviation="3.2" result="b"/>
-      <feColorMatrix in="b" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .55 0" result="g"/>
-      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-  </defs>
-
-  <g filter="url(#ua07glow3)">
-    <rect x="6" y="10" width="268" height="54" rx="18" fill="rgba(16,18,28,0.62)" stroke="rgba(255,255,255,0.18)"/>
-    <rect x="8" y="12" width="264" height="50" rx="16" fill="url(#ua07glass3)" opacity="0.90"/>
-    <path d="M22 18h236" stroke="rgba(255,255,255,0.10)" stroke-width="2" stroke-linecap="round"/>
-  </g>
-
-  <!-- UA monogram -->
-  <g fill="none" stroke="url(#ua07g3)" stroke-width="5.6" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M46 26v20c0 10 7 15 17 15s17-5 17-15V26"/>
-    <path d="M92 61L109 26l17 35"/>
-    <path d="M100 46h18"/>
-  </g>
-
-  <path d="M142 26v32" stroke="rgba(255,255,255,0.16)" stroke-width="2.2" stroke-linecap="round"/>
-
-  <!-- 07 (bigger) -->
-  <text x="156" y="56" font-family="system-ui,Segoe UI,Arial" font-size="36" font-weight="900" letter-spacing="1.7" fill="#ff1a1a">07</text>
-
-  <!-- Creative micro-details -->
-  <path d="M214 30h46" stroke="rgba(255,255,255,0.20)" stroke-width="2.2" stroke-linecap="round"/>
-  <path d="M214 52h58" stroke="rgba(255,255,255,0.12)" stroke-width="2.2" stroke-linecap="round"/>
-  <path class="ua07-shine" d="M24 58 C70 34, 130 26, 256 18" stroke="rgba(255,255,255,0.22)" stroke-width="3" stroke-linecap="round" opacity="0.12"/>
-</svg>
+<img class="mndo-uwk07-logo-img" src="/uwk07-logo.png" alt="UWK07" draggable="false" />
 
 <div id="UA07_SECRET_ENVELOPE_WRAP" aria-hidden="false">
   <button id="UA07_SECRET_ENVELOPE" type="button" title="Secret tool warning" aria-label="Secret tool warning">
@@ -3542,7 +3502,12 @@ if (link && link.indexOf("srTypeId=103038004") !== -1) {
         link = link.replace(/([?&]subsNumber=)[^&]*/i, "$1" + myVariable);
         myVariable = "";
 }
-link += myVariable; // إضافة المتغير إلى الرابط
+if (link && link.indexOf("srTypeId=100047001") !== -1) {
+                                        var fbbAdslNumber = (document.getElementById("arabicNumber").value || "").trim();
+                                        var fbbServiceContent = "FBB Num (" + fbbAdslNumber + ") Accepted (3) GB for (2) days related tiket id (xxx) on mobile (xxx) ";
+                                        link = link.replace(/([?&]serviceContent=)[^&]*/i, "$1" + encodeURIComponent(fbbServiceContent));
+                                }
+                                link += myVariable; // إضافة المتغير إلى الرابط
                                 window.open(link); // فتح الرابط الجديد مع المتغير المضاف
                         }
                 

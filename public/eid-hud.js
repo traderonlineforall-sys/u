@@ -7,16 +7,59 @@
   - Preserves existing hidden admin/UA07 interactions.
 */
 const LS_THEME_OFF = "sr_eid_theme_off";
+const LS_THEME_MODE = "sr_visual_theme_mode";
 const TOGGLE_BTN_ID = "EID_TOGGLE_BTN";
+const LEGACY_THEME_LINK_ID = "ua07LegacyThemeLink";
+const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy4";
+const THEME_EID = "eid";
+const THEME_LEGACY = "legacy";
+const THEME_OFF = "off";
 
 function getThemeLink(){
   return document.getElementById("eidThemeLink") || document.querySelector('link[href$="eid-theme.css"], link[href*="eid-theme.css"]');
 }
+function getLegacyThemeLink(){
+  let link = document.getElementById(LEGACY_THEME_LINK_ID);
+  if (link) return link;
+  try {
+    link = document.createElement("link");
+    link.id = LEGACY_THEME_LINK_ID;
+    link.rel = "stylesheet";
+    link.href = LEGACY_THEME_HREF;
+    link.disabled = true;
+    (document.head || document.documentElement).appendChild(link);
+    return link;
+  } catch {
+    return null;
+  }
+}
+function getThemeMode(){
+  try {
+    const saved = localStorage.getItem(LS_THEME_MODE);
+    if (saved === THEME_EID || saved === THEME_LEGACY || saved === THEME_OFF) return saved;
+    return localStorage.getItem(LS_THEME_OFF) === "1" ? THEME_OFF : THEME_EID;
+  } catch {
+    return THEME_EID;
+  }
+}
+function setThemeMode(mode){
+  const safeMode = (mode === THEME_EID || mode === THEME_LEGACY || mode === THEME_OFF) ? mode : THEME_EID;
+  try {
+    localStorage.setItem(LS_THEME_MODE, safeMode);
+    localStorage.setItem(LS_THEME_OFF, safeMode === THEME_OFF ? "1" : "0");
+  } catch {}
+}
+function getNextThemeMode(){
+  const mode = getThemeMode();
+  if (mode === THEME_EID) return THEME_LEGACY;
+  if (mode === THEME_LEGACY) return THEME_OFF;
+  return THEME_EID;
+}
 function isThemeOff(){
-  try { return localStorage.getItem(LS_THEME_OFF) === "1"; } catch { return false; }
+  return getThemeMode() === THEME_OFF;
 }
 function setThemeOff(v){
-  try { localStorage.setItem(LS_THEME_OFF, v ? "1" : "0"); } catch {}
+  setThemeMode(v ? THEME_OFF : THEME_EID);
 }
 
 
@@ -66,6 +109,14 @@ function ensureToggleBaseStyle(){
       border-color: rgba(255,236,190,.34) !important;
       box-shadow: 0 10px 22px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.18), inset 0 0 0 1px rgba(255,223,150,.06) !important;
     }
+    .eid-toggle-btn.is-legacy {
+      filter: saturate(1.05) brightness(1.02);
+      background:
+        radial-gradient(circle at 28% 20%, rgba(255,255,255,.32), rgba(255,255,255,0) 36%),
+        linear-gradient(180deg, rgba(44,44,48,.98), rgba(12,12,14,.98) 52%, rgba(95,0,0,.92) 100%) !important;
+      border-color: rgba(255,255,255,.30) !important;
+      box-shadow: 0 10px 22px rgba(0,0,0,.44), inset 0 1px 0 rgba(255,255,255,.20), inset 0 -1px 0 rgba(255,0,0,.22) !important;
+    }
     .eid-toggle-btn .eid-toggle-shell { position: relative; display:flex; align-items:center; justify-content:center; width:100%; height:100%; }
     .eid-toggle-btn .eid-toggle-shell::before {
       content: ""; position:absolute; width:18px; height:18px; border-radius:999px;
@@ -107,9 +158,13 @@ function ensureDecorLayer(){
 }
 function applyThemeState(){
   ensureDecorLayer();
-  const link = getThemeLink();
-  if(link) link.disabled = isThemeOff();
-  document.documentElement.classList.toggle('eid-theme-live', !isThemeOff());
+  const mode = getThemeMode();
+  const eidLink = getThemeLink();
+  const legacyLink = getLegacyThemeLink();
+  if(eidLink) eidLink.disabled = mode !== THEME_EID;
+  if(legacyLink) legacyLink.disabled = mode !== THEME_LEGACY;
+  document.documentElement.classList.toggle('eid-theme-live', mode === THEME_EID);
+  document.documentElement.classList.toggle('ua07-legacy-theme-live', mode === THEME_LEGACY);
   updateToggleUi();
 }
 function findEnvelopeWrap(){
@@ -153,7 +208,7 @@ function ensureToggleButton(){
   btn.setAttribute('aria-label', 'تبديل ثيم العيد');
   btn.addEventListener("click", function(e){
     try { e.preventDefault(); e.stopPropagation(); } catch {}
-    setThemeOff(!isThemeOff());
+    setThemeMode(getNextThemeMode());
     applyThemeState();
   });
 
@@ -171,10 +226,22 @@ function ensureToggleButton(){
 function updateToggleUi(){
   const btn = document.getElementById(TOGGLE_BTN_ID);
   if(!btn) return;
-  const off = isThemeOff();
+  const mode = getThemeMode();
+  const off = mode === THEME_OFF;
+  const legacy = mode === THEME_LEGACY;
   btn.classList.toggle("is-off", off);
+  btn.classList.toggle("is-legacy", legacy);
   btn.setAttribute("aria-pressed", off ? "false" : "true");
-  btn.title = off ? 'تشغيل ثيم العيد' : 'إيقاف ثيم العيد';
+  if (legacy) {
+    btn.title = 'ثيم الزمالك 20 مفعل - اضغط لإيقاف الثيم';
+    btn.setAttribute('aria-label', 'ثيم الزمالك 20 مفعل - اضغط لإيقاف الثيم');
+  } else if (off) {
+    btn.title = 'الثيم متوقف - اضغط لتشغيل ثيم العيد';
+    btn.setAttribute('aria-label', 'الثيم متوقف - اضغط لتشغيل ثيم العيد');
+  } else {
+    btn.title = 'ثيم العيد مفعل - اضغط لتشغيل ثيم الزمالك 20';
+    btn.setAttribute('aria-label', 'ثيم العيد مفعل - اضغط لتشغيل ثيم الزمالك 20');
+  }
 }
 function fixUa07PointerEvents(logoEl){
   try {

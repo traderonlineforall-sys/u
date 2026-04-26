@@ -1,29 +1,10 @@
 import { playUrgentBannerNotification } from "./notification-sound.js";
 import { getStableUserId } from "./stable-user-identity.js";
+import { supabase } from "./supabase-client.js";
 
-// Dynamic Functions base (Vercel vs Netlify) - avoids hard-coded host checks
-function resolveFnBase() {
-  if (window.__SR_FN_BASE) return Promise.resolve(window.__SR_FN_BASE);
-  if (window.__SR_FN_BASE_PROM) return window.__SR_FN_BASE_PROM;
-
-  const tryBases = ['/api', '/.netlify/functions'];
-  window.__SR_FN_BASE_PROM = (async () => {
-    for (const base of tryBases) {
-      try {
-        const r = await fetch(base + '/admin-ping', { method: 'GET', cache: 'no-store' });
-        if (r && r.ok) {
-          window.__SR_FN_BASE = base;
-          return base;
-        }
-      } catch {}
-    }
-    // fallback (won't break UI; requests may fail gracefully)
-    window.__SR_FN_BASE = '/api';
-    return window.__SR_FN_BASE;
-  })();
-
-  return window.__SR_FN_BASE_PROM;
-}
+// Fixed API base for Cloudflare/Next.js.
+// This removes the old Vercel/Netlify probing request and keeps the UI untouched.
+const SR_API_BASE = "/api";
 
 /*
  * Admin announcement (Envelope) client
@@ -35,9 +16,8 @@ function resolveFnBase() {
  *   for that user/device until the admin changes the message again.
  *
  * Implementation notes:
- * - We fetch the latest announcement via Netlify Function:
- *     GET /.netlify/functions/admin-announcement
- *   (server-side uses service_role key). This avoids relying on public RLS.
+ * - First load uses one safe API read to get the current announcement.
+ * - After that, updates arrive through Supabase Realtime instead of polling.
  * - We do NOT depend on internal functions inside app.js (openSecretModal is
  *   scoped inside an IIFE). Instead, we hook the envelope button click and/or
  *   observe the modal opening, then inject/replace the modal content.
@@ -50,7 +30,7 @@ const LS_URGENT_DISMISSED_KEY = "sr_admin_urgent_dismissed_key";
 const LS_URGENT_SHOW_COUNT_PREFIX = "sr_admin_urgent_show_count";
 const MAX_URGENT_SHOWS_PER_USER = 2;
 const URGENT_PREFIX = "URGENT_TICKER::";
-const ANNOUNCEMENT_POLL_MS = 25000;
+const ANNOUNCEMENT_REALTIME_CHANNEL = "sr_admin_announcements_realtime";
 const SR_ANNOUNCEMENT_CHANNEL = (typeof BroadcastChannel !== "undefined") ? new BroadcastChannel("sr_admin_announcement_state") : null;
 
 function announceStateChanged(kind, payload = {}) {
@@ -189,9 +169,63 @@ function markSeen(createdAtIso, key) {
   } catch {}
 }
 
+function parseAnnouncementTextClient(raw){
+  const text = String(raw || "");
+  let envelope_text = "";
+  let urgent_text = "";
+  let urgent_enabled = false;
+
+  try{
+    const obj = JSON.parse(text);
+    if(obj && typeof obj === "object"){
+      envelope_text = String(obj.envelope || obj.envelope_text || "");
+      urgent_text = String(obj.urgent || obj.urgent_text || "");
+      urgent_enabled = !!obj.urgent_enabled;
+      return { text, envelope_text, urgent_text, urgent_enabled };
+    }
+  }catch(_){}
+
+  if(text.startsWith(URGENT_PREFIX)){
+    urgent_enabled = true;
+    urgent_text = text.slice(URGENT_PREFIX.length).trim();
+    return { text, envelope_text, urgent_text, urgent_enabled };
+  }
+
+  envelope_text = text;
+  return { text, envelope_text, urgent_text, urgent_enabled };
+}
+
+function normalizeAnnouncementRow(row){
+  if(!row) return null;
+  const parsed = parseAnnouncementTextClient(row?.text || "");
+  return {
+    text: parsed.text,
+    envelope_text: parsed.envelope_text,
+    urgent_text: parsed.urgent_text,
+    urgent_enabled: parsed.urgent_enabled,
+    created_at: row?.created_at || null
+  };
+}
+
+function applyAnnouncement(ann){
+  if(!ann) return;
+  const prevKey = getAnnouncementKey(_lastAnnouncement);
+  const nextKey = getAnnouncementKey(ann);
+  _lastAnnouncement = ann;
+  updateBadgeUI();
+  updateUrgentUI();
+
+  // If the envelope modal is already open, refresh its content without touching layout.
+  if(nextKey && nextKey !== prevKey){
+    announceStateChanged("announcement-realtime", { key: nextKey, created_at: ann.created_at || "" });
+    setTimeout(renderAnnouncementInModal, 30);
+    setTimeout(clearEnvelopeUnreadIfOpen, 60);
+  }
+}
+
 async function fetchLatestAnnouncement() {
   try {
-    const res = await fetch((await resolveFnBase()) + "/admin-announcement", { method: "GET" });
+    const res = await fetch(SR_API_BASE + "/admin-announcement", { method: "GET", cache: "no-store" });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       // Keep silent; we don't want to break the tool UI.
@@ -381,9 +415,12 @@ function updateBadgeUI() {
 
 async function refreshAnnouncementAndBadge() {
   const ann = await fetchLatestAnnouncement();
-  if (ann) _lastAnnouncement = ann;
-  updateBadgeUI();
-  updateUrgentUI();
+  if (ann) {
+    applyAnnouncement(ann);
+  } else {
+    updateBadgeUI();
+    updateUrgentUI();
+  }
 }
 
 // --- Modal injection ---
@@ -501,18 +538,54 @@ function bindAnnouncementSync() {
   }
 }
 
+function subscribeAnnouncementRealtime(){
+  if(window.__srAnnouncementRealtimeBound) return;
+  window.__srAnnouncementRealtimeBound = true;
+
+  try{
+    const channel = supabase
+      .channel(ANNOUNCEMENT_REALTIME_CHANNEL)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "announcements" },
+        (payload) => {
+          const ann = normalizeAnnouncementRow(payload?.new);
+          if(ann) applyAnnouncement(ann);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "announcements" },
+        (payload) => {
+          const ann = normalizeAnnouncementRow(payload?.new);
+          if(ann) applyAnnouncement(ann);
+        }
+      )
+      .subscribe((status) => {
+        // No polling fallback here by design. If Realtime drops, we only resync when the tab becomes visible.
+        if(status === "SUBSCRIBED"){
+          try { window.__srAnnouncementRealtimeOk = true; } catch {}
+        }
+      });
+
+    window.__srAnnouncementRealtimeChannel = channel;
+  }catch(e){
+    // Keep the tool running even if Realtime is not enabled in Supabase yet.
+    try { window.__srAnnouncementRealtimeOk = false; } catch {}
+  }
+}
+
 function init() {
   bindAnnouncementSync();
   hookEnvelopeClick();
 
-  // First load
+  // First load: one request only to get the current latest message.
   refreshAnnouncementAndBadge().catch(() => {});
 
-  // Poll to keep badge in sync across users without requiring realtime config.
-  setInterval(() => {
-    refreshAnnouncementAndBadge().catch(() => {});
-  }, ANNOUNCEMENT_POLL_MS);
+  // Live updates: no repeated polling; new admin messages arrive through Supabase Realtime.
+  subscribeAnnouncementRealtime();
 
+  // Safety resync only when the user returns to the tab after being away.
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) refreshAnnouncementAndBadge().catch(() => {});
   });

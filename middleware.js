@@ -2,8 +2,11 @@ import { NextResponse } from "next/server";
 import { getCookieName, verifySession } from "./lib/session.js";
 
 export const config = {
-  // Run for everything except Next.js internal assets.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Protect pages, HTML files, and API routes, but do not run middleware for heavy static assets.
+  // This keeps login protection for the tool while reducing edge/worker requests dramatically.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:js|css|png|jpg|jpeg|gif|webp|svg|ico|woff|woff2|ttf|eot|map|txt)$).*)",
+  ],
 };
 
 const PUBLIC_PATHS = new Set([
@@ -13,21 +16,26 @@ const PUBLIC_PATHS = new Set([
 ]);
 
 function clientIp(request) {
+  const cfIp = request.headers.get("cf-connecting-ip");
+  const realIp = request.headers.get("x-real-ip");
   const xf = request.headers.get("x-forwarded-for");
-  return (request.ip || (xf ? xf.split(",")[0].trim() : "")) || "";
+  return (
+    request.ip ||
+    cfIp ||
+    realIp ||
+    (xf ? xf.split(",")[0].trim() : "") ||
+    ""
+  );
 }
 
 function applySecurityHeaders(res) {
   // Lightweight headers that won't break the legacy tool UI.
-  // Allow embedding ONLY from the same origin so the root page can iframe /index.html
-  // while still preventing clickjacking from other sites.
   res.headers.set("X-Frame-Options", "SAMEORIGIN");
-  // Modern equivalent for browsers that prefer CSP.
   res.headers.set("Content-Security-Policy", "frame-ancestors 'self'");
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("Referrer-Policy", "same-origin");
   res.headers.set("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
-  // Avoid caching any authenticated content or redirects.
+  // Avoid caching authenticated HTML/API responses or redirects.
   res.headers.set("Cache-Control", "no-store");
   return res;
 }

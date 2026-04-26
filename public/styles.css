@@ -1312,15 +1312,45 @@ html, body { overflow-x: hidden !important; }
     z-index: 9000 !important;
     width: 176px;
     height: 48px;
-    pointer-events: none;
+    pointer-events: auto;
     overflow: visible;
     user-select: none;
     -webkit-user-select: none;
+    cursor: pointer;
+    isolation: isolate;
     filter: drop-shadow(0 14px 34px rgba(0,0,0,0.55));
     transform: translateZ(0);
+    transition: transform .18s ease, filter .18s ease;
+  }
+  #MNDO_UA07_LOGO3::before{
+    content:"";
+    position:absolute;
+    inset:-3px -5px;
+    border-radius:999px;
+    pointer-events:none;
+    z-index:-1;
+    background:
+      radial-gradient(circle at 18% 50%, rgba(255,255,255,0.14), transparent 32%),
+      linear-gradient(90deg, rgba(255,214,102,0.20), rgba(255,255,255,0.06) 38%, rgba(255,64,64,0.10) 68%, rgba(255,214,102,0.18));
+    filter: blur(6px);
+    opacity:.85;
+  }
+  #MNDO_UA07_LOGO3:hover{
+    transform: translateZ(0) scale(1.018);
+    filter: drop-shadow(0 16px 40px rgba(0,0,0,0.62)) drop-shadow(0 0 12px rgba(255,210,90,0.12));
   }
   #MNDO_UA07_LOGO3 svg{ width:100%; height:100%; display:block; }
+  #MNDO_UA07_LOGO3 .mndo-uwk07-logo-img{
+    width:100%;
+    height:100%;
+    display:block;
+    object-fit:contain;
+    pointer-events:auto;
+    cursor:pointer;
+    filter: saturate(1.04) contrast(1.02) drop-shadow(0 2px 0 rgba(255,255,255,0.10));
+  }
   #MNDO_UA07_LOGO3 .ua07-shine{ animation: ua07ShineMove 3.8s ease-in-out infinite; transform-origin:center; }
+  #MNDO_UA07_LOGO3:active{ transform: translateZ(0) scale(0.995); }
   @keyframes ua07ShineMove{
     0%,100%{ opacity:.10; transform: translateX(-10px); }
     50%{ opacity:.22; transform: translateX(12px); }
