@@ -675,3 +675,184 @@ html.ahly-premium-theme-live body {
     overflow-x: hidden !important;
   }
 }
+
+/* ===== Ahly Premium Black Glass Menus v3 (final correction) =====
+   Scope: Ahly theme only. Visual-only. No layout geometry, SR data, URLs,
+   HTML order, or app logic are changed.
+*/
+html.ahly-premium-theme-live {
+  --ahly-glass-bg-1: rgba(2, 2, 4, .94);
+  --ahly-glass-bg-2: rgba(14, 5, 6, .90);
+  --ahly-glass-bg-3: rgba(48, 0, 0, .76);
+  --ahly-glass-red: rgba(181, 0, 0, .82);
+  --ahly-glass-gold: #f4cf7a;
+  --ahly-glass-gold-2: #ffebad;
+  --ahly-glass-text: #ffe7a0;
+  --ahly-glass-text-soft: #f6d893;
+  --ahly-glass-border: rgba(244, 207, 122, .32);
+  --ahly-glass-border-soft: rgba(255, 235, 173, .16);
+}
+
+/* Main topic buttons: SR Sales / SR Technical / ... / Mobile */
+html.ahly-premium-theme-live #tabs .tablinks {
+  color: var(--ahly-glass-text) !important;
+  -webkit-text-fill-color: var(--ahly-glass-text) !important;
+  background:
+    radial-gradient(135% 170% at 16% 0%, rgba(255,255,255,.20), rgba(255,255,255,0) 34%),
+    radial-gradient(95% 170% at 95% 0%, rgba(222,0,0,.22), rgba(222,0,0,0) 49%),
+    linear-gradient(180deg, rgba(28,28,31,.96) 0%, rgba(5,5,7,.96) 48%, rgba(52,0,0,.88) 100%) !important;
+  border-color: var(--ahly-glass-border) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.92), 0 0 9px rgba(244,207,122,.16) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.18),
+    inset 0 0 0 1px rgba(255,235,173,.055),
+    inset 0 -1px 0 rgba(255,0,0,.22),
+    0 11px 24px rgba(0,0,0,.42),
+    0 0 0 1px rgba(60,0,0,.12) !important;
+  backdrop-filter: blur(7px) saturate(1.15) !important;
+  -webkit-backdrop-filter: blur(7px) saturate(1.15) !important;
+}
+
+html.ahly-premium-theme-live #tabs .tablinks:hover {
+  color: var(--ahly-glass-gold-2) !important;
+  -webkit-text-fill-color: var(--ahly-glass-gold-2) !important;
+  background:
+    radial-gradient(135% 170% at 16% 0%, rgba(255,255,255,.26), rgba(255,255,255,0) 34%),
+    radial-gradient(110% 190% at 88% 0%, rgba(255,0,0,.34), rgba(255,0,0,0) 54%),
+    linear-gradient(180deg, rgba(43,43,48,.97) 0%, rgba(9,9,12,.97) 46%, rgba(91,0,0,.92) 100%) !important;
+  border-color: rgba(255,231,163,.48) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 0 0 1px rgba(255,235,173,.09),
+    inset 0 -1px 0 rgba(255,0,0,.30),
+    0 13px 28px rgba(0,0,0,.48),
+    0 0 19px rgba(178,0,0,.18) !important;
+}
+
+html.ahly-premium-theme-live #tabs .tablinks.active {
+  color: #fff3c4 !important;
+  -webkit-text-fill-color: #fff3c4 !important;
+  background:
+    radial-gradient(130% 170% at 18% 0%, rgba(255,255,255,.24), rgba(255,255,255,0) 36%),
+    linear-gradient(180deg, rgba(150,0,0,.98) 0%, rgba(28,1,2,.98) 54%, rgba(7,7,9,.98) 100%) !important;
+  border-color: rgba(255,221,133,.58) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 0 0 1px rgba(255,235,173,.10),
+    inset 0 -1px 0 rgba(255,200,80,.26),
+    0 15px 31px rgba(0,0,0,.56),
+    0 0 24px rgba(205,0,0,.24) !important;
+}
+
+/* Topic menu buttons and direct links inside every tab. Geometry is inherited. */
+html.ahly-premium-theme-live .dropdown .dropbtn,
+html.ahly-premium-theme-live .navbar a,
+html.ahly-premium-theme-live #singlelink {
+  color: var(--ahly-glass-text-soft) !important;
+  -webkit-text-fill-color: var(--ahly-glass-text-soft) !important;
+  background:
+    radial-gradient(135% 150% at 14% 0%, rgba(255,255,255,.16), rgba(255,255,255,0) 36%),
+    radial-gradient(105% 180% at 96% 0%, rgba(201,0,0,.18), rgba(201,0,0,0) 52%),
+    linear-gradient(180deg, rgba(23,23,27,.94) 0%, rgba(4,4,6,.93) 52%, rgba(47,0,0,.82) 100%) !important;
+  border-color: var(--ahly-glass-border-soft) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.94), 0 0 8px rgba(244,207,122,.13) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.13),
+    inset 0 0 0 1px rgba(255,235,173,.045),
+    inset 0 -1px 0 rgba(255,0,0,.18),
+    0 8px 18px rgba(0,0,0,.32) !important;
+  backdrop-filter: blur(6px) saturate(1.12) !important;
+  -webkit-backdrop-filter: blur(6px) saturate(1.12) !important;
+}
+
+html.ahly-premium-theme-live .dropdown:hover .dropbtn,
+html.ahly-premium-theme-live #singlelink:hover,
+html.ahly-premium-theme-live .navbar a:hover {
+  color: var(--ahly-glass-gold-2) !important;
+  -webkit-text-fill-color: var(--ahly-glass-gold-2) !important;
+  background:
+    radial-gradient(135% 150% at 14% 0%, rgba(255,255,255,.24), rgba(255,255,255,0) 35%),
+    radial-gradient(115% 190% at 92% 0%, rgba(255,0,0,.28), rgba(255,0,0,0) 54%),
+    linear-gradient(180deg, rgba(35,35,40,.96) 0%, rgba(8,8,11,.96) 48%, rgba(89,0,0,.90) 100%) !important;
+  border-color: rgba(255,226,151,.42) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.90), 0 0 10px rgba(244,207,122,.20) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.18),
+    inset 0 0 0 1px rgba(255,235,173,.08),
+    inset 0 -1px 0 rgba(255,0,0,.25),
+    0 10px 22px rgba(0,0,0,.40),
+    0 0 17px rgba(170,0,0,.18) !important;
+}
+
+/* Dropdown panels and nested panels: premium black glass instead of yellow. */
+html.ahly-premium-theme-live .dropdown-content,
+html.ahly-premium-theme-live .sub-dropdown-content {
+  background:
+    radial-gradient(120% 120% at 16% 0%, rgba(255,255,255,.12), rgba(255,255,255,0) 42%),
+    radial-gradient(100% 170% at 100% 12%, rgba(165,0,0,.18), rgba(165,0,0,0) 55%),
+    linear-gradient(180deg, rgba(13,13,17,.975) 0%, rgba(3,3,5,.972) 55%, rgba(31,0,0,.962) 100%) !important;
+  background-color: rgba(5,5,7,.975) !important;
+  border-color: rgba(255,226,151,.22) !important;
+  color: var(--ahly-glass-text) !important;
+  -webkit-text-fill-color: var(--ahly-glass-text) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.90) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    inset 0 0 0 1px rgba(255,255,255,.025),
+    0 20px 52px rgba(0,0,0,.70),
+    0 0 26px rgba(150,0,0,.14) !important;
+  backdrop-filter: blur(12px) saturate(1.22) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1.22) !important;
+}
+
+/* Nested row labels inside dropdowns; overrides inline light backgrounds safely. */
+html.ahly-premium-theme-live .sub-dropdown,
+html.ahly-premium-theme-live .sub-dropdown[style] {
+  background:
+    radial-gradient(110% 140% at 14% 0%, rgba(255,255,255,.11), rgba(255,255,255,0) 44%),
+    linear-gradient(180deg, rgba(18,18,22,.94), rgba(4,4,6,.94) 62%, rgba(42,0,0,.82)) !important;
+  background-color: rgba(7,7,10,.94) !important;
+  color: var(--ahly-glass-text) !important;
+  -webkit-text-fill-color: var(--ahly-glass-text) !important;
+}
+
+html.ahly-premium-theme-live .dropdown-content a,
+html.ahly-premium-theme-live .sub-dropdown-content a,
+html.ahly-premium-theme-live .sub-dropdown > a {
+  color: var(--ahly-glass-text) !important;
+  -webkit-text-fill-color: var(--ahly-glass-text) !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.018)) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.88) !important;
+  box-shadow:
+    inset 0 -1px 0 rgba(255,255,255,.045),
+    inset 0 1px 0 rgba(255,255,255,.025) !important;
+}
+
+html.ahly-premium-theme-live .sub-dropdown:hover,
+html.ahly-premium-theme-live .sub-dropdown:hover[style],
+html.ahly-premium-theme-live .dropdown-content a:hover,
+html.ahly-premium-theme-live .sub-dropdown-content a:hover,
+html.ahly-premium-theme-live .sub-dropdown:hover > a {
+  background:
+    radial-gradient(135% 160% at 12% 0%, rgba(255,255,255,.18), rgba(255,255,255,0) 42%),
+    linear-gradient(90deg, rgba(108,0,0,.92) 0%, rgba(18,18,22,.95) 48%, rgba(2,2,4,.96) 100%) !important;
+  background-color: rgba(18,18,22,.96) !important;
+  color: #fff0b5 !important;
+  -webkit-text-fill-color: #fff0b5 !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.88), 0 0 8px rgba(244,207,122,.15) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    inset 0 -1px 0 rgba(255,0,0,.18),
+    0 8px 20px rgba(0,0,0,.28) !important;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  html.ahly-premium-theme-live .dropdown-content,
+  html.ahly-premium-theme-live .sub-dropdown-content,
+  html.ahly-premium-theme-live .dropdown .dropbtn,
+  html.ahly-premium-theme-live .navbar a,
+  html.ahly-premium-theme-live #singlelink,
+  html.ahly-premium-theme-live #tabs .tablinks {
+    background-color: rgba(5,5,7,.98) !important;
+  }
+}
