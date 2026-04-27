@@ -461,3 +461,217 @@ html.ahly-premium-theme-live #MNDO_UA07_LOGO3 .mndo-uwk07-logo-img {
   opacity: 0 !important;
   visibility: hidden !important;
 }
+
+
+/* ===== Ahly Premium Ultra v2: default-safe visual polish (theme-scoped only) =====
+   - Applies only while html.ahly-premium-theme-live is active.
+   - Does not change SR data, URLs, HTML order, layout dimensions, or tool logic.
+   - The eagle mark is decorative only and positioned absolutely so it never
+     participates in layout calculations or creates horizontal overflow.
+*/
+
+html.ahly-premium-theme-live {
+  --ahly-ultra-black: #100602;
+  --ahly-ultra-ink: #150700;
+  --ahly-ultra-red: #b50000;
+  --ahly-ultra-red-deep: #3a0000;
+  --ahly-ultra-gold: #d8a63a;
+  --ahly-ultra-gold-soft: #f2d58a;
+  --ahly-ultra-cream: #fff2c2;
+  --ahly-ultra-border: rgba(104, 32, 0, .34);
+}
+
+/* Mentioned top tool buttons only: SR Sales / SR Technical / Mobile */
+html.ahly-premium-theme-live #SR\ Sales .toolsBar .toolsStyle,
+html.ahly-premium-theme-live #SR\ Technical .toolsBar .toolsStyle,
+html.ahly-premium-theme-live #Mobile .toolsBar .toolsStyle {
+  position: relative !important;
+  isolation: isolate !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  color: var(--ahly-ultra-ink) !important;
+  -webkit-text-fill-color: var(--ahly-ultra-ink) !important;
+  text-shadow:
+    0 1px 0 rgba(255,255,255,.52),
+    0 0 10px rgba(255,218,120,.16) !important;
+  border-color: rgba(255, 218, 124, .64) !important;
+  background:
+    radial-gradient(115% 170% at 13% 0%, rgba(255,255,255,.62), rgba(255,255,255,0) 37%),
+    linear-gradient(180deg,
+      rgba(255, 242, 196, .99) 0%,
+      rgba(236, 198, 103, .98) 48%,
+      rgba(167, 90, 22, .94) 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.78),
+    inset 0 -1px 0 rgba(72, 0, 0, .28),
+    inset 0 0 0 1px rgba(255, 242, 180, .14),
+    0 9px 18px rgba(0,0,0,.30),
+    0 0 0 1px rgba(86, 0, 0, .10) !important;
+  outline: none !important;
+}
+
+html.ahly-premium-theme-live #SR\ Sales .toolsBar .toolsStyle::before,
+html.ahly-premium-theme-live #SR\ Technical .toolsBar .toolsStyle::before,
+html.ahly-premium-theme-live #Mobile .toolsBar .toolsStyle::before {
+  content: "" !important;
+  position: absolute !important;
+  right: -7px !important;
+  top: 50% !important;
+  width: 31px !important;
+  height: 31px !important;
+  transform: translateY(-50%) rotate(-6deg) !important;
+  background: url("./ahly-eagle-mark.png?v=ultra2") center / contain no-repeat !important;
+  opacity: .18 !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+  filter: saturate(1.08) contrast(1.03) drop-shadow(0 2px 3px rgba(0,0,0,.16)) !important;
+}
+
+html.ahly-premium-theme-live #SR\ Sales .toolsBar .toolsStyle::after,
+html.ahly-premium-theme-live #SR\ Technical .toolsBar .toolsStyle::after,
+html.ahly-premium-theme-live #Mobile .toolsBar .toolsStyle::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 1px 1px auto 1px !important;
+  height: 42% !important;
+  border-radius: inherit !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.30), rgba(255,255,255,0)) !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+
+html.ahly-premium-theme-live #SR\ Sales .toolsBar .toolsStyle:hover,
+html.ahly-premium-theme-live #SR\ Technical .toolsBar .toolsStyle:hover,
+html.ahly-premium-theme-live #Mobile .toolsBar .toolsStyle:hover {
+  color: #0d0300 !important;
+  -webkit-text-fill-color: #0d0300 !important;
+  background:
+    radial-gradient(115% 170% at 13% 0%, rgba(255,255,255,.72), rgba(255,255,255,0) 37%),
+    linear-gradient(180deg,
+      rgba(255, 249, 223, 1) 0%,
+      rgba(248, 211, 119, .99) 49%,
+      rgba(194, 35, 12, .92) 100%) !important;
+  border-color: rgba(255, 232, 160, .76) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.84),
+    inset 0 -1px 0 rgba(78,0,0,.24),
+    0 10px 21px rgba(0,0,0,.34),
+    0 0 18px rgba(190,0,0,.12) !important;
+}
+
+html.ahly-premium-theme-live #SR\ Sales .toolsBar .toolsStyle:hover::before,
+html.ahly-premium-theme-live #SR\ Technical .toolsBar .toolsStyle:hover::before,
+html.ahly-premium-theme-live #Mobile .toolsBar .toolsStyle:hover::before {
+  opacity: .24 !important;
+  transform: translateY(-50%) rotate(-3deg) scale(1.035) !important;
+}
+
+/* Premium black-text navigation/menu treatment - geometry preserved */
+html.ahly-premium-theme-live .dropdown .dropbtn,
+html.ahly-premium-theme-live .navbar a,
+html.ahly-premium-theme-live #singlelink {
+  color: var(--ahly-ultra-ink) !important;
+  -webkit-text-fill-color: var(--ahly-ultra-ink) !important;
+  background:
+    radial-gradient(120% 145% at 18% 0%, rgba(255,255,255,.58), rgba(255,255,255,0) 38%),
+    linear-gradient(180deg,
+      rgba(255, 238, 190, .98) 0%,
+      rgba(221, 178, 82, .96) 58%,
+      rgba(124, 40, 12, .91) 100%) !important;
+  border-color: rgba(255, 222, 140, .45) !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.44) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.66),
+    inset 0 -1px 0 rgba(70,0,0,.27),
+    0 8px 18px rgba(0,0,0,.28) !important;
+}
+
+html.ahly-premium-theme-live .dropdown:hover .dropbtn,
+html.ahly-premium-theme-live #singlelink:hover,
+html.ahly-premium-theme-live .navbar a:hover {
+  color: #090100 !important;
+  -webkit-text-fill-color: #090100 !important;
+  background:
+    radial-gradient(120% 145% at 18% 0%, rgba(255,255,255,.70), rgba(255,255,255,0) 38%),
+    linear-gradient(180deg,
+      rgba(255, 248, 221, 1) 0%,
+      rgba(242, 203, 111, .99) 54%,
+      rgba(185, 0, 0, .86) 100%) !important;
+  border-color: rgba(255, 232, 157, .68) !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.56) !important;
+}
+
+/* Menu panels and items: brighter royal cards with black text */
+html.ahly-premium-theme-live .dropdown-content,
+html.ahly-premium-theme-live .sub-dropdown-content {
+  background:
+    radial-gradient(120% 130% at 15% 0%, rgba(255,255,255,.30), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg,
+      rgba(255, 241, 198, .985) 0%,
+      rgba(223, 181, 90, .978) 44%,
+      rgba(92, 10, 0, .965) 100%) !important;
+  background-color: rgba(236, 199, 108, .985) !important;
+  border-color: rgba(255, 230, 154, .52) !important;
+  color: var(--ahly-ultra-black) !important;
+  -webkit-text-fill-color: var(--ahly-ultra-black) !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.34) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.50),
+    inset 0 0 0 1px rgba(255,255,255,.08),
+    0 20px 50px rgba(0,0,0,.56),
+    0 0 24px rgba(160,0,0,.12) !important;
+}
+
+html.ahly-premium-theme-live .sub-dropdown,
+html.ahly-premium-theme-live .sub-dropdown[style] {
+  background:
+    linear-gradient(180deg, rgba(255, 240, 192, .97), rgba(218, 169, 72, .96)) !important;
+  background-color: rgba(230, 186, 93, .98) !important;
+  color: var(--ahly-ultra-black) !important;
+  -webkit-text-fill-color: var(--ahly-ultra-black) !important;
+}
+
+html.ahly-premium-theme-live .dropdown-content a,
+html.ahly-premium-theme-live .sub-dropdown-content a,
+html.ahly-premium-theme-live .sub-dropdown > a {
+  color: var(--ahly-ultra-black) !important;
+  -webkit-text-fill-color: var(--ahly-ultra-black) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.24), rgba(255,255,255,.05)) !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.30) !important;
+  box-shadow:
+    inset 0 -1px 0 rgba(105,0,0,.13),
+    inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+
+html.ahly-premium-theme-live .sub-dropdown:hover,
+html.ahly-premium-theme-live .sub-dropdown:hover[style],
+html.ahly-premium-theme-live .dropdown-content a:hover,
+html.ahly-premium-theme-live .sub-dropdown-content a:hover,
+html.ahly-premium-theme-live .sub-dropdown:hover > a {
+  background:
+    radial-gradient(140% 160% at 12% 0%, rgba(255,255,255,.48), rgba(255,255,255,0) 42%),
+    linear-gradient(90deg,
+      rgba(255, 241, 190, .99) 0%,
+      rgba(244, 196, 92, .98) 47%,
+      rgba(184, 0, 0, .90) 100%) !important;
+  background-color: rgba(233, 190, 92, .98) !important;
+  color: #080100 !important;
+  -webkit-text-fill-color: #080100 !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.54) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.34),
+    inset 0 -1px 0 rgba(110,0,0,.20),
+    0 8px 19px rgba(0,0,0,.22) !important;
+}
+
+/* Keep body-level accidental overflow under control without changing element sizes */
+html.ahly-premium-theme-live body {
+  overflow-x: clip !important;
+}
+
+@supports not (overflow: clip) {
+  html.ahly-premium-theme-live body {
+    overflow-x: hidden !important;
+  }
+}

@@ -12,7 +12,7 @@ const TOGGLE_BTN_ID = "EID_TOGGLE_BTN";
 const LEGACY_THEME_LINK_ID = "ua07LegacyThemeLink";
 const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy4";
 const AHLY_THEME_LINK_ID = "ahlyPremiumThemeLink";
-const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahlypremium1";
+const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahlypremium-ultra2";
 const THEME_EID = "eid";
 const THEME_LEGACY = "legacy";
 const THEME_AHLY = "ahly";
@@ -278,10 +278,62 @@ function fixUa07PointerEvents(logoEl){
     if(svg) svg.style.pointerEvents = "auto";
   } catch {}
 }
+
+function forceAhlyPremiumDefaultOnBoot(){
+  /*
+    Ahly-first boot policy:
+    - Forces Ahly Premium as the page-load default on every fresh load/refresh.
+    - Does not break the existing toggle cycle after the page is loaded.
+    - Ignores old localStorage/cache state by rewriting the visual theme mode early.
+  */
+  try {
+    setThemeMode(THEME_AHLY);
+  } catch {}
+}
+
+function triggerSmartHeaderResetOnBoot(){
+  /*
+    Runs the same reset effect as pressing the header reset button once per page load.
+    It waits for the safe-upgrade reset button to exist, then clicks it; if the user is
+    already actively typing in an input, it avoids clearing their in-progress edit.
+  */
+  if (window.__AHLY_PREMIUM_AUTO_RESET_DONE) return;
+  window.__AHLY_PREMIUM_AUTO_RESET_DONE = true;
+
+  function isUserEditingNow(){
+    try {
+      const el = document.activeElement;
+      if (!el) return false;
+      const tag = (el.tagName || '').toLowerCase();
+      if (tag !== 'input' && tag !== 'textarea' && tag !== 'select') return false;
+      return !!String(el.value || '').trim();
+    } catch {
+      return false;
+    }
+  }
+
+  let tries = 0;
+  const timer = setInterval(function(){
+    tries++;
+    const btn = document.getElementById('headerResetBtn');
+    if (btn && !isUserEditingNow()) {
+      clearInterval(timer);
+      setTimeout(function(){
+        try { btn.click(); } catch {}
+      }, 120);
+      return;
+    }
+    if (tries > 45) clearInterval(timer);
+  }, 120);
+}
+
+
 function boot(){
+  forceAhlyPremiumDefaultOnBoot();
   ensureToggleBaseStyle();
   ensureDecorLayer();
   applyThemeState();
+  triggerSmartHeaderResetOnBoot();
   let tries = 0;
   const t = setInterval(function(){
     tries++;
