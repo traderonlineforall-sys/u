@@ -1031,3 +1031,265 @@ html.ahly-premium-theme-live .search-container input[type="search"] {
 @media (max-width: 900px) {
   html.ahly-premium-theme-live body { background-position: center center, center center, center center, center 43%, center center !important; }
 }
+
+/* ===== Ahly 74 Executive Calm Final Pass =====
+   Scope: Ahly theme only. Visual upgrade only.
+   Purpose: calmer premium contrast, clearer red wings, less yellow glare,
+   darker heavier glass menus without changing layout geometry or SR logic.
+*/
+html.ahly-premium-theme-live {
+  --ahly-calm-gold: #e9c46d;
+  --ahly-calm-gold-bright: #ffe9a3;
+  --ahly-calm-gold-soft: #d8aa50;
+  --ahly-calm-cream: #fff0bd;
+  --ahly-calm-panel: rgba(4,4,6,.955);
+  --ahly-calm-red: rgba(118,0,0,.92);
+  --ahly-calm-border: rgba(233,196,109,.255);
+  --ahly-calm-border-hot: rgba(255,224,141,.405);
+}
+
+html.ahly-premium-theme-live,
+html.ahly-premium-theme-live body {
+  background-color: #020202 !important;
+}
+
+html.ahly-premium-theme-live body {
+  background-image:
+    linear-gradient(180deg, rgba(0,0,0,.88) 0%, rgba(0,0,0,.58) 14%, rgba(0,0,0,.48) 40%, rgba(0,0,0,.68) 72%, rgba(0,0,0,.93) 100%),
+    radial-gradient(72% 50% at 50% 40%, rgba(0,0,0,.50) 0%, rgba(0,0,0,.42) 33%, rgba(0,0,0,.28) 54%, rgba(0,0,0,.62) 100%),
+    radial-gradient(58% 72% at 0% 31%, rgba(196,0,0,.32) 0%, rgba(114,0,0,.20) 26%, rgba(0,0,0,0) 61%),
+    radial-gradient(58% 72% at 100% 31%, rgba(196,0,0,.30) 0%, rgba(114,0,0,.18) 28%, rgba(0,0,0,0) 61%),
+    linear-gradient(90deg, rgba(0,0,0,.97) 0%, rgba(0,0,0,.38) 19%, rgba(0,0,0,.18) 50%, rgba(0,0,0,.38) 81%, rgba(0,0,0,.97) 100%),
+    url("./ahly-premium-bg.png?v=ahly74royal-calm-final"),
+    linear-gradient(135deg, #020203 0%, #180000 48%, #020203 100%) !important;
+  background-position: center center, center center, center center, center center, center center, center 43%, center center !important;
+  background-size: cover, cover, cover, cover, cover, cover, cover !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed, fixed, fixed, fixed, fixed, fixed, fixed !important;
+}
+
+html.ahly-premium-theme-live #MNDO_UA07_LOGO3 {
+  background-image: url("./ahly-ua07-logo.png?v=ua07clean-calm-final") !important;
+  filter: drop-shadow(0 7px 15px rgba(0,0,0,.70)) drop-shadow(0 0 3px rgba(233,196,109,.045)) !important;
+}
+html.ahly-premium-theme-live #MNDO_UA07_LOGO3::before,
+html.ahly-premium-theme-live #MNDO_UA07_LOGO3::after {
+  opacity: 0 !important;
+  filter: none !important;
+}
+
+html.ahly-premium-theme-live #tabs .tablinks {
+  color: var(--ahly-calm-cream) !important;
+  -webkit-text-fill-color: var(--ahly-calm-cream) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.115), rgba(255,255,255,0) 27%),
+    radial-gradient(95% 150% at 16% 0%, rgba(255,223,139,.105), rgba(255,223,139,0) 44%),
+    radial-gradient(120% 180% at 94% 0%, rgba(184,0,0,.205), rgba(184,0,0,0) 56%),
+    linear-gradient(180deg, rgba(20,20,24,.985) 0%, rgba(4,4,7,.982) 48%, rgba(52,0,0,.895) 100%) !important;
+  border-color: rgba(255,222,139,.285) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.96), 0 0 7px rgba(233,196,109,.10) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.155),
+    inset 0 0 0 1px rgba(255,232,160,.045),
+    inset 0 -1px 0 rgba(184,0,0,.19),
+    0 10px 22px rgba(0,0,0,.48) !important;
+  backdrop-filter: blur(8px) saturate(1.09) contrast(1.02) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(1.09) contrast(1.02) !important;
+}
+html.ahly-premium-theme-live #tabs .tablinks:hover,
+html.ahly-premium-theme-live #tabs .tablinks.active {
+  color: #fff2bd !important;
+  -webkit-text-fill-color: #fff2bd !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.145), rgba(255,255,255,0) 27%),
+    radial-gradient(105% 155% at 16% 0%, rgba(255,226,145,.165), rgba(255,226,145,0) 44%),
+    radial-gradient(120% 190% at 92% 0%, rgba(220,0,0,.285), rgba(220,0,0,0) 56%),
+    linear-gradient(180deg, rgba(32,32,37,.988) 0%, rgba(7,7,10,.986) 47%, rgba(89,0,0,.915) 100%) !important;
+  border-color: rgba(255,229,153,.445) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.185),
+    inset 0 0 0 1px rgba(255,232,160,.075),
+    inset 0 -1px 0 rgba(220,0,0,.245),
+    0 12px 26px rgba(0,0,0,.56),
+    0 0 13px rgba(150,0,0,.13) !important;
+}
+
+html.ahly-premium-theme-live #SR\ Sales .toolsBar .toolsStyle,
+html.ahly-premium-theme-live #SR\ Technical .toolsBar .toolsStyle,
+html.ahly-premium-theme-live #Mobile .toolsBar .toolsStyle {
+  color: #ffe8a8 !important;
+  -webkit-text-fill-color: #ffe8a8 !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.92) !important;
+  border-color: rgba(233,196,109,.30) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.115), rgba(255,255,255,0) 32%),
+    radial-gradient(108% 150% at 15% 0%, rgba(255,223,139,.115), rgba(255,223,139,0) 42%),
+    linear-gradient(180deg, rgba(19,19,22,.955) 0%, rgba(5,5,8,.955) 55%, rgba(87,36,5,.72) 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.13),
+    inset 0 -1px 0 rgba(233,196,109,.11),
+    0 6px 13px rgba(0,0,0,.34) !important;
+}
+html.ahly-premium-theme-live #SR\ Sales .toolsBar .toolsStyle::before,
+html.ahly-premium-theme-live #SR\ Technical .toolsBar .toolsStyle::before,
+html.ahly-premium-theme-live #Mobile .toolsBar .toolsStyle::before {
+  opacity: .10 !important;
+  filter: saturate(.92) contrast(1.05) drop-shadow(0 2px 3px rgba(0,0,0,.18)) !important;
+}
+html.ahly-premium-theme-live #SR\ Sales .toolsBar .toolsStyle:hover,
+html.ahly-premium-theme-live #SR\ Technical .toolsBar .toolsStyle:hover,
+html.ahly-premium-theme-live #Mobile .toolsBar .toolsStyle:hover {
+  color: #fff1bf !important;
+  -webkit-text-fill-color: #fff1bf !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.155), rgba(255,255,255,0) 31%),
+    radial-gradient(115% 165% at 14% 0%, rgba(255,228,150,.18), rgba(255,228,150,0) 44%),
+    radial-gradient(115% 180% at 92% 0%, rgba(210,0,0,.19), rgba(210,0,0,0) 56%),
+    linear-gradient(180deg, rgba(31,31,36,.970) 0%, rgba(8,8,12,.966) 50%, rgba(102,0,0,.82) 100%) !important;
+  border-color: rgba(255,224,141,.46) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.18),
+    inset 0 -1px 0 rgba(233,196,109,.18),
+    0 8px 17px rgba(0,0,0,.42),
+    0 0 12px rgba(145,0,0,.12) !important;
+}
+html.ahly-premium-theme-live #SR\ Sales .toolsBar .toolsStyle:hover::before,
+html.ahly-premium-theme-live #SR\ Technical .toolsBar .toolsStyle:hover::before,
+html.ahly-premium-theme-live #Mobile .toolsBar .toolsStyle:hover::before {
+  opacity: .14 !important;
+}
+
+html.ahly-premium-theme-live .dropdown .dropbtn,
+html.ahly-premium-theme-live .navbar a,
+html.ahly-premium-theme-live #singlelink {
+  color: #f1d487 !important;
+  -webkit-text-fill-color: #f1d487 !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.095), rgba(255,255,255,0) 30%),
+    radial-gradient(112% 150% at 14% 0%, rgba(255,219,132,.075), rgba(255,219,132,0) 43%),
+    radial-gradient(115% 180% at 96% 0%, rgba(166,0,0,.165), rgba(166,0,0,0) 56%),
+    linear-gradient(180deg, rgba(15,15,18,.970) 0%, rgba(3,3,5,.968) 53%, rgba(45,0,0,.830) 100%) !important;
+  border-color: rgba(233,196,109,.175) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.96), 0 0 6px rgba(233,196,109,.08) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.105),
+    inset 0 0 0 1px rgba(255,232,160,.032),
+    inset 0 -1px 0 rgba(166,0,0,.145),
+    0 7px 15px rgba(0,0,0,.365) !important;
+  backdrop-filter: blur(7px) saturate(1.08) contrast(1.02) !important;
+  -webkit-backdrop-filter: blur(7px) saturate(1.08) contrast(1.02) !important;
+}
+html.ahly-premium-theme-live .dropdown:hover .dropbtn,
+html.ahly-premium-theme-live #singlelink:hover,
+html.ahly-premium-theme-live .navbar a:hover {
+  color: #ffebad !important;
+  -webkit-text-fill-color: #ffebad !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.130), rgba(255,255,255,0) 30%),
+    radial-gradient(118% 160% at 15% 0%, rgba(255,224,143,.125), rgba(255,224,143,0) 43%),
+    radial-gradient(122% 190% at 93% 0%, rgba(207,0,0,.235), rgba(207,0,0,0) 57%),
+    linear-gradient(180deg, rgba(25,25,30,.984) 0%, rgba(6,6,9,.982) 49%, rgba(74,0,0,.880) 100%) !important;
+  border-color: rgba(255,225,145,.315) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.145),
+    inset 0 0 0 1px rgba(255,232,160,.055),
+    inset 0 -1px 0 rgba(207,0,0,.205),
+    0 9px 20px rgba(0,0,0,.46),
+    0 0 13px rgba(140,0,0,.13) !important;
+}
+
+html.ahly-premium-theme-live .dropdown-content,
+html.ahly-premium-theme-live .sub-dropdown-content {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.070), rgba(255,255,255,0) 26%),
+    radial-gradient(120% 125% at 16% 0%, rgba(255,226,145,.075), rgba(255,226,145,0) 42%),
+    radial-gradient(108% 170% at 100% 8%, rgba(172,0,0,.185), rgba(172,0,0,0) 57%),
+    linear-gradient(180deg, rgba(9,9,12,.986) 0%, rgba(2,2,4,.982) 56%, rgba(26,0,0,.972) 100%) !important;
+  background-color: rgba(3,3,5,.985) !important;
+  color: #eed186 !important;
+  -webkit-text-fill-color: #eed186 !important;
+  border-color: rgba(233,196,109,.225) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.94) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.090),
+    inset 0 0 0 1px rgba(255,255,255,.020),
+    0 22px 54px rgba(0,0,0,.74),
+    0 0 20px rgba(120,0,0,.12) !important;
+  backdrop-filter: blur(14px) saturate(1.16) contrast(1.04) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.16) contrast(1.04) !important;
+}
+html.ahly-premium-theme-live .sub-dropdown,
+html.ahly-premium-theme-live .sub-dropdown[style] {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.060), rgba(255,255,255,0) 31%),
+    radial-gradient(110% 140% at 14% 0%, rgba(255,225,144,.065), rgba(255,225,144,0) 43%),
+    linear-gradient(180deg, rgba(13,13,17,.966), rgba(3,3,5,.960) 61%, rgba(37,0,0,.830)) !important;
+  background-color: rgba(5,5,8,.962) !important;
+  color: #eed186 !important;
+  -webkit-text-fill-color: #eed186 !important;
+}
+html.ahly-premium-theme-live .dropdown-content a,
+html.ahly-premium-theme-live .sub-dropdown-content a,
+html.ahly-premium-theme-live .sub-dropdown > a {
+  color: #eed186 !important;
+  -webkit-text-fill-color: #eed186 !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.012)) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.93) !important;
+  box-shadow:
+    inset 0 -1px 0 rgba(255,255,255,.034),
+    inset 0 1px 0 rgba(255,255,255,.018) !important;
+}
+html.ahly-premium-theme-live .sub-dropdown:hover,
+html.ahly-premium-theme-live .sub-dropdown:hover[style],
+html.ahly-premium-theme-live .dropdown-content a:hover,
+html.ahly-premium-theme-live .sub-dropdown-content a:hover,
+html.ahly-premium-theme-live .sub-dropdown:hover > a {
+  color: #fff1bd !important;
+  -webkit-text-fill-color: #fff1bd !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.090), rgba(255,255,255,0) 30%),
+    radial-gradient(132% 165% at 12% 0%, rgba(255,228,150,.115), rgba(255,228,150,0) 42%),
+    radial-gradient(116% 180% at 100% 0%, rgba(213,0,0,.255), rgba(213,0,0,0) 57%),
+    linear-gradient(90deg, rgba(91,0,0,.890) 0%, rgba(16,16,21,.960) 48%, rgba(2,2,4,.972) 100%) !important;
+  background-color: rgba(15,15,20,.962) !important;
+  border-color: rgba(255,226,145,.24) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.92), 0 0 7px rgba(233,196,109,.10) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.090),
+    inset 0 -1px 0 rgba(207,0,0,.155),
+    0 7px 17px rgba(0,0,0,.300) !important;
+}
+
+html.ahly-premium-theme-live #arabicNumber,
+html.ahly-premium-theme-live #arabiccNumber,
+html.ahly-premium-theme-live .in1,
+html.ahly-premium-theme-live .in2,
+html.ahly-premium-theme-live #searchInput,
+html.ahly-premium-theme-live .search-container input[type="text"],
+html.ahly-premium-theme-live .search-container input[type="search"] {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.080), rgba(255,255,255,0) 31%),
+    radial-gradient(125% 160% at 18% 0%, rgba(233,196,109,.080), rgba(233,196,109,0) 45%),
+    linear-gradient(180deg, rgba(14,14,18,.935), rgba(3,3,5,.930) 58%, rgba(42,0,0,.720) 100%) !important;
+  color: #fff0bd !important;
+  -webkit-text-fill-color: #fff0bd !important;
+  border-color: rgba(233,196,109,.250) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.100),
+    inset 0 -8px 18px rgba(0,0,0,.240),
+    0 8px 22px rgba(0,0,0,.470) !important;
+}
+
+html.ahly-premium-theme-live .toolsBar {
+  filter: saturate(.97) contrast(1.02) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.ahly-premium-theme-live #tabs .tablinks,
+  html.ahly-premium-theme-live .dropdown .dropbtn,
+  html.ahly-premium-theme-live .navbar a,
+  html.ahly-premium-theme-live .toolsStyle {
+    transition: none !important;
+  }
+}
