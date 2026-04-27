@@ -180,16 +180,19 @@
     if(!l || !t) return;
 
     const landEmpty = isEmpty(l.value);
-    const tv = t.value || "";
 
+    /*
+      Updated FBB field policy:
+      - When ADSL Number is empty, number With FBB must remain manually editable.
+      - When ADSL Number has a value, the dedicated mirror-sync module locks and mirrors FBB.
+      This function no longer clears FBB on an empty ADSL field, because that prevented
+      manual FBB entry.
+    */
     if(landEmpty){
-      if(!isEmpty(tv)){
-        t.value = "";
-        // trigger any listeners inside the tool
-        t.dispatchEvent(new Event("input", {bubbles:true}));
-        t.dispatchEvent(new Event("change", {bubbles:true}));
-        try{ t.dispatchEvent(new KeyboardEvent("keyup", {bubbles:true, key:"Backspace"})); }catch(e){}
-      }
+      try{ t.readOnly = false; }catch(e){}
+      try{ t.removeAttribute("readonly"); }catch(e){}
+      try{ t.setAttribute("aria-readonly", "false"); }catch(e){}
+      try{ t.style.cursor = "text"; }catch(e){}
     }
   }
 
@@ -3725,13 +3728,21 @@ if (link && link.indexOf("srTypeId=100047001") !== -1) {
                                                                 var hasFBB = /fbb/i.test(englishNumber);
                                                                 var digitsOnly = (englishNumber || "").replace(/\D/g, "");
 
+                                                                var fbbInput = document.getElementById("arabiccNumber");
                                                                 document.getElementById("arabicNumber").value = digitsOnly;
                                                                 if (digitsOnly !== "") {
-                                                                        document.getElementById("arabiccNumber").value = "FBB" + digitsOnly;
-                                                                } else if (hasFBB) {
-                                                                        document.getElementById("arabiccNumber").value = "FBB";
+                                                                        fbbInput.value = "FBB" + digitsOnly;
                                                                 } else {
-                                                                        document.getElementById("arabiccNumber").value = "";
+                                                                        /*
+                                                                          ADSL Number is empty: keep number With FBB free for manual entry.
+                                                                          Do not clear or overwrite the top field while the user is typing there.
+                                                                        */
+                                                                        try {
+                                                                                fbbInput.readOnly = false;
+                                                                                fbbInput.removeAttribute("readonly");
+                                                                                fbbInput.setAttribute("aria-readonly", "false");
+                                                                                fbbInput.style.cursor = "text";
+                                                                        } catch (err) {}
                                                                 }
                                                         }
                                                         // برمجه الانبوت الخاص بالرقم 

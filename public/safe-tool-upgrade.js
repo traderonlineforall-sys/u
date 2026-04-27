@@ -768,13 +768,13 @@
 
 
 
-  // Keep FV as the only editable source and mirror its value to FBB immediately.
-  // FBB is a display/copy field only; it must not become a second source of truth.
+  // Intelligent ADSL/FBB input sync.
+  // - If ADSL Number has a value, number With FBB mirrors it and stays protected.
+  // - If ADSL Number is empty, number With FBB becomes manually editable.
   function installLandlineMirrorSync() {
     var FV_ID = "arabicNumber";
     var FBB_ID = "arabiccNumber";
     var syncing = false;
-    var lastAppliedKey = "";
 
     function getArabicToEnglish(value) {
       var map = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'};
@@ -783,10 +783,6 @@
 
     function digitsOnly(value) {
       return getArabicToEnglish(value).replace(/\D/g, '').replace(/^0+/, '');
-    }
-
-    function hasFbbToken(value) {
-      return /fbb/i.test(getArabicToEnglish(value || ''));
     }
 
     function getEls() {
@@ -805,9 +801,20 @@
       try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch (err) {}
     }
 
-    function buildFbbValue(digits, allowBareFbb) {
-      if (digits) return 'FBB' + digits;
-      return allowBareFbb ? 'FBB' : '';
+    function setFbbEditable(el, editable) {
+      if (!el) return;
+      try { el.readOnly = !editable; } catch (err) {}
+      if (editable) {
+        try { el.removeAttribute('readonly'); } catch (err) {}
+        try { el.setAttribute('aria-readonly', 'false'); } catch (err) {}
+        try { el.setAttribute('title', 'Manual FBB entry is available while ADSL Number is empty.'); } catch (err) {}
+        try { el.style.cursor = 'text'; } catch (err) {}
+      } else {
+        try { el.setAttribute('readonly', 'readonly'); } catch (err) {}
+        try { el.setAttribute('aria-readonly', 'true'); } catch (err) {}
+        try { el.setAttribute('title', 'FBB mirror only while ADSL Number has a value.'); } catch (err) {}
+        try { el.style.cursor = 'default'; } catch (err) {}
+      }
     }
 
     function syncFromFv() {
@@ -817,36 +824,27 @@
 
       var fvRaw = els.fv.value || '';
       var digits = digitsOnly(fvRaw);
-      var keepBareFbb = hasFbbToken(fvRaw);
-      var nextFv = digits;
-      var nextFbb = buildFbbValue(digits, keepBareFbb);
-      var nextKey = nextFv + '|' + nextFbb;
-
-      if (lastAppliedKey === nextKey && els.fv.value === nextFv && els.fbb.value === nextFbb) {
-        return;
-      }
 
       syncing = true;
-      setValue(els.fv, nextFv);
-      setValue(els.fbb, nextFbb);
-      syncing = false;
-      lastAppliedKey = nextKey;
+      try {
+        if (digits) {
+          setValue(els.fv, digits);
+          setFbbEditable(els.fbb, false);
+          setValue(els.fbb, 'FBB' + digits);
+        } else {
+          // ADSL is empty: do not erase or overwrite the user's manual FBB input.
+          setValue(els.fv, '');
+          setFbbEditable(els.fbb, true);
+        }
+      } finally {
+        syncing = false;
+      }
     }
 
-    function makeFbbReadOnly() {
-      var els = getEls();
-      if (!els.fbb) return;
-      try { els.fbb.readOnly = true; } catch (err) {}
-      try { els.fbb.setAttribute('readonly', 'readonly'); } catch (err) {}
-      try { els.fbb.setAttribute('aria-readonly', 'true'); } catch (err) {}
-      try { els.fbb.setAttribute('title', 'FBB mirror only - write the number in FV below.'); } catch (err) {}
-      try { els.fbb.style.cursor = 'default'; } catch (err) {}
-    }
-
-    function armField(el) {
+    function armFvField(el) {
       if (!el || el.dataset.landlineMirrorBound === '1') return;
       el.dataset.landlineMirrorBound = '1';
-      ['input', 'keyup', 'change', 'paste'].forEach(function (eventName) {
+      ['input', 'keyup', 'change', 'paste', 'blur'].forEach(function (eventName) {
         el.addEventListener(eventName, function () {
           if (syncing) return;
           setTimeout(syncFromFv, 0);
@@ -854,37 +852,46 @@
       });
     }
 
-    function installConvertOverride() {
-      if (window.convertNumber && window.convertNumber.__ua07FvMirror) return;
-      var replacement = function () {
-        syncFromFv();
-      };
-      replacement.__ua07FvMirror = true;
-      window.convertNumber = replacement;
-    }
-
-    function guardFbbAgainstEdits() {
+    function guardFbbOnlyWhenLocked() {
       var els = getEls();
       if (!els.fbb || els.fbb.dataset.landlineGuardBound === '1') return;
       els.fbb.dataset.landlineGuardBound = '1';
+
       ['input', 'keyup', 'change', 'paste', 'beforeinput'].forEach(function (eventName) {
         els.fbb.addEventListener(eventName, function () {
-          setTimeout(syncFromFv, 0);
+          if (syncing) return;
+          var current = getEls();
+          var hasAdsl = !!(current.fv && digitsOnly(current.fv.value || ''));
+          if (hasAdsl) setTimeout(syncFromFv, 0);
         }, true);
       });
+
       els.fbb.addEventListener('focus', function () {
-        setTimeout(function () {
-          try { els.fbb.select(); } catch (err) {}
-        }, 0);
+        var current = getEls();
+        var hasAdsl = !!(current.fv && digitsOnly(current.fv.value || ''));
+        if (hasAdsl) {
+          setTimeout(function () {
+            try { current.fbb.select(); } catch (err) {}
+          }, 0);
+        }
       }, true);
+    }
+
+    function installConvertOverride() {
+      if (window.convertNumber && window.convertNumber.__ua07SmartFbbMirror) return;
+      var replacement = function () {
+        syncFromFv();
+      };
+      replacement.__ua07SmartFbbMirror = true;
+      replacement.__mndoWrapped = true;
+      window.convertNumber = replacement;
     }
 
     function bind() {
       var els = getEls();
       if (!els.fv || !els.fbb) return false;
-      makeFbbReadOnly();
-      armField(els.fv);
-      guardFbbAgainstEdits();
+      armFvField(els.fv);
+      guardFbbOnlyWhenLocked();
       installConvertOverride();
       syncFromFv();
       return true;
@@ -899,6 +906,7 @@
       syncFromFv();
     }, 180);
   }
+
 
   // Remove any tooltip/title attribute from Re-subscribe SR links.  Only
   // affects UI by eliminating the hover popup; underlying links remain
