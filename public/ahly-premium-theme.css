@@ -856,3 +856,178 @@ html.ahly-premium-theme-live .sub-dropdown:hover > a {
     background-color: rgba(5,5,7,.98) !important;
   }
 }
+
+
+/* ===== Ahly 74 Royal Background + Final Luxury Polish =====
+   Visual-only final layer. Theme-scoped to Ahly mode only.
+   No SR data, URLs, IDs, HTML order, element geometry, or app logic changed.
+*/
+html.ahly-premium-theme-live,
+html.ahly-premium-theme-live body { background-color: #020203 !important; }
+
+html.ahly-premium-theme-live body {
+  background-image:
+    linear-gradient(180deg, rgba(0,0,0,.78) 0%, rgba(0,0,0,.38) 16%, rgba(0,0,0,.13) 38%, rgba(0,0,0,.34) 68%, rgba(0,0,0,.84) 100%),
+    radial-gradient(78% 48% at 50% 41%, rgba(255,205,82,.105) 0%, rgba(176,0,0,.072) 32%, rgba(0,0,0,.08) 66%, rgba(0,0,0,.60) 100%),
+    linear-gradient(90deg, rgba(0,0,0,.92) 0%, rgba(0,0,0,.24) 22%, rgba(0,0,0,0) 50%, rgba(0,0,0,.24) 78%, rgba(0,0,0,.92) 100%),
+    url("./ahly-premium-bg.png?v=ahly74royal1"),
+    linear-gradient(135deg, #020203 0%, #120000 48%, #020203 100%) !important;
+  background-position: center center, center center, center center, center 43%, center center !important;
+  background-size: cover, cover, cover, cover, cover !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed, fixed, fixed, fixed, fixed !important;
+}
+
+html.ahly-premium-theme-live {
+  --ahly-royal-gold: #f5d27c;
+  --ahly-royal-gold-bright: #fff0b5;
+  --ahly-royal-border: rgba(245,210,124,.305);
+  --ahly-royal-border-soft: rgba(255,240,181,.135);
+  --ahly-royal-shadow: rgba(0,0,0,.580);
+}
+
+html.ahly-premium-theme-live #MNDO_UA07_LOGO3 {
+  background-image: url("./ahly-ua07-logo.png?v=ua07clean74") !important;
+  filter: drop-shadow(0 7px 16px rgba(0,0,0,.58)) drop-shadow(0 0 6px rgba(255,210,92,.055)) !important;
+}
+html.ahly-premium-theme-live #MNDO_UA07_LOGO3:hover {
+  filter: drop-shadow(0 8px 18px rgba(0,0,0,.62)) drop-shadow(0 0 8px rgba(255,210,92,.075)) !important;
+}
+
+html.ahly-premium-theme-live #tabs .tablinks {
+  color: var(--ahly-royal-gold-bright) !important;
+  -webkit-text-fill-color: var(--ahly-royal-gold-bright) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.115), rgba(255,255,255,0) 31%),
+    radial-gradient(110% 165% at 18% 0%, rgba(255,215,110,.115), rgba(255,215,110,0) 42%),
+    radial-gradient(120% 190% at 93% 0%, rgba(210,0,0,.245), rgba(210,0,0,0) 55%),
+    linear-gradient(180deg, rgba(26,26,31,.970) 0%, rgba(5,5,9,.970) 54%, rgba(64,0,0,.880) 100%) !important;
+  border-color: var(--ahly-royal-border) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.94), 0 0 10px rgba(245,210,124,.155) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.165), inset 0 0 0 1px rgba(255,240,181,.060), inset 0 -1px 0 rgba(187,0,0,.235), 0 10px 22px var(--ahly-royal-shadow), 0 0 0 1px rgba(0,0,0,.18) !important;
+  backdrop-filter: blur(9px) saturate(1.18) !important;
+  -webkit-backdrop-filter: blur(9px) saturate(1.18) !important;
+}
+html.ahly-premium-theme-live #tabs .tablinks:hover {
+  color: #fff6cf !important;
+  -webkit-text-fill-color: #fff6cf !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.155), rgba(255,255,255,0) 30%),
+    radial-gradient(110% 170% at 18% 0%, rgba(255,218,122,.165), rgba(255,218,122,0) 44%),
+    radial-gradient(120% 195% at 92% 0%, rgba(255,0,0,.340), rgba(255,0,0,0) 55%),
+    linear-gradient(180deg, rgba(37,37,43,.985) 0%, rgba(8,8,12,.980) 52%, rgba(91,0,0,.910) 100%) !important;
+  border-color: rgba(255,232,154,.455) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.205), inset 0 0 0 1px rgba(255,240,181,.085), inset 0 -1px 0 rgba(205,0,0,.300), 0 12px 26px rgba(0,0,0,.640), 0 0 16px rgba(155,0,0,.155) !important;
+}
+html.ahly-premium-theme-live #tabs .tablinks.active {
+  color: #fff5c9 !important;
+  -webkit-text-fill-color: #fff5c9 !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.135), rgba(255,255,255,0) 30%),
+    radial-gradient(130% 170% at 18% 0%, rgba(255,220,120,.180), rgba(255,220,120,0) 45%),
+    linear-gradient(180deg, rgba(142,0,0,.985) 0%, rgba(25,4,6,.985) 55%, rgba(5,5,8,.985) 100%) !important;
+  border-color: rgba(255,225,139,.570) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.210), inset 0 0 0 1px rgba(255,240,181,.110), inset 0 -1px 0 rgba(255,205,83,.260), 0 14px 30px rgba(0,0,0,.670), 0 0 19px rgba(185,0,0,.210) !important;
+}
+
+html.ahly-premium-theme-live .dropdown .dropbtn,
+html.ahly-premium-theme-live .navbar a,
+html.ahly-premium-theme-live #singlelink {
+  color: var(--ahly-royal-gold) !important;
+  -webkit-text-fill-color: var(--ahly-royal-gold) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.095), rgba(255,255,255,0) 33%),
+    radial-gradient(115% 150% at 15% 0%, rgba(255,220,120,.095), rgba(255,220,120,0) 45%),
+    radial-gradient(105% 175% at 96% 0%, rgba(185,0,0,.210), rgba(185,0,0,0) 55%),
+    linear-gradient(180deg, rgba(22,22,27,.955) 0%, rgba(3,3,6,.955) 56%, rgba(45,0,0,.800) 100%) !important;
+  border-color: var(--ahly-royal-border-soft) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.94), 0 0 7px rgba(245,210,124,.120) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.120), inset 0 0 0 1px rgba(255,240,181,.040), inset 0 -1px 0 rgba(190,0,0,.180), 0 7px 16px rgba(0,0,0,.400) !important;
+  backdrop-filter: blur(7px) saturate(1.14) !important;
+  -webkit-backdrop-filter: blur(7px) saturate(1.14) !important;
+}
+html.ahly-premium-theme-live .dropdown:hover .dropbtn,
+html.ahly-premium-theme-live #singlelink:hover,
+html.ahly-premium-theme-live .navbar a:hover {
+  color: var(--ahly-royal-gold-bright) !important;
+  -webkit-text-fill-color: var(--ahly-royal-gold-bright) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.135), rgba(255,255,255,0) 32%),
+    radial-gradient(120% 155% at 15% 0%, rgba(255,222,133,.145), rgba(255,222,133,0) 45%),
+    radial-gradient(112% 185% at 94% 0%, rgba(233,0,0,.285), rgba(233,0,0,0) 56%),
+    linear-gradient(180deg, rgba(34,34,41,.970) 0%, rgba(7,7,11,.970) 52%, rgba(84,0,0,.880) 100%) !important;
+  border-color: rgba(255,230,150,.390) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.170), inset 0 0 0 1px rgba(255,240,181,.070), inset 0 -1px 0 rgba(220,0,0,.245), 0 9px 20px rgba(0,0,0,.500), 0 0 14px rgba(155,0,0,.125) !important;
+}
+
+html.ahly-premium-theme-live .dropdown-content,
+html.ahly-premium-theme-live .sub-dropdown-content {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.080), rgba(255,255,255,0) 27%),
+    radial-gradient(125% 130% at 16% 0%, rgba(255,218,120,.115), rgba(255,218,120,0) 43%),
+    radial-gradient(115% 170% at 100% 10%, rgba(166,0,0,.205), rgba(166,0,0,0) 56%),
+    linear-gradient(180deg, rgba(12,12,17,.982) 0%, rgba(2,2,5,.980) 57%, rgba(28,0,0,.965) 100%) !important;
+  background-color: rgba(3,3,6,.982) !important;
+  border-color: rgba(255,226,151,.235) !important;
+  color: var(--ahly-royal-gold) !important;
+  -webkit-text-fill-color: var(--ahly-royal-gold) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.920) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.095), inset 0 0 0 1px rgba(255,255,255,.022), 0 20px 52px rgba(0,0,0,.740), 0 0 22px rgba(125,0,0,.125) !important;
+  backdrop-filter: blur(13px) saturate(1.22) contrast(1.03) !important;
+  -webkit-backdrop-filter: blur(13px) saturate(1.22) contrast(1.03) !important;
+}
+html.ahly-premium-theme-live .sub-dropdown,
+html.ahly-premium-theme-live .sub-dropdown[style] {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.070), rgba(255,255,255,0) 31%),
+    radial-gradient(110% 140% at 14% 0%, rgba(255,215,110,.085), rgba(255,215,110,0) 44%),
+    linear-gradient(180deg, rgba(17,17,22,.952), rgba(3,3,6,.952) 62%, rgba(39,0,0,.820)) !important;
+  background-color: rgba(6,6,9,.955) !important;
+  color: var(--ahly-royal-gold) !important;
+  -webkit-text-fill-color: var(--ahly-royal-gold) !important;
+}
+html.ahly-premium-theme-live .dropdown-content a,
+html.ahly-premium-theme-live .sub-dropdown-content a,
+html.ahly-premium-theme-live .sub-dropdown > a {
+  color: var(--ahly-royal-gold) !important;
+  -webkit-text-fill-color: var(--ahly-royal-gold) !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.048), rgba(255,255,255,.012)) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.900) !important;
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,.043), inset 0 1px 0 rgba(255,255,255,.021) !important;
+}
+html.ahly-premium-theme-live .sub-dropdown:hover,
+html.ahly-premium-theme-live .sub-dropdown:hover[style],
+html.ahly-premium-theme-live .dropdown-content a:hover,
+html.ahly-premium-theme-live .sub-dropdown-content a:hover,
+html.ahly-premium-theme-live .sub-dropdown:hover > a {
+  background:
+    radial-gradient(135% 160% at 12% 0%, rgba(255,255,255,.170), rgba(255,255,255,0) 42%),
+    radial-gradient(100% 160% at 100% 0%, rgba(225,0,0,.240), rgba(225,0,0,0) 55%),
+    linear-gradient(90deg, rgba(92,0,0,.900) 0%, rgba(17,17,22,.960) 47%, rgba(2,2,5,.970) 100%) !important;
+  background-color: rgba(18,18,23,.960) !important;
+  color: #fff0b5 !important;
+  -webkit-text-fill-color: #fff0b5 !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.890), 0 0 8px rgba(245,210,124,.140) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.105), inset 0 -1px 0 rgba(210,0,0,.175), 0 7px 18px rgba(0,0,0,.280) !important;
+}
+
+html.ahly-premium-theme-live #arabicNumber,
+html.ahly-premium-theme-live #arabiccNumber,
+html.ahly-premium-theme-live .in1,
+html.ahly-premium-theme-live .in2,
+html.ahly-premium-theme-live #searchInput,
+html.ahly-premium-theme-live .search-container input[type="text"],
+html.ahly-premium-theme-live .search-container input[type="search"] {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.090), rgba(255,255,255,0) 31%),
+    radial-gradient(130% 160% at 18% 0%, rgba(245,210,124,.115), rgba(245,210,124,0) 45%),
+    linear-gradient(180deg, rgba(23,23,28,.930), rgba(3,3,6,.920) 58%, rgba(48,0,0,.730) 100%) !important;
+  color: #fff2bf !important;
+  -webkit-text-fill-color: #fff2bf !important;
+  border-color: rgba(245,210,124,.280) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.130), inset 0 -8px 18px rgba(0,0,0,.220), 0 9px 24px rgba(0,0,0,.500) !important;
+}
+
+@media (max-width: 900px) {
+  html.ahly-premium-theme-live body { background-position: center center, center center, center center, center 43%, center center !important; }
+}
