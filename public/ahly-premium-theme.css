@@ -429,3 +429,35 @@ html.ahly-premium-theme-live #MNDO_UA07_LOGO3::before {
     radial-gradient(circle at 84% 50%, rgba(255, 0, 0, 0.18), transparent 34%),
     linear-gradient(90deg, rgba(255, 214, 102, 0.22), rgba(255,255,255,0.05) 38%, rgba(255, 0, 0, 0.16) 70%, rgba(255, 214, 102, 0.20)) !important;
 }
+
+
+/* ===== Ahly UA07 logo clarity correction (theme-scoped only) =====
+   Removes the excessive halo around the Ahly logo without changing its
+   original absolute position, dimensions, click/admin behavior, or any SR logic.
+*/
+html.ahly-premium-theme-live #MNDO_UA07_LOGO3 {
+  background-image: url("./ahly-ua07-logo.png?v=ahlylogo2-clean") !important;
+  background-repeat: no-repeat !important;
+  background-position: center center !important;
+  background-size: 100% 100% !important;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.42)) !important;
+  box-shadow: none !important;
+}
+
+html.ahly-premium-theme-live #MNDO_UA07_LOGO3:hover {
+  transform: translateZ(0) scale(1.006) !important;
+  filter: drop-shadow(0 9px 20px rgba(0, 0, 0, 0.48)) !important;
+}
+
+html.ahly-premium-theme-live #MNDO_UA07_LOGO3::before,
+html.ahly-premium-theme-live #MNDO_UA07_LOGO3::after {
+  opacity: 0 !important;
+  filter: none !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+html.ahly-premium-theme-live #MNDO_UA07_LOGO3 .mndo-uwk07-logo-img {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
