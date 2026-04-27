@@ -1,0 +1,396 @@
+/*
+  Ahly Premium Theme (Safe Add-on)
+  --------------------------------
+  Visual-only upgrade. No SR data, tool logic, IDs, workflow, HTML order,
+  or existing theme behavior is changed. All selectors are scoped to:
+  html.ahly-premium-theme-live
+*/
+
+html.ahly-premium-theme-live,
+html.ahly-premium-theme-live body {
+  min-height: 100%;
+  background-color: #070001 !important;
+}
+
+html.ahly-premium-theme-live body {
+  background-image:
+    linear-gradient(180deg,
+      rgba(0, 0, 0, 0.68) 0%,
+      rgba(0, 0, 0, 0.28) 17%,
+      rgba(0, 0, 0, 0.10) 43%,
+      rgba(0, 0, 0, 0.42) 74%,
+      rgba(0, 0, 0, 0.82) 100%),
+    radial-gradient(95% 72% at 50% 28%,
+      rgba(255, 213, 119, 0.085) 0%,
+      rgba(170, 0, 0, 0.11) 31%,
+      rgba(0, 0, 0, 0.55) 100%),
+    linear-gradient(90deg,
+      rgba(0, 0, 0, 0.92) 0%,
+      rgba(0, 0, 0, 0.46) 13%,
+      rgba(0, 0, 0, 0.00) 49%,
+      rgba(0, 0, 0, 0.36) 82%,
+      rgba(0, 0, 0, 0.88) 100%),
+    url("./ahly-premium-bg.png?v=ahlypremium1"),
+    linear-gradient(135deg, #080001 0%, #280000 42%, #020000 100%) !important;
+  background-position:
+    center center,
+    center center,
+    center center,
+    center center,
+    center center !important;
+  background-size:
+    cover,
+    cover,
+    cover,
+    cover,
+    cover !important;
+  background-repeat:
+    no-repeat,
+    no-repeat,
+    no-repeat,
+    no-repeat,
+    no-repeat !important;
+  background-attachment: fixed, fixed, fixed, fixed, fixed !important;
+}
+
+/* keep old decorative layers out of the premium background */
+html.ahly-premium-theme-live .moon,
+html.ahly-premium-theme-live .star,
+html.ahly-premium-theme-live #EID_DECOR_LAYER,
+html.ahly-premium-theme-live #EID_DECOR_LAYER .eid-art,
+html.ahly-premium-theme-live #EID_DECOR_LAYER::before,
+html.ahly-premium-theme-live #EID_DECOR_LAYER::after {
+  display: none !important;
+}
+
+/* top number inputs - visual only, no size/position changes */
+html.ahly-premium-theme-live #arabicNumber,
+html.ahly-premium-theme-live #arabiccNumber,
+html.ahly-premium-theme-live .in1,
+html.ahly-premium-theme-live .in2 {
+  background:
+    radial-gradient(140% 170% at 18% 0%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 43%),
+    linear-gradient(180deg, rgba(54, 4, 5, 0.90), rgba(10, 0, 1, 0.93) 57%, rgba(92, 0, 0, 0.78) 100%) !important;
+  color: rgba(255, 247, 226, 0.98) !important;
+  -webkit-text-fill-color: rgba(255, 247, 226, 0.98) !important;
+  caret-color: #ffd36c !important;
+  border-color: rgba(255, 213, 112, 0.35) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.82) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.24),
+    inset 0 -10px 20px rgba(0,0,0,0.30),
+    0 12px 30px rgba(0,0,0,0.52),
+    0 0 0 1px rgba(255,213,112,0.08),
+    0 0 18px rgba(185,0,0,0.16) !important;
+}
+html.ahly-premium-theme-live #arabicNumber::placeholder,
+html.ahly-premium-theme-live #arabiccNumber::placeholder,
+html.ahly-premium-theme-live .in1::placeholder,
+html.ahly-premium-theme-live .in2::placeholder {
+  color: rgba(255, 239, 198, 0.70) !important;
+  opacity: 1 !important;
+}
+html.ahly-premium-theme-live #arabicNumber:hover,
+html.ahly-premium-theme-live #arabiccNumber:hover,
+html.ahly-premium-theme-live #arabicNumber:focus,
+html.ahly-premium-theme-live #arabiccNumber:focus {
+  color: #fff7dc !important;
+  -webkit-text-fill-color: #fff7dc !important;
+  border-color: rgba(255, 220, 133, 0.56) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.32),
+    inset 0 -10px 18px rgba(0,0,0,0.25),
+    0 14px 34px rgba(0,0,0,0.57),
+    0 0 0 1px rgba(255,220,133,0.13),
+    0 0 22px rgba(220,0,0,0.22) !important;
+}
+
+/* Copy / TT / SR / Tags controls - no geometry changes */
+html.ahly-premium-theme-live .toolsStyle,
+html.ahly-premium-theme-live #mndoTTTop,
+html.ahly-premium-theme-live #mndoTTBottom,
+html.ahly-premium-theme-live #mndoSRTop,
+html.ahly-premium-theme-live #mndoSRBottom,
+html.ahly-premium-theme-live #bat2 {
+  background:
+    radial-gradient(130% 160% at 17% 0%, rgba(255,255,255,0.25), rgba(255,255,255,0) 46%),
+    linear-gradient(180deg, rgba(89,4,5,0.96), rgba(16,0,1,0.98) 57%, rgba(120,0,0,0.92) 100%) !important;
+  color: #fff4d0 !important;
+  border-color: rgba(255, 213, 112, 0.33) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.78) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.24),
+    inset 0 -1px 0 rgba(255,197,95,0.22),
+    0 12px 26px rgba(0,0,0,0.52),
+    0 0 15px rgba(170,0,0,0.14) !important;
+}
+html.ahly-premium-theme-live .toolsStyle:hover,
+html.ahly-premium-theme-live #bat2:hover {
+  background:
+    radial-gradient(130% 160% at 17% 0%, rgba(255,255,255,0.32), rgba(255,255,255,0) 44%),
+    linear-gradient(180deg, rgba(144,0,0,0.98), rgba(28,0,1,0.98) 53%, rgba(172,0,0,0.95) 100%) !important;
+  color: #fff9e9 !important;
+  border-color: rgba(255,224,142,0.50) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.30),
+    inset 0 -1px 0 rgba(255,210,95,0.28),
+    0 14px 31px rgba(0,0,0,0.58),
+    0 0 22px rgba(215,0,0,0.23) !important;
+}
+
+/* search */
+html.ahly-premium-theme-live #searchInput,
+html.ahly-premium-theme-live .search-container input[type="text"],
+html.ahly-premium-theme-live .search-container input[type="search"] {
+  background:
+    radial-gradient(130% 150% at 18% 0%, rgba(255,255,255,0.18), rgba(255,255,255,0) 45%),
+    linear-gradient(180deg, rgba(46,4,5,0.74), rgba(5,0,1,0.76)) !important;
+  color: #fff7e0 !important;
+  -webkit-text-fill-color: #fff7e0 !important;
+  border-color: rgba(255,213,112,0.31) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.22),
+    0 11px 30px rgba(0,0,0,0.52),
+    0 0 0 1px rgba(255,213,112,0.06) !important;
+}
+html.ahly-premium-theme-live #searchInput::placeholder { color: rgba(255,238,197,0.70) !important; }
+html.ahly-premium-theme-live .search-icon {
+  background: rgba(18,0,1,0.70) !important;
+  border-color: rgba(255,213,112,0.31) !important;
+  color: rgba(255,245,216,0.92) !important;
+}
+html.ahly-premium-theme-live .search-results {
+  background:
+    linear-gradient(180deg, rgba(31,0,1,0.985), rgba(5,0,1,0.985)) !important;
+  border-color: rgba(255,213,112,0.22) !important;
+  color: #fff6dc !important;
+  box-shadow: 0 20px 52px rgba(0,0,0,0.70), 0 0 28px rgba(180,0,0,0.16) !important;
+}
+html.ahly-premium-theme-live .search-results a { color: rgba(255,248,225,0.96) !important; }
+html.ahly-premium-theme-live .search-results a:hover,
+html.ahly-premium-theme-live .highlight {
+  background: linear-gradient(90deg, rgba(150,0,0,0.96), rgba(43,0,1,0.95)) !important;
+  color: #fff !important;
+}
+
+/* top tabs */
+html.ahly-premium-theme-live #tabs {
+  background:
+    linear-gradient(180deg, rgba(16,0,1,0.58), rgba(0,0,0,0.52)) !important;
+  border-color: rgba(255,213,112,0.20) !important;
+  box-shadow: 0 16px 34px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.10) !important;
+}
+html.ahly-premium-theme-live #tabs .tablinks {
+  background:
+    radial-gradient(130% 160% at 22% 0%, rgba(255,255,255,0.40), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg, rgba(255,244,212,0.98), rgba(221,182,94,0.95) 62%, rgba(160,112,38,0.92) 100%) !important;
+  color: rgba(20,0,1,0.97) !important;
+  border-color: rgba(255,235,170,0.36) !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.46) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.74),
+    inset 0 -1px 0 rgba(65,0,0,0.24),
+    0 13px 25px rgba(0,0,0,0.40) !important;
+}
+html.ahly-premium-theme-live #tabs .tablinks:hover {
+  background:
+    radial-gradient(130% 160% at 22% 0%, rgba(255,255,255,0.48), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg, rgba(255,249,226,1), rgba(244,204,114,0.97)) !important;
+  color: #170000 !important;
+  border-color: rgba(255,239,185,0.52) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.80),
+    inset 0 -1px 0 rgba(65,0,0,0.21),
+    0 15px 30px rgba(0,0,0,0.48),
+    0 0 20px rgba(255,213,112,0.12) !important;
+}
+html.ahly-premium-theme-live #tabs .tablinks.active {
+  background:
+    radial-gradient(125% 155% at 22% 0%, rgba(255,255,255,0.31), rgba(255,255,255,0) 43%),
+    linear-gradient(180deg, rgba(197,0,0,0.98), rgba(68,0,1,0.98) 58%, rgba(25,0,1,0.98) 100%) !important;
+  color: #fff7dc !important;
+  border-color: rgba(255,218,128,0.42) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.84) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.28),
+    inset 0 -1px 0 rgba(255,215,95,0.25),
+    0 15px 31px rgba(0,0,0,0.58),
+    0 0 24px rgba(200,0,0,0.25) !important;
+}
+
+/* SR/nav buttons */
+html.ahly-premium-theme-live .dropdown .dropbtn,
+html.ahly-premium-theme-live .navbar a,
+html.ahly-premium-theme-live #singlelink {
+  color: rgba(255,247,221,0.98) !important;
+  background:
+    radial-gradient(140% 150% at 20% 0%, rgba(255,255,255,0.18), rgba(255,255,255,0) 46%),
+    linear-gradient(180deg, rgba(62,0,1,0.86), rgba(10,0,1,0.86) 62%, rgba(73,0,0,0.75) 100%) !important;
+  border-color: rgba(255,213,112,0.20) !important;
+  text-shadow:
+    0 1px 2px rgba(0,0,0,0.92),
+    0 0 8px rgba(255,213,112,0.10) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.14),
+    inset 0 0 0 1px rgba(255,213,112,0.08),
+    inset 0 -1px 0 rgba(255,213,112,0.13),
+    0 8px 20px rgba(0,0,0,0.30) !important;
+}
+html.ahly-premium-theme-live .dropdown:hover .dropbtn,
+html.ahly-premium-theme-live #singlelink:hover,
+html.ahly-premium-theme-live .navbar a:hover {
+  background:
+    radial-gradient(140% 150% at 20% 0%, rgba(255,255,255,0.27), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg, rgba(148,0,0,0.94), rgba(31,0,1,0.94) 58%, rgba(8,0,1,0.95) 100%) !important;
+  color: #fffbe9 !important;
+  border-color: rgba(255,224,142,0.38) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.22),
+    inset 0 0 0 1px rgba(255,222,140,0.15),
+    inset 0 -1px 0 rgba(255,213,112,0.22),
+    0 11px 26px rgba(0,0,0,0.43),
+    0 0 23px rgba(210,0,0,0.20) !important;
+}
+
+/* menus */
+html.ahly-premium-theme-live .dropdown-content,
+html.ahly-premium-theme-live .sub-dropdown-content {
+  background:
+    radial-gradient(135% 130% at 18% 0%, rgba(255,255,255,0.15), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg, rgba(39,0,1,0.986), rgba(8,0,1,0.988) 52%, rgba(30,0,0,0.985) 100%) !important;
+  background-color: rgba(10,0,1,0.988) !important;
+  border-color: rgba(255,213,112,0.24) !important;
+  color: rgba(255,247,226,0.97) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.86) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.12),
+    inset 0 0 0 1px rgba(255,213,112,0.05),
+    0 21px 56px rgba(0,0,0,0.72),
+    0 0 28px rgba(170,0,0,0.18) !important;
+  backdrop-filter: blur(10px) saturate(1.12);
+  -webkit-backdrop-filter: blur(10px) saturate(1.12);
+}
+html.ahly-premium-theme-live .sub-dropdown,
+html.ahly-premium-theme-live .sub-dropdown[style] {
+  background:
+    linear-gradient(180deg, rgba(29,0,1,0.965), rgba(7,0,1,0.970)) !important;
+  background-color: rgba(9,0,1,0.985) !important;
+  color: rgba(255,247,226,0.97) !important;
+}
+html.ahly-premium-theme-live .dropdown-content a,
+html.ahly-premium-theme-live .sub-dropdown-content a,
+html.ahly-premium-theme-live .sub-dropdown > a {
+  color: rgba(255,248,227,0.96) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.036), rgba(255,255,255,0.008)) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.88) !important;
+  box-shadow:
+    inset 0 -1px 0 rgba(255,213,112,0.075),
+    inset 0 1px 0 rgba(255,255,255,0.028) !important;
+}
+html.ahly-premium-theme-live .sub-dropdown:hover,
+html.ahly-premium-theme-live .sub-dropdown:hover[style],
+html.ahly-premium-theme-live .dropdown-content a:hover,
+html.ahly-premium-theme-live .sub-dropdown-content a:hover,
+html.ahly-premium-theme-live .sub-dropdown:hover > a {
+  background:
+    radial-gradient(160% 160% at 14% 0%, rgba(255,255,255,0.25), rgba(255,255,255,0) 44%),
+    linear-gradient(90deg, rgba(171,0,0,0.96), rgba(49,0,1,0.96) 60%, rgba(10,0,1,0.97) 100%) !important;
+  background-color: rgba(120,0,0,0.96) !important;
+  color: #fffdf1 !important;
+  text-shadow:
+    0 1px 2px rgba(0,0,0,0.84),
+    0 0 9px rgba(255,235,175,0.12) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.17),
+    inset 0 -1px 0 rgba(255,213,112,0.24),
+    0 9px 22px rgba(0,0,0,0.34) !important;
+}
+html.ahly-premium-theme-live .dropdown-content a:active,
+html.ahly-premium-theme-live .sub-dropdown-content a:active {
+  background: linear-gradient(90deg, rgba(210,0,0,0.98), rgba(26,0,1,0.98)) !important;
+  color: #fff !important;
+}
+
+/* Floating controls */
+html.ahly-premium-theme-live #mndoQueryTimer,
+html.ahly-premium-theme-live #UA07_ONLINE_COUNT,
+html.ahly-premium-theme-live #myBtn,
+html.ahly-premium-theme-live .suggestions-btn,
+html.ahly-premium-theme-live .support-chat-toggle,
+html.ahly-premium-theme-live #supportChatToggle,
+html.ahly-premium-theme-live #UA07_SECRET_ENVELOPE,
+html.ahly-premium-theme-live .eid-toggle-btn {
+  background:
+    radial-gradient(125% 165% at 18% 0%, rgba(255,255,255,0.24), rgba(255,255,255,0) 48%),
+    linear-gradient(180deg, rgba(95,0,1,0.96), rgba(14,0,1,0.97) 55%, rgba(83,0,0,0.94) 100%) !important;
+  color: #fff5d5 !important;
+  border-color: rgba(255,213,112,0.33) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.80) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.24),
+    inset 0 -1px 0 rgba(255,213,112,0.18),
+    0 13px 32px rgba(0,0,0,0.58),
+    0 0 22px rgba(190,0,0,0.16) !important;
+}
+
+html.ahly-premium-theme-live .eid-toggle-btn.is-ahly {
+  background:
+    radial-gradient(circle at 28% 20%, rgba(255,255,255,.35), rgba(255,255,255,0) 36%),
+    linear-gradient(180deg, rgba(185,0,0,.98), rgba(20,0,1,.98) 52%, rgba(92,0,0,.94) 100%) !important;
+  border-color: rgba(255,219,128,.50) !important;
+  box-shadow: 0 12px 30px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.25), inset 0 -1px 0 rgba(255,213,112,.23), 0 0 20px rgba(205,0,0,.22) !important;
+}
+html.ahly-premium-theme-live .eid-toggle-btn.is-ahly .eid-toggle-orb {
+  background: linear-gradient(180deg,#fff7d6,#f5c85f) !important;
+  box-shadow: 0 0 0 1px rgba(18,0,1,.50), 0 0 10px rgba(245,200,95,.50) !important;
+}
+
+/* Tool modals keep readable premium glass without layout shifts */
+html.ahly-premium-theme-live .support-modal,
+html.ahly-premium-theme-live .support-chat,
+html.ahly-premium-theme-live .admin-modal,
+html.ahly-premium-theme-live #UA07_SECRET_MODAL .ua07-secret-card,
+html.ahly-premium-theme-live #UA07_UPDATE_MODAL .ua07-secret-card {
+  background:
+    radial-gradient(120% 120% at 18% 0%, rgba(255,255,255,0.13), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg, rgba(42,0,1,0.97), rgba(5,0,1,0.98)) !important;
+  border-color: rgba(255,213,112,0.25) !important;
+  box-shadow: 0 26px 70px rgba(0,0,0,0.72), 0 0 32px rgba(180,0,0,0.18) !important;
+  color: #fff5dc !important;
+}
+
+@supports not ((backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px))) {
+  html.ahly-premium-theme-live .dropdown-content,
+  html.ahly-premium-theme-live .sub-dropdown-content {
+    background-color: rgba(10,0,1,0.995) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.ahly-premium-theme-live *,
+  html.ahly-premium-theme-live *::before,
+  html.ahly-premium-theme-live *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (max-width: 900px) {
+  html.ahly-premium-theme-live body {
+    background-position:
+      center center,
+      center center,
+      center center,
+      35% center,
+      center center !important;
+    background-size:
+      cover,
+      cover,
+      cover,
+      cover,
+      cover !important;
+  }
+}
