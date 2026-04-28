@@ -30,6 +30,7 @@ const LS_URGENT_DISMISSED_KEY = "sr_admin_urgent_dismissed_key";
 const LS_URGENT_SHOW_COUNT_PREFIX = "sr_admin_urgent_show_count";
 const MAX_URGENT_SHOWS_PER_USER = 2;
 const URGENT_PREFIX = "URGENT_TICKER::";
+const URGENT_VISIBLE_CLASS = "sr-urgent-visible";
 const ANNOUNCEMENT_REALTIME_CHANNEL = "sr_admin_announcements_realtime";
 const SR_ANNOUNCEMENT_CHANNEL = (typeof BroadcastChannel !== "undefined") ? new BroadcastChannel("sr_admin_announcement_state") : null;
 
@@ -298,6 +299,12 @@ function setUrgentText(text){
   marquee.style.setProperty('--sr-urgent-duration', secs.toFixed(1) + 's');
 }
 
+function setUrgentVisibilityClass(isVisible){
+  try {
+    document.documentElement.classList.toggle(URGENT_VISIBLE_CLASS, !!isVisible);
+  } catch {}
+}
+
 function showUrgent(createdAtIso, text, annKey){
   const wrap = ensureUrgentTicker();
   const effectiveKey = String(annKey || createdAtIso || text || "").trim();
@@ -307,6 +314,7 @@ function showUrgent(createdAtIso, text, annKey){
     const shownCount = getUrgentShowCount(effectiveKey);
     if(shownCount >= MAX_URGENT_SHOWS_PER_USER){
       wrap.style.display = 'none';
+      setUrgentVisibilityClass(false);
       dismissUrgent(createdAtIso, effectiveKey);
       return;
     }
@@ -317,12 +325,14 @@ function showUrgent(createdAtIso, text, annKey){
 
   setUrgentText(text);
   wrap.style.display = 'block';
+  setUrgentVisibilityClass(true);
 
   const ack = wrap.querySelector('#SR_URGENT_ACK');
   if(ack && !ack.__bound){
     ack.__bound = true;
     ack.addEventListener('click', ()=>{
       wrap.style.display = 'none';
+      setUrgentVisibilityClass(false);
       dismissUrgent(createdAtIso, effectiveKey);
     });
   }
@@ -331,6 +341,7 @@ function showUrgent(createdAtIso, text, annKey){
 function hideUrgent(){
   const wrap = document.getElementById('SR_URGENT_TICKER');
   if(wrap) wrap.style.display = 'none';
+  setUrgentVisibilityClass(false);
 }
 
 function ensureEnvelopeBadge() {
