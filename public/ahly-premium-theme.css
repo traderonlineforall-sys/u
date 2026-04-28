@@ -173,6 +173,23 @@ html.ahly-premium-theme-live .highlight {
   color: #fff !important;
 }
 
+/* Ahly-only urgent banner spacing fix:
+   Keep urgent ticker cleanly above search without overlap or layout break.
+   Scoped to Ahly theme + active urgent ticker only. */
+html.ahly-premium-theme-live #SR_URGENT_TICKER.sr-urgent-ticker{
+  max-width: min(1100px, calc(100vw - 24px)) !important;
+  box-sizing: border-box !important;
+}
+html.ahly-premium-theme-live.sr-urgent-visible .search-container{
+  margin-top: 72px !important;
+}
+@media (max-width: 900px){
+  html.ahly-premium-theme-live.sr-urgent-visible .search-container{
+    margin-top: 80px !important;
+    max-width: calc(100vw - 24px) !important;
+  }
+}
+
 /* top tabs */
 html.ahly-premium-theme-live #tabs {
   background:
