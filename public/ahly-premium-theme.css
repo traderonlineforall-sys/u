@@ -176,19 +176,26 @@ html.ahly-premium-theme-live .highlight {
 /* Ahly-only urgent banner spacing fix:
    Keep urgent ticker cleanly above search without overlap or layout break.
    Scoped to Ahly theme + active urgent ticker only. */
-html.ahly-premium-theme-live #SR_URGENT_TICKER.sr-urgent-ticker{
-  top: 4px !important;
-  max-width: min(980px, calc(100vw - 24px)) !important;
+html.ahly-premium-theme-live.sr-urgent-visible #SR_URGENT_TICKER.sr-urgent-ticker{
+  position: fixed !important;
+  top: 72px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: min(1100px, calc(100vw - 24px)) !important;
+  max-width: calc(100vw - 24px) !important;
   box-sizing: border-box !important;
-  z-index: 1000000 !important;
+  z-index: 2147483000 !important;
 }
 html.ahly-premium-theme-live.sr-urgent-visible #SR_URGENT_TICKER.sr-urgent-ticker .sr-urgent-inner{
   padding: 8px 12px !important;
   border-radius: 12px !important;
+  background: linear-gradient(90deg, rgba(95, 0, 0, 0.96), rgba(16, 0, 1, 0.96)) !important;
+  border-color: rgba(255, 213, 112, 0.40) !important;
 }
 @media (max-width: 900px){
-  html.ahly-premium-theme-live #SR_URGENT_TICKER.sr-urgent-ticker{
-    top: 2px !important;
+  html.ahly-premium-theme-live.sr-urgent-visible #SR_URGENT_TICKER.sr-urgent-ticker{
+    top: 64px !important;
+    width: calc(100vw - 16px) !important;
     max-width: calc(100vw - 16px) !important;
   }
   html.ahly-premium-theme-live.sr-urgent-visible #SR_URGENT_TICKER.sr-urgent-ticker .sr-urgent-inner{
