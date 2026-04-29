@@ -130,6 +130,43 @@
     applyUiStateClasses();
   }
 
+  function ensureUrgentTickerOverlayRoot() {
+    var root = document.getElementById("sclUrgentTickerOverlayRoot");
+    if (root) return root;
+
+    root = document.createElement("div");
+    root.id = "sclUrgentTickerOverlayRoot";
+    root.setAttribute("aria-live", "off");
+    (document.body || BODY || document.documentElement).appendChild(root);
+    return root;
+  }
+
+  function moveUrgentTickerToOverlay() {
+    var ticker = document.getElementById("SR_URGENT_TICKER");
+    if (!ticker) return false;
+    if (ticker.__sclMovedToBodyOverlay) return true;
+
+    var overlayRoot = ensureUrgentTickerOverlayRoot();
+    overlayRoot.appendChild(ticker);
+    ticker.__sclMovedToBodyOverlay = true;
+    return true;
+  }
+
+  function initUrgentTickerOverlayMove() {
+    if (moveUrgentTickerToOverlay()) return;
+
+    var observer = new MutationObserver(function () {
+      if (!moveUrgentTickerToOverlay()) return;
+      observer.disconnect();
+    });
+
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+
+    window.setTimeout(function () {
+      observer.disconnect();
+    }, 15000);
+  }
+
   window.SafeCustomizationLayer = Object.freeze({
     version: "1.0.0",
     applyAllStateClasses: applyAllStateClasses,
@@ -143,5 +180,6 @@
   ready(function () {
     ensureCssLoaded();
     applyAllStateClasses();
+    initUrgentTickerOverlayMove();
   });
 })();
