@@ -923,47 +923,97 @@
     });
   }
 
-  // SR Sales: reserve the same space that appears after choosing Quota (GB).
-  // This is intentionally isolated from app.js and does not trigger/change quota logic.
+  // SR Sales: keep Concession Calculate in the same visual position it reaches
+  // after choosing Quota (GB), without triggering quota events or changing any values.
   function stabilizeSalesConcessionCalculate() {
     var card = document.getElementById('quotaSummaryCard');
     var dddiv = document.getElementById('dddiv');
-    if (!card || !dddiv || card.__ua07QuotaReserveBound) return;
-    card.__ua07QuotaReserveBound = true;
+    if (!card || !dddiv || dddiv.__ua07ConcessionStableBound) return;
+    dddiv.__ua07ConcessionStableBound = true;
 
-    function reserveIfHidden() {
+    var LEGACY_TOP = -371;
+    var cachedReserve = 0;
+
+    function getNumericPx(value) {
+      var n = parseFloat(String(value || '0'));
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function measureSummarySpace() {
+      try {
+        var previousHidden = card.hidden;
+        var previousStyle = card.getAttribute('style');
+
+        card.hidden = false;
+        card.style.setProperty('display', 'block', 'important');
+        card.style.setProperty('visibility', 'hidden', 'important');
+        card.style.setProperty('opacity', '0', 'important');
+        card.style.setProperty('pointer-events', 'none', 'important');
+        card.style.setProperty('position', 'absolute', 'important');
+        card.style.setProperty('left', '-99999px', 'important');
+        card.style.setProperty('top', 'auto', 'important');
+
+        var rect = card.getBoundingClientRect ? card.getBoundingClientRect() : { height: card.offsetHeight || 0 };
+        var cs = window.getComputedStyle ? window.getComputedStyle(card) : null;
+        var height = Math.ceil(rect.height || card.offsetHeight || 0);
+        var margin = cs ? getNumericPx(cs.marginTop) + getNumericPx(cs.marginBottom) : 24;
+        var total = Math.max(120, Math.min(220, Math.ceil(height + margin)));
+
+        card.hidden = previousHidden;
+        if (previousStyle == null) card.removeAttribute('style');
+        else card.setAttribute('style', previousStyle);
+
+        cachedReserve = total || cachedReserve || 150;
+        return cachedReserve;
+      } catch (err) {
+        return cachedReserve || 150;
+      }
+    }
+
+    function applyStablePosition() {
       try {
         if (card.hidden) {
-          card.classList.add('ua07-quota-reserve-hidden');
-          card.style.setProperty('display', 'block', 'important');
-          card.style.setProperty('visibility', 'hidden', 'important');
-          card.style.setProperty('opacity', '0', 'important');
-          card.style.setProperty('pointer-events', 'none', 'important');
-          card.style.setProperty('min-height', '170px', 'important');
+          var reserve = cachedReserve || measureSummarySpace();
+          var top = LEGACY_TOP + reserve;
+          dddiv.dataset.ua07ConcessionStabilized = 'hidden-summary';
+          dddiv.style.setProperty('position', 'relative', 'important');
+          dddiv.style.setProperty('top', top + 'px', 'important');
+          dddiv.style.setProperty('transform', 'none', 'important');
         } else {
-          card.classList.remove('ua07-quota-reserve-hidden');
-          card.style.removeProperty('display');
-          card.style.removeProperty('visibility');
-          card.style.removeProperty('opacity');
-          card.style.removeProperty('pointer-events');
-          card.style.removeProperty('min-height');
+          dddiv.dataset.ua07ConcessionStabilized = 'visible-summary';
+          dddiv.style.setProperty('position', 'relative', 'important');
+          dddiv.style.setProperty('top', LEGACY_TOP + 'px', 'important');
+          dddiv.style.setProperty('transform', 'none', 'important');
         }
       } catch (err) {}
     }
 
-    reserveIfHidden();
+    function scheduleApply() {
+      applyStablePosition();
+      setTimeout(applyStablePosition, 0);
+      setTimeout(applyStablePosition, 120);
+      setTimeout(applyStablePosition, 450);
+    }
+
+    measureSummarySpace();
+    scheduleApply();
 
     try {
-      var observer = new MutationObserver(reserveIfHidden);
-      observer.observe(card, { attributes: true, attributeFilter: ['hidden'] });
+      var observer = new MutationObserver(scheduleApply);
+      observer.observe(card, { attributes: true, attributeFilter: ['hidden', 'style', 'class'] });
     } catch (err) {}
 
     ['pkgs', 'bss_pkg', 'other_pkg'].forEach(function (id) {
       var el = document.getElementById(id);
       if (!el) return;
-      el.addEventListener('change', function () { setTimeout(reserveIfHidden, 0); }, true);
-      el.addEventListener('input', function () { setTimeout(reserveIfHidden, 0); }, true);
+      el.addEventListener('change', scheduleApply, true);
+      el.addEventListener('input', scheduleApply, true);
     });
+
+    window.addEventListener('resize', function () {
+      cachedReserve = 0;
+      scheduleApply();
+    }, { passive: true });
   }
 
   // Register our enhancements on DOM ready.  Keep this separate from

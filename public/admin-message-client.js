@@ -1,6 +1,5 @@
 import { playUrgentBannerNotification } from "./notification-sound.js";
 import { getStableUserId } from "./stable-user-identity.js";
-import { supabase } from "./supabase-client.js";
 
 // Fixed API base for Cloudflare/Next.js.
 // This removes the old Vercel/Netlify probing request and keeps the UI untouched.
@@ -448,7 +447,7 @@ function shouldShowBadge(ann) {
 
 function updateUrgentUI(){
   const ann = _lastAnnouncement;
-  if(!ann || !ann.created_at) { hideUrgent(); return; }
+  if(!ann) { hideUrgent(); return; }
 
   // New format: separate urgent fields.
   let urgentEnabled = !!ann.urgent_enabled;
@@ -609,11 +608,18 @@ function bindAnnouncementSync() {
   }
 }
 
-function subscribeAnnouncementRealtime(){
+async function subscribeAnnouncementRealtime(){
   if(window.__srAnnouncementRealtimeBound) return;
   window.__srAnnouncementRealtimeBound = true;
 
   try{
+    // Load Supabase only after the first API read has been scheduled.
+    // The urgent/envelope message must not depend on the external esm.sh Supabase import;
+    // if that network import fails, the initial /api/admin-announcement fetch still works.
+    const mod = await import("./supabase-client.js");
+    const supabase = mod && mod.supabase;
+    if(!supabase || typeof supabase.channel !== "function") throw new Error("Supabase client unavailable");
+
     const channel = supabase
       .channel(ANNOUNCEMENT_REALTIME_CHANNEL)
       .on(
@@ -633,7 +639,6 @@ function subscribeAnnouncementRealtime(){
         }
       )
       .subscribe((status) => {
-        // No polling fallback here by design. If Realtime drops, we only resync when the tab becomes visible.
         if(status === "SUBSCRIBED"){
           try { window.__srAnnouncementRealtimeOk = true; } catch {}
         }
@@ -641,7 +646,8 @@ function subscribeAnnouncementRealtime(){
 
     window.__srAnnouncementRealtimeChannel = channel;
   }catch(e){
-    // Keep the tool running even if Realtime is not enabled in Supabase yet.
+    // Keep the tool running even if Realtime or the external Supabase import is unavailable.
+    // Returning to the tab still performs a fresh API resync.
     try { window.__srAnnouncementRealtimeOk = false; } catch {}
   }
 }
@@ -658,7 +664,7 @@ function init() {
 
   // Safety resync only when the user returns to the tab after being away.
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) refreshAnnouncementAndBadge({ force: false }).catch(() => {});
+    if (!document.hidden) refreshAnnouncementAndBadge({ force: true }).catch(() => {});
   });
 
   // Keep multiple tabs/windows in sync for the same user.
