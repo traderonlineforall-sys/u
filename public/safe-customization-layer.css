@@ -45,12 +45,6 @@
   }
 
 
-  body .ua07-top-identity-controls {
-    display: inline-flex;
-    align-items: center;
-    gap: 0;
-  }
-
   body #sclUrgentTickerOverlayRoot {
     position: static;
   }
