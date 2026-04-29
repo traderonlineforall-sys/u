@@ -1297,6 +1297,7 @@ html, body { overflow-x: hidden !important; }
     pointer-events: auto !important;
     right: 0px !important;
     left: auto !important;
+    margin-top: -14px;
   }
   #MNDO_AHT_TAGS_STACK #mndoQueryTimer,
   #MNDO_AHT_TAGS_STACK #bat2{
@@ -1305,13 +1306,49 @@ html, body { overflow-x: hidden !important; }
 
 
 /* ===== extracted style block 28/41 ===== */
-/* UA07 premium logo placed between Search and AHT - scrolls with the page (absolute), not fixed */
+/* UA07 premium logo is structural markup in header flow */
+  .mndo-search-logo-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 54px;
+    width: 100%;
+    padding-left: 493px;
+    box-sizing: border-box;
+    height: 44px;
+    max-height: 44px;
+    margin-top: 0;
+    overflow: visible;
+  }
+  .mndo-search-logo-row .search-container {
+    margin: 7px 0 0 0;
+    flex: 0 0 400px;
+    max-width: 400px;
+  }
+  .mndo-header-logo-slot{
+    position: static;
+    display: inline-flex;
+    align-items: flex-start;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 176px;
+    height: 44px;
+    max-height: 44px;
+    margin-top: -22px;
+    overflow: visible;
+  }
   #MNDO_UA07_LOGO3{
-    position: absolute !important;
-    /* Keep the UA07 cluster above tool UI but below modal overlays */
-    z-index: 9000 !important;
+    position: static;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
     width: 176px;
     height: 48px;
+    max-height: 48px;
+    margin: 0;
+    margin-top: 0;
+    padding: 0;
     pointer-events: auto;
     overflow: visible;
     user-select: none;
@@ -2277,16 +2314,12 @@ A:link {
 
 /* ================= UA07 Secret Envelope + Warning Modal ================= */
   #UA07_SECRET_ENVELOPE_WRAP{
-    position: absolute;
-    /* Keep the UA07 row above the tool UI but below modal overlays */
-    z-index: 9000;
-    left: 50%;
-    top: 50px; /* slightly under the UA07 logo */
-    transform: translateX(-50%);
+    position: static;
     pointer-events: auto;
     display: flex;
     gap: 8px;
     align-items: center;
+    margin-top: 6px;
   }
   #UA07_SECRET_ENVELOPE{
     pointer-events: auto;
