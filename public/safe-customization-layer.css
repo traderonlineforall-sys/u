@@ -44,6 +44,42 @@
     /* Future tabs-present safe injections go here. */
   }
 
+  /* Stabilize SR Sales quota converter block from first paint. */
+  body #others {
+    min-width: 110px;
+    min-height: 28px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  body #other_pkg {
+    display: none;
+    min-height: 26px;
+    box-sizing: border-box;
+  }
+
+  body.scl-quota-other-visible #other_pkg {
+    display: inline-block;
+  }
+
+  body #dddiv {
+    min-height: 150px;
+  }
+
+  /* Stabilize UA07 logo/header cluster as a normal fixed-size page element. */
+  body #MNDO_UA07_LOGO3 {
+    width: 176px !important;
+    height: 48px !important;
+    min-width: 176px !important;
+    min-height: 48px !important;
+    transform: translateZ(0) !important;
+    transition: none !important;
+  }
+
+  body #MNDO_UA07_LOGO3.scl-logo-awaiting-position {
+    visibility: hidden !important;
+  }
+
   body #sclUrgentTickerOverlayRoot {
     position: static;
   }

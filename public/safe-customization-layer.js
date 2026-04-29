@@ -130,6 +130,42 @@
     applyUiStateClasses();
   }
 
+  function initQuotaAreaStabilizer() {
+    var quotaSelect = document.getElementById("pkgs");
+    var otherInput = document.getElementById("other_pkg");
+    if (!quotaSelect || !otherInput || !BODY) return;
+
+    function syncQuotaOtherVisibility() {
+      var selected = quotaSelect.options && quotaSelect.selectedIndex >= 0
+        ? String(quotaSelect.options[quotaSelect.selectedIndex].text || "").trim().toLowerCase()
+        : "";
+      setStateClass(BODY, "scl-quota-other-visible", selected === "other");
+    }
+
+    syncQuotaOtherVisibility();
+    quotaSelect.addEventListener("change", syncQuotaOtherVisibility);
+  }
+
+  function initUa07LogoStabilizer() {
+    whenElement("#MNDO_UA07_LOGO3", function (logo) {
+      if (!logo || logo.dataset.sclLogoStabilized === "true") return;
+      logo.dataset.sclLogoStabilized = "true";
+      logo.classList.add("scl-logo-awaiting-position");
+
+      var settle = function () {
+        var hasInlineTop = logo.style && logo.style.top && logo.style.top !== "";
+        var hasInlineLeft = logo.style && logo.style.left && logo.style.left !== "";
+        if (hasInlineTop && hasInlineLeft) {
+          logo.classList.remove("scl-logo-awaiting-position");
+          return;
+        }
+        requestAnimationFrame(settle);
+      };
+
+      requestAnimationFrame(settle);
+    }, 12000);
+  }
+
   function ensureUrgentTickerOverlayRoot() {
     var root = document.getElementById("sclUrgentTickerOverlayRoot");
     if (root) return root;
@@ -180,6 +216,8 @@
   ready(function () {
     ensureCssLoaded();
     applyAllStateClasses();
+    initQuotaAreaStabilizer();
+    initUa07LogoStabilizer();
     initUrgentTickerOverlayMove();
   });
 })();
