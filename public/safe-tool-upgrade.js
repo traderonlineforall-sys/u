@@ -683,14 +683,133 @@
    * function is self-contained and guarded against missing elements.
    */
 
-  // Preserve the original core placement of the top chrome.
-  // A previous patch dispatched synthetic resize events while typing in
-  // the search/landline inputs.  That was the direct cause of the logo /
-  // envelope / HK region shifting during input.  Keep this hook as a
-  // deliberate no-op so the rest of the file remains untouched and the
-  // original appearance is preserved exactly.
+  // Move the existing UA07 top controls into one stable normal-flow cluster.
+  // This does not clone or recreate the controls; moving the original nodes
+  // preserves the existing click handlers for the logo, envelope, online pill,
+  // and theme toggle.
   function installTopStabilizer() {
-    return;
+    var maxTries = 80;
+    var tries = 0;
+
+    function byId(id) {
+      return document.getElementById(id);
+    }
+
+    function findSearchAnchor() {
+      var search = byId("searchInput")
+        || document.querySelector("input[type='search']")
+        || document.querySelector("input[id*='search' i]")
+        || document.querySelector("input[class*='search' i]");
+
+      if (search && search.closest) {
+        return search.closest(".search-container") || search;
+      }
+      return search || document.body;
+    }
+
+    function createCluster(anchor) {
+      var cluster = byId("MNDO_TOP_CONTROL_CLUSTER");
+      if (cluster) return cluster;
+
+      cluster = document.createElement("div");
+      cluster.id = "MNDO_TOP_CONTROL_CLUSTER";
+      cluster.setAttribute("aria-label", "Top controls");
+      cluster.setAttribute("role", "group");
+      cluster.setAttribute("data-mndo-stable-top-cluster", "1");
+
+      var parent = anchor && anchor.parentNode ? anchor.parentNode : document.body;
+      if (anchor && anchor !== document.body && parent) {
+        parent.insertBefore(cluster, anchor.nextSibling);
+      } else {
+        document.body.insertBefore(cluster, document.body.firstChild);
+      }
+      return cluster;
+    }
+
+    function markAndRelaxPlacement(node, marker) {
+      if (!node) return;
+      try { node.setAttribute("data-mndo-top-cluster-item", marker); } catch (err) {}
+      try {
+        node.style.top = "";
+        node.style.right = "";
+        node.style.bottom = "";
+        node.style.left = "";
+      } catch (err) {}
+    }
+
+    function moveIfStandalone(cluster, node, marker, mainLogo) {
+      if (!cluster || !node || node === cluster || cluster.contains(node)) return false;
+      if (mainLogo && mainLogo !== node && mainLogo.contains && mainLogo.contains(node)) {
+        markAndRelaxPlacement(node, marker);
+        return false;
+      }
+      try {
+        markAndRelaxPlacement(node, marker);
+        cluster.appendChild(node);
+        return true;
+      } catch (err) {
+        return false;
+      }
+    }
+
+    function findEnvelopeWrap() {
+      return byId("UA07_SECRET_ENVELOPE_WRAP")
+        || document.querySelector("[id*='envelope' i]");
+    }
+
+    function findOnlineCounter() {
+      return byId("UA07_ONLINE_COUNT")
+        || byId("onlineUsersCounter")
+        || byId("online-users-counter")
+        || byId("onlineUsers")
+        || document.querySelector("[id*='online' i][id*='count' i]")
+        || document.querySelector("[class*='online' i][class*='count' i]");
+    }
+
+    function findThemeButton() {
+      return byId("EID_TOGGLE_BTN")
+        || byId("themeEditButton")
+        || byId("themeToggleButton")
+        || byId("themeHudButton")
+        || document.querySelector("button[id*='theme' i]")
+        || document.querySelector("[id*='theme' i][role='button']");
+    }
+
+    function run() {
+      tries += 1;
+
+      var logo = byId("MNDO_UA07_LOGO3");
+      var anchor = findSearchAnchor();
+      var cluster = createCluster(anchor);
+
+      if (logo) {
+        moveIfStandalone(cluster, logo, "logo", null);
+        markAndRelaxPlacement(logo, "logo");
+      }
+
+      var envelopeWrap = findEnvelopeWrap();
+      var onlineCounter = findOnlineCounter();
+      var themeButton = findThemeButton();
+
+      moveIfStandalone(cluster, envelopeWrap, "envelope", logo);
+      moveIfStandalone(cluster, onlineCounter, "online", logo);
+      moveIfStandalone(cluster, themeButton, "theme", logo);
+
+      if (envelopeWrap) markAndRelaxPlacement(envelopeWrap, "envelope");
+      if (onlineCounter) markAndRelaxPlacement(onlineCounter, "online");
+      if (themeButton) markAndRelaxPlacement(themeButton, "theme");
+
+      // Some of these controls are injected late by separate scripts. Retry for
+      // a limited period only; no infinite timers and no synthetic events.
+      if (tries < maxTries) {
+        setTimeout(run, 100);
+      }
+    }
+
+    run();
+    setTimeout(run, 250);
+    setTimeout(run, 700);
+    setTimeout(run, 1400);
   }
 
   // Ensure any form reset clears the landline fields.  The native reset

@@ -479,3 +479,102 @@
   transform: none !important;
 }
 
+
+
+/* UA07 top controls: stable normal-flow cluster (logo + envelope + online + theme). */
+#MNDO_TOP_CONTROL_CLUSTER {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  min-height: 56px !important;
+  margin: 8px 12px 10px 12px !important;
+  padding: 4px 10px !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  transform: none !important;
+  z-index: 20 !important;
+  pointer-events: auto !important;
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+}
+
+#MNDO_TOP_CONTROL_CLUSTER,
+#MNDO_TOP_CONTROL_CLUSTER * {
+  box-sizing: border-box !important;
+}
+
+#MNDO_TOP_CONTROL_CLUSTER > * {
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  margin: 0 !important;
+  flex: 0 0 auto !important;
+  pointer-events: auto !important;
+}
+
+#MNDO_TOP_CONTROL_CLUSTER #MNDO_UA07_LOGO3 {
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  width: auto !important;
+  min-width: 176px !important;
+  height: 52px !important;
+  min-height: 52px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  overflow: visible !important;
+  margin: 0 !important;
+}
+
+#MNDO_TOP_CONTROL_CLUSTER #MNDO_UA07_LOGO3 .mndo-uwk07-logo-img {
+  width: 176px !important;
+  height: 48px !important;
+  max-width: 176px !important;
+  max-height: 48px !important;
+  object-fit: contain !important;
+  flex: 0 0 176px !important;
+}
+
+#MNDO_TOP_CONTROL_CLUSTER #UA07_SECRET_ENVELOPE_WRAP {
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  transform: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  margin: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  flex: 0 0 auto !important;
+}
+
+#MNDO_TOP_CONTROL_CLUSTER #UA07_ONLINE_COUNT,
+#MNDO_TOP_CONTROL_CLUSTER #UA07_SECRET_ENVELOPE,
+#MNDO_TOP_CONTROL_CLUSTER #EID_TOGGLE_BTN,
+#MNDO_TOP_CONTROL_CLUSTER [data-mndo-top-cluster-item="online"],
+#MNDO_TOP_CONTROL_CLUSTER [data-mndo-top-cluster-item="envelope"],
+#MNDO_TOP_CONTROL_CLUSTER [data-mndo-top-cluster-item="theme"] {
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  margin: 0 !important;
+  flex: 0 0 auto !important;
+  pointer-events: auto !important;
+}
