@@ -1310,7 +1310,7 @@ html, body { overflow-x: hidden !important; }
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 18px;
+    gap: 65px;
     width: 100%;
     padding-left: 485px;
     box-sizing: border-box;
