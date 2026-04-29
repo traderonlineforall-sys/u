@@ -1305,11 +1305,13 @@ html, body { overflow-x: hidden !important; }
 
 
 /* ===== extracted style block 28/41 ===== */
-/* UA07 premium logo placed between Search and AHT - scrolls with the page (absolute), not fixed */
+/* UA07 premium logo is structural markup in header flow */
   #MNDO_UA07_LOGO3{
-    position: absolute !important;
-    /* Keep the UA07 cluster above tool UI but below modal overlays */
-    z-index: 9000 !important;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    vertical-align: middle;
     width: 176px;
     height: 48px;
     pointer-events: auto;
@@ -2277,16 +2279,12 @@ A:link {
 
 /* ================= UA07 Secret Envelope + Warning Modal ================= */
   #UA07_SECRET_ENVELOPE_WRAP{
-    position: absolute;
-    /* Keep the UA07 row above the tool UI but below modal overlays */
-    z-index: 9000;
-    left: 50%;
-    top: 50px; /* slightly under the UA07 logo */
-    transform: translateX(-50%);
+    position: static;
     pointer-events: auto;
     display: flex;
     gap: 8px;
     align-items: center;
+    margin-top: 2px;
   }
   #UA07_SECRET_ENVELOPE{
     pointer-events: auto;
