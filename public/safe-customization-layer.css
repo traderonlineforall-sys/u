@@ -32,6 +32,19 @@
     /* Future Ahly-theme-only UI fixes go here (scoped, additive). */
   }
 
+  html.scl-theme-ahly body.scl-theme-ahly #SR_URGENT_TICKER.sr-urgent-ticker {
+    z-index: 2147483647;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: calc(100vw - 24px);
+  }
+
+  html.scl-theme-ahly body.scl-theme-ahly #SR_URGENT_TICKER .sr-urgent-inner {
+    position: relative;
+    isolation: isolate;
+  }
+
+
   html.scl-has-search body.scl-has-search {
     /* Future search-present safe injections go here. */
   }
