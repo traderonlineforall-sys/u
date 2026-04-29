@@ -69,6 +69,11 @@ function closeAdmin(){
   hide(overlay);
 }
 
+try {
+  window.__srOpenAdminPanel = openAdmin;
+  window.addEventListener("sr:open-admin", openAdmin);
+} catch {}
+
 closeBtn?.addEventListener("click", closeAdmin);
 overlay?.addEventListener("click", (e)=>{ if(e.target===overlay) closeAdmin(); });
 document.addEventListener("keydown", (e)=>{ if(e.key==="Escape" && overlay.style.display!=="none") closeAdmin(); });

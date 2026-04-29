@@ -931,6 +931,11 @@ function closeAll() {
   setStatus("");
 }
 
+try {
+  window.__srSupportChatReady = true;
+  window.__srOpenSupportChat = openSupport;
+} catch {}
+
 supportBtn?.addEventListener("click", openSupport);
 
 nameConfirmBtn?.addEventListener("click", async () => {

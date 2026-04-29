@@ -466,3 +466,13 @@
   border-radius: 10px;
   font-size: 18px;
 }
+
+/* SR Sales: stabilize Concession Calculate initial placement without touching SR logic */
+body #SR\ Sales #dddiv {
+  position: relative !important;
+  top: auto !important;
+  transform: translate3d(0, -371px, 0) !important;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+

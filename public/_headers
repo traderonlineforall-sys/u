@@ -1,0 +1,60 @@
+# Cloudflare Workers Static Assets headers.
+# Goal: reduce repeated browser downloads without changing UI or SR logic.
+# HTML remains revalidated. Versioned/static assets get stronger browser cache.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/
+  Cache-Control: public, max-age=0, must-revalidate
+  X-Robots-Tag: noindex, nofollow, noarchive
+
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+  X-Robots-Tag: noindex, nofollow, noarchive
+
+/*.js
+  Cache-Control: public, max-age=21600, stale-while-revalidate=86400
+
+/*.css
+  Cache-Control: public, max-age=21600, stale-while-revalidate=86400
+
+/*.png
+  Cache-Control: public, max-age=2592000, immutable
+
+/*.webp
+  Cache-Control: public, max-age=2592000, immutable
+
+/*.jpg
+  Cache-Control: public, max-age=2592000, immutable
+
+/*.jpeg
+  Cache-Control: public, max-age=2592000, immutable
+
+/*.gif
+  Cache-Control: public, max-age=2592000, immutable
+
+/*.ico
+  Cache-Control: public, max-age=2592000, immutable
+
+/*.svg
+  Cache-Control: public, max-age=2592000, immutable
+
+/*.woff2
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.woff
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.ttf
+  Cache-Control: public, max-age=31536000, immutable
+
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/webfonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/css/*
+  Cache-Control: public, max-age=21600, stale-while-revalidate=86400

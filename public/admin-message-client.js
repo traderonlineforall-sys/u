@@ -28,9 +28,14 @@ const LS_SEEN_KEY = "sr_admin_ann_seen_key";
 const LS_URGENT_DISMISSED_AT = "sr_admin_urgent_dismissed_at";
 const LS_URGENT_DISMISSED_KEY = "sr_admin_urgent_dismissed_key";
 const LS_URGENT_SHOW_COUNT_PREFIX = "sr_admin_urgent_show_count";
+const SS_ANNOUNCEMENT_CACHE = "sr_admin_announcement_cache_v1";
 const MAX_URGENT_SHOWS_PER_USER = 2;
 const URGENT_PREFIX = "URGENT_TICKER::";
 const ANNOUNCEMENT_REALTIME_CHANNEL = "sr_admin_announcements_realtime";
+// Keep Cloudflare /api usage low during repeated reloads/dev testing.
+// Realtime still delivers new admin messages without polling.
+const ANNOUNCEMENT_CACHE_TTL_MS = 90 * 1000;
+const ANNOUNCEMENT_MIN_FETCH_INTERVAL_MS = 120 * 1000;
 const SR_ANNOUNCEMENT_CHANNEL = (typeof BroadcastChannel !== "undefined") ? new BroadcastChannel("sr_admin_announcement_state") : null;
 
 function announceStateChanged(kind, payload = {}) {
@@ -223,7 +228,21 @@ function applyAnnouncement(ann){
   }
 }
 
-async function fetchLatestAnnouncement() {
+async function fetchLatestAnnouncement(options = {}) {
+  const force = !!options.force;
+  const now = Date.now();
+
+  if (!force) {
+    const cached = readAnnouncementCache();
+    if (cached) return cached;
+
+    if (_lastAnnouncement && _lastAnnouncementFetchAt && (now - _lastAnnouncementFetchAt) < ANNOUNCEMENT_MIN_FETCH_INTERVAL_MS) {
+      return _lastAnnouncement;
+    }
+  }
+
+  _lastAnnouncementFetchAt = now;
+
   try {
     const res = await fetch(SR_API_BASE + "/admin-announcement", { method: "GET", cache: "no-store" });
     const data = await res.json().catch(() => ({}));
@@ -231,15 +250,9 @@ async function fetchLatestAnnouncement() {
       // Keep silent; we don't want to break the tool UI.
       return null;
     }
-    const envelope_text = String(data?.envelope_text ?? data?.text ?? "").trim();
-    const urgent_text = String(data?.urgent_text ?? "").trim();
-    const urgent_enabled = !!(data?.urgent_enabled);
-
-    const created_at = data?.created_at || null;
-    if (!envelope_text && !(urgent_enabled && urgent_text)) {
-      return { envelope_text: "", urgent_text: "", urgent_enabled: false, created_at: created_at || null };
-    }
-    return { envelope_text, urgent_text, urgent_enabled, created_at };
+    const ann = normalizeAnnouncementPayload(data);
+    writeAnnouncementCache(ann);
+    return ann;
   } catch (e) {
     return null;
   }
@@ -359,6 +372,43 @@ function ensureEnvelopeBadge() {
 }
 
 let _lastAnnouncement = null;
+let _lastAnnouncementFetchAt = 0;
+
+function normalizeAnnouncementPayload(data = {}) {
+  const envelope_text = String(data?.envelope_text ?? data?.text ?? "").trim();
+  const urgent_text = String(data?.urgent_text ?? "").trim();
+  const urgent_enabled = !!(data?.urgent_enabled);
+  const created_at = data?.created_at || null;
+
+  if (!envelope_text && !(urgent_enabled && urgent_text)) {
+    return { envelope_text: "", urgent_text: "", urgent_enabled: false, created_at };
+  }
+  return { envelope_text, urgent_text, urgent_enabled, created_at };
+}
+
+function readAnnouncementCache() {
+  try {
+    const raw = sessionStorage.getItem(SS_ANNOUNCEMENT_CACHE);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const savedAt = Number(parsed?.saved_at || 0);
+    if (!savedAt || (Date.now() - savedAt) > ANNOUNCEMENT_CACHE_TTL_MS) return null;
+    const ann = parsed?.announcement;
+    if (!ann || typeof ann !== "object") return null;
+    return ann;
+  } catch {
+    return null;
+  }
+}
+
+function writeAnnouncementCache(ann) {
+  try {
+    sessionStorage.setItem(SS_ANNOUNCEMENT_CACHE, JSON.stringify({
+      saved_at: Date.now(),
+      announcement: ann
+    }));
+  } catch {}
+}
 
 function shouldShowBadge(ann) {
   if (!ann) return false;
@@ -413,8 +463,8 @@ function updateBadgeUI() {
   badge.style.display = show ? "block" : "none";
 }
 
-async function refreshAnnouncementAndBadge() {
-  const ann = await fetchLatestAnnouncement();
+async function refreshAnnouncementAndBadge(options = {}) {
+  const ann = await fetchLatestAnnouncement(options);
   if (ann) {
     applyAnnouncement(ann);
   } else {
@@ -587,7 +637,7 @@ function init() {
 
   // Safety resync only when the user returns to the tab after being away.
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) refreshAnnouncementAndBadge().catch(() => {});
+    if (!document.hidden) refreshAnnouncementAndBadge({ force: false }).catch(() => {});
   });
 
   // Keep multiple tabs/windows in sync for the same user.
