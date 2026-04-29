@@ -330,6 +330,16 @@
     });
   }
 
+
+
+  function runInitialLayoutSettle() {
+    [150, 600, 1200].forEach(function(delay){
+      setTimeout(function(){
+        safeLayoutSync({ automatic: true, initialSettle: true });
+      }, delay);
+    });
+  }
+
   function bindManualResetBaselineRefresh() {
     document.addEventListener("click", function(event){
       var t = event && event.target;
@@ -343,21 +353,15 @@
   }
 
   if (document.readyState === "complete") {
-    setTimeout(function(){
-      safeLayoutSync({ automatic: true });
-    }, 0);
+    runInitialLayoutSettle();
   } else {
     window.addEventListener("load", function(){
-      setTimeout(function(){
-        safeLayoutSync({ automatic: true });
-      }, 0);
+      runInitialLayoutSettle();
     }, { once: true });
   }
 
   window.addEventListener("pageshow", function(){
-    setTimeout(function(){
-      safeLayoutSync({ automatic: true });
-    }, 0);
+    runInitialLayoutSettle();
   });
 
   window.addEventListener("resize", scheduleDriftCheck, { passive: true });
