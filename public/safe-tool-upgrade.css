@@ -467,12 +467,21 @@
   font-size: 18px;
 }
 
-/* SR Sales: stabilize Concession Calculate initial placement without touching SR logic */
+/* SR Sales: keep the quota summary layout space reserved while it is hidden.
+   This matches the final layout after choosing Quota (GB), so Concession Calculate
+   no longer jumps or starts in the wrong vertical position. */
+body #SR\ Sales #quotaSummaryCard[hidden] {
+  display: block !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* SR Sales: keep the original Concession Calculate dimensions and legacy offset.
+   Do not transform it here; the stable space above it is what fixes the initial placement. */
 body #SR\ Sales #dddiv {
   position: relative !important;
-  top: auto !important;
-  transform: translate3d(0, -371px, 0) !important;
-  will-change: transform;
-  backface-visibility: hidden;
+  top: -371px !important;
+  transform: none !important;
 }
 

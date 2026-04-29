@@ -27,6 +27,7 @@ const LS_SEEN_AT = "sr_admin_ann_seen_at";
 const LS_SEEN_KEY = "sr_admin_ann_seen_key";
 const LS_URGENT_DISMISSED_AT = "sr_admin_urgent_dismissed_at";
 const LS_URGENT_DISMISSED_KEY = "sr_admin_urgent_dismissed_key";
+const LS_URGENT_DISMISSED_SOURCE = "sr_admin_urgent_dismissed_source";
 const LS_URGENT_SHOW_COUNT_PREFIX = "sr_admin_urgent_show_count";
 const SS_ANNOUNCEMENT_CACHE = "sr_admin_announcement_cache_v1";
 const MAX_URGENT_SHOWS_PER_USER = 2;
@@ -156,12 +157,29 @@ function getUrgentDismissedKey(){
   try{ return localStorage.getItem(LS_URGENT_DISMISSED_KEY) || ""; }catch{ return ""; }
 }
 
-function dismissUrgent(createdAtIso, key){
+function getUrgentDismissedSource(){
+  try{ return localStorage.getItem(LS_URGENT_DISMISSED_SOURCE) || ""; }catch{ return ""; }
+}
+
+function isUrgentUserDismissed(annKey){
+  const key = String(annKey || "").trim();
+  if(!key) return false;
+  const dismissedKey = getUrgentDismissedKey();
+  if(!dismissedKey || dismissedKey !== key) return false;
+
+  // Older builds auto-dismissed urgent messages after a display-count limit and
+  // did not store a source. Treat only explicit ACK dismissals as final, so
+  // existing auto-dismissed urgent messages become visible again after this fix.
+  return getUrgentDismissedSource() === "ack";
+}
+
+function dismissUrgent(createdAtIso, key, source = "ack"){
   try{
     if(createdAtIso) localStorage.setItem(LS_URGENT_DISMISSED_AT, new Date(createdAtIso).toISOString());
     const v = String(key || "").trim();
     if(v) localStorage.setItem(LS_URGENT_DISMISSED_KEY, v);
-    announceStateChanged("urgent-dismissed", { key: v, created_at: createdAtIso || "" });
+    localStorage.setItem(LS_URGENT_DISMISSED_SOURCE, String(source || "ack"));
+    announceStateChanged("urgent-dismissed", { key: v, created_at: createdAtIso || "", source: String(source || "ack") });
   }catch{}
 }
 
@@ -317,15 +335,18 @@ function showUrgent(createdAtIso, text, annKey){
   const isAlreadyVisibleSame = wrap.style.display === 'block' && wrap.dataset.urgentActiveKey === effectiveKey;
 
   if(!isAlreadyVisibleSame){
-    const shownCount = getUrgentShowCount(effectiveKey);
-    if(shownCount >= MAX_URGENT_SHOWS_PER_USER){
-      wrap.style.display = 'none';
-      dismissUrgent(createdAtIso, effectiveKey);
-      return;
-    }
-    bumpUrgentShowCount(effectiveKey);
     wrap.dataset.urgentActiveKey = effectiveKey;
-    try { playUrgentBannerNotification(); } catch {}
+
+    // Keep the alert visible until the user explicitly presses "فهمت".
+    // Play the sound once per urgent message per browser session, without using
+    // a show-count limit that can accidentally hide the urgent ticker forever.
+    try {
+      const soundKey = `sr_admin_urgent_sound_played:${simpleHashKey(effectiveKey)}`;
+      if(!sessionStorage.getItem(soundKey)){
+        sessionStorage.setItem(soundKey, "1");
+        playUrgentBannerNotification();
+      }
+    } catch {}
   }
 
   setUrgentText(text);
@@ -336,7 +357,7 @@ function showUrgent(createdAtIso, text, annKey){
     ack.__bound = true;
     ack.addEventListener('click', ()=>{
       wrap.style.display = 'none';
-      dismissUrgent(createdAtIso, effectiveKey);
+      dismissUrgent(createdAtIso, effectiveKey, "ack");
     });
   }
 }
@@ -443,16 +464,14 @@ function updateUrgentUI(){
   if(!urgentEnabled || !urgentText){ hideUrgent(); return; }
 
   const annKey = getAnnouncementKey(ann);
-  const dismissedKey = getUrgentDismissedKey();
-  if(annKey && dismissedKey && annKey === dismissedKey) { hideUrgent(); return; }
+  if(isUrgentUserDismissed(annKey)) { hideUrgent(); return; }
 
   const annTs = Date.parse(ann.created_at);
   if(!Number.isFinite(annTs)) {
-    if(annKey && dismissedKey && annKey === dismissedKey) { hideUrgent(); return; }
     showUrgent(ann.created_at, urgentText, annKey);
     return;
   }
-  if(annTs <= getUrgentDismissedTs()) { hideUrgent(); return; }
+  if(annTs <= getUrgentDismissedTs() && isUrgentUserDismissed(annKey)) { hideUrgent(); return; }
   showUrgent(ann.created_at, urgentText, annKey);
 }
 
@@ -642,7 +661,7 @@ function init() {
 
   // Keep multiple tabs/windows in sync for the same user.
   window.addEventListener("storage", (e) => {
-    const keys = [LS_SEEN_AT, LS_SEEN_KEY, LS_URGENT_DISMISSED_AT, LS_URGENT_DISMISSED_KEY];
+    const keys = [LS_SEEN_AT, LS_SEEN_KEY, LS_URGENT_DISMISSED_AT, LS_URGENT_DISMISSED_KEY, LS_URGENT_DISMISSED_SOURCE];
     if (!e || !keys.includes(e.key)) return;
     updateBadgeUI();
     updateUrgentUI();
