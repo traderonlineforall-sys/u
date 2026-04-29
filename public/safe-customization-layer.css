@@ -33,15 +33,23 @@
   }
 
   html.scl-theme-ahly body.scl-theme-ahly #SR_URGENT_TICKER.sr-urgent-ticker {
-    z-index: 2147483647;
-    left: 50%;
-    transform: translateX(-50%);
-    max-width: calc(100vw - 24px);
+    position: fixed !important;
+    top: 58px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: min(1100px, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px) !important;
+    z-index: 2147483647 !important;
+    box-sizing: border-box !important;
+    pointer-events: auto !important;
   }
 
   html.scl-theme-ahly body.scl-theme-ahly #SR_URGENT_TICKER .sr-urgent-inner {
-    position: relative;
-    isolation: isolate;
+    position: relative !important;
+    isolation: isolate !important;
+    background: linear-gradient(90deg, rgba(30, 14, 10, 0.96), rgba(25, 18, 10, 0.94), rgba(20, 18, 14, 0.96)) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
   }
 
 
