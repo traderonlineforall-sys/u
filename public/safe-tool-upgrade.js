@@ -923,6 +923,49 @@
     });
   }
 
+  // SR Sales: reserve the same space that appears after choosing Quota (GB).
+  // This is intentionally isolated from app.js and does not trigger/change quota logic.
+  function stabilizeSalesConcessionCalculate() {
+    var card = document.getElementById('quotaSummaryCard');
+    var dddiv = document.getElementById('dddiv');
+    if (!card || !dddiv || card.__ua07QuotaReserveBound) return;
+    card.__ua07QuotaReserveBound = true;
+
+    function reserveIfHidden() {
+      try {
+        if (card.hidden) {
+          card.classList.add('ua07-quota-reserve-hidden');
+          card.style.setProperty('display', 'block', 'important');
+          card.style.setProperty('visibility', 'hidden', 'important');
+          card.style.setProperty('opacity', '0', 'important');
+          card.style.setProperty('pointer-events', 'none', 'important');
+          card.style.setProperty('min-height', '170px', 'important');
+        } else {
+          card.classList.remove('ua07-quota-reserve-hidden');
+          card.style.removeProperty('display');
+          card.style.removeProperty('visibility');
+          card.style.removeProperty('opacity');
+          card.style.removeProperty('pointer-events');
+          card.style.removeProperty('min-height');
+        }
+      } catch (err) {}
+    }
+
+    reserveIfHidden();
+
+    try {
+      var observer = new MutationObserver(reserveIfHidden);
+      observer.observe(card, { attributes: true, attributeFilter: ['hidden'] });
+    } catch (err) {}
+
+    ['pkgs', 'bss_pkg', 'other_pkg'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('change', function () { setTimeout(reserveIfHidden, 0); }, true);
+      el.addEventListener('input', function () { setTimeout(reserveIfHidden, 0); }, true);
+    });
+  }
+
   // Register our enhancements on DOM ready.  Keep this separate from
   // other initializers to avoid coupling behaviours.
   onReady(function () {
@@ -932,6 +975,7 @@
     installEnvelopeEnhancements();
     installLandlineMirrorSync();
     removeResubscribeTooltip();
+    stabilizeSalesConcessionCalculate();
   });
 
   onReady(function () {

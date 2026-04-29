@@ -1,10 +1,11 @@
 # Cloudflare Workers Static Assets headers.
-# Goal: reduce repeated browser downloads without changing UI or SR logic.
-# HTML remains revalidated. Versioned/static assets get stronger browser cache.
+# Stable app JS/CSS filenames must revalidate so hotfixes are visible after deploy.
+# Heavy binary assets can stay cached aggressively because their filenames are stable content assets.
 
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
+  X-Robots-Tag: noindex, nofollow, noarchive
 
 /
   Cache-Control: public, max-age=0, must-revalidate
@@ -15,10 +16,13 @@
   X-Robots-Tag: noindex, nofollow, noarchive
 
 /*.js
-  Cache-Control: public, max-age=21600, stale-while-revalidate=86400
+  Cache-Control: no-cache, must-revalidate
 
 /*.css
-  Cache-Control: public, max-age=21600, stale-while-revalidate=86400
+  Cache-Control: no-cache, must-revalidate
+
+/css/*
+  Cache-Control: no-cache, must-revalidate
 
 /*.png
   Cache-Control: public, max-age=2592000, immutable
@@ -55,6 +59,3 @@
 
 /webfonts/*
   Cache-Control: public, max-age=31536000, immutable
-
-/css/*
-  Cache-Control: public, max-age=21600, stale-while-revalidate=86400

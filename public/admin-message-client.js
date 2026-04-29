@@ -33,10 +33,10 @@ const SS_ANNOUNCEMENT_CACHE = "sr_admin_announcement_cache_v1";
 const MAX_URGENT_SHOWS_PER_USER = 2;
 const URGENT_PREFIX = "URGENT_TICKER::";
 const ANNOUNCEMENT_REALTIME_CHANNEL = "sr_admin_announcements_realtime";
-// Keep Cloudflare /api usage low during repeated reloads/dev testing.
-// Realtime still delivers new admin messages without polling.
-const ANNOUNCEMENT_CACHE_TTL_MS = 90 * 1000;
-const ANNOUNCEMENT_MIN_FETCH_INTERVAL_MS = 120 * 1000;
+// Do not cache admin announcements in-session; correctness is more important here.
+// Static assets are cached via _headers, but the urgent/admin message API must stay fresh.
+const ANNOUNCEMENT_CACHE_TTL_MS = 0;
+const ANNOUNCEMENT_MIN_FETCH_INTERVAL_MS = 0;
 const SR_ANNOUNCEMENT_CHANNEL = (typeof BroadcastChannel !== "undefined") ? new BroadcastChannel("sr_admin_announcement_state") : null;
 
 function announceStateChanged(kind, payload = {}) {
@@ -247,7 +247,9 @@ function applyAnnouncement(ann){
 }
 
 async function fetchLatestAnnouncement(options = {}) {
-  const force = !!options.force;
+  // Always fetch the current admin announcement. The previous in-session cache
+  // reduced requests, but it could keep the urgent ticker hidden/stale.
+  const force = true;
   const now = Date.now();
 
   if (!force) {
