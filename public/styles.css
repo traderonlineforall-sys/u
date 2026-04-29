@@ -1309,9 +1309,11 @@ html, body { overflow-x: hidden !important; }
   .mndo-search-logo-row {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 18px;
     width: 100%;
+    padding-left: 485px;
+    box-sizing: border-box;
   }
   .mndo-search-logo-row .search-container {
     margin: 7px 0 0 0;
