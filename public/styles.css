@@ -1297,6 +1297,7 @@ html, body { overflow-x: hidden !important; }
     pointer-events: auto !important;
     right: 0px !important;
     left: auto !important;
+    margin-top: -14px;
   }
   #MNDO_AHT_TAGS_STACK #mndoQueryTimer,
   #MNDO_AHT_TAGS_STACK #bat2{
@@ -1333,7 +1334,7 @@ html, body { overflow-x: hidden !important; }
     width: 176px;
     height: 44px;
     max-height: 44px;
-    margin-top: -12px;
+    margin-top: -22px;
     overflow: visible;
   }
   #MNDO_UA07_LOGO3{
