@@ -1310,12 +1310,12 @@ html, body { overflow-x: hidden !important; }
     display: flex;
     align-items: flex-start;
     justify-content: flex-start;
-    width: 100%;
-    box-sizing: border-box;
-    padding-left: 493px;
     gap: 54px;
-    height: 62px;
-    max-height: 62px;
+    width: 100%;
+    padding-left: 493px;
+    box-sizing: border-box;
+    height: 44px;
+    max-height: 44px;
     overflow: visible;
   }
   .mndo-search-logo-row .search-container {
@@ -1330,8 +1330,9 @@ html, body { overflow-x: hidden !important; }
     justify-content: center;
     flex: 0 0 auto;
     width: 176px;
-    height: 62px;
-    max-height: 62px;
+    height: 44px;
+    max-height: 44px;
+    margin-top: -7px;
     overflow: visible;
   }
   #MNDO_UA07_LOGO3{
