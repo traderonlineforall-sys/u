@@ -1306,6 +1306,12 @@ html, body { overflow-x: hidden !important; }
 
 /* ===== extracted style block 28/41 ===== */
 /* UA07 premium logo is structural markup in header flow */
+  .mndo-header-logo-slot{
+    position: static;
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+  }
   #MNDO_UA07_LOGO3{
     display: inline-flex;
     flex-direction: column;
