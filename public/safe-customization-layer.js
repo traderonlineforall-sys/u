@@ -234,11 +234,78 @@
     };
 
     console.log("[SCL:AHLY_URGENT_DIAG]", payload);
+    return payload;
+  }
+
+  function diagText(payload) {
+    return JSON.stringify(payload, null, 2);
+  }
+
+  function ensureAhlyDebugPanel() {
+    if (!ROOT.classList.contains("scl-theme-ahly")) return null;
+    if (document.getElementById("SCL_AHLY_DEBUG_TOGGLE")) return document.getElementById("SCL_AHLY_DEBUG_PANEL");
+
+    var toggle = document.createElement("button");
+    toggle.id = "SCL_AHLY_DEBUG_TOGGLE";
+    toggle.type = "button";
+    toggle.textContent = "Ahly Debug";
+
+    var panel = document.createElement("div");
+    panel.id = "SCL_AHLY_DEBUG_PANEL";
+    panel.innerHTML = '<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;background:#111;color:#f5f5f5;border:1px solid #333;border-radius:10px 10px 0 0;padding:8px 10px;font:600 12px/1.2 system-ui,sans-serif;"><span>Ahly Urgent Diagnostics</span><button id="SCL_AHLY_DEBUG_COPY" type="button">Copy Diagnostics</button></div><pre id="SCL_AHLY_DEBUG_TEXT" style="margin:0;background:#0b0b0d;color:#cfe9ff;border:1px solid #333;border-top:0;border-radius:0 0 10px 10px;padding:10px;white-space:pre-wrap;word-break:break-word;font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;"></pre>';
+
+    function updatePanel(reason) {
+      var data = logAhlyUrgentDiagnostics(reason) || {
+        reason: reason || "manual",
+        html: { className: ROOT.className },
+        body: { className: BODY.className },
+        ticker: { exists: false }
+      };
+      data.html = data.html || {};
+      data.body = data.body || {};
+      data.html.className = ROOT.className;
+      data.body.className = BODY.className;
+      var text = diagText(data);
+      var pre = panel.querySelector("#SCL_AHLY_DEBUG_TEXT");
+      if (pre) pre.textContent = text;
+      panel.dataset.diagText = text;
+    }
+
+    toggle.addEventListener("click", function () {
+      var open = panel.style.display === "block";
+      panel.style.display = open ? "none" : "block";
+      if (!open) updatePanel("button-click");
+    });
+
+    panel.addEventListener("click", function (ev) {
+      var target = ev.target;
+      if (!target || target.id !== "SCL_AHLY_DEBUG_COPY") return;
+      var text = panel.dataset.diagText || "";
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text);
+        return;
+      }
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "readonly");
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(ta);
+    });
+
+    document.body.appendChild(toggle);
+    document.body.appendChild(panel);
+    return panel;
   }
 
   function setupAhlyUrgentDiagnostics() {
     var state = detectTheme();
     if (!state.ahlyEnabled) return;
+    ensureAhlyDebugPanel();
 
     whenElement("#SR_URGENT_TICKER", function () {
       logAhlyUrgentDiagnostics("ticker-found");

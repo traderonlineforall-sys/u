@@ -52,6 +52,24 @@
     -webkit-backdrop-filter: blur(10px) !important;
   }
 
+  html.scl-theme-ahly body.scl-theme-ahly #SCL_AHLY_DEBUG_TOGGLE {
+    position: fixed;
+    right: 12px;
+    bottom: 12px;
+    z-index: 2147483600;
+  }
+
+  html.scl-theme-ahly body.scl-theme-ahly #SCL_AHLY_DEBUG_PANEL {
+    position: fixed;
+    right: 12px;
+    bottom: 50px;
+    width: min(460px, calc(100vw - 24px));
+    max-height: min(65vh, 560px);
+    overflow: auto;
+    z-index: 2147483600;
+    display: none;
+  }
+
 
   html.scl-has-search body.scl-has-search {
     /* Future search-present safe injections go here. */
