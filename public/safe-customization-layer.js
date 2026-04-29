@@ -130,6 +130,53 @@
     applyUiStateClasses();
   }
 
+
+  function ensureTopIdentityControlsWrapper() {
+    var logo = document.getElementById("MNDO_UA07_LOGO3") || document.getElementById("MNDO_UA07_LOGO") || document.getElementById("UA07_LUX_LOGO_BETWEEN");
+    var controls = document.getElementById("UA07_SECRET_ENVELOPE_WRAP");
+    if (!logo || !controls) return;
+
+    var wrapper = document.querySelector(".ua07-top-identity-controls");
+    if (!wrapper) {
+      wrapper = document.createElement("div");
+      wrapper.className = "ua07-top-identity-controls";
+    }
+
+    var host = logo.parentNode;
+    if (!host) return;
+
+    if (wrapper.parentNode !== host) {
+      host.insertBefore(wrapper, logo);
+    }
+
+    if (logo.parentNode !== wrapper) {
+      wrapper.appendChild(logo);
+    }
+
+    if (controls.parentNode !== wrapper || controls.previousElementSibling !== logo) {
+      wrapper.appendChild(controls);
+    }
+
+    window.__ua07TopIdentityControlsMounted = true;
+    window.__ua07TopIdentityControlsLogo = logo;
+    window.__ua07TopIdentityControlsWrap = controls;
+  }
+
+
+  function bindTopIdentityThemeRefresh() {
+    if (window.__ua07TopIdentityThemeRefreshBound) return;
+    window.__ua07TopIdentityThemeRefreshBound = true;
+
+    document.addEventListener("click", function (event) {
+      var target = event && event.target;
+      if (!target || !target.closest) return;
+      if (!target.closest(".eid-toggle-btn, .ramadan-toggle-btn")) return;
+      window.setTimeout(function () {
+        ensureTopIdentityControlsWrapper();
+      }, 180);
+    }, true);
+  }
+
   function ensureUrgentTickerOverlayRoot() {
     var root = document.getElementById("sclUrgentTickerOverlayRoot");
     if (root) return root;
@@ -180,6 +227,22 @@
   ready(function () {
     ensureCssLoaded();
     applyAllStateClasses();
+    ensureTopIdentityControlsWrapper();
+    bindTopIdentityThemeRefresh();
     initUrgentTickerOverlayMove();
+
+    if (!window.__ua07TopIdentityControlsObserver && window.MutationObserver) {
+      var observer = new MutationObserver(function () {
+        ensureTopIdentityControlsWrapper();
+        if (window.__ua07TopIdentityControlsMounted &&
+            window.__ua07TopIdentityControlsLogo &&
+            window.__ua07TopIdentityControlsWrap &&
+            window.__ua07TopIdentityControlsLogo.parentNode &&
+            window.__ua07TopIdentityControlsWrap.parentNode) observer.disconnect();
+      });
+      observer.observe(document.documentElement, { childList: true, subtree: true });
+      window.__ua07TopIdentityControlsObserver = observer;
+      window.setTimeout(function () { observer.disconnect(); }, 8000);
+    }
   });
 })();
