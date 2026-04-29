@@ -49,24 +49,24 @@
   }
 
   body #SR_URGENT_TICKER {
-    position: fixed;
-    top: 64px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(1100px, calc(100vw - 24px));
-    max-width: calc(100vw - 24px);
-    z-index: 2147483647;
-    box-sizing: border-box;
-    pointer-events: auto;
+    position: fixed !important;
+    top: 64px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: min(1100px, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px) !important;
+    z-index: 2147483647 !important;
+    box-sizing: border-box !important;
+    pointer-events: auto !important;
   }
 
   body #SR_URGENT_TICKER .sr-urgent-inner {
-    background: rgba(20, 24, 33, 0.92);
-    -webkit-backdrop-filter: blur(6px);
-    backdrop-filter: blur(6px);
-    border-radius: 14px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(20, 24, 33, 0.92) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+    backdrop-filter: blur(6px) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
   }
 
 }
