@@ -1,0 +1,46 @@
+/*
+ * Safe Customization Layer stylesheet
+ *
+ * Safe to edit in future for additive overrides only.
+ * Keep selectors scoped with .scl-* guard classes.
+ *
+ * Protected unless explicitly requested:
+ * - public/app.js
+ * - public/index.html
+ * - SR/menu data and menu HTML structure
+ *
+ * Ahly-theme-only fix pattern (safe):
+ * html.scl-theme-ahly body.scl-theme-ahly .target { ... }
+ */
+
+@layer safe-customization-layer {
+  /* Placeholder hooks only: no visual changes in this task. */
+
+  html.scl-theme-default body.scl-theme-default {
+    /* Future default-theme-safe overrides go here. */
+  }
+
+  html.scl-theme-eid body.scl-theme-eid {
+    /* Future Eid-theme-safe overrides go here. */
+  }
+
+  html.scl-theme-ramadan body.scl-theme-ramadan {
+    /* Future Ramadan-theme-safe overrides go here. */
+  }
+
+  html.scl-theme-ahly body.scl-theme-ahly {
+    /* Future Ahly-theme-only UI fixes go here (scoped, additive). */
+  }
+
+  html.scl-has-search body.scl-has-search {
+    /* Future search-present safe injections go here. */
+  }
+
+  html.scl-has-tags-link body.scl-has-tags-link {
+    /* Future tags-link-present safe injections go here. */
+  }
+
+  html.scl-has-tabs body.scl-has-tabs {
+    /* Future tabs-present safe injections go here. */
+  }
+}

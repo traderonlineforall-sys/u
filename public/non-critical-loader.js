@@ -6,7 +6,12 @@
   function loadLayoutFixes(){
     if (loadLayoutFixes._done) return;
     loadLayoutFixes._done = true;
-    safeImport('./layout-stabilizer.js');
+    [
+      './layout-stabilizer.js',
+      './safe-customization-layer.js'
+    ].forEach(function(src){
+      safeImport(src);
+    });
   }
 
   function loadUiModules(){
