@@ -137,7 +137,7 @@
     root = document.createElement("div");
     root.id = "sclUrgentTickerOverlayRoot";
     root.setAttribute("aria-live", "off");
-    BODY.appendChild(root);
+    (document.body || BODY || document.documentElement).appendChild(root);
     return root;
   }
 
@@ -161,6 +161,10 @@
     });
 
     observer.observe(document.documentElement, { childList: true, subtree: true });
+
+    window.setTimeout(function () {
+      observer.disconnect();
+    }, 15000);
   }
 
   window.SafeCustomizationLayer = Object.freeze({
@@ -170,8 +174,7 @@
     applyUiStateClasses: applyUiStateClasses,
     createScopedStyle: createScopedStyle,
     whenElement: whenElement,
-    setStateClass: setStateClass,
-    moveUrgentTickerToOverlay: moveUrgentTickerToOverlay
+    setStateClass: setStateClass
   });
 
   ready(function () {
