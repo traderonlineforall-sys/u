@@ -34,7 +34,7 @@
 
   html.scl-theme-ahly body.scl-theme-ahly #SR_URGENT_TICKER.sr-urgent-ticker {
     position: fixed !important;
-    top: 58px !important;
+    top: 64px !important;
     left: 50% !important;
     transform: translateX(-50%) !important;
     width: min(1100px, calc(100vw - 24px)) !important;
