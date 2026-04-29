@@ -1316,7 +1316,6 @@ html, body { overflow-x: hidden !important; }
     box-sizing: border-box;
     height: 44px;
     max-height: 44px;
-    margin-top: -8px;
     overflow: visible;
   }
   .mndo-search-logo-row .search-container {
@@ -1333,7 +1332,7 @@ html, body { overflow-x: hidden !important; }
     width: 176px;
     height: 44px;
     max-height: 44px;
-    margin-top: -4px;
+    margin-top: -10px;
     overflow: visible;
   }
   #MNDO_UA07_LOGO3{
