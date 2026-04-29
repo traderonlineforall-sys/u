@@ -130,6 +130,134 @@
     applyUiStateClasses();
   }
 
+  function rectSnapshot(node) {
+    if (!node || typeof node.getBoundingClientRect !== "function") return null;
+    var r = node.getBoundingClientRect();
+    return {
+      top: r.top,
+      left: r.left,
+      width: r.width,
+      height: r.height
+    };
+  }
+
+  function parentStackingContexts(node) {
+    var out = [];
+    var cur = node && node.parentElement;
+    while (cur && cur !== document) {
+      var cs = window.getComputedStyle(cur);
+      var position = cs.position;
+      var zIndex = cs.zIndex;
+      var willChange = String(cs.willChange || "");
+      var triggers = {
+        transform: cs.transform !== "none",
+        filter: cs.filter !== "none",
+        opacity: parseFloat(cs.opacity || "1") < 1,
+        contain: cs.contain !== "none",
+        isolation: cs.isolation === "isolate",
+        positionedWithZ: position !== "static" && zIndex !== "auto",
+        willChange: /transform|filter|opacity/.test(willChange)
+      };
+      if (Object.keys(triggers).some(function (k) { return triggers[k]; })) {
+        out.push({
+          node: cur.tagName.toLowerCase() + (cur.id ? ("#" + cur.id) : "") + (cur.className ? ("." + String(cur.className).trim().replace(/\s+/g, ".")) : ""),
+          triggers: triggers,
+          computed: {
+            position: position,
+            zIndex: zIndex,
+            transform: cs.transform,
+            filter: cs.filter,
+            opacity: cs.opacity,
+            contain: cs.contain,
+            isolation: cs.isolation,
+            willChange: willChange
+          }
+        });
+      }
+      if (cur === BODY || cur === ROOT) break;
+      cur = cur.parentElement;
+    }
+    return out;
+  }
+
+  function logAhlyUrgentDiagnostics(reason) {
+    var isAhly = ROOT.classList.contains("scl-theme-ahly") || ROOT.classList.contains("ahly-premium-theme-live");
+    if (!isAhly) return;
+
+    var ticker = document.getElementById("SR_URGENT_TICKER");
+    if (!ticker) return;
+
+    var tcs = window.getComputedStyle(ticker);
+    var search = document.querySelector(".search-container");
+    var scs = search ? window.getComputedStyle(search) : null;
+
+    var payload = {
+      reason: reason || "scan",
+      html: {
+        sclThemeAhly: ROOT.classList.contains("scl-theme-ahly"),
+        ahlyPremiumThemeLive: ROOT.classList.contains("ahly-premium-theme-live"),
+        srUrgentVisible: ROOT.classList.contains("sr-urgent-visible")
+      },
+      body: {
+        sclThemeAhly: BODY.classList.contains("scl-theme-ahly")
+      },
+      ticker: {
+        exists: !!ticker,
+        id: ticker.id,
+        className: ticker.className,
+        inlineDisplay: ticker.style ? ticker.style.display : "",
+        computedDisplay: tcs.display,
+        computedPosition: tcs.position,
+        computedTop: tcs.top,
+        computedLeft: tcs.left,
+        computedTransform: tcs.transform,
+        computedZIndex: tcs.zIndex,
+        computedWidth: tcs.width,
+        computedMaxWidth: tcs.maxWidth,
+        rect: rectSnapshot(ticker)
+      },
+      searchContainer: {
+        exists: !!search,
+        computedPosition: scs ? scs.position : null,
+        computedZIndex: scs ? scs.zIndex : null,
+        computedTransform: scs ? scs.transform : null,
+        computedFilter: scs ? scs.filter : null,
+        computedOpacity: scs ? scs.opacity : null,
+        rect: rectSnapshot(search)
+      },
+      parentStackingContexts: parentStackingContexts(ticker),
+      ruleAppliedCheck: {
+        positionFixed: tcs.position === "fixed",
+        top64: tcs.top === "64px",
+        zIndex2147483647: tcs.zIndex === "2147483647"
+      }
+    };
+
+    console.log("[SCL:AHLY_URGENT_DIAG]", payload);
+  }
+
+  function setupAhlyUrgentDiagnostics() {
+    var state = detectTheme();
+    if (!state.ahlyEnabled) return;
+
+    whenElement("#SR_URGENT_TICKER", function () {
+      logAhlyUrgentDiagnostics("ticker-found");
+      if (typeof MutationObserver === "undefined") return;
+
+      var obs = new MutationObserver(function () {
+        applyAllStateClasses();
+        logAhlyUrgentDiagnostics("mutation");
+      });
+
+      obs.observe(document.body, {
+        attributes: true,
+        childList: true,
+        subtree: true,
+        attributeFilter: ["class", "style"]
+      });
+    }, 15000);
+  }
+
   window.SafeCustomizationLayer = Object.freeze({
     version: "1.0.0",
     applyAllStateClasses: applyAllStateClasses,
@@ -143,5 +271,6 @@
   ready(function () {
     ensureCssLoaded();
     applyAllStateClasses();
+    setupAhlyUrgentDiagnostics();
   });
 })();
