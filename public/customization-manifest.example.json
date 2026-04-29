@@ -1,0 +1,38 @@
+{
+  "$schema": "https://example.local/safe-customization-manifest.schema.json",
+  "manifestVersion": 1,
+  "description": "Example-only manifest for planning safe customizations. Not consumed by runtime yet.",
+  "rules": {
+    "protectedFiles": [
+      "public/app.js",
+      "public/index.html",
+      "SR data sources",
+      "menu HTML structure"
+    ],
+    "safeEditTargets": [
+      "public/safe-customization-layer.js",
+      "public/safe-customization-layer.css",
+      "public/customization-manifest.example.json"
+    ]
+  },
+  "themeOverrides": [
+    {
+      "theme": "ahly",
+      "scopeClass": "scl-theme-ahly",
+      "notes": "Add Ahly-only UI fixes with scoped selectors and without touching SR/menu logic.",
+      "patches": [
+        {
+          "id": "example-ahly-fix-001",
+          "target": ".some-selector",
+          "changeType": "css-only",
+          "enabled": false,
+          "comment": "Placeholder example; keep disabled until reviewed."
+        }
+      ]
+    }
+  ],
+  "menuAndSrPlanningOnly": {
+    "note": "Document desired SR/menu updates here for review first. Apply later only when explicitly requested.",
+    "proposedChanges": []
+  }
+}
