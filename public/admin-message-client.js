@@ -33,6 +33,7 @@ const MAX_URGENT_SHOWS_PER_USER = 2;
 const URGENT_PREFIX = "URGENT_TICKER::";
 const SS_LAST_SPOKEN_URGENT_TEXT = "ua07LastSpokenUrgentText";
 const LS_URGENT_VOICE_MUTED = "ua07UrgentVoiceMuted";
+const URGENT_VOICE_DEBUG = false;
 const ANNOUNCEMENT_REALTIME_CHANNEL = "sr_admin_announcements_realtime";
 // Do not cache admin announcements in-session; correctness is more important here.
 // Static assets are cached via _headers, but the urgent/admin message API must stay fresh.
@@ -310,6 +311,7 @@ let _urgentVoiceObserverReady = false;
 let _urgentVoiceIntersectionObserver = null;
 let _urgentVoiceUnlocked = false;
 let _pendingUrgentVoiceText = "";
+let _urgentVoiceStartedText = "";
 
 function isUrgentVoiceMuted(){
   try { return localStorage.getItem(LS_URGENT_VOICE_MUTED) === "1"; } catch { return false; }
@@ -348,8 +350,13 @@ function maybeSpeakUrgentText(text){
   if(!cleanText) return;
   if(isUrgentVoiceMuted()) return;
   if(cleanText === getLastSpokenUrgentText()) return;
+  if(cleanText === _urgentVoiceStartedText) return;
+  if(navigator.userActivation && navigator.userActivation.hasBeenActive){
+    _urgentVoiceUnlocked = true;
+  }
   if(!_urgentVoiceUnlocked){
     _pendingUrgentVoiceText = cleanText;
+    if(URGENT_VOICE_DEBUG) console.log("[urgent-voice] pending until unlock");
     return;
   }
   if(!window.speechSynthesis || typeof window.SpeechSynthesisUtterance !== "function") return;
@@ -357,9 +364,19 @@ function maybeSpeakUrgentText(text){
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = detectUrgentSpeechLang(cleanText);
+    utterance.onstart = () => {
+      _urgentVoiceStartedText = cleanText;
+      setLastSpokenUrgentText(cleanText);
+      _pendingUrgentVoiceText = "";
+      if(URGENT_VOICE_DEBUG) console.log("[urgent-voice] started");
+    };
+    utterance.onerror = (ev) => {
+      if(URGENT_VOICE_DEBUG) console.log("[urgent-voice] error", ev?.error || "unknown");
+      if(_urgentVoiceStartedText !== cleanText){
+        _pendingUrgentVoiceText = cleanText;
+      }
+    };
     window.speechSynthesis.speak(utterance);
-    setLastSpokenUrgentText(cleanText);
-    _pendingUrgentVoiceText = "";
   } catch {}
 }
 
@@ -373,18 +390,27 @@ function evaluateUrgentVoiceRead(wrap){
 function unlockUrgentVoiceOnce(){
   if(_urgentVoiceUnlocked) return;
   _urgentVoiceUnlocked = true;
+  if(URGENT_VOICE_DEBUG) console.log("[urgent-voice] unlocked");
   if(_pendingUrgentVoiceText){
     maybeSpeakUrgentText(_pendingUrgentVoiceText);
   }
 }
 
+function initGlobalUrgentVoiceUnlock(){
+  if(navigator.userActivation && navigator.userActivation.hasBeenActive){
+    _urgentVoiceUnlocked = true;
+  }
+  const unlockHandler = () => unlockUrgentVoiceOnce();
+  window.addEventListener("pointerdown", unlockHandler, { once: true, passive: true });
+  window.addEventListener("click", unlockHandler, { once: true, passive: true });
+  window.addEventListener("keydown", unlockHandler, { once: true });
+}
+
+initGlobalUrgentVoiceUnlock();
+
 function initUrgentVoiceAutoRead(wrap){
   if(!wrap || _urgentVoiceObserverReady) return;
   _urgentVoiceObserverReady = true;
-
-  const unlockHandler = () => unlockUrgentVoiceOnce();
-  window.addEventListener("click", unlockHandler, { once: true, passive: true });
-  window.addEventListener("keydown", unlockHandler, { once: true });
 
   const mutationObserver = new MutationObserver(() => evaluateUrgentVoiceRead(wrap));
   mutationObserver.observe(wrap, {
@@ -435,6 +461,8 @@ function setUrgentText(text){
   const baseSecs = Math.max(18, Math.min(45, len * 0.35));
   const secs = Math.max(9, Math.min(22.5, baseSecs / 2));
   marquee.style.setProperty('--sr-urgent-duration', secs.toFixed(1) + 's');
+  setTimeout(() => evaluateUrgentVoiceRead(wrap), 0);
+  setTimeout(() => evaluateUrgentVoiceRead(wrap), 120);
 }
 
 function showUrgent(createdAtIso, text, annKey){
@@ -459,6 +487,8 @@ function showUrgent(createdAtIso, text, annKey){
 
   setUrgentText(text);
   wrap.style.display = 'block';
+  setTimeout(() => evaluateUrgentVoiceRead(wrap), 0);
+  setTimeout(() => evaluateUrgentVoiceRead(wrap), 120);
 
   const ack = wrap.querySelector('#SR_URGENT_ACK');
   if(ack && !ack.__bound){
