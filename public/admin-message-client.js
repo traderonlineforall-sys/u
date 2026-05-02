@@ -37,8 +37,6 @@ const ANNOUNCEMENT_REALTIME_CHANNEL = "sr_admin_announcements_realtime";
 const ANNOUNCEMENT_CACHE_TTL_MS = 0;
 const ANNOUNCEMENT_MIN_FETCH_INTERVAL_MS = 0;
 const SR_ANNOUNCEMENT_CHANNEL = (typeof BroadcastChannel !== "undefined") ? new BroadcastChannel("sr_admin_announcement_state") : null;
-const ARABIC_VOICE_MISSING_MESSAGE = "الصوت العربي غير متاح على هذا الجهاز";
-let _lastUrgentSpokenText = "";
 
 function announceStateChanged(kind, payload = {}) {
   try {
@@ -96,83 +94,6 @@ function escapeHtml(s = "") {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
-}
-
-function getUrgentVoiceForLang(lang) {
-  const voices = window.speechSynthesis?.getVoices?.() || [];
-  if (String(lang).toLowerCase().startsWith("ar")) {
-    return voices.find(v => /^ar/i.test(v.lang || "")) ||
-      voices.find(v => /arabic|العربية|ar-/i.test((v.name || "") + " " + (v.lang || ""))) ||
-      null;
-  }
-  return voices.find(v => /^en/i.test(v.lang || "")) || null;
-}
-
-function speakUrgentText(text, options = {}) {
-  const setStatus = typeof options.setStatus === "function" ? options.setStatus : () => {};
-  const isMuted = !!options.isMuted;
-
-  try {
-    const synth = window.speechSynthesis;
-    if (!synth || typeof SpeechSynthesisUtterance === "undefined") return { ok: false, reason: "unsupported" };
-
-    const cleanText = String(text || "").replace(/\s+/g, " ").trim();
-    if (!cleanText) return { ok: false, reason: "empty" };
-    if (isMuted) return { ok: false, reason: "muted" };
-    if (_lastUrgentSpokenText === cleanText) return { ok: false, reason: "duplicate" };
-
-    const isArabic = /[\u0600-\u06FF]/.test(cleanText);
-    const lang = isArabic ? "ar-EG" : "en-US";
-
-    const trySpeakOnce = () => {
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.lang = lang;
-      const voice = getUrgentVoiceForLang(lang);
-      if (voice) utterance.voice = voice;
-      utterance.rate = isArabic ? 0.92 : 0.95;
-      utterance.volume = 1;
-      utterance.onstart = () => {
-        _lastUrgentSpokenText = cleanText;
-      };
-      utterance.onerror = () => {};
-
-      if (isArabic && !voice) {
-        setStatus(ARABIC_VOICE_MISSING_MESSAGE);
-        return { ok: false, reason: "arabic-voice-missing" };
-      }
-      setStatus("");
-      synth.cancel();
-      synth.speak(utterance);
-      return { ok: true };
-    };
-
-    const voices = synth.getVoices?.() || [];
-    if (voices.length) return trySpeakOnce();
-
-    return new Promise((resolve) => {
-      let done = false;
-      const finish = (result) => {
-        if (done) return;
-        done = true;
-        resolve(result);
-      };
-      const onVoicesChanged = () => {
-        synth.removeEventListener?.("voiceschanged", onVoicesChanged);
-        const result = trySpeakOnce();
-        if (!result.ok && result.reason === "arabic-voice-missing" && !isArabic) {
-          setStatus("");
-        }
-        finish(result);
-      };
-      synth.addEventListener?.("voiceschanged", onVoicesChanged, { once: true });
-      setTimeout(() => {
-        synth.removeEventListener?.("voiceschanged", onVoicesChanged);
-        finish(trySpeakOnce());
-      }, 600);
-    });
-  } catch {
-    return { ok: false, reason: "failed" };
-  }
 }
 
 function getSeenTs() {
@@ -372,8 +293,10 @@ function ensureUrgentTicker(){
       <div class="sr-urgent-track" aria-hidden="true">
         <div class="sr-urgent-marquee" id="SR_URGENT_MARQUEE"></div>
       </div>
+      <button type="button" class="sr-urgent-read" id="SR_URGENT_READ">🔊 قراءة العاجل</button>
       <button type="button" class="sr-urgent-ack" id="SR_URGENT_ACK">فهمت</button>
     </div>
+    <div id="SR_URGENT_VOICE_STATUS" style="font-size:11px;opacity:0.9;margin:4px 8px 0 8px;"></div>
   `;
   document.body.appendChild(wrap);
   return wrap;
@@ -438,6 +361,31 @@ function showUrgent(createdAtIso, text, annKey){
     ack.addEventListener('click', ()=>{
       wrap.style.display = 'none';
       dismissUrgent(createdAtIso, effectiveKey, "ack");
+    });
+  }
+
+  const readBtn = wrap.querySelector('#SR_URGENT_READ');
+  const voiceStatus = wrap.querySelector('#SR_URGENT_VOICE_STATUS');
+  if(readBtn && !readBtn.__bound){
+    readBtn.__bound = true;
+    readBtn.addEventListener('click', ()=>{
+      try{
+        const marquee = wrap.querySelector('#SR_URGENT_MARQUEE');
+        const firstSegment = marquee ? marquee.querySelector('.sr-urgent-segment') : null;
+        const rawText = String(firstSegment?.textContent || marquee?.textContent || '').replace(/\s+/g, ' ').trim();
+        if(!rawText) return;
+        const synth = window.speechSynthesis;
+        if(!synth || typeof SpeechSynthesisUtterance === "undefined") return;
+        synth.cancel();
+        const utterance = new SpeechSynthesisUtterance(rawText);
+        utterance.lang = /[\u0600-\u06FF]/.test(rawText) ? "ar-EG" : "en-US";
+        utterance.onstart = ()=>{ if(voiceStatus) voiceStatus.textContent = "جاري القراءة"; };
+        utterance.onend = ()=>{ if(voiceStatus) voiceStatus.textContent = "انتهت القراءة"; };
+        utterance.onerror = ()=>{ if(voiceStatus) voiceStatus.textContent = "تعذر تشغيل القراءة"; };
+        synth.speak(utterance);
+      }catch{
+        if(voiceStatus) voiceStatus.textContent = "تعذر تشغيل القراءة";
+      }
     });
   }
 }
@@ -617,46 +565,11 @@ function renderAnnouncementInModal() {
 
   const when = ann.created_at ? new Date(ann.created_at).toLocaleString("ar-EG") : "";
   const annText = String(ann.envelope_text ?? ann.text ?? "").trim();
-  const isArabicText = /[\u0600-\u06FF]/.test(annText);
   bodyEl.innerHTML = `
     <div class="ua07-secret-lead">رسالة من الأدمن</div>
     <div class="ua07-secret-text" style="white-space:pre-wrap;">${escapeHtml(annText)}</div>
-    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
-      <button type="button" id="UA07_ANN_READ_BTN" style="padding:6px 10px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;">قراءة الرسالة</button>
-      <button type="button" id="UA07_ANN_AR_CHECK_BTN" style="padding:6px 10px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;">فحص الصوت العربي</button>
-    </div>
-    <div id="UA07_ANN_VOICE_MSG" class="ua07-secret-text" style="opacity:0.85;font-size:12px;margin-top:8px;"></div>
     ${when ? `<div class="ua07-secret-text" style="opacity:0.7;font-size:12px;margin-top:10px;">${escapeHtml(when)}</div>` : ""}
   `;
-
-  const readBtn = bodyEl.querySelector("#UA07_ANN_READ_BTN");
-  const checkBtn = bodyEl.querySelector("#UA07_ANN_AR_CHECK_BTN");
-  const voiceMsgEl = bodyEl.querySelector("#UA07_ANN_VOICE_MSG");
-  const setVoiceMsg = (msg) => {
-    if (voiceMsgEl) voiceMsgEl.textContent = String(msg || "");
-  };
-
-  if (checkBtn) {
-    checkBtn.addEventListener("click", () => {
-      const arVoice = getUrgentVoiceForLang("ar-EG");
-      if (arVoice) {
-        setVoiceMsg(`✅ الصوت العربي متاح (${arVoice.name || arVoice.lang || "Arabic"})`);
-      } else {
-        setVoiceMsg(ARABIC_VOICE_MISSING_MESSAGE);
-      }
-    });
-  }
-
-  if (readBtn) {
-    readBtn.addEventListener("click", () => {
-      if (!annText) return;
-      if (isArabicText) {
-        speakUrgentText(annText, { setStatus: setVoiceMsg, isMuted: false });
-      } else {
-        speakUrgentText(annText, { setStatus: setVoiceMsg, isMuted: false });
-      }
-    });
-  }
 
   // Mark as seen and hide badge.
   const annKey = getAnnouncementKey(ann);
