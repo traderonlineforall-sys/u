@@ -3388,15 +3388,6 @@ if (link && link.indexOf("srTypeId=100047001") !== -1) {
                                         link = link.replace(/([?&]serviceContent=)[^&]*/i, "$1" + encodeURIComponent(fbbServiceContent));
                                 }
 
-                                // FTTH - Slowness SRs must populate the primary subsNumber parameter
-                                // before BMEWebToken, matching the SR Technical/FBB behavior.
-                                // Do not append the FBB number at the end for these SRs.
-                                if (link && /srTypeId=(102060001|102060002|102060003|102060004|102060005|102060006|102060007)\b/.test(link)) {
-                                        link = link.replace(/([?&]subsNumber=)[^&]*/i, "$1" + encodeURIComponent(myVariable));
-                                        link = link.replace(/&subsNumber=$/i, "");
-                                        myVariable = "";
-                                }
-
                                 link += myVariable; // إضافة المتغير إلى الرابط
                                 window.open(link); // فتح الرابط الجديد مع المتغير المضاف
                         }
