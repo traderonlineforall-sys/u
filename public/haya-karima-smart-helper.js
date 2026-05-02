@@ -198,7 +198,8 @@
       line.id = LINE_ID;
       line.setAttribute('aria-live', 'polite');
       line.setAttribute('title', 'HK quick access and raw result status.');
-      document.body.appendChild(line);
+      var mountHost = document.querySelector('.mndo-search-logo-row') || document.body;
+      mountHost.appendChild(line);
     }
 
     if (line.dataset.hkBuilt !== '1') {
@@ -264,24 +265,13 @@
   }
 
   function positionLine() {
-    var dom = ensureDom();
-    var rect = getAnchorRect();
-    if (!dom || !dom.line || !rect) return;
-
-    var centerX = rect.left + (rect.width / 2);
-    var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 320;
-    var viewportCap = Math.max(280, viewportWidth - 24);
-
-    dom.line.style.left = centerX + 'px';
-    dom.line.style.top = (rect.bottom + 10) + 'px';
-    dom.line.style.width = Math.min(Math.max(rect.width, 320), 560, viewportCap) + 'px';
+    return;
   }
 
   function showLine() {
     var dom = ensureDom();
     dom.line.classList.add('is-visible');
     dom.line.setAttribute('aria-hidden', 'false');
-    positionLine();
   }
 
   function hideLine() {
@@ -595,36 +585,15 @@
     }
   }
 
-  function startObserver() {
-    if (helperState.observer || typeof MutationObserver === 'undefined') return;
+  function startObserver() { return; }
 
-    helperState.observer = new MutationObserver(function () {
-      var rebound = bindInput();
-      if (rebound) {
-        positionLine();
-      }
-    });
-
-    try {
-      helperState.observer.observe(document.documentElement, { childList: true, subtree: true });
-    } catch (error) {}
-  }
-
-  function bindWindowEvents() {
-    if (helperState.resizeBound) return;
-    helperState.resizeBound = true;
-    window.addEventListener('resize', positionLine, { passive: true });
-    window.addEventListener('scroll', positionLine, { passive: true });
-  }
+  function bindWindowEvents() { return; }
 
   function init() {
     ensureDom();
     bindInput();
     bindWindowEvents();
     startObserver();
-    positionLine();
-    setTimeout(function () { bindInput(); positionLine(); }, 200);
-    setTimeout(function () { bindInput(); positionLine(); }, 600);
   }
 
   if (document.readyState === 'loading') {
