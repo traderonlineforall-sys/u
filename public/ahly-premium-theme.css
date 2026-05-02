@@ -1562,3 +1562,76 @@ html.ahly-premium-theme-live #arabiccNumber:not([readonly]):focus {
     background-color: rgba(3,3,5,.995) !important;
   }
 }
+
+/* Final Ahly row polish override (kept at file end to win cascade). */
+html.ahly-premium-theme-live #tabs > .tablinks,
+html.scl-theme-ahly body.scl-theme-ahly #tabs > .tablinks {
+  color: #f7e8bf !important;
+  -webkit-text-fill-color: #f7e8bf !important;
+  background:
+    radial-gradient(145% 170% at 15% 0%, rgba(255,255,255,.18), rgba(255,255,255,0) 43%),
+    radial-gradient(120% 190% at 95% 0%, rgba(188,0,0,.30), rgba(188,0,0,0) 58%),
+    linear-gradient(180deg, rgba(26,26,31,.992) 0%, rgba(5,5,8,.992) 50%, rgba(80,0,0,.93) 100%) !important;
+  border-color: rgba(241,212,129,.45) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.95), 0 0 9px rgba(247,223,152,.20) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.20),
+    inset 0 0 0 1px rgba(241,212,129,.16),
+    inset 0 -1px 0 rgba(188,0,0,.26),
+    0 13px 28px rgba(0,0,0,.56),
+    0 0 24px rgba(196,0,0,.33) !important;
+}
+
+html.ahly-premium-theme-live #tabs > .tablinks:hover,
+html.ahly-premium-theme-live #tabs > .tablinks.active,
+html.scl-theme-ahly body.scl-theme-ahly #tabs > .tablinks:hover,
+html.scl-theme-ahly body.scl-theme-ahly #tabs > .tablinks.active {
+  color: #fff4d7 !important;
+  -webkit-text-fill-color: #fff4d7 !important;
+  border-color: rgba(255,227,150,.58) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.28),
+    inset 0 0 0 1px rgba(255,227,150,.20),
+    inset 0 -1px 0 rgba(214,0,0,.33),
+    0 15px 31px rgba(0,0,0,.62),
+    0 0 30px rgba(215,0,0,.40) !important;
+}
+
+html.ahly-premium-theme-live .navbar > .dropdown > .dropbtn,
+html.ahly-premium-theme-live .navbar > a,
+html.ahly-premium-theme-live .navbar > #singlelink,
+html.scl-theme-ahly body.scl-theme-ahly .navbar > .dropdown > .dropbtn,
+html.scl-theme-ahly body.scl-theme-ahly .navbar > a,
+html.scl-theme-ahly body.scl-theme-ahly .navbar > #singlelink {
+  color: #efd7a1 !important;
+  -webkit-text-fill-color: #efd7a1 !important;
+  background:
+    radial-gradient(150% 170% at 16% 0%, rgba(255,255,255,.15), rgba(255,255,255,0) 43%),
+    radial-gradient(116% 178% at 95% 0%, rgba(166,0,0,.24), rgba(166,0,0,0) 58%),
+    linear-gradient(180deg, rgba(18,18,22,.985) 0%, rgba(4,4,6,.985) 54%, rgba(58,0,0,.88) 100%) !important;
+  border-color: rgba(232,199,112,.36) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.95), 0 0 8px rgba(238,204,121,.17) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.15),
+    inset 0 0 0 1px rgba(232,199,112,.12),
+    inset 0 -1px 0 rgba(166,0,0,.24),
+    0 10px 22px rgba(0,0,0,.48),
+    0 0 18px rgba(184,0,0,.25) !important;
+}
+
+html.ahly-premium-theme-live .navbar > .dropdown:hover > .dropbtn,
+html.ahly-premium-theme-live .navbar > a:hover,
+html.ahly-premium-theme-live .navbar > #singlelink:hover,
+html.scl-theme-ahly body.scl-theme-ahly .navbar > .dropdown:hover > .dropbtn,
+html.scl-theme-ahly body.scl-theme-ahly .navbar > a:hover,
+html.scl-theme-ahly body.scl-theme-ahly .navbar > #singlelink:hover {
+  color: #fff3d2 !important;
+  -webkit-text-fill-color: #fff3d2 !important;
+  border-color: rgba(250,220,142,.49) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 0 0 1px rgba(250,220,142,.19),
+    inset 0 -1px 0 rgba(204,0,0,.30),
+    0 12px 27px rgba(0,0,0,.55),
+    0 0 25px rgba(220,0,0,.34) !important;
+}
