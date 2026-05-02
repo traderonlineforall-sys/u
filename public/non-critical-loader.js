@@ -21,7 +21,6 @@
     if (loadLayoutFixes._done) return;
     loadLayoutFixes._done = true;
     [
-      './layout-stabilizer.js',
       './safe-customization-layer.js'
     ].forEach(function(src){
       safeImport(src);
