@@ -3332,7 +3332,11 @@ function resetAllPackages() {
                         function openLink(event) {
                                 event.preventDefault(); //منع فتح الرابط الأصلي والذهاب إلى الرابط الذي يتم إنشاؤه بدلا من ذلك
                                 var link = event.target.href; //الحصول على رابط العنصر الذي تم النقر عليه
-                                var myVariable = document.getElementById("arabiccNumber").value; // إنشاء المتغير
+                                var myVariable = (document.getElementById("arabiccNumber").value || "").trim(); // إنشاء المتغير
+                                if (!myVariable) {
+                                        var adslForFbb = ((document.getElementById("arabicNumber") || {}).value || "").trim().replace(/\D/g, "");
+                                        if (adslForFbb) myVariable = "FBB" + adslForFbb;
+                                }
                                 // Special case: SR Technical - BLQ → BLQ CPE Problem (srTypeId=102040017)
                                 // This SR requires subsNumber to be populated before BMEWebToken to open correctly.
                                 // Replace the subsNumber parameter with the full FBB value and do NOT append it at the end.
@@ -3373,14 +3377,15 @@ function resetAllPackages() {
                                         link = link.replace(/([?&]subsNumber=)(&BMEWebToken=)/, "$1" + myVariable + "$2");
                                         myVariable = "";
                                 }
-                                // Special case: SR Sales - Refund - the amount to the card → Refund bank within SLA (srTypeId=103038004)
-// This SR requires subsNumber to be populated before BMEWebToken to open correctly.
-// Replace the subsNumber parameter with the full FBB value and do NOT append it at the end.
-if (link && link.indexOf("srTypeId=102060005") !== -1) {
-                                        link = link.replace(/([?&]subsNumber=)(&BMEWebToken=)/, "$1" + myVariable + "$2");
-                                        link = link.replace(/&subsNumber=$/, "");
+                                // Special case: FTTH - Slowness → Restart ONT Solved (srTypeId=102060005)
+                                // Keep the same dynamic FBB input logic, but populate the main subsNumber parameter
+                                // and remove the trailing empty fallback marker to avoid an empty duplicate.
+                                if (link && link.indexOf("srTypeId=102060005") !== -1) {
+                                        link = link.replace(/([?&]subsNumber=)[^&]*(?=&BMEWebToken=)/i, "$1" + myVariable);
+                                        link = link.replace(/&subsNumber=$/i, "");
                                         myVariable = "";
                                 }
+                                // Special case: SR Sales - Refund - the amount to the card → Refund bank within SLA (srTypeId=103038004)
 if (link && link.indexOf("srTypeId=103038004") !== -1) {
         link = link.replace(/([?&]subsNumber=)[^&]*/i, "$1" + myVariable);
         myVariable = "";
