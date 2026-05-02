@@ -31,6 +31,8 @@ const LS_URGENT_SHOW_COUNT_PREFIX = "sr_admin_urgent_show_count";
 const SS_ANNOUNCEMENT_CACHE = "sr_admin_announcement_cache_v1";
 const MAX_URGENT_SHOWS_PER_USER = 2;
 const URGENT_PREFIX = "URGENT_TICKER::";
+const SS_LAST_SPOKEN_URGENT_TEXT = "ua07LastSpokenUrgentText";
+const LS_URGENT_VOICE_MUTED = "ua07UrgentVoiceMuted";
 const ANNOUNCEMENT_REALTIME_CHANNEL = "sr_admin_announcements_realtime";
 // Do not cache admin announcements in-session; correctness is more important here.
 // Static assets are cached via _headers, but the urgent/admin message API must stay fresh.
@@ -279,7 +281,10 @@ async function fetchLatestAnnouncement(options = {}) {
 
 function ensureUrgentTicker(){
   let wrap = document.getElementById('SR_URGENT_TICKER');
-  if(wrap) return wrap;
+  if(wrap){
+    initUrgentVoiceAutoRead(wrap);
+    return wrap;
+  }
   wrap = document.createElement('div');
   wrap.id = 'SR_URGENT_TICKER';
   wrap.className = 'sr-urgent-ticker';
@@ -297,7 +302,109 @@ function ensureUrgentTicker(){
     </div>
   `;
   document.body.appendChild(wrap);
+  initUrgentVoiceAutoRead(wrap);
   return wrap;
+}
+
+let _urgentVoiceObserverReady = false;
+let _urgentVoiceIntersectionObserver = null;
+let _urgentVoiceUnlocked = false;
+let _pendingUrgentVoiceText = "";
+
+function isUrgentVoiceMuted(){
+  try { return localStorage.getItem(LS_URGENT_VOICE_MUTED) === "1"; } catch { return false; }
+}
+
+function getLastSpokenUrgentText(){
+  try { return String(sessionStorage.getItem(SS_LAST_SPOKEN_URGENT_TEXT) || ""); } catch { return ""; }
+}
+
+function setLastSpokenUrgentText(text){
+  try { sessionStorage.setItem(SS_LAST_SPOKEN_URGENT_TEXT, String(text || "")); } catch {}
+}
+
+function detectUrgentSpeechLang(text){
+  return /[\u0600-\u06FF]/.test(String(text || "")) ? "ar-EG" : "en-US";
+}
+
+function extractUrgentReadableText(wrap){
+  if(!wrap) return "";
+  const seg = wrap.querySelector(".sr-urgent-segment");
+  if(seg) return String(seg.textContent || "").trim();
+  const marquee = wrap.querySelector("#SR_URGENT_MARQUEE");
+  return String(marquee?.textContent || "").trim();
+}
+
+function isUrgentWrapDisplayed(wrap){
+  if(!wrap || !wrap.isConnected) return false;
+  const style = window.getComputedStyle(wrap);
+  if(style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) return false;
+  const rect = wrap.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0;
+}
+
+function maybeSpeakUrgentText(text){
+  const cleanText = String(text || "").trim();
+  if(!cleanText) return;
+  if(isUrgentVoiceMuted()) return;
+  if(cleanText === getLastSpokenUrgentText()) return;
+  if(!_urgentVoiceUnlocked){
+    _pendingUrgentVoiceText = cleanText;
+    return;
+  }
+  if(!window.speechSynthesis || typeof window.SpeechSynthesisUtterance !== "function") return;
+  try {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = detectUrgentSpeechLang(cleanText);
+    window.speechSynthesis.speak(utterance);
+    setLastSpokenUrgentText(cleanText);
+    _pendingUrgentVoiceText = "";
+  } catch {}
+}
+
+function evaluateUrgentVoiceRead(wrap){
+  if(!isUrgentWrapDisplayed(wrap)) return;
+  const text = extractUrgentReadableText(wrap);
+  if(!text) return;
+  maybeSpeakUrgentText(text);
+}
+
+function unlockUrgentVoiceOnce(){
+  if(_urgentVoiceUnlocked) return;
+  _urgentVoiceUnlocked = true;
+  if(_pendingUrgentVoiceText){
+    maybeSpeakUrgentText(_pendingUrgentVoiceText);
+  }
+}
+
+function initUrgentVoiceAutoRead(wrap){
+  if(!wrap || _urgentVoiceObserverReady) return;
+  _urgentVoiceObserverReady = true;
+
+  const unlockHandler = () => unlockUrgentVoiceOnce();
+  window.addEventListener("click", unlockHandler, { once: true, passive: true });
+  window.addEventListener("keydown", unlockHandler, { once: true });
+
+  const mutationObserver = new MutationObserver(() => evaluateUrgentVoiceRead(wrap));
+  mutationObserver.observe(wrap, {
+    attributes: true,
+    attributeFilter: ["style", "class"],
+    subtree: true,
+    childList: true,
+    characterData: true
+  });
+
+  if("IntersectionObserver" in window){
+    _urgentVoiceIntersectionObserver = new IntersectionObserver((entries)=>{
+      entries.forEach((entry)=>{
+        if(entry.target === wrap && entry.isIntersecting && entry.intersectionRatio > 0){
+          evaluateUrgentVoiceRead(wrap);
+        }
+      });
+    }, { threshold: 0.01 });
+    _urgentVoiceIntersectionObserver.observe(wrap);
+  }
 }
 
 function setUrgentText(text){
