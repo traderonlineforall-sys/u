@@ -49,6 +49,22 @@ npm run preview
 npm run deploy
 ```
 
+## Cloudflare Build settings (avoid automatic Bun install)
+
+If Cloudflare auto-detects Bun and runs `bun install`, override the build setup in the dashboard:
+
+1. **Environment variable**
+   - `SKIP_DEPENDENCY_INSTALL=true`
+
+2. **Build command**
+   - `npm install --legacy-peer-deps --no-audit --no-fund && npm run build`
+
+3. **Lockfile policy**
+   - Keep `package-lock.json` committed.
+   - Do **not** commit `bun.lock` / `bun.lockb` unless Bun is intentionally used.
+
+This forces dependency install/build through npm and prevents Bun workspace resolution errors during Cloudflare deploys.
+
 ## Important security note
 
 To reduce worker requests, static files such as `.js`, `.css`, fonts, and images are not passed through middleware. The actual HTML pages and API routes remain protected. If you need every static file to be private too, put the final domain behind Cloudflare Access, or restore full middleware coverage knowing it will increase request usage.
