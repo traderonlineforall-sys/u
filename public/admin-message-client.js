@@ -34,6 +34,7 @@ const URGENT_PREFIX = "URGENT_TICKER::";
 const SS_LAST_SPOKEN_URGENT_TEXT = "ua07LastSpokenUrgentText";
 const LS_URGENT_VOICE_MUTED = "ua07UrgentVoiceMuted";
 const URGENT_VOICE_DEBUG = false;
+const UA07_URGENT_TTS_SERVER_FALLBACK = false;
 const ANNOUNCEMENT_REALTIME_CHANNEL = "sr_admin_announcements_realtime";
 // Do not cache admin announcements in-session; correctness is more important here.
 // Static assets are cached via _headers, but the urgent/admin message API must stay fresh.
@@ -305,7 +306,7 @@ function ensureUrgentTicker(){
         <button type="button" id="SR_URGENT_VOICE_CHECK_AR" style="font-size:11px;line-height:1;padding:4px 6px;border-radius:8px;border:1px solid rgba(255,255,255,.45);background:rgba(0,0,0,.2);color:#fff;cursor:pointer;">فحص الصوت العربي</button>
       </div>
       <small id="SR_URGENT_VOICE_HINT" style="display:none;font-size:11px;line-height:1.2;color:#fff;opacity:.9;">اضغط 🔊 لتفعيل قراءة العاجل</small>
-      <small id="SR_URGENT_VOICE_STATUS" style="display:none;font-size:11px;line-height:1.2;color:#fff;opacity:.95;">الصوت العربي غير متاح على هذا الجهاز — فعّل صوت عربي من إعدادات Windows/Chrome</small>
+      <small id="SR_URGENT_VOICE_STATUS" style="display:none;font-size:11px;line-height:1.2;color:#fff;opacity:.95;">الصوت العربي غير متاح على هذا الجهاز</small>
       <button type="button" class="sr-urgent-ack" id="SR_URGENT_ACK">فهمت</button>
     </div>
   `;
@@ -399,8 +400,32 @@ function setUrgentVoiceStatus(message){
   const el = document.getElementById("SR_URGENT_VOICE_STATUS");
   if(!el) return;
   const msg = String(message || "").trim();
-  el.textContent = msg || "الصوت العربي غير متاح على هذا الجهاز — فعّل صوت عربي من إعدادات Windows/Chrome";
+  el.textContent = msg || "الصوت العربي غير متاح على هذا الجهاز";
   el.style.display = msg ? "block" : "none";
+}
+
+async function tryServerSideUrgentTtsFallback(text){
+  if(!UA07_URGENT_TTS_SERVER_FALLBACK) return false;
+  if(!text) return false;
+  try {
+    const res = await fetch("/api/urgent-tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: String(text || "") })
+    });
+    if(!res.ok) return false;
+    const type = String(res.headers.get("content-type") || "").toLowerCase();
+    if(!type.includes("audio/")) return false;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.onended = () => URL.revokeObjectURL(url);
+    audio.onerror = () => URL.revokeObjectURL(url);
+    await audio.play();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function speakUrgentChunks(fullText){
@@ -431,8 +456,8 @@ function speakUrgentChunks(fullText){
     utterance.volume = 1;
     const voice = getUrgentVoiceForLang(chunk.lang);
     if(chunk.lang.startsWith("ar") && !voice){
-      setUrgentVoiceStatus("الصوت العربي غير متاح على هذا الجهاز — فعّل صوت عربي من إعدادات Windows/Chrome");
-      speakNext();
+      setUrgentVoiceStatus("الصوت العربي غير متاح على هذا الجهاز");
+      tryServerSideUrgentTtsFallback(chunk.text).finally(() => speakNext());
       return;
     }
     if(voice){
@@ -591,7 +616,7 @@ function initUrgentVoiceAutoRead(wrap){
     checkArBtn.__bound = true;
     checkArBtn.addEventListener("click", () => {
       const ok = hasArabicVoiceAvailable();
-      setUrgentVoiceStatus(ok ? "الصوت العربي متاح ✅" : "الصوت العربي غير متاح على هذا الجهاز — فعّل صوت عربي من إعدادات Windows/Chrome");
+      setUrgentVoiceStatus(ok ? "الصوت العربي متاح ✅" : "الصوت العربي غير متاح على هذا الجهاز");
     });
   }
 }
