@@ -302,8 +302,10 @@ function ensureUrgentTicker(){
       <div id="SR_URGENT_VOICE_CTRL" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;">
         <button type="button" id="SR_URGENT_VOICE_BTN" style="font-size:11px;line-height:1;padding:4px 6px;border-radius:8px;border:1px solid rgba(255,255,255,.45);background:rgba(0,0,0,.2);color:#fff;cursor:pointer;">🔊 تفعيل قراءة العاجل</button>
         <button type="button" id="SR_URGENT_VOICE_MUTE" style="font-size:11px;line-height:1;padding:4px 6px;border-radius:8px;border:1px solid rgba(255,255,255,.45);background:rgba(0,0,0,.2);color:#fff;cursor:pointer;">🔈 كتم</button>
+        <button type="button" id="SR_URGENT_VOICE_CHECK_AR" style="font-size:11px;line-height:1;padding:4px 6px;border-radius:8px;border:1px solid rgba(255,255,255,.45);background:rgba(0,0,0,.2);color:#fff;cursor:pointer;">فحص الصوت العربي</button>
       </div>
       <small id="SR_URGENT_VOICE_HINT" style="display:none;font-size:11px;line-height:1.2;color:#fff;opacity:.9;">اضغط 🔊 لتفعيل قراءة العاجل</small>
+      <small id="SR_URGENT_VOICE_STATUS" style="display:none;font-size:11px;line-height:1.2;color:#fff;opacity:.95;">الصوت العربي غير متاح على هذا الجهاز — فعّل صوت عربي من إعدادات Windows/Chrome</small>
       <button type="button" class="sr-urgent-ack" id="SR_URGENT_ACK">فهمت</button>
     </div>
   `;
@@ -371,13 +373,29 @@ function getUrgentVoiceForLang(lang){
   if(normalized.startsWith("ar")){
     return voices.find(v => /^ar[-_]?eg/i.test(v.lang))
       || voices.find(v => /^ar/i.test(v.lang))
-      || voices.find(v => /arabic|ar-|ar_/i.test((v.name || "") + " " + (v.lang || "")))
+      || voices.find(v => /arabic|العربية|ar-|ar_|microsoft hoda|microsoft naayf|google العربية/i.test((v.name || "") + " " + (v.lang || "")))
       || null;
   }
   return voices.find(v => /^en[-_]?us/i.test(v.lang))
     || voices.find(v => /^en[-_]?gb/i.test(v.lang))
     || voices.find(v => /^en/i.test(v.lang))
     || null;
+}
+
+function hasArabicVoiceAvailable(){
+  const voices = window.speechSynthesis?.getVoices?.() || [];
+  return voices.some((v)=>{
+    const blob = ((v.name || "") + " " + (v.lang || "")).toLowerCase();
+    return /^ar/i.test(v.lang || "") || /arabic|العربية| ar |ar-|ar_|microsoft hoda|microsoft naayf|google العربية/.test(blob);
+  });
+}
+
+function setUrgentVoiceStatus(message){
+  const el = document.getElementById("SR_URGENT_VOICE_STATUS");
+  if(!el) return;
+  const msg = String(message || "").trim();
+  el.textContent = msg || "الصوت العربي غير متاح على هذا الجهاز — فعّل صوت عربي من إعدادات Windows/Chrome";
+  el.style.display = msg ? "block" : "none";
 }
 
 function speakUrgentChunks(fullText){
@@ -407,7 +425,16 @@ function speakUrgentChunks(fullText){
     utterance.rate = chunk.lang.startsWith("ar") ? 0.92 : 0.95;
     utterance.volume = 1;
     const voice = getUrgentVoiceForLang(chunk.lang);
-    if(voice) utterance.voice = voice;
+    if(chunk.lang.startsWith("ar") && !voice){
+      setUrgentVoiceStatus("الصوت العربي غير متاح على هذا الجهاز — فعّل صوت عربي من إعدادات Windows/Chrome");
+      speakNext();
+      return;
+    }
+    if(voice){
+      utterance.voice = voice;
+      if(chunk.lang.startsWith("ar")) utterance.lang = voice.lang || "ar-EG";
+    }
+    if(chunk.lang.startsWith("en")) setUrgentVoiceStatus("");
     utterance.onstart = () => {
       if(!started){
         started = true;
@@ -522,6 +549,7 @@ function initUrgentVoiceAutoRead(wrap){
   const voiceCtrl = wrap.querySelector("#SR_URGENT_VOICE_CTRL");
   const voiceBtn = wrap.querySelector("#SR_URGENT_VOICE_BTN");
   const muteBtn = wrap.querySelector("#SR_URGENT_VOICE_MUTE");
+  const checkArBtn = wrap.querySelector("#SR_URGENT_VOICE_CHECK_AR");
   const hint = wrap.querySelector("#SR_URGENT_VOICE_HINT");
   if(voiceCtrl) voiceCtrl.style.display = "none";
   if(hint) hint.style.display = "none";
@@ -551,6 +579,14 @@ function initUrgentVoiceAutoRead(wrap){
       if(window.speechSynthesis) window.speechSynthesis.cancel();
       maybeSpeakUrgentText(currentText);
       if(hint) hint.style.display = "none";
+    });
+  }
+
+  if(checkArBtn && !checkArBtn.__bound){
+    checkArBtn.__bound = true;
+    checkArBtn.addEventListener("click", () => {
+      const ok = hasArabicVoiceAvailable();
+      setUrgentVoiceStatus(ok ? "الصوت العربي متاح ✅" : "الصوت العربي غير متاح على هذا الجهاز — فعّل صوت عربي من إعدادات Windows/Chrome");
     });
   }
 }
