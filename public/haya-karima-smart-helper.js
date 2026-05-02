@@ -219,7 +219,7 @@
       } else if (rowHost) {
         rowHost.insertBefore(line, rowHost.querySelector('.mndo-header-logo-slot'));
       } else {
-        document.body.appendChild(line);
+        return helperState.dom || null;
       }
     }
 
