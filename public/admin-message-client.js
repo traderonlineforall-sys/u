@@ -31,6 +31,10 @@ const LS_URGENT_SHOW_COUNT_PREFIX = "sr_admin_urgent_show_count";
 const SS_ANNOUNCEMENT_CACHE = "sr_admin_announcement_cache_v1";
 const MAX_URGENT_SHOWS_PER_USER = 2;
 const URGENT_PREFIX = "URGENT_TICKER::";
+const SS_LAST_SPOKEN_URGENT_TEXT = "ua07LastSpokenUrgentText";
+const LS_URGENT_VOICE_MUTED = "ua07UrgentVoiceMuted";
+const URGENT_VOICE_DEBUG = false;
+const UA07_URGENT_TTS_SERVER_FALLBACK = false;
 const ANNOUNCEMENT_REALTIME_CHANNEL = "sr_admin_announcements_realtime";
 // Do not cache admin announcements in-session; correctness is more important here.
 // Static assets are cached via _headers, but the urgent/admin message API must stay fresh.
@@ -279,7 +283,10 @@ async function fetchLatestAnnouncement(options = {}) {
 
 function ensureUrgentTicker(){
   let wrap = document.getElementById('SR_URGENT_TICKER');
-  if(wrap) return wrap;
+  if(wrap){
+    initUrgentVoiceAutoRead(wrap);
+    return wrap;
+  }
   wrap = document.createElement('div');
   wrap.id = 'SR_URGENT_TICKER';
   wrap.className = 'sr-urgent-ticker';
@@ -293,11 +300,325 @@ function ensureUrgentTicker(){
       <div class="sr-urgent-track" aria-hidden="true">
         <div class="sr-urgent-marquee" id="SR_URGENT_MARQUEE"></div>
       </div>
+      <div id="SR_URGENT_VOICE_CTRL" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;">
+        <button type="button" id="SR_URGENT_VOICE_BTN" style="font-size:11px;line-height:1;padding:4px 6px;border-radius:8px;border:1px solid rgba(255,255,255,.45);background:rgba(0,0,0,.2);color:#fff;cursor:pointer;">🔊 تفعيل قراءة العاجل</button>
+        <button type="button" id="SR_URGENT_VOICE_MUTE" style="font-size:11px;line-height:1;padding:4px 6px;border-radius:8px;border:1px solid rgba(255,255,255,.45);background:rgba(0,0,0,.2);color:#fff;cursor:pointer;">🔈 كتم</button>
+        <button type="button" id="SR_URGENT_VOICE_CHECK_AR" style="font-size:11px;line-height:1;padding:4px 6px;border-radius:8px;border:1px solid rgba(255,255,255,.45);background:rgba(0,0,0,.2);color:#fff;cursor:pointer;">فحص الصوت العربي</button>
+      </div>
+      <small id="SR_URGENT_VOICE_HINT" style="display:none;font-size:11px;line-height:1.2;color:#fff;opacity:.9;">اضغط 🔊 لتفعيل قراءة العاجل</small>
+      <small id="SR_URGENT_VOICE_STATUS" style="display:none;font-size:11px;line-height:1.2;color:#fff;opacity:.95;">الصوت العربي غير متاح على هذا الجهاز</small>
       <button type="button" class="sr-urgent-ack" id="SR_URGENT_ACK">فهمت</button>
     </div>
   `;
   document.body.appendChild(wrap);
+  initUrgentVoiceAutoRead(wrap);
   return wrap;
+}
+
+let _urgentVoiceObserverReady = false;
+let _urgentVoiceIntersectionObserver = null;
+let _urgentVoiceUnlocked = false;
+let _pendingUrgentVoiceText = "";
+let _urgentVoiceStartedText = "";
+let _urgentVoiceVoicesReadyBound = false;
+
+function isUrgentVoiceMuted(){
+  try { return localStorage.getItem(LS_URGENT_VOICE_MUTED) === "1"; } catch { return false; }
+}
+function setUrgentVoiceMuted(next){
+  try {
+    if(next) localStorage.setItem(LS_URGENT_VOICE_MUTED, "1");
+    else localStorage.removeItem(LS_URGENT_VOICE_MUTED);
+  } catch {}
+}
+
+function getLastSpokenUrgentText(){
+  try { return String(sessionStorage.getItem(SS_LAST_SPOKEN_URGENT_TEXT) || ""); } catch { return ""; }
+}
+
+function setLastSpokenUrgentText(text){
+  try { sessionStorage.setItem(SS_LAST_SPOKEN_URGENT_TEXT, String(text || "")); } catch {}
+}
+
+function detectUrgentSpeechLang(text){
+  return /[\u0600-\u06FF]/.test(String(text || "")) ? "ar-EG" : "en-US";
+}
+
+function splitUrgentTextByLanguage(text){
+  const input = String(text || "").trim();
+  if(!input) return [];
+  const chunks = [];
+  let current = "";
+  let currentLang = "";
+  const detectCharLang = (ch) => {
+    if(/[\u0600-\u06FF]/.test(ch)) return "ar-EG";
+    if(/[A-Za-z]/.test(ch)) return "en-US";
+    return "";
+  };
+  for(const ch of input){
+    const lang = detectCharLang(ch);
+    if(!lang){ current += ch; continue; }
+    if(!currentLang){ currentLang = lang; current += ch; continue; }
+    if(lang === currentLang){ current += ch; continue; }
+    if(current.trim()) chunks.push({ text: current.trim(), lang: currentLang });
+    current = ch;
+    currentLang = lang;
+  }
+  if(current.trim()) chunks.push({ text: current.trim(), lang: currentLang || detectUrgentSpeechLang(input) });
+  return chunks;
+}
+
+function getUrgentVoiceForLang(lang){
+  const voices = window.speechSynthesis?.getVoices?.() || [];
+  const normalized = String(lang || "").toLowerCase();
+  if(normalized.startsWith("ar")){
+    return voices.find(v => /^ar[-_]?eg/i.test(String(v.lang || "")))
+      || voices.find(v => /^ar/i.test(String(v.lang || "")))
+      || voices.find(v => {
+        const name = String(v.name || "").toLowerCase();
+        const langCode = String(v.lang || "").toLowerCase();
+        return /arabic|العربية|microsoft hoda|microsoft naayf|google العربية/.test(name) || /^ar([-_]|$)/.test(langCode);
+      })
+      || null;
+  }
+  return voices.find(v => /^en[-_]?us/i.test(v.lang))
+    || voices.find(v => /^en[-_]?gb/i.test(v.lang))
+    || voices.find(v => /^en/i.test(v.lang))
+    || null;
+}
+
+function hasArabicVoiceAvailable(){
+  const voices = window.speechSynthesis?.getVoices?.() || [];
+  return voices.some((v)=>{
+    const name = String(v.name || "").toLowerCase();
+    const langCode = String(v.lang || "").toLowerCase();
+    return /^ar([-_]|$)/.test(langCode) || /arabic|العربية|microsoft hoda|microsoft naayf|google العربية/.test(name);
+  });
+}
+
+function setUrgentVoiceStatus(message){
+  const el = document.getElementById("SR_URGENT_VOICE_STATUS");
+  if(!el) return;
+  const msg = String(message || "").trim();
+  el.textContent = msg || "الصوت العربي غير متاح على هذا الجهاز";
+  el.style.display = msg ? "block" : "none";
+}
+
+async function tryServerSideUrgentTtsFallback(text){
+  if(!UA07_URGENT_TTS_SERVER_FALLBACK) return false;
+  if(!text) return false;
+  try {
+    const res = await fetch("/api/urgent-tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: String(text || "") })
+    });
+    if(!res.ok) return false;
+    const type = String(res.headers.get("content-type") || "").toLowerCase();
+    if(!type.includes("audio/")) return false;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.onended = () => URL.revokeObjectURL(url);
+    audio.onerror = () => URL.revokeObjectURL(url);
+    await audio.play();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function speakUrgentChunks(fullText){
+  const cleanText = String(fullText || "").trim();
+  const chunks = splitUrgentTextByLanguage(cleanText);
+  if(!chunks.length) return false;
+  const voices = window.speechSynthesis?.getVoices?.() || [];
+  if(!voices.length){
+    _pendingUrgentVoiceText = cleanText;
+    if(!_urgentVoiceVoicesReadyBound && window.speechSynthesis){
+      _urgentVoiceVoicesReadyBound = true;
+      window.speechSynthesis.addEventListener("voiceschanged", () => {
+        _urgentVoiceVoicesReadyBound = false;
+        if(_pendingUrgentVoiceText) maybeSpeakUrgentText(_pendingUrgentVoiceText);
+      }, { once: true });
+    }
+  }
+  window.speechSynthesis.cancel();
+  let index = 0;
+  let started = false;
+  const hint = document.getElementById("SR_URGENT_VOICE_HINT");
+  const speakNext = () => {
+    if(index >= chunks.length) return;
+    const chunk = chunks[index++];
+    const utterance = new SpeechSynthesisUtterance(chunk.text);
+    utterance.lang = chunk.lang;
+    utterance.rate = chunk.lang.startsWith("ar") ? 0.92 : 0.95;
+    utterance.volume = 1;
+    const voice = getUrgentVoiceForLang(chunk.lang);
+    if(chunk.lang.startsWith("ar") && !voice){
+      setUrgentVoiceStatus("الصوت العربي غير متاح على هذا الجهاز");
+      tryServerSideUrgentTtsFallback(chunk.text).finally(() => speakNext());
+      return;
+    }
+    if(voice){
+      utterance.voice = voice;
+      if(chunk.lang.startsWith("ar")) utterance.lang = voice.lang || "ar-EG";
+    }
+    if(chunk.lang.startsWith("en")) setUrgentVoiceStatus("");
+    utterance.onstart = () => {
+      if(!started){
+        started = true;
+        _urgentVoiceStartedText = cleanText;
+        setLastSpokenUrgentText(cleanText);
+        _pendingUrgentVoiceText = "";
+        if(hint) hint.style.display = "none";
+      }
+    };
+    utterance.onend = speakNext;
+    utterance.onerror = () => {
+      if(!started){
+        _pendingUrgentVoiceText = cleanText;
+        if(hint) hint.style.display = "block";
+      }
+      speakNext();
+    };
+    window.speechSynthesis.speak(utterance);
+  };
+  speakNext();
+  return true;
+}
+
+function extractUrgentReadableText(wrap){
+  if(!wrap) return "";
+  const seg = wrap.querySelector(".sr-urgent-segment");
+  if(seg) return String(seg.textContent || "").trim();
+  const marquee = wrap.querySelector("#SR_URGENT_MARQUEE");
+  return String(marquee?.textContent || "").trim();
+}
+
+function isUrgentWrapDisplayed(wrap){
+  if(!wrap || !wrap.isConnected) return false;
+  const style = window.getComputedStyle(wrap);
+  if(style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) return false;
+  const rect = wrap.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0;
+}
+
+function maybeSpeakUrgentText(text){
+  const cleanText = String(text || "").trim();
+  if(!cleanText) return;
+  if(isUrgentVoiceMuted()) return;
+  if(cleanText === getLastSpokenUrgentText()) return;
+  if(cleanText === _urgentVoiceStartedText) return;
+  if(navigator.userActivation && navigator.userActivation.hasBeenActive){
+    _urgentVoiceUnlocked = true;
+  }
+  if(!_urgentVoiceUnlocked){
+    _pendingUrgentVoiceText = cleanText;
+    if(URGENT_VOICE_DEBUG) console.log("[urgent-voice] pending until unlock");
+    return;
+  }
+  if(!window.speechSynthesis || typeof window.SpeechSynthesisUtterance !== "function") return;
+  try {
+    speakUrgentChunks(cleanText);
+  } catch {}
+}
+
+function evaluateUrgentVoiceRead(wrap){
+  if(!isUrgentWrapDisplayed(wrap)) return;
+  const text = extractUrgentReadableText(wrap);
+  if(!text) return;
+  maybeSpeakUrgentText(text);
+}
+
+function unlockUrgentVoiceOnce(){
+  if(_urgentVoiceUnlocked) return;
+  _urgentVoiceUnlocked = true;
+  if(URGENT_VOICE_DEBUG) console.log("[urgent-voice] unlocked");
+  if(_pendingUrgentVoiceText){
+    maybeSpeakUrgentText(_pendingUrgentVoiceText);
+  }
+}
+
+function initGlobalUrgentVoiceUnlock(){
+  if(navigator.userActivation && navigator.userActivation.hasBeenActive){
+    _urgentVoiceUnlocked = true;
+  }
+  const unlockHandler = () => unlockUrgentVoiceOnce();
+  window.addEventListener("pointerdown", unlockHandler, { once: true, passive: true });
+  window.addEventListener("click", unlockHandler, { once: true, passive: true });
+  window.addEventListener("keydown", unlockHandler, { once: true });
+}
+
+initGlobalUrgentVoiceUnlock();
+
+function initUrgentVoiceAutoRead(wrap){
+  if(!wrap || _urgentVoiceObserverReady) return;
+  _urgentVoiceObserverReady = true;
+
+  const mutationObserver = new MutationObserver(() => evaluateUrgentVoiceRead(wrap));
+  mutationObserver.observe(wrap, {
+    attributes: true,
+    attributeFilter: ["style", "class"],
+    subtree: true,
+    childList: true,
+    characterData: true
+  });
+
+  if("IntersectionObserver" in window){
+    _urgentVoiceIntersectionObserver = new IntersectionObserver((entries)=>{
+      entries.forEach((entry)=>{
+        if(entry.target === wrap && entry.isIntersecting && entry.intersectionRatio > 0){
+          evaluateUrgentVoiceRead(wrap);
+        }
+      });
+    }, { threshold: 0.01 });
+    _urgentVoiceIntersectionObserver.observe(wrap);
+  }
+
+  const voiceCtrl = wrap.querySelector("#SR_URGENT_VOICE_CTRL");
+  const voiceBtn = wrap.querySelector("#SR_URGENT_VOICE_BTN");
+  const muteBtn = wrap.querySelector("#SR_URGENT_VOICE_MUTE");
+  const checkArBtn = wrap.querySelector("#SR_URGENT_VOICE_CHECK_AR");
+  const hint = wrap.querySelector("#SR_URGENT_VOICE_HINT");
+  if(voiceCtrl) voiceCtrl.style.display = "none";
+  if(hint) hint.style.display = "none";
+
+  if(muteBtn && !muteBtn.__bound){
+    muteBtn.__bound = true;
+    const syncMuteText = () => { muteBtn.textContent = isUrgentVoiceMuted() ? "🔇 إلغاء الكتم" : "🔈 كتم"; };
+    syncMuteText();
+    muteBtn.addEventListener("click", () => {
+      const nextMuted = !isUrgentVoiceMuted();
+      setUrgentVoiceMuted(nextMuted);
+      syncMuteText();
+      if(nextMuted && window.speechSynthesis) window.speechSynthesis.cancel();
+      if(hint) hint.style.display = nextMuted ? "none" : hint.style.display;
+    });
+  }
+
+  if(voiceBtn && !voiceBtn.__bound){
+    voiceBtn.__bound = true;
+    voiceBtn.addEventListener("click", () => {
+      _urgentVoiceUnlocked = true;
+      const currentText = extractUrgentReadableText(wrap);
+      if(!currentText) return;
+      if(currentText !== _urgentVoiceStartedText){
+        _pendingUrgentVoiceText = "";
+      }
+      if(window.speechSynthesis) window.speechSynthesis.cancel();
+      maybeSpeakUrgentText(currentText);
+      if(hint) hint.style.display = "none";
+    });
+  }
+
+  if(checkArBtn && !checkArBtn.__bound){
+    checkArBtn.__bound = true;
+    checkArBtn.addEventListener("click", () => {
+      const ok = hasArabicVoiceAvailable();
+      setUrgentVoiceStatus(ok ? "الصوت العربي متاح ✅" : "الصوت العربي غير متاح على هذا الجهاز");
+    });
+  }
 }
 
 function setUrgentText(text){
@@ -328,6 +649,8 @@ function setUrgentText(text){
   const baseSecs = Math.max(18, Math.min(45, len * 0.35));
   const secs = Math.max(9, Math.min(22.5, baseSecs / 2));
   marquee.style.setProperty('--sr-urgent-duration', secs.toFixed(1) + 's');
+  setTimeout(() => evaluateUrgentVoiceRead(wrap), 0);
+  setTimeout(() => evaluateUrgentVoiceRead(wrap), 120);
 }
 
 function showUrgent(createdAtIso, text, annKey){
@@ -352,6 +675,12 @@ function showUrgent(createdAtIso, text, annKey){
 
   setUrgentText(text);
   wrap.style.display = 'block';
+  const voiceCtrl = wrap.querySelector("#SR_URGENT_VOICE_CTRL");
+  const hint = wrap.querySelector("#SR_URGENT_VOICE_HINT");
+  if(voiceCtrl) voiceCtrl.style.display = "inline-flex";
+  if(hint && !_urgentVoiceUnlocked) hint.style.display = "block";
+  setTimeout(() => evaluateUrgentVoiceRead(wrap), 0);
+  setTimeout(() => evaluateUrgentVoiceRead(wrap), 120);
 
   const ack = wrap.querySelector('#SR_URGENT_ACK');
   if(ack && !ack.__bound){
@@ -365,7 +694,13 @@ function showUrgent(createdAtIso, text, annKey){
 
 function hideUrgent(){
   const wrap = document.getElementById('SR_URGENT_TICKER');
-  if(wrap) wrap.style.display = 'none';
+  if(wrap){
+    wrap.style.display = 'none';
+    const voiceCtrl = wrap.querySelector("#SR_URGENT_VOICE_CTRL");
+    const hint = wrap.querySelector("#SR_URGENT_VOICE_HINT");
+    if(voiceCtrl) voiceCtrl.style.display = "none";
+    if(hint) hint.style.display = "none";
+  }
 }
 
 function ensureEnvelopeBadge() {
