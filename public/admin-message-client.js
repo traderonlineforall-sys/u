@@ -299,6 +299,11 @@ function ensureUrgentTicker(){
       <div class="sr-urgent-track" aria-hidden="true">
         <div class="sr-urgent-marquee" id="SR_URGENT_MARQUEE"></div>
       </div>
+      <div id="SR_URGENT_VOICE_CTRL" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;">
+        <button type="button" id="SR_URGENT_VOICE_BTN" style="font-size:11px;line-height:1;padding:4px 6px;border-radius:8px;border:1px solid rgba(255,255,255,.45);background:rgba(0,0,0,.2);color:#fff;cursor:pointer;">🔊 تفعيل قراءة العاجل</button>
+        <button type="button" id="SR_URGENT_VOICE_MUTE" style="font-size:11px;line-height:1;padding:4px 6px;border-radius:8px;border:1px solid rgba(255,255,255,.45);background:rgba(0,0,0,.2);color:#fff;cursor:pointer;">🔈 كتم</button>
+      </div>
+      <small id="SR_URGENT_VOICE_HINT" style="display:none;font-size:11px;line-height:1.2;color:#fff;opacity:.9;">اضغط 🔊 لتفعيل قراءة العاجل</small>
       <button type="button" class="sr-urgent-ack" id="SR_URGENT_ACK">فهمت</button>
     </div>
   `;
@@ -315,6 +320,12 @@ let _urgentVoiceStartedText = "";
 
 function isUrgentVoiceMuted(){
   try { return localStorage.getItem(LS_URGENT_VOICE_MUTED) === "1"; } catch { return false; }
+}
+function setUrgentVoiceMuted(next){
+  try {
+    if(next) localStorage.setItem(LS_URGENT_VOICE_MUTED, "1");
+    else localStorage.removeItem(LS_URGENT_VOICE_MUTED);
+  } catch {}
 }
 
 function getLastSpokenUrgentText(){
@@ -364,10 +375,13 @@ function maybeSpeakUrgentText(text){
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = detectUrgentSpeechLang(cleanText);
+    utterance.rate = 0.95;
     utterance.onstart = () => {
       _urgentVoiceStartedText = cleanText;
       setLastSpokenUrgentText(cleanText);
       _pendingUrgentVoiceText = "";
+      const hint = document.getElementById("SR_URGENT_VOICE_HINT");
+      if(hint) hint.style.display = "none";
       if(URGENT_VOICE_DEBUG) console.log("[urgent-voice] started");
     };
     utterance.onerror = (ev) => {
@@ -375,6 +389,8 @@ function maybeSpeakUrgentText(text){
       if(_urgentVoiceStartedText !== cleanText){
         _pendingUrgentVoiceText = cleanText;
       }
+      const hint = document.getElementById("SR_URGENT_VOICE_HINT");
+      if(hint) hint.style.display = "block";
     };
     window.speechSynthesis.speak(utterance);
   } catch {}
@@ -430,6 +446,41 @@ function initUrgentVoiceAutoRead(wrap){
       });
     }, { threshold: 0.01 });
     _urgentVoiceIntersectionObserver.observe(wrap);
+  }
+
+  const voiceCtrl = wrap.querySelector("#SR_URGENT_VOICE_CTRL");
+  const voiceBtn = wrap.querySelector("#SR_URGENT_VOICE_BTN");
+  const muteBtn = wrap.querySelector("#SR_URGENT_VOICE_MUTE");
+  const hint = wrap.querySelector("#SR_URGENT_VOICE_HINT");
+  if(voiceCtrl) voiceCtrl.style.display = "none";
+  if(hint) hint.style.display = "none";
+
+  if(muteBtn && !muteBtn.__bound){
+    muteBtn.__bound = true;
+    const syncMuteText = () => { muteBtn.textContent = isUrgentVoiceMuted() ? "🔇 إلغاء الكتم" : "🔈 كتم"; };
+    syncMuteText();
+    muteBtn.addEventListener("click", () => {
+      const nextMuted = !isUrgentVoiceMuted();
+      setUrgentVoiceMuted(nextMuted);
+      syncMuteText();
+      if(nextMuted && window.speechSynthesis) window.speechSynthesis.cancel();
+      if(hint) hint.style.display = nextMuted ? "none" : hint.style.display;
+    });
+  }
+
+  if(voiceBtn && !voiceBtn.__bound){
+    voiceBtn.__bound = true;
+    voiceBtn.addEventListener("click", () => {
+      _urgentVoiceUnlocked = true;
+      const currentText = extractUrgentReadableText(wrap);
+      if(!currentText) return;
+      if(currentText !== _urgentVoiceStartedText){
+        _pendingUrgentVoiceText = "";
+      }
+      if(window.speechSynthesis) window.speechSynthesis.cancel();
+      maybeSpeakUrgentText(currentText);
+      if(hint) hint.style.display = "none";
+    });
   }
 }
 
@@ -487,6 +538,10 @@ function showUrgent(createdAtIso, text, annKey){
 
   setUrgentText(text);
   wrap.style.display = 'block';
+  const voiceCtrl = wrap.querySelector("#SR_URGENT_VOICE_CTRL");
+  const hint = wrap.querySelector("#SR_URGENT_VOICE_HINT");
+  if(voiceCtrl) voiceCtrl.style.display = "inline-flex";
+  if(hint && !_urgentVoiceUnlocked) hint.style.display = "block";
   setTimeout(() => evaluateUrgentVoiceRead(wrap), 0);
   setTimeout(() => evaluateUrgentVoiceRead(wrap), 120);
 
@@ -502,7 +557,13 @@ function showUrgent(createdAtIso, text, annKey){
 
 function hideUrgent(){
   const wrap = document.getElementById('SR_URGENT_TICKER');
-  if(wrap) wrap.style.display = 'none';
+  if(wrap){
+    wrap.style.display = 'none';
+    const voiceCtrl = wrap.querySelector("#SR_URGENT_VOICE_CTRL");
+    const hint = wrap.querySelector("#SR_URGENT_VOICE_HINT");
+    if(voiceCtrl) voiceCtrl.style.display = "none";
+    if(hint) hint.style.display = "none";
+  }
 }
 
 function ensureEnvelopeBadge() {
