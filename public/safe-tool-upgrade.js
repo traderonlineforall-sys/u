@@ -356,11 +356,11 @@
       setTimeout(function () {
         callOpenCity(active.button, active.city);
         nudgeLayout();
-        showToast("تم مسح الرقم وإعادة ضبط الواجهة");
+        showToast("تم مسح الرقم");
       }, 60);
     } else {
       nudgeLayout();
-      showToast("تم مسح الرقم وإعادة ضبط الواجهة");
+      showToast("تم مسح الرقم");
     }
   }
 
