@@ -3378,6 +3378,7 @@ function resetAllPackages() {
 // Replace the subsNumber parameter with the full FBB value and do NOT append it at the end.
 if (link && link.indexOf("srTypeId=102060005") !== -1) {
                                         link = link.replace(/([?&]subsNumber=)(&BMEWebToken=)/, "$1" + myVariable + "$2");
+                                        link = link.replace(/&subsNumber=$/, "");
                                         myVariable = "";
                                 }
 if (link && link.indexOf("srTypeId=103038004") !== -1) {
