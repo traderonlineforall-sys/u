@@ -317,6 +317,7 @@ let _urgentVoiceIntersectionObserver = null;
 let _urgentVoiceUnlocked = false;
 let _pendingUrgentVoiceText = "";
 let _urgentVoiceStartedText = "";
+let _urgentVoiceVoicesReadyBound = false;
 
 function isUrgentVoiceMuted(){
   try { return localStorage.getItem(LS_URGENT_VOICE_MUTED) === "1"; } catch { return false; }
@@ -338,6 +339,96 @@ function setLastSpokenUrgentText(text){
 
 function detectUrgentSpeechLang(text){
   return /[\u0600-\u06FF]/.test(String(text || "")) ? "ar-EG" : "en-US";
+}
+
+function splitUrgentTextByLanguage(text){
+  const input = String(text || "").trim();
+  if(!input) return [];
+  const chunks = [];
+  let current = "";
+  let currentLang = "";
+  const detectCharLang = (ch) => {
+    if(/[\u0600-\u06FF]/.test(ch)) return "ar-EG";
+    if(/[A-Za-z]/.test(ch)) return "en-US";
+    return "";
+  };
+  for(const ch of input){
+    const lang = detectCharLang(ch);
+    if(!lang){ current += ch; continue; }
+    if(!currentLang){ currentLang = lang; current += ch; continue; }
+    if(lang === currentLang){ current += ch; continue; }
+    if(current.trim()) chunks.push({ text: current.trim(), lang: currentLang });
+    current = ch;
+    currentLang = lang;
+  }
+  if(current.trim()) chunks.push({ text: current.trim(), lang: currentLang || detectUrgentSpeechLang(input) });
+  return chunks;
+}
+
+function getUrgentVoiceForLang(lang){
+  const voices = window.speechSynthesis?.getVoices?.() || [];
+  const normalized = String(lang || "").toLowerCase();
+  if(normalized.startsWith("ar")){
+    return voices.find(v => /^ar[-_]?eg/i.test(v.lang))
+      || voices.find(v => /^ar/i.test(v.lang))
+      || voices.find(v => /arabic|ar-|ar_/i.test((v.name || "") + " " + (v.lang || "")))
+      || null;
+  }
+  return voices.find(v => /^en[-_]?us/i.test(v.lang))
+    || voices.find(v => /^en[-_]?gb/i.test(v.lang))
+    || voices.find(v => /^en/i.test(v.lang))
+    || null;
+}
+
+function speakUrgentChunks(fullText){
+  const cleanText = String(fullText || "").trim();
+  const chunks = splitUrgentTextByLanguage(cleanText);
+  if(!chunks.length) return false;
+  const voices = window.speechSynthesis?.getVoices?.() || [];
+  if(!voices.length){
+    _pendingUrgentVoiceText = cleanText;
+    if(!_urgentVoiceVoicesReadyBound && window.speechSynthesis){
+      _urgentVoiceVoicesReadyBound = true;
+      window.speechSynthesis.addEventListener("voiceschanged", () => {
+        _urgentVoiceVoicesReadyBound = false;
+        if(_pendingUrgentVoiceText) maybeSpeakUrgentText(_pendingUrgentVoiceText);
+      }, { once: true });
+    }
+  }
+  window.speechSynthesis.cancel();
+  let index = 0;
+  let started = false;
+  const hint = document.getElementById("SR_URGENT_VOICE_HINT");
+  const speakNext = () => {
+    if(index >= chunks.length) return;
+    const chunk = chunks[index++];
+    const utterance = new SpeechSynthesisUtterance(chunk.text);
+    utterance.lang = chunk.lang;
+    utterance.rate = chunk.lang.startsWith("ar") ? 0.92 : 0.95;
+    utterance.volume = 1;
+    const voice = getUrgentVoiceForLang(chunk.lang);
+    if(voice) utterance.voice = voice;
+    utterance.onstart = () => {
+      if(!started){
+        started = true;
+        _urgentVoiceStartedText = cleanText;
+        setLastSpokenUrgentText(cleanText);
+        _pendingUrgentVoiceText = "";
+        if(hint) hint.style.display = "none";
+      }
+    };
+    utterance.onend = speakNext;
+    utterance.onerror = () => {
+      if(!started){
+        _pendingUrgentVoiceText = cleanText;
+        if(hint) hint.style.display = "block";
+      }
+      speakNext();
+    };
+    window.speechSynthesis.speak(utterance);
+  };
+  speakNext();
+  return true;
 }
 
 function extractUrgentReadableText(wrap){
@@ -372,27 +463,7 @@ function maybeSpeakUrgentText(text){
   }
   if(!window.speechSynthesis || typeof window.SpeechSynthesisUtterance !== "function") return;
   try {
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = detectUrgentSpeechLang(cleanText);
-    utterance.rate = 0.95;
-    utterance.onstart = () => {
-      _urgentVoiceStartedText = cleanText;
-      setLastSpokenUrgentText(cleanText);
-      _pendingUrgentVoiceText = "";
-      const hint = document.getElementById("SR_URGENT_VOICE_HINT");
-      if(hint) hint.style.display = "none";
-      if(URGENT_VOICE_DEBUG) console.log("[urgent-voice] started");
-    };
-    utterance.onerror = (ev) => {
-      if(URGENT_VOICE_DEBUG) console.log("[urgent-voice] error", ev?.error || "unknown");
-      if(_urgentVoiceStartedText !== cleanText){
-        _pendingUrgentVoiceText = cleanText;
-      }
-      const hint = document.getElementById("SR_URGENT_VOICE_HINT");
-      if(hint) hint.style.display = "block";
-    };
-    window.speechSynthesis.speak(utterance);
+    speakUrgentChunks(cleanText);
   } catch {}
 }
 
