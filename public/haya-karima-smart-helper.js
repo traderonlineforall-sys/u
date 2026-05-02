@@ -81,9 +81,9 @@
     var style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = [
-      '.mndo-search-logo-row #' + SEARCH_HK_COL_ID + '{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;flex:0 0 400px;max-width:400px;min-width:400px;}',
-      '.mndo-search-logo-row #' + SEARCH_HK_COL_ID + ' .search-container{margin:7px 0 0 0;flex:0 0 auto;max-width:400px;min-width:400px;}',
-      '.mndo-search-logo-row #' + LINE_ID + '{display:none;position:static;min-width:300px;max-width:400px;font-size:12px;text-align:center;z-index:2;pointer-events:auto;user-select:text;color:rgba(255,255,255,.88);text-shadow:0 1px 2px rgba(0,0,0,.55);white-space:normal;overflow:visible;isolation:isolate;flex:0 0 auto;width:100%;margin:8px 0 0 0;}',
+      '.mndo-search-logo-row #' + SEARCH_HK_COL_ID + '{position:relative;display:block;flex:0 0 400px;max-width:400px;min-width:400px;height:44px;min-height:44px;overflow:visible;}',
+      '.mndo-search-logo-row #' + SEARCH_HK_COL_ID + ' .search-container{position:relative;z-index:2;margin:7px 0 0 0;max-width:400px;min-width:400px;}',
+      '.mndo-search-logo-row #' + LINE_ID + '{display:none;position:absolute;left:0;right:0;top:calc(100% + 2px);min-width:300px;max-width:400px;font-size:12px;text-align:center;z-index:1;pointer-events:auto;user-select:text;color:rgba(255,255,255,.88);text-shadow:0 1px 2px rgba(0,0,0,.55);white-space:normal;overflow:visible;isolation:isolate;width:100%;margin:0;}',
       '#' + LINE_ID + '.is-visible{display:block;}',
       '#' + LINE_ID + ',#' + LINE_ID + ' *{pointer-events:auto;}',
       '#' + LINE_ID + ' .hk-shell{display:flex;flex-direction:column;align-items:center;gap:5px;width:100%;}',

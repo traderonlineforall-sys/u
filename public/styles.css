@@ -1316,9 +1316,8 @@ html, body { overflow-x: hidden !important; }
     width: 100%;
     padding-left: 493px;
     box-sizing: border-box;
-    min-height: 44px;
-    height: auto;
-    max-height: none;
+    height: 44px;
+    max-height: 44px;
     margin-top: 0;
     overflow: visible;
   }
