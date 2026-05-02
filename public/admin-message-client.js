@@ -347,6 +347,39 @@ function getUrgentVoiceForLang(lang) {
   return voices.find(v => /^en/i.test(v.lang || "")) || null;
 }
 
+function isServerArabicTtsFallbackEnabled() {
+  try {
+    return window.__UA07_URGENT_TTS_SERVER_FALLBACK === true;
+  } catch {
+    return false;
+  }
+}
+
+async function tryServerArabicUrgentTts(text) {
+  const res = await fetch("/api/urgent-tts", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ text: String(text || "") })
+  });
+  if (!res.ok) throw new Error("urgent-tts-failed");
+  const ct = String(res.headers.get("content-type") || "").toLowerCase();
+  if (!ct.includes("audio/mpeg") && !ct.includes("audio/wav")) throw new Error("urgent-tts-invalid-content-type");
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const audio = new Audio(url);
+  return new Promise((resolve, reject) => {
+    audio.onended = () => {
+      URL.revokeObjectURL(url);
+      resolve();
+    };
+    audio.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("urgent-tts-audio-error"));
+    };
+    audio.play().catch((e) => reject(e));
+  });
+}
+
 function getVisibleUrgentText() {
   const wrap = document.getElementById('SR_URGENT_TICKER');
   if (!wrap || wrap.style.display !== 'block') return "";
@@ -355,7 +388,7 @@ function getVisibleUrgentText() {
   return String(firstSegment?.textContent || marquee?.textContent || '').replace(/\s+/g, ' ').trim();
 }
 
-function speakUrgentNow(rawText){
+async function speakUrgentNow(rawText){
   const voiceStatus = document.getElementById('SR_URGENT_VOICE_STATUS');
   const text = String(rawText || "").replace(/\s+/g, " ").trim();
   if(!text || text === lastStartedUrgentText) return;
@@ -365,6 +398,18 @@ function speakUrgentNow(rawText){
   const lang = isArabic ? "ar-EG" : "en-US";
   const voice = getUrgentVoiceForLang(lang);
   if (isArabic && !voice) {
+    if (isServerArabicTtsFallbackEnabled()) {
+      try {
+        if (voiceStatus) voiceStatus.textContent = "جاري القراءة";
+        await tryServerArabicUrgentTts(text);
+        lastStartedUrgentText = text;
+        if (voiceStatus) voiceStatus.textContent = "انتهت القراءة";
+        return;
+      } catch {
+        if (voiceStatus) voiceStatus.textContent = "الصوت العربي غير متاح حاليًا";
+        return;
+      }
+    }
     if (voiceStatus) voiceStatus.textContent = ARABIC_VOICE_MISSING_MESSAGE;
     return;
   }
