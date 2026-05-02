@@ -1,33 +1,18 @@
 // Layout stabilizer
 //
 // Purpose:
-// - Preserve the original "reset-like" layout settling effect without clearing
-//   important inputs.
-// - Keep the UA07 logo and HK smart helper aligned automatically if they drift.
-// - Avoid heavy work by throttling checks and never overlapping sync bursts.
-// - Prefer direct pinning back to the reset-default baseline before any reset-like sync.
+// - Preserve reset-like layout settling without clearing important inputs.
+// - Protect live Arabic number fields from accidental overwrite during sync bursts.
+//
+// Note:
+// - Logo/header stabilization was removed because UA07 logo/envelope are now structural HTML.
 
 (function(){
-  var VALUE_IDS = ["arabicNumber", "arabiccNumber", "searchInput"];
-  var DRIFT_THRESHOLD_PX = 10;
-  var MONITOR_INTERVAL_MS = 1000;
-  var BASELINE_CAPTURE_DELAY_MS = 1350;
+  var VALUE_IDS = ["arabicNumber", "arabiccNumber"];
   var USER_EDIT_GRACE_MS = 2600;
 
   var syncInFlight = false;
-  var baselineTimer = 0;
-  var monitorTimer = 0;
-  var rafToken = 0;
-  var lastAutoFixAt = 0;
-  var lastSyncAt = 0;
-  var trackedObservers = { logo: null, hk: null };
-  var trackedElements = { logo: null, hk: null };
   var lastUserEditAt = Object.create(null);
-
-  var baselines = {
-    logo: null,
-    hk: null
-  };
 
   function markRecentUserEdit(id) {
     if (!id) return;
@@ -86,154 +71,11 @@
     try { window.dispatchEvent(new Event("scroll")); } catch (_) {}
   }
 
-  function isVisible(el) {
-    if (!el) return false;
-    try {
-      var cs = window.getComputedStyle(el);
-      if (!cs || cs.display === "none" || cs.visibility === "hidden") return false;
-      var r = el.getBoundingClientRect();
-      return !!r && r.width > 0 && r.height > 0;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  function findLogo() {
-    return document.getElementById("MNDO_UA07_LOGO3") ||
-           document.getElementById("UA07_LUX_LOGO_BETWEEN") ||
-           document.getElementById("MNDO_UA07_LOGO") ||
-           null;
-  }
-
-  function findHk() {
-    return document.getElementById("hkSmartFloatingLine") || null;
-  }
-
-  function getStyleSnapshot(el) {
-    if (!el || !el.style) return null;
-    return {
-      position: el.style.position || "",
-      top: el.style.top || "",
-      left: el.style.left || "",
-      right: el.style.right || "",
-      bottom: el.style.bottom || "",
-      width: el.style.width || "",
-      transform: el.style.transform || ""
-    };
-  }
-
-  function measureElement(el) {
-    if (!isVisible(el)) return null;
-    try {
-      var rect = el.getBoundingClientRect();
-      var cs = window.getComputedStyle(el);
-      var mode = (cs.position === "fixed" || cs.position === "sticky") ? "viewport" : "document";
-      var top = mode === "viewport" ? rect.top : rect.top + window.scrollY;
-      var left = mode === "viewport" ? rect.left : rect.left + window.scrollX;
-      return {
-        mode: mode,
-        top: Math.round(top),
-        left: Math.round(left),
-        width: Math.round(rect.width),
-        height: Math.round(rect.height)
-      };
-    } catch (_) {
-      return null;
-    }
-  }
-
-  function captureState(el) {
-    var measure = measureElement(el);
-    if (!measure) return null;
-    return {
-      measure: measure,
-      style: getStyleSnapshot(el)
-    };
-  }
-
-  function hasMeaningfulDrift(base, current) {
-    if (!base || !current) return false;
-    if (base.mode !== current.mode) return true;
-    if (Math.abs(base.top - current.top) > DRIFT_THRESHOLD_PX) return true;
-    if (Math.abs(base.left - current.left) > DRIFT_THRESHOLD_PX) return true;
-    return false;
-  }
-
-  function optimizeTrackedElement(el) {
-    if (!el || !el.style) return;
-    try {
-      el.style.willChange = "top, left, transform";
-      if (!el.style.backfaceVisibility) el.style.backfaceVisibility = "hidden";
-      if (!el.style.transformOrigin) el.style.transformOrigin = "center top";
-    } catch (_) {}
-  }
-
-  function applyBaselineStyle(el, baseline) {
-    if (!el || !baseline || !baseline.style || !el.style) return false;
-    var s = baseline.style;
-    try {
-      if (s.position) el.style.position = s.position;
-      if (s.top) el.style.top = s.top;
-      if (s.left) el.style.left = s.left;
-      if (s.right) el.style.right = s.right;
-      if (s.bottom) el.style.bottom = s.bottom;
-      if (s.width) el.style.width = s.width;
-      if (s.transform) el.style.transform = s.transform;
-      optimizeTrackedElement(el);
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  function attachTrackedObserver(key, el) {
-    if (!el || !window.MutationObserver) return;
-    if (trackedObservers[key] && trackedElements[key] === el) return;
-    if (trackedObservers[key]) {
-      try { trackedObservers[key].disconnect(); } catch (_) {}
-      trackedObservers[key] = null;
-    }
-    trackedElements[key] = el;
-    try {
-      var observer = new MutationObserver(function(){
-        scheduleDriftCheck();
-      });
-      observer.observe(el, { attributes: true, attributeFilter: ["style", "class"] });
-      trackedObservers[key] = observer;
-    } catch (_) {}
-  }
-
-  function ensureTrackedObservers() {
-    attachTrackedObserver("logo", findLogo());
-    attachTrackedObserver("hk", findHk());
-  }
-
-  function refreshBaselines() {
-    var logo = findLogo();
-    var hk = findHk();
-    optimizeTrackedElement(logo);
-    optimizeTrackedElement(hk);
-    ensureTrackedObservers();
-    var logoState = captureState(logo);
-    var hkState = captureState(hk);
-    if (logoState) baselines.logo = logoState;
-    if (hkState) baselines.hk = hkState;
-  }
-
-  function scheduleBaselineCapture() {
-    clearTimeout(baselineTimer);
-    baselineTimer = setTimeout(refreshBaselines, BASELINE_CAPTURE_DELAY_MS);
-  }
-
   function safeLayoutSync(options) {
     options = options || {};
-    if (syncInFlight) {
-      scheduleBaselineCapture();
-      return;
-    }
+    if (syncInFlight) return;
 
     syncInFlight = true;
-    lastSyncAt = Date.now();
 
     var snap = snapshotValues();
 
@@ -253,86 +95,8 @@
       restoreValues(snap, options);
       kickResize();
       syncInFlight = false;
-      scheduleBaselineCapture();
     }, 1200);
   }
-
-  function currentDriftState() {
-    var logoCurrent = measureElement(findLogo());
-    var hkCurrent = measureElement(findHk());
-
-    return {
-      logoCurrent: logoCurrent,
-      hkCurrent: hkCurrent,
-      logoDrifted: !!(baselines.logo && logoCurrent && hasMeaningfulDrift(baselines.logo.measure, logoCurrent)),
-      hkDrifted: !!(baselines.hk && hkCurrent && hasMeaningfulDrift(baselines.hk.measure, hkCurrent))
-    };
-  }
-
-  function tryDirectPin() {
-    var pinned = false;
-    var logo = findLogo();
-    var hk = findHk();
-    var state = currentDriftState();
-
-    if (state.logoDrifted && logo && baselines.logo) {
-      pinned = applyBaselineStyle(logo, baselines.logo) || pinned;
-    }
-    if (state.hkDrifted && hk && baselines.hk) {
-      pinned = applyBaselineStyle(hk, baselines.hk) || pinned;
-    }
-
-    if (pinned) {
-      kickResize();
-      kickScroll();
-    }
-
-    return pinned;
-  }
-
-  function runAutoRealignIfNeeded() {
-    if (document.hidden) return;
-
-    var now = Date.now();
-    if (now - lastAutoFixAt < 1500) return;
-    if (now - lastSyncAt < 700) return;
-
-    var state = currentDriftState();
-    if (!state.logoDrifted && !state.hkDrifted) return;
-
-    lastAutoFixAt = now;
-
-    if (tryDirectPin()) {
-      setTimeout(function(){
-        var postPin = currentDriftState();
-        if (postPin.logoDrifted || postPin.hkDrifted) {
-          safeLayoutSync({ automatic: true });
-        } else {
-          scheduleBaselineCapture();
-        }
-      }, 120);
-      return;
-    }
-
-    safeLayoutSync({ automatic: true });
-  }
-
-  function scheduleDriftCheck() {
-    if (rafToken) return;
-    rafToken = window.requestAnimationFrame(function(){
-      rafToken = 0;
-      runAutoRealignIfNeeded();
-    });
-  }
-
-  function armAutoMonitor() {
-    if (monitorTimer) clearInterval(monitorTimer);
-    monitorTimer = setInterval(function(){
-      ensureTrackedObservers();
-      if (!document.hidden) scheduleDriftCheck();
-    }, MONITOR_INTERVAL_MS);
-  }
-
 
   function bindLiveEditProtection() {
     ["input", "change", "paste", "keyup", "focusin"].forEach(function(eventName){
@@ -375,9 +139,6 @@
     }, 0);
   });
 
-  window.addEventListener("resize", scheduleDriftCheck, { passive: true });
-  window.addEventListener("scroll", scheduleDriftCheck, { passive: true });
-
   document.addEventListener("visibilitychange", function(){
     if (!document.hidden) {
       setTimeout(function(){
@@ -388,5 +149,4 @@
 
   bindLiveEditProtection();
   bindManualResetBaselineRefresh();
-  armAutoMonitor();
 })();
