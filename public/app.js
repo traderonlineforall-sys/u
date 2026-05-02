@@ -3376,13 +3376,17 @@ function resetAllPackages() {
                                 // Special case: SR Sales - Refund - the amount to the card → Refund bank within SLA (srTypeId=103038004)
 // This SR requires subsNumber to be populated before BMEWebToken to open correctly.
 // Replace the subsNumber parameter with the full FBB value and do NOT append it at the end.
+if (link && link.indexOf("srTypeId=102060005") !== -1) {
+                                        link = link.replace(/([?&]subsNumber=)(&BMEWebToken=)/, "$1" + myVariable + "$2");
+                                        myVariable = "";
+                                }
 if (link && link.indexOf("srTypeId=103038004") !== -1) {
         link = link.replace(/([?&]subsNumber=)[^&]*/i, "$1" + myVariable);
         myVariable = "";
 }
 if (link && link.indexOf("srTypeId=100047001") !== -1) {
                                         var fbbAdslNumber = (document.getElementById("arabicNumber").value || "").trim();
-                                        var fbbServiceContent = "FBB Num (" + fbbAdslNumber + ") Accepted (3) GB for (2) days related tiket id (xxx) on mobile (xxx) ";
+                                        var fbbServiceContent = "FBB Num (" + fbbAdslNumber + ") Accepted (3) GB for (2) days related tts - outage - ir  id (xxx) on mobile (xxx) ";
                                         link = link.replace(/([?&]serviceContent=)[^&]*/i, "$1" + encodeURIComponent(fbbServiceContent));
                                 }
                                 link += myVariable; // إضافة المتغير إلى الرابط
