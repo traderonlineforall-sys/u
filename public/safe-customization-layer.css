@@ -36,6 +36,13 @@
     /* Future search-present safe injections go here. */
   }
 
+  html.scl-has-search body.scl-has-search .mndo-search-logo-row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    overflow: visible;
+  }
+
   html.scl-has-search body.scl-has-search .mndo-search-hk-anchor {
     position: relative;
     flex: 0 0 400px;
@@ -59,8 +66,8 @@
 
   html.scl-has-search body.scl-has-search .mndo-search-hk-anchor #hkSmartFloatingLine {
     position: absolute !important;
-    left: 0 !important;
-    top: calc(34px + 1px) !important;
+    left: 5% !important;
+    top: 31px !important;
     margin: 0 !important;
     z-index: 3 !important;
     transform: none !important;

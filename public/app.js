@@ -3377,14 +3377,6 @@ function resetAllPackages() {
                                         link = link.replace(/([?&]subsNumber=)(&BMEWebToken=)/, "$1" + myVariable + "$2");
                                         myVariable = "";
                                 }
-                                // Special case: FTTH - Slowness → Restart ONT Solved (srTypeId=102060005)
-                                // Keep the same dynamic FBB input logic, but populate the main subsNumber parameter
-                                // and remove the trailing empty fallback marker to avoid an empty duplicate.
-                                if (link && link.indexOf("srTypeId=102060005") !== -1) {
-                                        link = link.replace(/([?&]subsNumber=)[^&]*(?=&BMEWebToken=)/i, "$1" + myVariable);
-                                        link = link.replace(/&subsNumber=$/i, "");
-                                        myVariable = "";
-                                }
                                 // Special case: SR Sales - Refund - the amount to the card → Refund bank within SLA (srTypeId=103038004)
 if (link && link.indexOf("srTypeId=103038004") !== -1) {
         link = link.replace(/([?&]subsNumber=)[^&]*/i, "$1" + myVariable);

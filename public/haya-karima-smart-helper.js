@@ -192,18 +192,8 @@
 
   function ensureDom() {
     ensureStyle();
-    var searchRow = document.querySelector('.mndo-search-logo-row');
-    var searchContainer = document.querySelector('.mndo-search-logo-row .search-container') || document.querySelector('.search-container');
-    var anchor = document.querySelector('.mndo-search-hk-anchor');
-    if (!anchor && searchRow && searchContainer) {
-      anchor = document.createElement('div');
-      anchor.className = 'mndo-search-hk-anchor';
-      searchRow.insertBefore(anchor, searchContainer);
-      anchor.appendChild(searchContainer);
-    }
-    if (anchor && searchContainer && searchContainer.parentNode !== anchor) {
-      anchor.appendChild(searchContainer);
-    }
+    var searchContainer = document.querySelector('.mndo-search-hk-anchor .search-container') || document.querySelector('.search-container');
+    var anchor = document.querySelector('.mndo-search-hk-anchor') || (searchContainer && searchContainer.parentNode);
 
     var line = document.getElementById(LINE_ID);
     if (!line) {
