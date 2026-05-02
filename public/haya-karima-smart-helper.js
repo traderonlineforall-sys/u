@@ -192,13 +192,27 @@
 
   function ensureDom() {
     ensureStyle();
+    var searchRow = document.querySelector('.mndo-search-logo-row');
+    var searchContainer = document.querySelector('.mndo-search-logo-row .search-container') || document.querySelector('.search-container');
+    var anchor = document.querySelector('.mndo-search-hk-anchor');
+    if (!anchor && searchRow && searchContainer) {
+      anchor = document.createElement('div');
+      anchor.className = 'mndo-search-hk-anchor';
+      searchRow.insertBefore(anchor, searchContainer);
+      anchor.appendChild(searchContainer);
+    }
+    if (anchor && searchContainer && searchContainer.parentNode !== anchor) {
+      anchor.appendChild(searchContainer);
+    }
+
     var line = document.getElementById(LINE_ID);
     if (!line) {
       line = document.createElement('div');
       line.id = LINE_ID;
       line.setAttribute('aria-live', 'polite');
       line.setAttribute('title', 'HK quick access and raw result status.');
-      var mountHost = document.querySelector('.mndo-search-logo-row') || document.body;
+      var mountHost = anchor || searchContainer && searchContainer.parentNode;
+      if (!mountHost) return null;
       mountHost.appendChild(line);
     }
 
