@@ -371,9 +371,13 @@ function getUrgentVoiceForLang(lang){
   const voices = window.speechSynthesis?.getVoices?.() || [];
   const normalized = String(lang || "").toLowerCase();
   if(normalized.startsWith("ar")){
-    return voices.find(v => /^ar[-_]?eg/i.test(v.lang))
-      || voices.find(v => /^ar/i.test(v.lang))
-      || voices.find(v => /arabic|العربية|ar-|ar_|microsoft hoda|microsoft naayf|google العربية/i.test((v.name || "") + " " + (v.lang || "")))
+    return voices.find(v => /^ar[-_]?eg/i.test(String(v.lang || "")))
+      || voices.find(v => /^ar/i.test(String(v.lang || "")))
+      || voices.find(v => {
+        const name = String(v.name || "").toLowerCase();
+        const langCode = String(v.lang || "").toLowerCase();
+        return /arabic|العربية|microsoft hoda|microsoft naayf|google العربية/.test(name) || /^ar([-_]|$)/.test(langCode);
+      })
       || null;
   }
   return voices.find(v => /^en[-_]?us/i.test(v.lang))
@@ -385,8 +389,9 @@ function getUrgentVoiceForLang(lang){
 function hasArabicVoiceAvailable(){
   const voices = window.speechSynthesis?.getVoices?.() || [];
   return voices.some((v)=>{
-    const blob = ((v.name || "") + " " + (v.lang || "")).toLowerCase();
-    return /^ar/i.test(v.lang || "") || /arabic|العربية| ar |ar-|ar_|microsoft hoda|microsoft naayf|google العربية/.test(blob);
+    const name = String(v.name || "").toLowerCase();
+    const langCode = String(v.lang || "").toLowerCase();
+    return /^ar([-_]|$)/.test(langCode) || /arabic|العربية|microsoft hoda|microsoft naayf|google العربية/.test(name);
   });
 }
 
