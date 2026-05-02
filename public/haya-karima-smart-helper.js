@@ -1,6 +1,7 @@
 (function () {
   var STYLE_ID = 'hk-smart-helper-style';
   var LINE_ID = 'hkSmartFloatingLine';
+  var SEARCH_HK_COL_ID = 'mndoSearchHkColumn';
   var INPUT_ID = 'arabicNumber';
   var SEARCH_ID = 'searchInput';
   var RAW_INPUT_ID = 'hkRawSourceInput';
@@ -80,7 +81,9 @@
     var style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = [
-      '.mndo-search-logo-row #' + LINE_ID + '{display:none;position:static;min-width:300px;max-width:560px;font-size:12px;text-align:center;z-index:2;pointer-events:auto;user-select:text;color:rgba(255,255,255,.88);text-shadow:0 1px 2px rgba(0,0,0,.55);white-space:normal;overflow:visible;isolation:isolate;flex:0 0 340px;width:340px;margin:8px 0 0 0;}',
+      '.mndo-search-logo-row #' + SEARCH_HK_COL_ID + '{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;flex:0 0 400px;max-width:400px;min-width:400px;}',
+      '.mndo-search-logo-row #' + SEARCH_HK_COL_ID + ' .search-container{margin:7px 0 0 0;flex:0 0 auto;max-width:400px;min-width:400px;}',
+      '.mndo-search-logo-row #' + LINE_ID + '{display:none;position:static;min-width:300px;max-width:400px;font-size:12px;text-align:center;z-index:2;pointer-events:auto;user-select:text;color:rgba(255,255,255,.88);text-shadow:0 1px 2px rgba(0,0,0,.55);white-space:normal;overflow:visible;isolation:isolate;flex:0 0 auto;width:100%;margin:8px 0 0 0;}',
       '#' + LINE_ID + '.is-visible{display:block;}',
       '#' + LINE_ID + ',#' + LINE_ID + ' *{pointer-events:auto;}',
       '#' + LINE_ID + ' .hk-shell{display:flex;flex-direction:column;align-items:center;gap:5px;width:100%;}',
@@ -192,14 +195,28 @@
 
   function ensureDom() {
     ensureStyle();
+    var rowHost = document.querySelector('.mndo-search-logo-row');
+    var searchContainer = rowHost ? rowHost.querySelector('.search-container') : null;
+    var logoSlot = rowHost ? rowHost.querySelector('.mndo-header-logo-slot') : null;
+    var searchHkColumn = rowHost ? document.getElementById(SEARCH_HK_COL_ID) : null;
+    if (rowHost && !searchHkColumn) {
+      searchHkColumn = document.createElement('div');
+      searchHkColumn.id = SEARCH_HK_COL_ID;
+      rowHost.insertBefore(searchHkColumn, logoSlot || rowHost.firstChild);
+    }
+    if (searchHkColumn && searchContainer && searchContainer.parentElement !== searchHkColumn) {
+      searchHkColumn.appendChild(searchContainer);
+    }
+
     var line = document.getElementById(LINE_ID);
     if (!line) {
       line = document.createElement('div');
       line.id = LINE_ID;
       line.setAttribute('aria-live', 'polite');
       line.setAttribute('title', 'HK quick access and raw result status.');
-      var rowHost = document.querySelector('.mndo-search-logo-row');
-      if (rowHost) {
+      if (searchHkColumn) {
+        searchHkColumn.appendChild(line);
+      } else if (rowHost) {
         rowHost.insertBefore(line, rowHost.querySelector('.mndo-header-logo-slot'));
       } else {
         document.body.appendChild(line);
