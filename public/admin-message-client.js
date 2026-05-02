@@ -37,6 +37,7 @@ const ANNOUNCEMENT_REALTIME_CHANNEL = "sr_admin_announcements_realtime";
 const ANNOUNCEMENT_CACHE_TTL_MS = 0;
 const ANNOUNCEMENT_MIN_FETCH_INTERVAL_MS = 0;
 const SR_ANNOUNCEMENT_CHANNEL = (typeof BroadcastChannel !== "undefined") ? new BroadcastChannel("sr_admin_announcement_state") : null;
+const ARABIC_VOICE_MISSING_MESSAGE = "الصوت العربي غير متاح على هذا الجهاز — يلزم تفعيل صوت عربي من إعدادات Windows";
 
 function announceStateChanged(kind, payload = {}) {
   try {
@@ -94,6 +95,57 @@ function escapeHtml(s = "") {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function detectArabicVoice() {
+  try {
+    const synth = window.speechSynthesis;
+    if (!synth || typeof synth.getVoices !== "function") return null;
+    const voices = synth.getVoices() || [];
+    if (!Array.isArray(voices) || !voices.length) return null;
+
+    const directMatch = voices.find((voice) => /\bar\b/i.test(String(voice?.lang || "")));
+    if (directMatch) return directMatch;
+
+    return voices.find((voice) => {
+      const name = String(voice?.name || "");
+      const lang = String(voice?.lang || "");
+      return /arab/i.test(name) || /arab/i.test(lang);
+    }) || null;
+  } catch {
+    return null;
+  }
+}
+
+function speakAnnouncementText(text, langHint = "ar") {
+  try {
+    const synth = window.speechSynthesis;
+    if (!synth || typeof SpeechSynthesisUtterance === "undefined") {
+      return { ok: false, reason: "unsupported" };
+    }
+
+    const content = String(text || "").trim();
+    if (!content) return { ok: false, reason: "empty" };
+
+    synth.cancel();
+
+    const utter = new SpeechSynthesisUtterance(content);
+    const isArabic = /^ar\b/i.test(String(langHint || ""));
+
+    if (isArabic) {
+      const arVoice = detectArabicVoice();
+      if (!arVoice) return { ok: false, reason: "arabic-voice-missing" };
+      utter.lang = arVoice.lang || "ar-SA";
+      utter.voice = arVoice;
+    } else {
+      utter.lang = String(langHint || "en-US");
+    }
+
+    synth.speak(utter);
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: "failed" };
+  }
 }
 
 function getSeenTs() {
@@ -537,11 +589,50 @@ function renderAnnouncementInModal() {
   if (iconEl) iconEl.textContent = "📣";
 
   const when = ann.created_at ? new Date(ann.created_at).toLocaleString("ar-EG") : "";
+  const annText = String(ann.envelope_text ?? ann.text ?? "").trim();
+  const isArabicText = /[\u0600-\u06FF]/.test(annText);
   bodyEl.innerHTML = `
     <div class="ua07-secret-lead">رسالة من الأدمن</div>
-    <div class="ua07-secret-text" style="white-space:pre-wrap;">${escapeHtml(ann.envelope_text ?? ann.text)}</div>
+    <div class="ua07-secret-text" style="white-space:pre-wrap;">${escapeHtml(annText)}</div>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+      <button type="button" id="UA07_ANN_READ_BTN" style="padding:6px 10px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;">قراءة الرسالة</button>
+      <button type="button" id="UA07_ANN_AR_CHECK_BTN" style="padding:6px 10px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;">فحص الصوت العربي</button>
+    </div>
+    <div id="UA07_ANN_VOICE_MSG" class="ua07-secret-text" style="opacity:0.85;font-size:12px;margin-top:8px;"></div>
     ${when ? `<div class="ua07-secret-text" style="opacity:0.7;font-size:12px;margin-top:10px;">${escapeHtml(when)}</div>` : ""}
   `;
+
+  const readBtn = bodyEl.querySelector("#UA07_ANN_READ_BTN");
+  const checkBtn = bodyEl.querySelector("#UA07_ANN_AR_CHECK_BTN");
+  const voiceMsgEl = bodyEl.querySelector("#UA07_ANN_VOICE_MSG");
+  const setVoiceMsg = (msg) => {
+    if (voiceMsgEl) voiceMsgEl.textContent = String(msg || "");
+  };
+
+  if (checkBtn) {
+    checkBtn.addEventListener("click", () => {
+      const arVoice = detectArabicVoice();
+      if (arVoice) {
+        setVoiceMsg(`✅ الصوت العربي متاح (${arVoice.name || arVoice.lang || "Arabic"})`);
+      } else {
+        setVoiceMsg(ARABIC_VOICE_MISSING_MESSAGE);
+      }
+    });
+  }
+
+  if (readBtn) {
+    readBtn.addEventListener("click", () => {
+      if (!annText) return;
+      if (isArabicText) {
+        const result = speakAnnouncementText(annText, "ar");
+        if (!result.ok && result.reason === "arabic-voice-missing") {
+          setVoiceMsg(ARABIC_VOICE_MISSING_MESSAGE);
+        }
+      } else {
+        speakAnnouncementText(annText, "en-US");
+      }
+    });
+  }
 
   // Mark as seen and hide badge.
   const annKey = getAnnouncementKey(ann);
