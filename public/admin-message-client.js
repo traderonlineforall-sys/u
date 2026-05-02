@@ -37,6 +37,10 @@ const ANNOUNCEMENT_REALTIME_CHANNEL = "sr_admin_announcements_realtime";
 const ANNOUNCEMENT_CACHE_TTL_MS = 0;
 const ANNOUNCEMENT_MIN_FETCH_INTERVAL_MS = 0;
 const SR_ANNOUNCEMENT_CHANNEL = (typeof BroadcastChannel !== "undefined") ? new BroadcastChannel("sr_admin_announcement_state") : null;
+const ARABIC_VOICE_MISSING_MESSAGE = "الصوت العربي غير متاح على هذا الجهاز";
+let urgentVoiceUnlocked = false;
+let pendingUrgentText = "";
+let lastStartedUrgentText = "";
 
 function announceStateChanged(kind, payload = {}) {
   try {
@@ -295,6 +299,7 @@ function ensureUrgentTicker(){
       </div>
       <button type="button" class="sr-urgent-ack" id="SR_URGENT_ACK">فهمت</button>
     </div>
+    <div id="SR_URGENT_VOICE_STATUS" style="font-size:11px;opacity:0.9;margin:4px 8px 0 8px;"></div>
   `;
   document.body.appendChild(wrap);
   return wrap;
@@ -328,6 +333,131 @@ function setUrgentText(text){
   const baseSecs = Math.max(18, Math.min(45, len * 0.35));
   const secs = Math.max(9, Math.min(22.5, baseSecs / 2));
   marquee.style.setProperty('--sr-urgent-duration', secs.toFixed(1) + 's');
+  setTimeout(checkAndReadVisibleUrgent, 0);
+  setTimeout(checkAndReadVisibleUrgent, 150);
+}
+
+function getUrgentVoiceForLang(lang) {
+  const voices = window.speechSynthesis?.getVoices?.() || [];
+  if (String(lang).toLowerCase().startsWith("ar")) {
+    return voices.find(v => /^ar/i.test(v.lang || "")) ||
+      voices.find(v => /arabic|العربية|ar-/i.test(`${v.name || ""} ${v.lang || ""}`)) ||
+      null;
+  }
+  return voices.find(v => /^en/i.test(v.lang || "")) || null;
+}
+
+function isServerArabicTtsFallbackEnabled() {
+  try {
+    return window.__UA07_URGENT_TTS_SERVER_FALLBACK === true;
+  } catch {
+    return false;
+  }
+}
+
+async function tryServerArabicUrgentTts(text) {
+  const res = await fetch("/api/urgent-tts", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ text: String(text || "") })
+  });
+  if (!res.ok) throw new Error("urgent-tts-failed");
+  const ct = String(res.headers.get("content-type") || "").toLowerCase();
+  if (!ct.includes("audio/mpeg") && !ct.includes("audio/wav")) throw new Error("urgent-tts-invalid-content-type");
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const audio = new Audio(url);
+  return new Promise((resolve, reject) => {
+    audio.onended = () => {
+      URL.revokeObjectURL(url);
+      resolve();
+    };
+    audio.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("urgent-tts-audio-error"));
+    };
+    audio.play().catch((e) => reject(e));
+  });
+}
+
+function getVisibleUrgentText() {
+  const wrap = document.getElementById('SR_URGENT_TICKER');
+  if (!wrap || wrap.style.display !== 'block') return "";
+  const marquee = wrap.querySelector('#SR_URGENT_MARQUEE');
+  const firstSegment = marquee ? marquee.querySelector('.sr-urgent-segment') : null;
+  return String(firstSegment?.textContent || marquee?.textContent || '').replace(/\s+/g, ' ').trim();
+}
+
+async function speakUrgentNow(rawText){
+  const voiceStatus = document.getElementById('SR_URGENT_VOICE_STATUS');
+  const text = String(rawText || "").replace(/\s+/g, " ").trim();
+  if(!text || text === lastStartedUrgentText) return;
+  const synth = window.speechSynthesis;
+  if(!synth || typeof SpeechSynthesisUtterance === "undefined") return;
+  const isArabic = /[\u0600-\u06FF]/.test(text);
+  const lang = isArabic ? "ar-EG" : "en-US";
+  const voice = getUrgentVoiceForLang(lang);
+  if (isArabic && !voice) {
+    if (isServerArabicTtsFallbackEnabled()) {
+      try {
+        if (voiceStatus) voiceStatus.textContent = "جاري القراءة";
+        await tryServerArabicUrgentTts(text);
+        lastStartedUrgentText = text;
+        if (voiceStatus) voiceStatus.textContent = "انتهت القراءة";
+        return;
+      } catch {
+        if (voiceStatus) voiceStatus.textContent = "الصوت العربي غير متاح حاليًا";
+        return;
+      }
+    }
+    if (voiceStatus) voiceStatus.textContent = ARABIC_VOICE_MISSING_MESSAGE;
+    return;
+  }
+  synth.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = lang;
+  if (voice) utterance.voice = voice;
+  utterance.onstart = ()=>{
+    lastStartedUrgentText = text;
+    if (voiceStatus) voiceStatus.textContent = "جاري القراءة";
+  };
+  utterance.onend = ()=>{ if (voiceStatus) voiceStatus.textContent = "انتهت القراءة"; };
+  utterance.onerror = ()=>{ if (voiceStatus) voiceStatus.textContent = "تعذر تشغيل القراءة"; };
+  synth.speak(utterance);
+}
+
+function checkAndReadVisibleUrgent(){
+  const text = getVisibleUrgentText();
+  if(!text || text === lastStartedUrgentText) return;
+  if(urgentVoiceUnlocked){
+    speakUrgentNow(text);
+    return;
+  }
+  pendingUrgentText = text;
+}
+
+function unlockUrgentVoice() {
+  if (urgentVoiceUnlocked) return;
+  urgentVoiceUnlocked = true;
+  if (pendingUrgentText) {
+    const text = pendingUrgentText;
+    pendingUrgentText = "";
+    speakUrgentNow(text);
+  } else {
+    checkAndReadVisibleUrgent();
+  }
+}
+
+function bindUrgentVoiceUnlock() {
+  const events = ["pointerdown", "click", "keydown", "input", "focusin"];
+  events.forEach((evt) => {
+    document.addEventListener(evt, unlockUrgentVoice, { once: true, capture: true });
+  });
+  try {
+    if (navigator.userActivation && navigator.userActivation.hasBeenActive) {
+      unlockUrgentVoice();
+    }
+  } catch {}
 }
 
 function showUrgent(createdAtIso, text, annKey){
@@ -361,6 +491,9 @@ function showUrgent(createdAtIso, text, annKey){
       dismissUrgent(createdAtIso, effectiveKey, "ack");
     });
   }
+
+  setTimeout(checkAndReadVisibleUrgent, 0);
+  setTimeout(checkAndReadVisibleUrgent, 150);
 }
 
 function hideUrgent(){
@@ -537,9 +670,10 @@ function renderAnnouncementInModal() {
   if (iconEl) iconEl.textContent = "📣";
 
   const when = ann.created_at ? new Date(ann.created_at).toLocaleString("ar-EG") : "";
+  const annText = String(ann.envelope_text ?? ann.text ?? "").trim();
   bodyEl.innerHTML = `
     <div class="ua07-secret-lead">رسالة من الأدمن</div>
-    <div class="ua07-secret-text" style="white-space:pre-wrap;">${escapeHtml(ann.envelope_text ?? ann.text)}</div>
+    <div class="ua07-secret-text" style="white-space:pre-wrap;">${escapeHtml(annText)}</div>
     ${when ? `<div class="ua07-secret-text" style="opacity:0.7;font-size:12px;margin-top:10px;">${escapeHtml(when)}</div>` : ""}
   `;
 
@@ -653,6 +787,7 @@ async function subscribeAnnouncementRealtime(){
 }
 
 function init() {
+  bindUrgentVoiceUnlock();
   bindAnnouncementSync();
   hookEnvelopeClick();
 
