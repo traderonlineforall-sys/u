@@ -40,6 +40,8 @@
     position: relative;
     flex: 0 0 400px;
     max-width: 400px;
+    height: 34px;
+    max-height: 34px;
     overflow: visible;
   }
 
@@ -56,12 +58,19 @@
     top: calc(100% + 1px) !important;
     margin: 0 !important;
     z-index: 3 !important;
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
     transform: none !important;
     width: 100% !important;
     max-width: 100% !important;
+  }
+
+  html.scl-has-search body.scl-has-search .mndo-search-hk-anchor #hkSmartFloatingLine:not(.is-visible),
+  html.scl-has-search body.scl-has-search .mndo-search-hk-anchor #hkSmartFloatingLine[aria-hidden="true"] {
+    display: none !important;
+  }
+
+  html.scl-has-search body.scl-has-search .mndo-search-hk-anchor #hkSmartFloatingLine.is-visible,
+  html.scl-has-search body.scl-has-search .mndo-search-hk-anchor #hkSmartFloatingLine[aria-hidden="false"] {
+    display: flex !important;
   }
 
   html.scl-has-tags-link body.scl-has-tags-link {
