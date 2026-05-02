@@ -36,6 +36,48 @@
     /* Future search-present safe injections go here. */
   }
 
+  html.scl-has-search body.scl-has-search .mndo-search-hk-anchor {
+    position: relative;
+    flex: 0 0 400px;
+    width: 400px;
+    max-width: 400px;
+    min-width: 400px;
+    height: 34px;
+    max-height: 34px;
+    overflow: visible;
+    align-self: flex-start;
+  }
+
+  html.scl-has-search body.scl-has-search .mndo-search-hk-anchor .search-container {
+    position: relative;
+    z-index: 2;
+    margin: 0 !important;
+    width: 100%;
+    height: 34px;
+    max-height: 34px;
+  }
+
+  html.scl-has-search body.scl-has-search .mndo-search-hk-anchor #hkSmartFloatingLine {
+    position: absolute !important;
+    left: 0 !important;
+    top: calc(34px + 1px) !important;
+    margin: 0 !important;
+    z-index: 3 !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  html.scl-has-search body.scl-has-search .mndo-search-hk-anchor #hkSmartFloatingLine:not(.is-visible),
+  html.scl-has-search body.scl-has-search .mndo-search-hk-anchor #hkSmartFloatingLine[aria-hidden="true"] {
+    display: none !important;
+  }
+
+  html.scl-has-search body.scl-has-search .mndo-search-hk-anchor #hkSmartFloatingLine.is-visible,
+  html.scl-has-search body.scl-has-search .mndo-search-hk-anchor #hkSmartFloatingLine[aria-hidden="false"] {
+    display: flex !important;
+  }
+
   html.scl-has-tags-link body.scl-has-tags-link {
     /* Future tags-link-present safe injections go here. */
   }
