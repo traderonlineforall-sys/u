@@ -80,7 +80,7 @@
     var style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = [
-      '#' + LINE_ID + '{display:none;position:fixed;left:50%;transform:translateX(-50%);min-width:300px;max-width:560px;font-size:12px;text-align:center;z-index:2;pointer-events:auto;user-select:text;color:rgba(255,255,255,.88);text-shadow:0 1px 2px rgba(0,0,0,.55);white-space:normal;overflow:visible;isolation:isolate;}',
+      '.mndo-search-logo-row #' + LINE_ID + '{display:none;position:static;min-width:300px;max-width:560px;font-size:12px;text-align:center;z-index:2;pointer-events:auto;user-select:text;color:rgba(255,255,255,.88);text-shadow:0 1px 2px rgba(0,0,0,.55);white-space:normal;overflow:visible;isolation:isolate;flex:0 0 340px;width:340px;margin:8px 0 0 0;}',
       '#' + LINE_ID + '.is-visible{display:block;}',
       '#' + LINE_ID + ',#' + LINE_ID + ' *{pointer-events:auto;}',
       '#' + LINE_ID + ' .hk-shell{display:flex;flex-direction:column;align-items:center;gap:5px;width:100%;}',
@@ -198,7 +198,12 @@
       line.id = LINE_ID;
       line.setAttribute('aria-live', 'polite');
       line.setAttribute('title', 'HK quick access and raw result status.');
-      document.body.appendChild(line);
+      var rowHost = document.querySelector('.mndo-search-logo-row');
+      if (rowHost) {
+        rowHost.insertBefore(line, rowHost.querySelector('.mndo-header-logo-slot'));
+      } else {
+        document.body.appendChild(line);
+      }
     }
 
     if (line.dataset.hkBuilt !== '1') {
@@ -247,41 +252,10 @@
     return helperState.dom;
   }
 
-  function getAnchorRect() {
-    var search = document.getElementById(SEARCH_ID);
-    if (search && typeof search.getBoundingClientRect === 'function') {
-      var searchRect = search.getBoundingClientRect();
-      if (searchRect && searchRect.width > 0 && searchRect.height > 0) return searchRect;
-    }
-
-    var input = document.getElementById(INPUT_ID);
-    if (input && typeof input.getBoundingClientRect === 'function') {
-      var inputRect = input.getBoundingClientRect();
-      if (inputRect && inputRect.width > 0 && inputRect.height > 0) return inputRect;
-    }
-
-    return null;
-  }
-
-  function positionLine() {
-    var dom = ensureDom();
-    var rect = getAnchorRect();
-    if (!dom || !dom.line || !rect) return;
-
-    var centerX = rect.left + (rect.width / 2);
-    var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 320;
-    var viewportCap = Math.max(280, viewportWidth - 24);
-
-    dom.line.style.left = centerX + 'px';
-    dom.line.style.top = (rect.bottom + 10) + 'px';
-    dom.line.style.width = Math.min(Math.max(rect.width, 320), 560, viewportCap) + 'px';
-  }
-
   function showLine() {
     var dom = ensureDom();
     dom.line.classList.add('is-visible');
     dom.line.setAttribute('aria-hidden', 'false');
-    positionLine();
   }
 
   function hideLine() {
@@ -595,36 +569,11 @@
     }
   }
 
-  function startObserver() {
-    if (helperState.observer || typeof MutationObserver === 'undefined') return;
-
-    helperState.observer = new MutationObserver(function () {
-      var rebound = bindInput();
-      if (rebound) {
-        positionLine();
-      }
-    });
-
-    try {
-      helperState.observer.observe(document.documentElement, { childList: true, subtree: true });
-    } catch (error) {}
-  }
-
-  function bindWindowEvents() {
-    if (helperState.resizeBound) return;
-    helperState.resizeBound = true;
-    window.addEventListener('resize', positionLine, { passive: true });
-    window.addEventListener('scroll', positionLine, { passive: true });
-  }
-
   function init() {
     ensureDom();
     bindInput();
-    bindWindowEvents();
-    startObserver();
-    positionLine();
-    setTimeout(function () { bindInput(); positionLine(); }, 200);
-    setTimeout(function () { bindInput(); positionLine(); }, 600);
+    setTimeout(function () { bindInput(); }, 200);
+    setTimeout(function () { bindInput(); }, 600);
   }
 
   if (document.readyState === 'loading') {
