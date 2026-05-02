@@ -37,7 +37,8 @@ const ANNOUNCEMENT_REALTIME_CHANNEL = "sr_admin_announcements_realtime";
 const ANNOUNCEMENT_CACHE_TTL_MS = 0;
 const ANNOUNCEMENT_MIN_FETCH_INTERVAL_MS = 0;
 const SR_ANNOUNCEMENT_CHANNEL = (typeof BroadcastChannel !== "undefined") ? new BroadcastChannel("sr_admin_announcement_state") : null;
-const ARABIC_VOICE_MISSING_MESSAGE = "الصوت العربي غير متاح على هذا الجهاز — يلزم تفعيل صوت عربي من إعدادات Windows";
+const ARABIC_VOICE_MISSING_MESSAGE = "الصوت العربي غير متاح على هذا الجهاز";
+let _lastUrgentSpokenText = "";
 
 function announceStateChanged(kind, payload = {}) {
   try {
@@ -97,52 +98,78 @@ function escapeHtml(s = "") {
     .replaceAll("'", "&#39;");
 }
 
-function detectArabicVoice() {
-  try {
-    const synth = window.speechSynthesis;
-    if (!synth || typeof synth.getVoices !== "function") return null;
-    const voices = synth.getVoices() || [];
-    if (!Array.isArray(voices) || !voices.length) return null;
-
-    const directMatch = voices.find((voice) => /\bar\b/i.test(String(voice?.lang || "")));
-    if (directMatch) return directMatch;
-
-    return voices.find((voice) => {
-      const name = String(voice?.name || "");
-      const lang = String(voice?.lang || "");
-      return /arab/i.test(name) || /arab/i.test(lang);
-    }) || null;
-  } catch {
-    return null;
+function getUrgentVoiceForLang(lang) {
+  const voices = window.speechSynthesis?.getVoices?.() || [];
+  if (String(lang).toLowerCase().startsWith("ar")) {
+    return voices.find(v => /^ar/i.test(v.lang || "")) ||
+      voices.find(v => /arabic|العربية|ar-/i.test((v.name || "") + " " + (v.lang || ""))) ||
+      null;
   }
+  return voices.find(v => /^en/i.test(v.lang || "")) || null;
 }
 
-function speakAnnouncementText(text, langHint = "ar") {
+function speakUrgentText(text, options = {}) {
+  const setStatus = typeof options.setStatus === "function" ? options.setStatus : () => {};
+  const isMuted = !!options.isMuted;
+
   try {
     const synth = window.speechSynthesis;
-    if (!synth || typeof SpeechSynthesisUtterance === "undefined") {
-      return { ok: false, reason: "unsupported" };
-    }
+    if (!synth || typeof SpeechSynthesisUtterance === "undefined") return { ok: false, reason: "unsupported" };
 
-    const content = String(text || "").trim();
-    if (!content) return { ok: false, reason: "empty" };
+    const cleanText = String(text || "").replace(/\s+/g, " ").trim();
+    if (!cleanText) return { ok: false, reason: "empty" };
+    if (isMuted) return { ok: false, reason: "muted" };
+    if (_lastUrgentSpokenText === cleanText) return { ok: false, reason: "duplicate" };
 
-    synth.cancel();
+    const isArabic = /[\u0600-\u06FF]/.test(cleanText);
+    const lang = isArabic ? "ar-EG" : "en-US";
 
-    const utter = new SpeechSynthesisUtterance(content);
-    const isArabic = /^ar\b/i.test(String(langHint || ""));
+    const trySpeakOnce = () => {
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.lang = lang;
+      const voice = getUrgentVoiceForLang(lang);
+      if (voice) utterance.voice = voice;
+      utterance.rate = isArabic ? 0.92 : 0.95;
+      utterance.volume = 1;
+      utterance.onstart = () => {
+        _lastUrgentSpokenText = cleanText;
+      };
+      utterance.onerror = () => {};
 
-    if (isArabic) {
-      const arVoice = detectArabicVoice();
-      if (!arVoice) return { ok: false, reason: "arabic-voice-missing" };
-      utter.lang = arVoice.lang || "ar-SA";
-      utter.voice = arVoice;
-    } else {
-      utter.lang = String(langHint || "en-US");
-    }
+      if (isArabic && !voice) {
+        setStatus(ARABIC_VOICE_MISSING_MESSAGE);
+        return { ok: false, reason: "arabic-voice-missing" };
+      }
+      setStatus("");
+      synth.cancel();
+      synth.speak(utterance);
+      return { ok: true };
+    };
 
-    synth.speak(utter);
-    return { ok: true };
+    const voices = synth.getVoices?.() || [];
+    if (voices.length) return trySpeakOnce();
+
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = (result) => {
+        if (done) return;
+        done = true;
+        resolve(result);
+      };
+      const onVoicesChanged = () => {
+        synth.removeEventListener?.("voiceschanged", onVoicesChanged);
+        const result = trySpeakOnce();
+        if (!result.ok && result.reason === "arabic-voice-missing" && !isArabic) {
+          setStatus("");
+        }
+        finish(result);
+      };
+      synth.addEventListener?.("voiceschanged", onVoicesChanged, { once: true });
+      setTimeout(() => {
+        synth.removeEventListener?.("voiceschanged", onVoicesChanged);
+        finish(trySpeakOnce());
+      }, 600);
+    });
   } catch {
     return { ok: false, reason: "failed" };
   }
@@ -611,7 +638,7 @@ function renderAnnouncementInModal() {
 
   if (checkBtn) {
     checkBtn.addEventListener("click", () => {
-      const arVoice = detectArabicVoice();
+      const arVoice = getUrgentVoiceForLang("ar-EG");
       if (arVoice) {
         setVoiceMsg(`✅ الصوت العربي متاح (${arVoice.name || arVoice.lang || "Arabic"})`);
       } else {
@@ -624,12 +651,9 @@ function renderAnnouncementInModal() {
     readBtn.addEventListener("click", () => {
       if (!annText) return;
       if (isArabicText) {
-        const result = speakAnnouncementText(annText, "ar");
-        if (!result.ok && result.reason === "arabic-voice-missing") {
-          setVoiceMsg(ARABIC_VOICE_MISSING_MESSAGE);
-        }
+        speakUrgentText(annText, { setStatus: setVoiceMsg, isMuted: false });
       } else {
-        speakAnnouncementText(annText, "en-US");
+        speakUrgentText(annText, { setStatus: setVoiceMsg, isMuted: false });
       }
     });
   }
