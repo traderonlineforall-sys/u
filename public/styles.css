@@ -1311,6 +1311,7 @@ html, body { overflow-x: hidden !important; }
     display: flex;
     align-items: flex-start;
     justify-content: flex-start;
+    flex-wrap: nowrap;
     gap: 54px;
     width: 100%;
     padding-left: 493px;
@@ -1324,6 +1325,7 @@ html, body { overflow-x: hidden !important; }
     margin: 7px 0 0 0;
     flex: 0 0 400px;
     max-width: 400px;
+    min-width: 400px;
   }
   .mndo-header-logo-slot{
     position: static;
