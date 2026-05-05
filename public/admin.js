@@ -20,6 +20,46 @@ const tabAnnouncements = document.getElementById("adminTabAnnouncements");
 
 let adminPassword = "";
 
+const URGENT_ARABIC_TTS_VOICES = [
+  ["ar-EG-SalmaNeural", "Salma — Egyptian Arabic — Female"],
+  ["ar-EG-ShakirNeural", "Shakir — Egyptian Arabic — Male"],
+  ["ar-SA-ZariyahNeural", "Zariyah — Saudi Arabic — Female"],
+  ["ar-SA-HamedNeural", "Hamed — Saudi Arabic — Male"],
+  ["ar-AE-FatimaNeural", "Fatima — UAE Arabic — Female"],
+  ["ar-AE-HamdanNeural", "Hamdan — UAE Arabic — Male"],
+  ["ar-JO-SanaNeural", "Sana — Jordanian Arabic — Female"],
+  ["ar-JO-TaimNeural", "Taim — Jordanian Arabic — Male"],
+  ["ar-KW-NouraNeural", "Noura — Kuwaiti Arabic — Female"],
+  ["ar-KW-FahedNeural", "Fahed — Kuwaiti Arabic — Male"],
+  ["ar-QA-AmalNeural", "Amal — Qatari Arabic — Female"],
+  ["ar-QA-MoazNeural", "Moaz — Qatari Arabic — Male"],
+  ["ar-BH-LailaNeural", "Laila — Bahraini Arabic — Female"],
+  ["ar-BH-AliNeural", "Ali — Bahraini Arabic — Male"],
+  ["ar-IQ-RanaNeural", "Rana — Iraqi Arabic — Female"],
+  ["ar-IQ-BasselNeural", "Bassel — Iraqi Arabic — Male"],
+  ["ar-LB-LaylaNeural", "Layla — Lebanese Arabic — Female"],
+  ["ar-LB-RamiNeural", "Rami — Lebanese Arabic — Male"],
+  ["ar-MA-MounaNeural", "Mouna — Moroccan Arabic — Female"],
+  ["ar-MA-JamalNeural", "Jamal — Moroccan Arabic — Male"],
+  ["ar-OM-AyshaNeural", "Aysha — Omani Arabic — Female"],
+  ["ar-OM-AbdullahNeural", "Abdullah — Omani Arabic — Male"],
+  ["ar-SY-AmanyNeural", "Amany — Syrian Arabic — Female"],
+  ["ar-SY-LaithNeural", "Laith — Syrian Arabic — Male"],
+  ["ar-TN-ReemNeural", "Reem — Tunisian Arabic — Female"],
+  ["ar-TN-HediNeural", "Hedi — Tunisian Arabic — Male"],
+  ["ar-YE-MaryamNeural", "Maryam — Yemeni Arabic — Female"],
+  ["ar-YE-SalehNeural", "Saleh — Yemeni Arabic — Male"]
+];
+const DEFAULT_URGENT_ARABIC_TTS_VOICE = "ar-EG-SalmaNeural";
+function normalizeUrgentArabicVoice(v=""){
+  const val = String(v || "").trim();
+  return URGENT_ARABIC_TTS_VOICES.some(([id]) => id === val) ? val : DEFAULT_URGENT_ARABIC_TTS_VOICE;
+}
+function renderUrgentArabicVoiceOptions(selected=""){
+  const active = normalizeUrgentArabicVoice(selected);
+  return URGENT_ARABIC_TTS_VOICES.map(([id, label]) => `<option value="${id}"${id === active ? " selected" : ""}>${escapeHtml(label)}</option>`).join("");
+}
+
 function show(el){ el.style.display = "flex"; }
 function hide(el){ el.style.display = "none"; }
 function escapeHtml(s=""){ return s.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
@@ -486,7 +526,7 @@ async function refreshAnnouncements(){
 
   // Fetch latest announcement via server (service role) so Admin works even if RLS hides the table.
   // Supports both legacy single-text format and the newer { envelope, urgent, urgent_enabled } JSON format.
-  let current = { envelope_text: "", urgent_text: "", urgent_enabled: false, created_at: null, text: "" };
+  let current = { envelope_text: "", urgent_text: "", urgent_enabled: false, urgent_voice: DEFAULT_URGENT_ARABIC_TTS_VOICE, created_at: null, text: "" };
 
   try{
     const res = await fetch("/api/admin-announcement", { method: "GET" });
@@ -496,6 +536,7 @@ async function refreshAnnouncements(){
         envelope_text: String(data?.envelope_text ?? data?.text ?? ""),
         urgent_text: String(data?.urgent_text ?? ""),
         urgent_enabled: !!(data?.urgent_enabled),
+        urgent_voice: normalizeUrgentArabicVoice(data?.urgent_voice),
         created_at: data?.created_at || null,
         text: String(data?.text ?? "")
       };
@@ -514,6 +555,7 @@ async function refreshAnnouncements(){
         let envelope_text = "";
         let urgent_text = "";
         let urgent_enabled = false;
+        let urgent_voice = DEFAULT_URGENT_ARABIC_TTS_VOICE;
 
         try{
           const obj = JSON.parse(raw);
@@ -521,6 +563,7 @@ async function refreshAnnouncements(){
             envelope_text = String(obj.envelope || "");
             urgent_text = String(obj.urgent || "");
             urgent_enabled = !!obj.urgent_enabled;
+            urgent_voice = normalizeUrgentArabicVoice(obj.urgent_voice);
           }else{
             envelope_text = raw;
           }
@@ -533,7 +576,7 @@ async function refreshAnnouncements(){
             envelope_text = raw;
           }
         }
-        current = { envelope_text, urgent_text, urgent_enabled, created_at: item.created_at || null, text: raw };
+        current = { envelope_text, urgent_text, urgent_enabled, urgent_voice: normalizeUrgentArabicVoice(urgent_voice), created_at: item.created_at || null, text: raw };
       }
     }catch(_){}
   }
@@ -542,6 +585,7 @@ async function refreshAnnouncements(){
   const lastEnvelope = String(current.envelope_text || "").trim();
   const lastUrgent = String(current.urgent_text || "").trim();
   const lastUrgentEnabled = !!current.urgent_enabled;
+  const lastUrgentVoice = normalizeUrgentArabicVoice(current.urgent_voice);
 
   tabAnnouncements.innerHTML = `
     <div class="admin-row">
@@ -559,6 +603,12 @@ async function refreshAnnouncements(){
 
         <div style="font-weight:700;margin-top:14px;margin-bottom:6px;">Urgent moving banner (right → left)</div>
         <textarea id="adminAnnouncementUrgentInput" class="admin-input" rows="3" placeholder="Write urgent message..."></textarea>
+
+        <div style="font-weight:700;margin-top:10px;margin-bottom:6px;">Arabic voice for urgent reading</div>
+        <select id="adminAnnouncementUrgentVoiceSelect" class="admin-input" style="height:42px;cursor:pointer;">
+          ${renderUrgentArabicVoiceOptions(lastUrgentVoice)}
+        </select>
+        <div style="font-size:12px;opacity:.75;margin-top:6px;">Free Edge TTS voice used only when the urgent message contains Arabic.</div>
 
         <label class="admin-check" style="margin-top:10px;">
           <input type="checkbox" id="adminAnnouncementUrgentChk" />
@@ -580,12 +630,16 @@ async function refreshAnnouncements(){
   const urgentChk = tabAnnouncements.querySelector("#adminAnnouncementUrgentChk");
   if(urgentChk) urgentChk.checked = lastUrgentEnabled;
 
+  const urgentVoiceSelect = tabAnnouncements.querySelector("#adminAnnouncementUrgentVoiceSelect");
+  if(urgentVoiceSelect) urgentVoiceSelect.value = lastUrgentVoice;
+
   const saveBtn = tabAnnouncements.querySelector("#adminAnnouncementSaveBtn");
   if(saveBtn){
     saveBtn.addEventListener("click", async ()=>{
       const envelopeVal = (envInput?.value || "").trim();
       const urgentVal = (urgInput?.value || "").trim();
       const urgentOn = !!urgentChk?.checked;
+      const urgentVoice = normalizeUrgentArabicVoice(urgentVoiceSelect?.value);
 
       if(!envelopeVal && !(urgentOn && urgentVal)){
         setAdminStatus("Write an envelope message or enable urgent with a message.", "warn");
@@ -601,7 +655,8 @@ async function refreshAnnouncements(){
         await apiAdmin("/api/admin-announcement", {
           envelope_text: envelopeVal,
           urgent_text: urgentVal,
-          urgent_enabled: urgentOn
+          urgent_enabled: urgentOn,
+          urgent_voice: urgentVoice
         });
         setAdminStatus("Saved ✅");
         await refreshAnnouncements();
