@@ -37,10 +37,13 @@ const ANNOUNCEMENT_REALTIME_CHANNEL = "sr_admin_announcements_realtime";
 const ANNOUNCEMENT_CACHE_TTL_MS = 0;
 const ANNOUNCEMENT_MIN_FETCH_INTERVAL_MS = 0;
 const SR_ANNOUNCEMENT_CHANNEL = (typeof BroadcastChannel !== "undefined") ? new BroadcastChannel("sr_admin_announcement_state") : null;
-const ARABIC_VOICE_MISSING_MESSAGE = "الصوت العربي غير متاح على هذا الجهاز";
+const URGENT_TTS_UNAVAILABLE_MESSAGE = "تعذر تشغيل قراءة رسالة العاجل";
 let urgentVoiceUnlocked = false;
 let pendingUrgentText = "";
 let lastStartedUrgentText = "";
+let currentUrgentAudio = null;
+let currentUrgentAudioUrl = "";
+let currentUrgentAbortController = null;
 
 function announceStateChanged(kind, payload = {}) {
   try {
@@ -337,47 +340,120 @@ function setUrgentText(text){
   setTimeout(checkAndReadVisibleUrgent, 150);
 }
 
+function hasArabicText(text) {
+  return /[\u0600-\u06FF]/.test(String(text || ""));
+}
+
+function scoreUrgentVoice(voice, requestedLang) {
+  const name = String(voice?.name || "").toLowerCase();
+  const lang = String(voice?.lang || "").toLowerCase();
+  const haystack = `${name} ${lang}`;
+  let score = 0;
+
+  if (requestedLang === "ar") {
+    if (lang === "ar-eg") score += 80;
+    if (lang.startsWith("ar")) score += 60;
+    if (/arabic|العربية/.test(haystack)) score += 35;
+  } else {
+    if (lang === "en-us") score += 60;
+    if (lang.startsWith("en")) score += 40;
+  }
+
+  if (/natural|neural|online|premium|enhanced/.test(haystack)) score += 30;
+  if (/microsoft|google|apple/.test(haystack)) score += 20;
+  if (voice?.localService === false) score += 10;
+  return score;
+}
+
 function getUrgentVoiceForLang(lang) {
   const voices = window.speechSynthesis?.getVoices?.() || [];
-  if (String(lang).toLowerCase().startsWith("ar")) {
-    return voices.find(v => /^ar/i.test(v.lang || "")) ||
-      voices.find(v => /arabic|العربية|ar-/i.test(`${v.name || ""} ${v.lang || ""}`)) ||
-      null;
-  }
-  return voices.find(v => /^en/i.test(v.lang || "")) || null;
+  const requested = String(lang || "").toLowerCase().startsWith("ar") ? "ar" : "en";
+  const candidates = voices
+    .filter((voice) => requested === "ar"
+      ? (/^ar/i.test(voice?.lang || "") || /arabic|العربية/i.test(`${voice?.name || ""} ${voice?.lang || ""}`))
+      : /^en/i.test(voice?.lang || ""))
+    .sort((a, b) => scoreUrgentVoice(b, requested) - scoreUrgentVoice(a, requested));
+  return candidates[0] || null;
 }
 
-function isServerArabicTtsFallbackEnabled() {
+function stopUrgentSpeech() {
+  try { currentUrgentAbortController?.abort?.(); } catch {}
+  currentUrgentAbortController = null;
+
   try {
-    return window.__UA07_URGENT_TTS_SERVER_FALLBACK === true;
-  } catch {
-    return false;
-  }
+    if (currentUrgentAudio) {
+      currentUrgentAudio.pause();
+      currentUrgentAudio.currentTime = 0;
+    }
+  } catch {}
+  currentUrgentAudio = null;
+
+  try {
+    if (currentUrgentAudioUrl) URL.revokeObjectURL(currentUrgentAudioUrl);
+  } catch {}
+  currentUrgentAudioUrl = "";
+
+  try { window.speechSynthesis?.cancel?.(); } catch {}
 }
 
-async function tryServerArabicUrgentTts(text) {
+async function playUrgentAudioBlob(blob) {
+  stopUrgentSpeech();
+
+  const url = URL.createObjectURL(blob);
+  const audio = new Audio(url);
+  currentUrgentAudio = audio;
+  currentUrgentAudioUrl = url;
+
+  return new Promise((resolve, reject) => {
+    const cleanup = () => {
+      if (currentUrgentAudio === audio) currentUrgentAudio = null;
+      if (currentUrgentAudioUrl === url) currentUrgentAudioUrl = "";
+      try { URL.revokeObjectURL(url); } catch {}
+    };
+
+    audio.onended = () => { cleanup(); resolve(); };
+    audio.onerror = () => { cleanup(); reject(new Error("urgent-tts-audio-error")); };
+    audio.play().catch((e) => { cleanup(); reject(e); });
+  });
+}
+
+async function tryServerUrgentTts(text) {
+  currentUrgentAbortController = new AbortController();
   const res = await fetch("/api/urgent-tts", {
     method: "POST",
+    cache: "no-store",
+    signal: currentUrgentAbortController.signal,
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ text: String(text || "") })
   });
+
   if (!res.ok) throw new Error("urgent-tts-failed");
   const ct = String(res.headers.get("content-type") || "").toLowerCase();
   if (!ct.includes("audio/mpeg") && !ct.includes("audio/wav")) throw new Error("urgent-tts-invalid-content-type");
+
   const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const audio = new Audio(url);
-  return new Promise((resolve, reject) => {
-    audio.onended = () => {
-      URL.revokeObjectURL(url);
-      resolve();
-    };
-    audio.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("urgent-tts-audio-error"));
-    };
-    audio.play().catch((e) => reject(e));
-  });
+  currentUrgentAbortController = null;
+  await playUrgentAudioBlob(blob);
+}
+
+function speakUrgentWithBrowser(text, lang, voiceStatus) {
+  const synth = window.speechSynthesis;
+  if(!synth || typeof SpeechSynthesisUtterance === "undefined") return false;
+
+  const voice = getUrgentVoiceForLang(lang);
+  if (String(lang).toLowerCase().startsWith("ar") && !voice) return false;
+
+  stopUrgentSpeech();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = lang;
+  if (voice) utterance.voice = voice;
+  utterance.onstart = ()=>{
+    if (voiceStatus) voiceStatus.textContent = "جاري القراءة";
+  };
+  utterance.onend = ()=>{ if (voiceStatus) voiceStatus.textContent = "انتهت القراءة"; };
+  utterance.onerror = ()=>{ if (voiceStatus) voiceStatus.textContent = "تعذر تشغيل القراءة"; };
+  synth.speak(utterance);
+  return true;
 }
 
 function getVisibleUrgentText() {
@@ -392,38 +468,27 @@ async function speakUrgentNow(rawText){
   const voiceStatus = document.getElementById('SR_URGENT_VOICE_STATUS');
   const text = String(rawText || "").replace(/\s+/g, " ").trim();
   if(!text || text === lastStartedUrgentText) return;
-  const synth = window.speechSynthesis;
-  if(!synth || typeof SpeechSynthesisUtterance === "undefined") return;
-  const isArabic = /[\u0600-\u06FF]/.test(text);
-  const lang = isArabic ? "ar-EG" : "en-US";
-  const voice = getUrgentVoiceForLang(lang);
-  if (isArabic && !voice) {
-    if (isServerArabicTtsFallbackEnabled()) {
-      try {
-        if (voiceStatus) voiceStatus.textContent = "جاري القراءة";
-        await tryServerArabicUrgentTts(text);
-        lastStartedUrgentText = text;
-        if (voiceStatus) voiceStatus.textContent = "انتهت القراءة";
-        return;
-      } catch {
-        if (voiceStatus) voiceStatus.textContent = "الصوت العربي غير متاح حاليًا";
-        return;
-      }
+
+  const isArabicOrMixed = hasArabicText(text);
+  lastStartedUrgentText = text;
+
+  if (isArabicOrMixed) {
+    try {
+      if (voiceStatus) voiceStatus.textContent = "جاري تجهيز قراءة العاجل";
+      await tryServerUrgentTts(text);
+      if (voiceStatus) voiceStatus.textContent = "انتهت القراءة";
+      return;
+    } catch {
+      // Clean fallback for local Arabic voices only. It never affects any other tool area.
+      if (speakUrgentWithBrowser(text, "ar-EG", voiceStatus)) return;
+      if (voiceStatus) voiceStatus.textContent = URGENT_TTS_UNAVAILABLE_MESSAGE;
+      return;
     }
-    if (voiceStatus) voiceStatus.textContent = ARABIC_VOICE_MISSING_MESSAGE;
-    return;
   }
-  synth.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = lang;
-  if (voice) utterance.voice = voice;
-  utterance.onstart = ()=>{
-    lastStartedUrgentText = text;
-    if (voiceStatus) voiceStatus.textContent = "جاري القراءة";
-  };
-  utterance.onend = ()=>{ if (voiceStatus) voiceStatus.textContent = "انتهت القراءة"; };
-  utterance.onerror = ()=>{ if (voiceStatus) voiceStatus.textContent = "تعذر تشغيل القراءة"; };
-  synth.speak(utterance);
+
+  if (!speakUrgentWithBrowser(text, "en-US", voiceStatus) && voiceStatus) {
+    voiceStatus.textContent = URGENT_TTS_UNAVAILABLE_MESSAGE;
+  }
 }
 
 function checkAndReadVisibleUrgent(){
@@ -487,6 +552,7 @@ function showUrgent(createdAtIso, text, annKey){
   if(ack && !ack.__bound){
     ack.__bound = true;
     ack.addEventListener('click', ()=>{
+      stopUrgentSpeech();
       wrap.style.display = 'none';
       dismissUrgent(createdAtIso, effectiveKey, "ack");
     });
@@ -497,6 +563,7 @@ function showUrgent(createdAtIso, text, annKey){
 }
 
 function hideUrgent(){
+  stopUrgentSpeech();
   const wrap = document.getElementById('SR_URGENT_TICKER');
   if(wrap) wrap.style.display = 'none';
 }
