@@ -40,21 +40,52 @@ function emptyCounts(){
   return { like: 0, love: 0, angry: 0, laugh: 0, sad: 0, slipper: 0 };
 }
 
+function emptyUsers(){
+  return { like: [], love: [], angry: [], laugh: [], sad: [], slipper: [] };
+}
+
 function targetKey(type, id){
   return `${type}:${id}`;
 }
 
-function summarize(rows = [], userId = ""){
+async function loadUserNames(supabase, userIds){
+  const ids = Array.from(new Set((userIds || []).map((x) => String(x || "").trim()).filter(Boolean))).slice(0, 1000);
+  const map = new Map();
+  ids.forEach((id) => map.set(id, id.slice(0, 10)));
+  if (!ids.length) return map;
+
+  try {
+    const { data, error } = await supabase
+      .from("support_users")
+      .select("user_id,display_name")
+      .in("user_id", ids)
+      .limit(1000);
+    if (!error && Array.isArray(data)) {
+      for (const row of data) {
+        const id = String(row?.user_id || "").trim();
+        const name = String(row?.display_name || "").trim();
+        if (id && name) map.set(id, name.slice(0, 60));
+      }
+    }
+  } catch {}
+  return map;
+}
+
+async function summarize(rows = [], userId = "", supabase){
+  const names = await loadUserNames(supabase, rows.map((r) => r?.user_id));
   const out = Object.create(null);
   for (const row of rows) {
     const type = normalizeType(row?.target_type);
     const id = normalizeId(row?.target_id);
     const reaction = normalizeReaction(row?.reaction);
-    if (!type || !id || !reaction) continue;
+    const reactingUserId = String(row?.user_id || "").trim();
+    if (!type || !id || !reaction || !reactingUserId) continue;
     const key = targetKey(type, id);
-    if (!out[key]) out[key] = { counts: emptyCounts(), mine: "" };
+    if (!out[key]) out[key] = { counts: emptyCounts(), mine: "", users: emptyUsers() };
     out[key].counts[reaction] = (out[key].counts[reaction] || 0) + 1;
-    if (userId && String(row?.user_id || "") === userId) out[key].mine = reaction;
+    const displayName = names.get(reactingUserId) || reactingUserId.slice(0, 10);
+    if (!out[key].users[reaction].includes(displayName)) out[key].users[reaction].push(displayName);
+    if (userId && reactingUserId === userId) out[key].mine = reaction;
   }
   return out;
 }
@@ -92,7 +123,7 @@ async function listReactions(supabase, targets, userId){
     const id = normalizeId(row?.target_id);
     return type && id && wanted.has(targetKey(type, id));
   });
-  return summarize(filtered, userId);
+  return summarize(filtered, userId, supabase);
 }
 
 export async function POST(req){
