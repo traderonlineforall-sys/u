@@ -124,6 +124,9 @@
     // Urgent admin voice auto-activation is scoped to #SR_URGENT_TICKER only.
     safeImport('./urgent-voice-auto-activation.js?v=20260506');
 
+    // Admin Suggestions reply controls are scoped to Admin Panel -> Suggestions only.
+    safeImport('./admin-suggestions-replies-control.js?v=20260506');
+
     // Heavy/interactive modules are loaded only when needed.
     bindSupportLauncher();
     bindAdminLauncher();
