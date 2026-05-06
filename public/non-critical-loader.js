@@ -121,6 +121,9 @@
     // Layout fixes are small and affect perceived stability, so run them as soon as DOM is ready.
     loadLayoutFixes();
 
+    // Urgent admin voice auto-activation is scoped to #SR_URGENT_TICKER only.
+    safeImport('./urgent-voice-auto-activation.js?v=20260506');
+
     // Heavy/interactive modules are loaded only when needed.
     bindSupportLauncher();
     bindAdminLauncher();
