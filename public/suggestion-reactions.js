@@ -13,13 +13,16 @@ const REACTIONS = [
   ["angry", "😡", "أغضبني"]
 ];
 
-const POLL_MS = 6000;
+const FALLBACK_POLL_MS = 30000;
+const REALTIME_FALLBACK_DELAY_MS = 7000;
 
 let renderTimer = 0;
 let loading = false;
 let reactionState = Object.create(null);
 let realtimeChannel = null;
 let realtimeIdsKey = "";
+let realtimeReady = false;
+let realtimeFallbackTimer = 0;
 let pollTimer = 0;
 
 function esc(value = ""){
@@ -118,9 +121,9 @@ async function loadReactions(){
     reactionState = data?.reactions && typeof data.reactions === "object" ? data.reactions : Object.create(null);
     renderAll();
     ensureRealtimeSubscription(ids);
-    ensurePolling();
   } catch {
     // Keep the suggestions UI stable if reactions are temporarily unavailable.
+    ensureFallbackPolling();
   } finally {
     loading = false;
   }
@@ -198,10 +201,35 @@ function scheduleLoad(delay = 350){
   renderTimer = setTimeout(loadReactions, delay);
 }
 
+function stopFallbackPolling(){
+  if (!pollTimer) return;
+  clearInterval(pollTimer);
+  pollTimer = 0;
+}
+
+function ensureFallbackPolling(){
+  if (realtimeReady) {
+    stopFallbackPolling();
+    return;
+  }
+  if (pollTimer) return;
+  pollTimer = setInterval(() => {
+    if (realtimeReady) {
+      stopFallbackPolling();
+      return;
+    }
+    if (document.visibilityState === "hidden") return;
+    if (!idsOnPage().length) return;
+    loadReactions();
+  }, FALLBACK_POLL_MS);
+}
+
 function ensureRealtimeSubscription(ids = idsOnPage()){
   const key = idsKey(ids);
   if (!key || realtimeIdsKey === key) return;
   realtimeIdsKey = key;
+  realtimeReady = false;
+  clearTimeout(realtimeFallbackTimer);
 
   try {
     if (realtimeChannel) supabase.removeChannel(realtimeChannel);
@@ -216,19 +244,26 @@ function ensureRealtimeSubscription(ids = idsOnPage()){
         const sid = String(payload?.new?.suggestion_id || payload?.old?.suggestion_id || "");
         if (!sid || visible.has(sid)) scheduleLoad(80);
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          realtimeReady = true;
+          stopFallbackPolling();
+          return;
+        }
+        if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(String(status || ""))) {
+          realtimeReady = false;
+          ensureFallbackPolling();
+        }
+      });
+
+    realtimeFallbackTimer = setTimeout(() => {
+      if (!realtimeReady) ensureFallbackPolling();
+    }, REALTIME_FALLBACK_DELAY_MS);
   } catch {
     realtimeChannel = null;
+    realtimeReady = false;
+    ensureFallbackPolling();
   }
-}
-
-function ensurePolling(){
-  if (pollTimer) return;
-  pollTimer = setInterval(() => {
-    if (document.visibilityState === "hidden") return;
-    if (!idsOnPage().length) return;
-    loadReactions();
-  }, POLL_MS);
 }
 
 function bind(){
@@ -258,7 +293,7 @@ function boot(){
   bind();
   scheduleLoad();
   setTimeout(scheduleLoad, 1500);
-  ensurePolling();
+  setTimeout(() => { if (!realtimeReady) ensureFallbackPolling(); }, REALTIME_FALLBACK_DELAY_MS + 1500);
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, { once: true });
