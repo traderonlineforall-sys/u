@@ -133,7 +133,8 @@
 
     // Premium visual skin for Suggestions + Support only.
     safeStyle('./support-suggestions-premium.css?v=20260506-premium1');
-    safeStyle('./support-user-bubbles-premium.css?v=20260506-bubbles1');
+    safeStyle('./support-user-bubbles-premium.css?v=20260506-bubbles2');
+    safeImport('./support-presence-visual.js?v=20260506-presence1');
 
     // Urgent admin voice auto-activation is scoped to #SR_URGENT_TICKER only.
     safeImport('./urgent-voice-auto-activation.js?v=20260506');
