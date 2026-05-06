@@ -2,10 +2,10 @@ import { getStableUserId } from "./stable-user-identity.js";
 import { supabase } from "./supabase-client.js";
 
 /*
- * Suggestions reactions UI — safe/light version.
- * Scope: Suggestions modal/cards only.
- * This version avoids full-page MutationObserver loops and heavy repeated DOM scans.
- * Cloudflare-friendly: Cloudflare is used only when a user clicks a reaction.
+ * Suggestions reactions — clean rebuild.
+ * Scope: public Suggestions modal only.
+ * No full-page scanning, no global MutationObserver, no polling loops, no reply-panel work.
+ * Cloudflare is used only when a user clicks a reaction.
  */
 
 const REACTIONS = [
@@ -17,20 +17,20 @@ const REACTIONS = [
   ["slipper", "🩴", "فردة شبشب"]
 ];
 
-const REACTIONS_TABLE = "suggestion_reactions";
 const SUGGESTIONS_TABLE = "suggestions";
-const REACTION_KEYS = REACTIONS.map(([key]) => key);
+const REACTIONS_TABLE = "suggestion_reactions";
+const KEYS = REACTIONS.map(([key]) => key);
+const MAX_SUGGESTIONS = 250;
 
-let suggestionsCache = [];
-let suggestionsLoadedAt = 0;
-let reactionState = Object.create(null);
-let currentIdsKey = "";
-let renderTimer = 0;
+let suggestions = [];
+let reactions = Object.create(null);
+let activeItems = [];
 let loading = false;
+let renderTimer = 0;
 let realtimeChannel = null;
-let scanInterval = 0;
+let realtimeKey = "";
 
-function esc(value = ""){
+function esc(value = "") {
   return String(value == null ? "" : value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -39,7 +39,7 @@ function esc(value = ""){
     .replaceAll("'", "&#39;");
 }
 
-function norm(value = ""){
+function norm(value = "") {
   return String(value || "")
     .replace(/[\u200B-\u200D\uFEFF]/g, "")
     .replace(/\s+/g, " ")
@@ -47,244 +47,230 @@ function norm(value = ""){
     .toLowerCase();
 }
 
-function cssEscape(value = ""){
-  try { return CSS.escape(String(value)); } catch { return String(value).replace(/[^a-zA-Z0-9_-]/g, "\\$&"); }
+function cssEscape(value = "") {
+  try { return CSS.escape(String(value)); }
+  catch { return String(value).replace(/[^a-zA-Z0-9_-]/g, "\\$&"); }
 }
 
-function getUserId(){
-  try { return String(getStableUserId() || "").trim(); } catch { return ""; }
+function userId() {
+  try { return String(getStableUserId() || "").trim(); }
+  catch { return ""; }
 }
 
-function normalizeId(value){
+function validId(value) {
   const s = String(value || "").trim();
   return /^\d+$/.test(s) ? s : "";
 }
 
-function normalizeReaction(value){
+function validReaction(value) {
   const s = String(value || "").trim();
-  return REACTION_KEYS.includes(s) ? s : "";
+  return KEYS.includes(s) ? s : "";
 }
 
-function emptyCounts(){
+function emptyCounts() {
   return { like: 0, love: 0, angry: 0, laugh: 0, sad: 0, slipper: 0 };
 }
 
-function visible(el){
+function isVisible(el) {
   try {
     if (!(el instanceof HTMLElement)) return false;
     const r = el.getBoundingClientRect();
     const cs = getComputedStyle(el);
-    return r.width > 8 && r.height > 6 && cs.display !== "none" && cs.visibility !== "hidden" && Number(cs.opacity || 1) !== 0;
+    return r.width > 8 && r.height > 8 && cs.display !== "none" && cs.visibility !== "hidden" && Number(cs.opacity || 1) !== 0;
   } catch { return false; }
 }
 
-function findSuggestionsModal(){
-  const inputs = Array.from(document.querySelectorAll("textarea, input"));
-  const input = inputs.find((el) => /write a suggestion|suggestion/i.test(String(el.getAttribute("placeholder") || "")) && visible(el));
-  if (!input) return null;
+function getSuggestionsModal() {
+  const textareas = Array.from(document.querySelectorAll("textarea"));
+  const suggestionInput = textareas.find((el) => /write a suggestion|suggestion/i.test(String(el.placeholder || "")) && isVisible(el));
+  if (!suggestionInput) return null;
+
+  let modal = null;
+  let cur = suggestionInput;
+  for (let i = 0; i < 8 && cur; i += 1, cur = cur.parentElement) {
+    if (!(cur instanceof HTMLElement) || !isVisible(cur)) continue;
+    const text = norm(cur.textContent || "");
+    if (text.includes("suggestions") && text.includes("add suggestion")) modal = cur;
+  }
+  return modal || suggestionInput.closest("div, section, dialog") || null;
+}
+
+function getRepliesButtons(modal) {
+  if (!modal?.querySelectorAll) return [];
+  return Array.from(modal.querySelectorAll("button, a, [role='button']"))
+    .filter((btn) => isVisible(btn) && /replies\s*\(\d+\)/i.test(String(btn.textContent || "")));
+}
+
+function getCardForRepliesButton(btn) {
+  let best = btn.parentElement || btn;
+  let cur = btn;
+  for (let i = 0; i < 7 && cur; i += 1, cur = cur.parentElement) {
+    if (!(cur instanceof HTMLElement) || !isVisible(cur)) continue;
+    const text = norm(cur.textContent || "");
+    if (!text || text.length < 6) continue;
+    const r = cur.getBoundingClientRect();
+    if (r.width > 260 && r.height > 60) best = cur;
+    if (cur.querySelector?.("textarea[placeholder*='reply' i], input[placeholder*='reply' i]")) return cur;
+  }
+  return best;
+}
+
+function matchSuggestionForCard(card) {
+  const text = norm(card?.textContent || "");
+  if (!text) return null;
 
   let best = null;
-  let el = input;
-  for (let i = 0; i < 8 && el; i += 1, el = el.parentElement) {
-    if (!(el instanceof HTMLElement) || !visible(el)) continue;
-    const text = norm(el.textContent || "");
-    if (text.includes("suggestions") && text.includes("add suggestion")) best = el;
-  }
-  return best || input.closest("div, section, dialog") || null;
-}
-
-async function loadSuggestions(force = false){
-  const now = Date.now();
-  if (!force && suggestionsCache.length && now - suggestionsLoadedAt < 60000) return;
-  try {
-    const { data, error } = await supabase
-      .from(SUGGESTIONS_TABLE)
-      .select("id,text,user_id,created_at")
-      .order("created_at", { ascending: false })
-      .limit(300);
-    if (error) throw error;
-    suggestionsCache = Array.isArray(data) ? data : [];
-    suggestionsLoadedAt = now;
-  } catch {
-    suggestionsCache = [];
-    suggestionsLoadedAt = now;
-  }
-}
-
-function findRepliesButton(root){
-  if (!root?.querySelectorAll) return null;
-  return Array.from(root.querySelectorAll("button, a, [role='button']")).find((btn) => /replies\s*\(\d+\)/i.test(String(btn.textContent || ""))) || null;
-}
-
-function findTextElement(modal, suggestionText){
-  const body = norm(suggestionText);
-  if (!modal || !body) return null;
-
-  const nodes = Array.from(modal.querySelectorAll("div, p, span, li, article, section"));
-  let best = null;
-  let bestScore = Infinity;
-
-  for (const el of nodes) {
-    if (!visible(el)) continue;
-    if (el.closest?.(".sr-suggestion-reactions-host")) continue;
-    if (el.querySelector?.("textarea, input")) continue;
-    const text = norm(el.textContent || "");
-    if (!text || !text.includes(body)) continue;
-
-    const r = el.getBoundingClientRect();
-    const extra = Math.max(0, text.length - body.length);
-    const area = Math.max(1, r.width * r.height);
-    const hasReplies = findRepliesButton(el) ? 1 : 0;
-    const score = extra * 30 + area / 90 + hasReplies * 1200;
-    if (score < bestScore) {
-      bestScore = score;
-      best = el;
+  let bestLen = 0;
+  for (const row of suggestions) {
+    const id = validId(row?.id);
+    const body = norm(row?.text || "");
+    if (!id || body.length < 2) continue;
+    if (text.includes(body) && body.length > bestLen) {
+      best = { id, text: row.text || "" };
+      bestLen = body.length;
     }
   }
   return best;
 }
 
-function findCard(textEl){
-  if (!textEl) return null;
-  let best = textEl;
-  let el = textEl;
-  for (let i = 0; i < 7 && el; i += 1, el = el.parentElement) {
-    if (!(el instanceof HTMLElement)) continue;
-    if (findRepliesButton(el)) return el;
-    const r = el.getBoundingClientRect();
-    if (r.width >= 280 && r.height >= 55) best = el;
-  }
-  return best;
-}
-
-function findVisibleSuggestionItems(modal){
-  if (!modal) return [];
+function buildItems(modal) {
   const out = [];
   const seen = new Set();
+  const buttons = getRepliesButtons(modal);
 
-  for (const row of suggestionsCache) {
-    const id = normalizeId(row?.id);
-    const text = String(row?.text || "").trim();
-    if (!id || !text || seen.has(id)) continue;
-    const textEl = findTextElement(modal, text);
-    if (!textEl) continue;
-    const card = findCard(textEl) || textEl;
-    const repliesButton = findRepliesButton(card);
-    seen.add(id);
-    out.push({ id, card, textEl, repliesButton });
+  for (const repliesButton of buttons) {
+    const card = getCardForRepliesButton(repliesButton);
+    const match = matchSuggestionForCard(card);
+    if (!match || seen.has(match.id)) continue;
+    seen.add(match.id);
+    out.push({ id: match.id, card, repliesButton });
   }
+
   return out;
 }
 
-function summarizeRows(rows = [], userId = getUserId()){
+function summarize(rows = []) {
+  const uid = userId();
   const out = Object.create(null);
-  for (const row of rows || []) {
+  for (const row of rows) {
     const sid = String(row?.suggestion_id || "");
-    const reaction = normalizeReaction(row?.reaction);
+    const reaction = validReaction(row?.reaction);
     if (!sid || !reaction) continue;
     if (!out[sid]) out[sid] = { counts: emptyCounts(), mine: "" };
     out[sid].counts[reaction] = (out[sid].counts[reaction] || 0) + 1;
-    if (userId && String(row?.user_id || "") === userId) out[sid].mine = reaction;
+    if (uid && String(row?.user_id || "") === uid) out[sid].mine = reaction;
   }
   return out;
 }
 
-function idsKey(ids){
-  return ids.slice().sort((a, b) => Number(a) - Number(b)).join(",");
+async function loadSuggestions() {
+  const { data, error } = await supabase
+    .from(SUGGESTIONS_TABLE)
+    .select("id,text,created_at")
+    .order("created_at", { ascending: false })
+    .limit(MAX_SUGGESTIONS);
+  if (error) throw error;
+  suggestions = Array.isArray(data) ? data : [];
 }
 
-async function loadCounts(ids){
+async function loadReactionCounts(ids) {
   if (!ids.length) return;
-  const key = idsKey(ids);
-  if (key === currentIdsKey && Object.keys(reactionState).length) return;
-  currentIdsKey = key;
-
   const { data, error } = await supabase
     .from(REACTIONS_TABLE)
     .select("suggestion_id,user_id,reaction")
     .in("suggestion_id", ids.map(Number))
     .limit(5000);
   if (error) throw error;
-  reactionState = summarizeRows(Array.isArray(data) ? data : []);
+  reactions = summarize(Array.isArray(data) ? data : []);
 }
 
-function countsFor(id){ return reactionState[String(id)]?.counts || emptyCounts(); }
-function mineFor(id){ return String(reactionState[String(id)]?.mine || ""); }
+function countsFor(id) { return reactions[String(id)]?.counts || emptyCounts(); }
+function mineFor(id) { return String(reactions[String(id)]?.mine || ""); }
 
-function buildHtml(id){
+function reactionHtml(id) {
   const counts = countsFor(id);
   const mine = mineFor(id);
   const buttons = REACTIONS.map(([key, icon, label]) => {
     const active = mine === key;
     return `
-      <button type="button" class="sr-suggestion-reaction-btn" data-suggestion-reaction="${esc(key)}" data-suggestion-id="${esc(id)}" aria-pressed="${active ? "true" : "false"}" title="${esc(label)}" style="border:1px solid ${active ? "rgba(34,197,94,.85)" : "rgba(255,255,255,.18)"};border-radius:999px;padding:5px 9px;cursor:pointer;background:${active ? "rgba(34,197,94,.20)" : "rgba(255,255,255,.08)"};color:inherit;font-weight:800;display:inline-flex;align-items:center;gap:5px;line-height:1;min-width:46px;justify-content:center;">
-        <span>${icon}</span><span style="font-size:12px;">${Number(counts[key] || 0)}</span>
+      <button type="button" class="sr-suggestion-reaction-btn" data-suggestion-id="${esc(id)}" data-suggestion-reaction="${esc(key)}" aria-pressed="${active ? "true" : "false"}" title="${esc(label)}">
+        <span class="sr-reaction-icon">${esc(icon)}</span><span class="sr-reaction-count">${Number(counts[key] || 0)}</span>
       </button>`;
   }).join("");
 
   return `
-    <div class="sr-suggestion-reactions" data-suggestion-reactions-for="${esc(id)}" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:10px 0 7px;padding:7px 9px;width:fit-content;max-width:100%;border-radius:999px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.12);box-shadow:0 8px 22px rgba(0,0,0,.18);">
-      <span style="font-size:12px;opacity:.75;font-weight:800;margin-inline-end:2px;">تفاعل:</span>${buttons}
+    <div class="sr-suggestion-reactions" data-suggestion-reactions-for="${esc(id)}">
+      <span class="sr-reaction-label">تفاعل:</span>${buttons}
     </div>`;
 }
 
-function attachReactionRow(item){
-  const { id, card, textEl, repliesButton } = item;
-  if (!id || !card) return;
+function ensureStyle() {
+  if (document.getElementById("sr-suggestion-reactions-clean-style")) return;
+  const style = document.createElement("style");
+  style.id = "sr-suggestion-reactions-clean-style";
+  style.textContent = `
+    .sr-suggestion-reactions-host{margin:10px 0 8px!important;display:block!important;clear:both!important;}
+    .sr-suggestion-reactions{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important;width:fit-content!important;max-width:100%!important;padding:7px 9px!important;border-radius:999px!important;background:rgba(255,255,255,.055)!important;border:1px solid rgba(255,255,255,.12)!important;box-shadow:0 8px 22px rgba(0,0,0,.18)!important;}
+    .sr-reaction-label{font-size:12px!important;opacity:.78!important;font-weight:800!important;margin-inline-end:2px!important;}
+    .sr-suggestion-reaction-btn{border:1px solid rgba(255,255,255,.18)!important;border-radius:999px!important;padding:5px 9px!important;cursor:pointer!important;background:rgba(255,255,255,.08)!important;color:inherit!important;font-weight:800!important;display:inline-flex!important;align-items:center!important;gap:5px!important;line-height:1!important;min-width:46px!important;justify-content:center!important;transition:transform .12s ease,background .12s ease,border-color .12s ease!important;}
+    .sr-suggestion-reaction-btn[aria-pressed="true"]{background:rgba(34,197,94,.20)!important;border-color:rgba(34,197,94,.85)!important;}
+    .sr-suggestion-reaction-btn:hover{transform:translateY(-1px) scale(1.04)!important;}
+    .sr-reaction-count{font-size:12px!important;}
+  `;
+  document.head.appendChild(style);
+}
 
-  let host = card.querySelector(`.sr-suggestion-reactions-host[data-suggestion-reactions-host="${cssEscape(id)}"]`)
-    || document.querySelector(`.sr-suggestion-reactions-host[data-suggestion-reactions-host="${cssEscape(id)}"]`);
-  if (!host) {
-    host = document.createElement("div");
-    host.className = "sr-suggestion-reactions-host";
-    host.dataset.suggestionReactionsHost = id;
-  }
+function attachRows(items) {
+  ensureStyle();
+  for (const item of items) {
+    const { id, repliesButton } = item;
+    if (!id || !repliesButton?.parentElement) continue;
 
-  if (repliesButton && repliesButton.parentElement) {
+    let host = document.querySelector(`.sr-suggestion-reactions-host[data-suggestion-reactions-host="${cssEscape(id)}"]`);
+    if (!host) {
+      host = document.createElement("div");
+      host.className = "sr-suggestion-reactions-host";
+      host.dataset.suggestionReactionsHost = id;
+    }
+
     if (host.nextElementSibling !== repliesButton) repliesButton.parentElement.insertBefore(host, repliesButton);
-  } else if (textEl && textEl.parentElement) {
-    if (host.previousElementSibling !== textEl) textEl.insertAdjacentElement("afterend", host);
-  } else if (host.parentElement !== card) {
-    card.appendChild(host);
+    const html = reactionHtml(id);
+    if (host.innerHTML !== html) host.innerHTML = html;
   }
-
-  const html = buildHtml(id);
-  if (host.innerHTML !== html) host.innerHTML = html;
 }
 
-function render(items){
-  for (const item of items) attachReactionRow(item);
-}
-
-async function refresh(options = {}){
+async function refresh() {
   if (loading) return;
-  const modal = findSuggestionsModal();
+  const modal = getSuggestionsModal();
   if (!modal) return;
 
   loading = true;
   try {
-    await loadSuggestions(!!options.forceSuggestions);
-    const items = findVisibleSuggestionItems(modal);
-    const ids = items.map((x) => x.id);
-    if (ids.length) {
-      await loadCounts(ids);
-      render(items);
-      ensureRealtime(ids);
-    }
+    await loadSuggestions();
+    activeItems = buildItems(modal);
+    const ids = activeItems.map((item) => item.id);
+    await loadReactionCounts(ids);
+    attachRows(activeItems);
+    setupRealtime(ids);
   } catch {
-    // Never break or freeze the Suggestions modal if reactions are unavailable.
+    // Reactions must never block or freeze the Suggestions modal.
   } finally {
     loading = false;
   }
 }
 
-function scheduleRefresh(delay = 220, options = {}){
+function scheduleRefresh(delay = 250) {
   clearTimeout(renderTimer);
-  renderTimer = setTimeout(() => refresh(options), delay);
+  renderTimer = setTimeout(refresh, delay);
 }
 
-function setOptimistic(id, reaction){
-  const state = reactionState[id] || { counts: emptyCounts(), mine: "" };
+function updateOneFromResponse(id, data) {
+  if (data?.reactions?.[id]) reactions[id] = data.reactions[id];
+  attachRows(activeItems);
+}
+
+function optimistic(id, reaction) {
+  const state = reactions[id] || { counts: emptyCounts(), mine: "" };
   const prev = state.mine || "";
   if (prev && state.counts[prev] > 0) state.counts[prev] -= 1;
   if (prev === reaction) state.mine = "";
@@ -292,94 +278,80 @@ function setOptimistic(id, reaction){
     state.mine = reaction;
     state.counts[reaction] = (state.counts[reaction] || 0) + 1;
   }
-  reactionState[id] = state;
+  reactions[id] = state;
+  attachRows(activeItems);
 }
 
-async function apiToggle(id, reaction){
-  const res = await fetch("/api/suggestion-reactions", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ action: "toggle", suggestion_id: Number(id), reaction, user_id: getUserId() })
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || "Reaction failed");
-  return data;
-}
+async function toggleReaction(button) {
+  const id = validId(button?.dataset?.suggestionId);
+  const reaction = validReaction(button?.dataset?.suggestionReaction);
+  if (!id || !reaction || !userId()) return;
 
-async function toggle(btn){
-  const id = normalizeId(btn?.dataset?.suggestionId);
-  const reaction = normalizeReaction(btn?.dataset?.suggestionReaction);
-  if (!id || !reaction) return;
-
-  btn.disabled = true;
-  setOptimistic(id, reaction);
-  scheduleRefresh(0);
-
+  button.disabled = true;
+  optimistic(id, reaction);
   try {
-    const data = await apiToggle(id, reaction);
-    if (data?.reactions?.[id]) reactionState[id] = data.reactions[id];
-    currentIdsKey = "";
-    scheduleRefresh(80);
+    const res = await fetch("/api/suggestion-reactions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "toggle", suggestion_id: Number(id), reaction, user_id: userId() })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.error || "Reaction failed");
+    updateOneFromResponse(id, data);
   } catch {
-    currentIdsKey = "";
-    scheduleRefresh(80, { forceSuggestions: true });
+    scheduleRefresh(120);
   }
 }
 
-function ensureRealtime(ids){
-  const key = idsKey(ids);
-  if (!key || key === realtimeIdsKey) return;
-  realtimeIdsKey = key;
+function keyFor(ids) { return ids.slice().sort((a, b) => Number(a) - Number(b)).join(","); }
+
+function setupRealtime(ids) {
+  const key = keyFor(ids);
+  if (!key || key === realtimeKey) return;
+  realtimeKey = key;
   try { if (realtimeChannel) supabase.removeChannel(realtimeChannel); } catch {}
   realtimeChannel = null;
+
   try {
-    const visibleIds = new Set(ids.map(String));
+    const visible = new Set(ids.map(String));
     realtimeChannel = supabase
       .channel(`sr_suggestion_reactions_${key.replaceAll(",", "_")}`)
       .on("postgres_changes", { event: "*", schema: "public", table: REACTIONS_TABLE }, (payload) => {
         const sid = String(payload?.new?.suggestion_id || payload?.old?.suggestion_id || "");
-        if (!sid || visibleIds.has(sid)) {
-          currentIdsKey = "";
-          scheduleRefresh(80);
-        }
+        if (!sid || visible.has(sid)) scheduleRefresh(120);
       })
       .subscribe();
   } catch {}
 }
 
-function bind(){
+function bind() {
   document.addEventListener("click", (event) => {
     const reactionBtn = event.target?.closest?.("button[data-suggestion-reaction]");
     if (reactionBtn) {
       event.preventDefault();
       event.stopPropagation();
-      toggle(reactionBtn);
+      toggleReaction(reactionBtn);
       return;
     }
 
-    const text = String(event.target?.textContent || "");
-    if (/suggestions|add suggestion|replies/i.test(text) || event.target?.closest?.("#supportSuggestionsBtn, [id*='suggestion' i], [class*='suggestion' i]")) {
-      scheduleRefresh(250, { forceSuggestions: true });
-      setTimeout(() => scheduleRefresh(900), 900);
+    const target = event.target;
+    const text = String(target?.textContent || "");
+    const likelyOpen = /suggestions|add suggestion|replies/i.test(text) || target?.closest?.("#supportSuggestionsBtn, [id*='suggestion' i], [class*='suggestion' i]");
+    if (likelyOpen) {
+      scheduleRefresh(350);
+      setTimeout(() => scheduleRefresh(0), 900);
     }
   }, true);
 
-  window.addEventListener("focus", () => scheduleRefresh(120, { forceSuggestions: true }));
+  window.addEventListener("focus", () => scheduleRefresh(250));
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") scheduleRefresh(120, { forceSuggestions: true });
+    if (document.visibilityState === "visible") scheduleRefresh(250);
   });
-
-  if (!scanInterval) {
-    scanInterval = setInterval(() => {
-      if (!findSuggestionsModal()) return;
-      scheduleRefresh(0);
-    }, 2200);
-  }
 }
 
-function boot(){
+function boot() {
   bind();
-  scheduleRefresh(600, { forceSuggestions: true });
+  scheduleRefresh(800);
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, { once: true });
