@@ -127,8 +127,8 @@
     // Admin Suggestions reply controls are scoped to Admin Panel -> Suggestions only.
     safeImport('./admin-suggestions-replies-control.js?v=20260506');
 
-    // Picker reactions are scoped to the public Suggestions modal only.
-    safeImport('./suggestion-picker-reactions.js?v=20260506-picker1');
+    // Anchor-based reactions are scoped to public Suggestions anchors only.
+    safeImport('./suggestion-anchor-reactions.js?v=20260506-anchor1');
 
     // Heavy/interactive modules are loaded only when needed.
     bindSupportLauncher();
