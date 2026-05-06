@@ -11,8 +11,11 @@ const LS_THEME_MODE = "sr_visual_theme_mode";
 const TOGGLE_BTN_ID = "EID_TOGGLE_BTN";
 const LEGACY_THEME_LINK_ID = "ua07LegacyThemeLink";
 const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy4";
+const AHLY_THEME_LINK_ID = "ahlyPremiumThemeLink";
+const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahly-final-balance-v4";
 const THEME_EID = "eid";
 const THEME_LEGACY = "legacy";
+const THEME_AHLY = "ahly";
 const THEME_OFF = "off";
 
 function getThemeLink(){
@@ -33,17 +36,32 @@ function getLegacyThemeLink(){
     return null;
   }
 }
+function getAhlyThemeLink(){
+  let link = document.getElementById(AHLY_THEME_LINK_ID);
+  if (link) return link;
+  try {
+    link = document.createElement("link");
+    link.id = AHLY_THEME_LINK_ID;
+    link.rel = "stylesheet";
+    link.href = AHLY_THEME_HREF;
+    link.disabled = true;
+    (document.head || document.documentElement).appendChild(link);
+    return link;
+  } catch {
+    return null;
+  }
+}
 function getThemeMode(){
   try {
     const saved = localStorage.getItem(LS_THEME_MODE);
-    if (saved === THEME_EID || saved === THEME_LEGACY || saved === THEME_OFF) return saved;
+    if (saved === THEME_EID || saved === THEME_LEGACY || saved === THEME_AHLY || saved === THEME_OFF) return saved;
     return localStorage.getItem(LS_THEME_OFF) === "1" ? THEME_OFF : THEME_EID;
   } catch {
     return THEME_EID;
   }
 }
 function setThemeMode(mode){
-  const safeMode = (mode === THEME_EID || mode === THEME_LEGACY || mode === THEME_OFF) ? mode : THEME_EID;
+  const safeMode = (mode === THEME_EID || mode === THEME_LEGACY || mode === THEME_AHLY || mode === THEME_OFF) ? mode : THEME_EID;
   try {
     localStorage.setItem(LS_THEME_MODE, safeMode);
     localStorage.setItem(LS_THEME_OFF, safeMode === THEME_OFF ? "1" : "0");
@@ -52,7 +70,8 @@ function setThemeMode(mode){
 function getNextThemeMode(){
   const mode = getThemeMode();
   if (mode === THEME_EID) return THEME_LEGACY;
-  if (mode === THEME_LEGACY) return THEME_OFF;
+  if (mode === THEME_LEGACY) return THEME_AHLY;
+  if (mode === THEME_AHLY) return THEME_OFF;
   return THEME_EID;
 }
 function isThemeOff(){
@@ -161,10 +180,13 @@ function applyThemeState(){
   const mode = getThemeMode();
   const eidLink = getThemeLink();
   const legacyLink = getLegacyThemeLink();
+  const ahlyLink = getAhlyThemeLink();
   if(eidLink) eidLink.disabled = mode !== THEME_EID;
   if(legacyLink) legacyLink.disabled = mode !== THEME_LEGACY;
+  if(ahlyLink) ahlyLink.disabled = mode !== THEME_AHLY;
   document.documentElement.classList.toggle('eid-theme-live', mode === THEME_EID);
   document.documentElement.classList.toggle('ua07-legacy-theme-live', mode === THEME_LEGACY);
+  document.documentElement.classList.toggle('ahly-premium-theme-live', mode === THEME_AHLY);
   updateToggleUi();
 }
 function findEnvelopeWrap(){
@@ -229,12 +251,17 @@ function updateToggleUi(){
   const mode = getThemeMode();
   const off = mode === THEME_OFF;
   const legacy = mode === THEME_LEGACY;
+  const ahly = mode === THEME_AHLY;
   btn.classList.toggle("is-off", off);
   btn.classList.toggle("is-legacy", legacy);
+  btn.classList.toggle("is-ahly", ahly);
   btn.setAttribute("aria-pressed", off ? "false" : "true");
   if (legacy) {
-    btn.title = 'ثيم الزمالك 20 مفعل - اضغط لإيقاف الثيم';
-    btn.setAttribute('aria-label', 'ثيم الزمالك 20 مفعل - اضغط لإيقاف الثيم');
+    btn.title = 'ثيم الزمالك 20 مفعل - اضغط لتشغيل ثيم الأهلي الفاخر';
+    btn.setAttribute('aria-label', 'ثيم الزمالك 20 مفعل - اضغط لتشغيل ثيم الأهلي الفاخر');
+  } else if (ahly) {
+    btn.title = 'ثيم الأهلي الفاخر مفعل - اضغط لإيقاف الثيم';
+    btn.setAttribute('aria-label', 'ثيم الأهلي الفاخر مفعل - اضغط لإيقاف الثيم');
   } else if (off) {
     btn.title = 'الثيم متوقف - اضغط لتشغيل ثيم العيد';
     btn.setAttribute('aria-label', 'الثيم متوقف - اضغط لتشغيل ثيم العيد');
@@ -251,10 +278,62 @@ function fixUa07PointerEvents(logoEl){
     if(svg) svg.style.pointerEvents = "auto";
   } catch {}
 }
+
+function forceAhlyPremiumDefaultOnBoot(){
+  /*
+    Ahly-first boot policy:
+    - Forces Ahly Premium as the page-load default on every fresh load/refresh.
+    - Does not break the existing toggle cycle after the page is loaded.
+    - Ignores old localStorage/cache state by rewriting the visual theme mode early.
+  */
+  try {
+    setThemeMode(THEME_AHLY);
+  } catch {}
+}
+
+function triggerSmartHeaderResetOnBoot(){
+  /*
+    Runs the same reset effect as pressing the header reset button once per page load.
+    It waits for the safe-upgrade reset button to exist, then clicks it; if the user is
+    already actively typing in an input, it avoids clearing their in-progress edit.
+  */
+  if (window.__AHLY_PREMIUM_AUTO_RESET_DONE) return;
+  window.__AHLY_PREMIUM_AUTO_RESET_DONE = true;
+
+  function isUserEditingNow(){
+    try {
+      const el = document.activeElement;
+      if (!el) return false;
+      const tag = (el.tagName || '').toLowerCase();
+      if (tag !== 'input' && tag !== 'textarea' && tag !== 'select') return false;
+      return !!String(el.value || '').trim();
+    } catch {
+      return false;
+    }
+  }
+
+  let tries = 0;
+  const timer = setInterval(function(){
+    tries++;
+    const btn = document.getElementById('headerResetBtn');
+    if (btn && !isUserEditingNow()) {
+      clearInterval(timer);
+      setTimeout(function(){
+        try { btn.click(); } catch {}
+      }, 120);
+      return;
+    }
+    if (tries > 45) clearInterval(timer);
+  }, 120);
+}
+
+
 function boot(){
+  forceAhlyPremiumDefaultOnBoot();
   ensureToggleBaseStyle();
   ensureDecorLayer();
   applyThemeState();
+  triggerSmartHeaderResetOnBoot();
   let tries = 0;
   const t = setInterval(function(){
     tries++;

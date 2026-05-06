@@ -180,16 +180,19 @@
     if(!l || !t) return;
 
     const landEmpty = isEmpty(l.value);
-    const tv = t.value || "";
 
+    /*
+      Updated FBB field policy:
+      - When ADSL Number is empty, number With FBB must remain manually editable.
+      - When ADSL Number has a value, the dedicated mirror-sync module locks and mirrors FBB.
+      This function no longer clears FBB on an empty ADSL field, because that prevented
+      manual FBB entry.
+    */
     if(landEmpty){
-      if(!isEmpty(tv)){
-        t.value = "";
-        // trigger any listeners inside the tool
-        t.dispatchEvent(new Event("input", {bubbles:true}));
-        t.dispatchEvent(new Event("change", {bubbles:true}));
-        try{ t.dispatchEvent(new KeyboardEvent("keyup", {bubbles:true, key:"Backspace"})); }catch(e){}
-      }
+      try{ t.readOnly = false; }catch(e){}
+      try{ t.removeAttribute("readonly"); }catch(e){}
+      try{ t.setAttribute("aria-readonly", "false"); }catch(e){}
+      try{ t.style.cursor = "text"; }catch(e){}
     }
   }
 
@@ -1913,133 +1916,8 @@
 
 (function(){
   "use strict";
-
-  function ensure(){
-    // If the newer UA07 logo exists, use it instead of injecting a duplicate luxury logo
-    var existingNew = document.getElementById("MNDO_UA07_LOGO3");
-    if(existingNew) return existingNew;
-    var el = document.getElementById("UA07_LUX_LOGO_BETWEEN");
-    if(el) return el;
-    el = document.createElement("div");
-    el.id = "UA07_LUX_LOGO_BETWEEN";
-    // Premium UA07 badge (SVG) — global luxury monogram
-    el.innerHTML =
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 72" aria-hidden="true">'
-      + '<defs>'
-      +   '<linearGradient id="ua07g" x1="18" y1="10" x2="302" y2="62" gradientUnits="userSpaceOnUse">'
-      +     '<stop offset="0" stop-color="#9AE6FF"/>'
-      +     '<stop offset="0.52" stop-color="#FF7AD9"/>'
-      +     '<stop offset="1" stop-color="#FFE08A"/>'
-      +   '</linearGradient>'
-      +   '<linearGradient id="ua07glass" x1="0" y1="0" x2="0" y2="1">'
-      +     '<stop offset="0" stop-color="rgba(255,255,255,0.16)"/>'
-      +     '<stop offset="1" stop-color="rgba(255,255,255,0.05)"/>'
-      +   '</linearGradient>'
-      +   '<filter id="ua07shadow" x="-30%" y="-60%" width="160%" height="220%">'
-      +     '<feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="rgba(0,0,0,0.45)"/>'
-      +   '</filter>'
-      +   '<filter id="ua07glow" x="-30%" y="-60%" width="160%" height="220%">'
-      +     '<feGaussianBlur stdDeviation="2.4" result="b"/>'
-      +     '<feColorMatrix in="b" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .50 0" result="g"/>'
-      +     '<feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>'
-      +   '</filter>'
-      + '</defs>'
-
-      + '<g filter="url(#ua07shadow)">' 
-      +   '<rect x="6" y="10" width="308" height="52" rx="18" fill="rgba(16,18,28,0.62)" stroke="rgba(255,255,255,0.18)"/>'
-      +   '<rect x="8" y="12" width="304" height="48" rx="16" fill="url(#ua07glass)" opacity="0.92"/>'
-      +   '<path d="M20 18H300" stroke="rgba(255,255,255,0.10)" stroke-width="2" stroke-linecap="round"/>'
-      +   '<path d="M28 58H292" stroke="rgba(255,255,255,0.08)" stroke-width="2" stroke-linecap="round"/>'
-      + '</g>'
-
-      + '<g filter="url(#ua07glow)">' 
-      +   '<g fill="none" stroke="url(#ua07g)" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round">'
-      +     '<path d="M48 26v18c0 10 7 14 18 14s18-4 18-14V26"/>'
-      +     '<path d="M104 58L120 24l16 34"/>'
-      +     '<path d="M112 44h16"/>'
-      +   '</g>'
-      +   '<path d="M156 24v34" stroke="rgba(255,255,255,0.16)" stroke-width="2" stroke-linecap="round"/>'
-      +   '<text x="174" y="52" font-family="system-ui,Segoe UI,Arial" font-size="30" font-weight="850" letter-spacing="2.2" fill="#ff1a1a">07</text>'
-      +   '<path d="M232 30h64" stroke="rgba(255,255,255,0.18)" stroke-width="2" stroke-linecap="round"/>'
-      +   '<path d="M232 46h48" stroke="rgba(255,255,255,0.12)" stroke-width="2" stroke-linecap="round"/>'
-      + '</g>'
-      + '</svg>';
-    document.body.appendChild(el);
-    return el;
-  }
-
-  function findSearch(){
-    return document.getElementById("searchInput")
-      || document.querySelector("input.search-input")
-      || document.querySelector(".search-container input")
-      || document.querySelector("input[type='search']")
-      || document.querySelector("input[id*='search' i], input[class*='search' i]");
-  }
-
-  function findAHT(){
-    return document.getElementById("mndoQueryTimer")
-      || document.querySelector("#MNDO_AHT_TAGS_STACK #mndoQueryTimer");
-  }
-
-  var raf = 0;
-  function place(){
-    raf = 0;
-    var logo = ensure();
-    var s = findSearch();
-    if(!s) return;
-    var a = findAHT();
-
-    var sx = (window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft || 0);
-    var sy = (window.pageYOffset || document.documentElement.scrollTop  || document.body.scrollTop  || 0);
-
-    var sr = s.getBoundingClientRect();
-    var ar = a ? a.getBoundingClientRect() : null;
-
-    // vertically centered with the search input
-    var top = Math.round(sy + sr.top + (sr.height - logo.offsetHeight)/2);
-
-    // horizontally: prefer the gap between Search and AHT; otherwise stick right of search
-    var left;
-    if(ar && (ar.left > sr.right + 12)){
-      var gapL = sx + sr.right + 10;
-      var gapR = sx + ar.left - 10 - logo.offsetWidth;
-      left = Math.round((gapL + gapR) / 2);
-      if(left < gapL) left = gapL;
-      if(left > gapR) left = gapR;
-    }else{
-      left = Math.round(sx + sr.right + 12);
-    }
-
-    // clamp inside viewport
-    var minL = sx + 6;
-    var maxL = sx + Math.max(6, (window.innerWidth - logo.offsetWidth - 6));
-    if(left < minL) left = minL;
-    if(left > maxL) left = maxL;
-
-    logo.style.top = top + "px";
-    logo.style.left = left + "px";
-  }
-
-  function schedule(){
-    if(raf) return;
-    raf = requestAnimationFrame(place);
-  }
-
-  function boot(){
-    schedule();
-    setTimeout(schedule, 120);
-    setTimeout(schedule, 350);
-    setTimeout(schedule, 900);
-    window.addEventListener("resize", function(){ setTimeout(schedule, 40); });
-    // Removed scroll listener to allow natural scrolling of logo and timer
-  }
-
-  if(document.readyState === "loading"){
-    document.addEventListener("DOMContentLoaded", boot, {once:true});
-  }else{
-    boot();
-  }
-  window.addEventListener("load", boot, {once:true});
+  // UA07 logo is now structural HTML (public/index.html) and must not be repositioned at runtime.
+  return;
 })();
 
 
@@ -3454,7 +3332,11 @@ function resetAllPackages() {
                         function openLink(event) {
                                 event.preventDefault(); //منع فتح الرابط الأصلي والذهاب إلى الرابط الذي يتم إنشاؤه بدلا من ذلك
                                 var link = event.target.href; //الحصول على رابط العنصر الذي تم النقر عليه
-                                var myVariable = document.getElementById("arabiccNumber").value; // إنشاء المتغير
+                                var myVariable = (document.getElementById("arabiccNumber").value || "").trim(); // إنشاء المتغير
+                                if (!myVariable) {
+                                        var adslForFbb = ((document.getElementById("arabicNumber") || {}).value || "").trim().replace(/\D/g, "");
+                                        if (adslForFbb) myVariable = "FBB" + adslForFbb;
+                                }
                                 // Special case: SR Technical - BLQ → BLQ CPE Problem (srTypeId=102040017)
                                 // This SR requires subsNumber to be populated before BMEWebToken to open correctly.
                                 // Replace the subsNumber parameter with the full FBB value and do NOT append it at the end.
@@ -3496,17 +3378,16 @@ function resetAllPackages() {
                                         myVariable = "";
                                 }
                                 // Special case: SR Sales - Refund - the amount to the card → Refund bank within SLA (srTypeId=103038004)
-// This SR requires subsNumber to be populated before BMEWebToken to open correctly.
-// Replace the subsNumber parameter with the full FBB value and do NOT append it at the end.
 if (link && link.indexOf("srTypeId=103038004") !== -1) {
         link = link.replace(/([?&]subsNumber=)[^&]*/i, "$1" + myVariable);
         myVariable = "";
 }
 if (link && link.indexOf("srTypeId=100047001") !== -1) {
                                         var fbbAdslNumber = (document.getElementById("arabicNumber").value || "").trim();
-                                        var fbbServiceContent = "FBB Num (" + fbbAdslNumber + ") Accepted (3) GB for (2) days related tiket id (xxx) on mobile (xxx) ";
+                                        var fbbServiceContent = "FBB Num (" + fbbAdslNumber + ") Accepted (3) GB for (2) days related tts - outage - ir  id (xxx) on mobile (xxx) ";
                                         link = link.replace(/([?&]serviceContent=)[^&]*/i, "$1" + encodeURIComponent(fbbServiceContent));
                                 }
+
                                 link += myVariable; // إضافة المتغير إلى الرابط
                                 window.open(link); // فتح الرابط الجديد مع المتغير المضاف
                         }
@@ -3725,13 +3606,21 @@ if (link && link.indexOf("srTypeId=100047001") !== -1) {
                                                                 var hasFBB = /fbb/i.test(englishNumber);
                                                                 var digitsOnly = (englishNumber || "").replace(/\D/g, "");
 
+                                                                var fbbInput = document.getElementById("arabiccNumber");
                                                                 document.getElementById("arabicNumber").value = digitsOnly;
                                                                 if (digitsOnly !== "") {
-                                                                        document.getElementById("arabiccNumber").value = "FBB" + digitsOnly;
-                                                                } else if (hasFBB) {
-                                                                        document.getElementById("arabiccNumber").value = "FBB";
+                                                                        fbbInput.value = "FBB" + digitsOnly;
                                                                 } else {
-                                                                        document.getElementById("arabiccNumber").value = "";
+                                                                        /*
+                                                                          ADSL Number is empty: keep number With FBB free for manual entry.
+                                                                          Do not clear or overwrite the top field while the user is typing there.
+                                                                        */
+                                                                        try {
+                                                                                fbbInput.readOnly = false;
+                                                                                fbbInput.removeAttribute("readonly");
+                                                                                fbbInput.setAttribute("aria-readonly", "false");
+                                                                                fbbInput.style.cursor = "text";
+                                                                        } catch (err) {}
                                                                 }
                                                         }
                                                         // برمجه الانبوت الخاص بالرقم 
@@ -5152,4 +5041,3 @@ function handlePasteForOcr(e){
     setStatus('جاهز (اضغط داخل المربع ثم Ctrl+V)');
   });
 })();
-

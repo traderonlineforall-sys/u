@@ -1,0 +1,422 @@
+/* Premium visual skin for Suggestions + Support only.
+   Visual CSS only: no SR data, no header, no menus, no theme logic.
+   Safe version: never changes chat row sizing/flow or hides message content. */
+
+:root{
+  --sr-chat-glass: rgba(13, 17, 31, .82);
+  --sr-chat-glass-2: rgba(22, 27, 45, .76);
+  --sr-chat-line: rgba(255,255,255,.13);
+  --sr-chat-line-strong: rgba(255,255,255,.22);
+  --sr-chat-text: rgba(245,248,255,.94);
+  --sr-chat-muted: rgba(220,228,255,.70);
+  --sr-chat-green: #5ee06f;
+  --sr-chat-blue: #5b8cff;
+  --sr-chat-gold: #e7c56f;
+}
+
+#suggestionsOverlay,
+#supportChatOverlay,
+#supportNameOverlay{
+  backdrop-filter: blur(14px) saturate(145%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(145%) !important;
+  background: rgba(1, 3, 12, .64) !important;
+}
+
+#suggestionsOverlay > div,
+#supportChatOverlay > div,
+#supportNameOverlay > div,
+.support-chat-panel,
+.suggestions-panel,
+.support-name-panel{
+  background:
+    radial-gradient(900px 420px at 12% 0%, rgba(91,140,255,.18), transparent 60%),
+    radial-gradient(760px 420px at 95% 12%, rgba(94,224,111,.12), transparent 55%),
+    linear-gradient(180deg, rgba(21,26,43,.92), rgba(12,15,28,.92)) !important;
+  border: 1px solid var(--sr-chat-line-strong) !important;
+  box-shadow:
+    0 28px 90px rgba(0,0,0,.58),
+    inset 0 1px 0 rgba(255,255,255,.12) !important;
+  color: var(--sr-chat-text) !important;
+}
+
+#suggestionsOverlay h1,
+#suggestionsOverlay h2,
+#suggestionsOverlay h3,
+#supportChatOverlay h1,
+#supportChatOverlay h2,
+#supportChatOverlay h3,
+#supportChatTitle{
+  color: var(--sr-chat-text) !important;
+  letter-spacing: .15px !important;
+  text-shadow: 0 2px 16px rgba(0,0,0,.35) !important;
+}
+
+#suggestionsOverlay p,
+#supportChatSubtitle,
+#supportChatStatus,
+#suggestionStatus,
+.sug-reply-hint{
+  color: var(--sr-chat-muted) !important;
+}
+
+#suggestionsCloseBtn,
+#supportChatCloseBtn,
+#supportNameCloseBtn,
+#supportChatBackBtn{
+  border: 1px solid rgba(255,255,255,.18) !important;
+  background: rgba(255,255,255,.07) !important;
+  color: var(--sr-chat-text) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.09), 0 10px 28px rgba(0,0,0,.25) !important;
+}
+#suggestionsCloseBtn:hover,
+#supportChatCloseBtn:hover,
+#supportNameCloseBtn:hover,
+#supportChatBackBtn:hover{
+  background: rgba(255,255,255,.13) !important;
+  transform: translateY(-1px) !important;
+}
+
+#suggestionInput,
+#supportMessageInput,
+#supportNameInput,
+.sug-reply-input{
+  background: rgba(255,255,255,.055) !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  color: var(--sr-chat-text) !important;
+  caret-color: var(--sr-chat-green) !important;
+  border-radius: 16px !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), inset 0 -10px 24px rgba(0,0,0,.10) !important;
+  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease !important;
+}
+#suggestionInput::placeholder,
+#supportMessageInput::placeholder,
+#supportNameInput::placeholder,
+.sug-reply-input::placeholder{
+  color: rgba(225,232,255,.48) !important;
+}
+#suggestionInput:focus,
+#supportMessageInput:focus,
+#supportNameInput:focus,
+.sug-reply-input:focus{
+  outline: none !important;
+  border-color: rgba(94,224,111,.58) !important;
+  background: rgba(255,255,255,.08) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 0 0 3px rgba(94,224,111,.13),
+    0 14px 34px rgba(0,0,0,.25) !important;
+}
+
+#suggestionAddBtn,
+#supportSendBtn,
+#supportNameConfirmBtn,
+.sug-reply-send{
+  background:
+    radial-gradient(120% 120% at 18% 10%, rgba(255,255,255,.28), transparent 45%),
+    linear-gradient(135deg, #58d66b, #39b855) !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  color: #06110a !important;
+  font-weight: 900 !important;
+  border-radius: 999px !important;
+  box-shadow: 0 16px 34px rgba(52,185,85,.25), inset 0 1px 0 rgba(255,255,255,.34) !important;
+  transition: transform .12s ease, filter .12s ease, box-shadow .12s ease !important;
+}
+#suggestionAddBtn:hover,
+#supportSendBtn:hover,
+#supportNameConfirmBtn:hover,
+.sug-reply-send:hover{
+  transform: translateY(-1px) !important;
+  filter: brightness(1.05) saturate(1.05) !important;
+  box-shadow: 0 18px 38px rgba(52,185,85,.34), inset 0 1px 0 rgba(255,255,255,.38) !important;
+}
+#suggestionAddBtn:disabled,
+#supportSendBtn:disabled,
+.sug-reply-send:disabled{
+  opacity: .55 !important;
+  filter: grayscale(.35) !important;
+  cursor: not-allowed !important;
+}
+
+#supportEmojiBtn,
+#supportAttachBtn{
+  background: rgba(255,255,255,.065) !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  color: var(--sr-chat-text) !important;
+  border-radius: 14px !important;
+}
+#supportEmojiBtn:hover,
+#supportAttachBtn:hover{
+  background: rgba(255,255,255,.12) !important;
+}
+
+#suggestionsList,
+#supportMessagesList,
+#supportUsersList{
+  scrollbar-width: thin;
+  scrollbar-color: rgba(231,197,111,.55) rgba(255,255,255,.06);
+}
+#suggestionsList::-webkit-scrollbar,
+#supportMessagesList::-webkit-scrollbar,
+#supportUsersList::-webkit-scrollbar{ width: 9px; height: 9px; }
+#suggestionsList::-webkit-scrollbar-thumb,
+#supportMessagesList::-webkit-scrollbar-thumb,
+#supportUsersList::-webkit-scrollbar-thumb{
+  background: linear-gradient(180deg, rgba(231,197,111,.70), rgba(91,140,255,.42));
+  border-radius: 999px;
+}
+#suggestionsList::-webkit-scrollbar-track,
+#supportMessagesList::-webkit-scrollbar-track,
+#supportUsersList::-webkit-scrollbar-track{
+  background: rgba(255,255,255,.05);
+  border-radius: 999px;
+}
+
+.suggestion-item,
+.sug-reply-item,
+.support-msg,
+.support-user{
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.035)) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 12px 28px rgba(0,0,0,.18) !important;
+  color: var(--sr-chat-text) !important;
+}
+.suggestion-item,
+.support-msg{
+  border-radius: 18px !important;
+}
+.suggestion-item:hover,
+.sug-reply-item:hover,
+.support-msg:hover,
+.support-user:hover{
+  border-color: rgba(255,255,255,.22) !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.045)) !important;
+}
+
+/* Support messages: each user gets a stronger but readable premium bubble identity. */
+.support-msg{
+  overflow: visible !important;
+  isolation: auto !important;
+  min-height: unset !important;
+  max-height: none !important;
+  height: auto !important;
+  border: 1px solid var(--uborder, rgba(255,255,255,.14)) !important;
+  border-left: 7px solid var(--u, var(--sr-chat-blue)) !important;
+  background-color: rgba(13,17,31,.74) !important;
+  background-image:
+    linear-gradient(135deg, var(--ubg, rgba(91,140,255,.24)) 0%, rgba(255,255,255,.075) 42%, rgba(255,255,255,.032) 100%),
+    radial-gradient(360px 135px at 0% 0%, var(--ubg, rgba(91,140,255,.26)), transparent 74%),
+    radial-gradient(260px 120px at 100% 100%, rgba(255,255,255,.055), transparent 72%) !important;
+  background-blend-mode: screen, normal, normal !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.11),
+    inset 0 -18px 34px rgba(0,0,0,.13),
+    0 13px 30px rgba(0,0,0,.20),
+    -13px 0 28px -22px var(--u, rgba(91,140,255,.60)) !important;
+}
+.support-msg:hover{
+  border-color: var(--u, var(--uborder, rgba(255,255,255,.22))) !important;
+  background-image:
+    linear-gradient(135deg, var(--ubg, rgba(91,140,255,.28)) 0%, rgba(255,255,255,.092) 42%, rgba(255,255,255,.040) 100%),
+    radial-gradient(390px 145px at 0% 0%, var(--ubg, rgba(91,140,255,.30)), transparent 74%),
+    radial-gradient(260px 120px at 100% 100%, rgba(255,255,255,.065), transparent 72%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.13),
+    inset 0 -18px 34px rgba(0,0,0,.13),
+    0 16px 34px rgba(0,0,0,.23),
+    -14px 0 30px -22px var(--u, rgba(91,140,255,.68)) !important;
+}
+.support-msg.mine{
+  border-left-color: var(--sr-chat-green) !important;
+  background-color: rgba(10,20,18,.76) !important;
+  background-image:
+    linear-gradient(135deg, rgba(94,224,111,.18) 0%, var(--ubg, rgba(91,140,255,.18)) 48%, rgba(255,255,255,.034) 100%),
+    radial-gradient(330px 130px at 100% 0%, rgba(94,224,111,.16), transparent 74%),
+    radial-gradient(260px 120px at 0% 100%, var(--ubg, rgba(91,140,255,.18)), transparent 72%) !important;
+  box-shadow:
+    inset 4px 0 0 rgba(94,224,111,.64),
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 14px 34px rgba(0,0,0,.21),
+    -13px 0 28px -22px rgba(94,224,111,.66) !important;
+}
+.support-msg-meta{
+  color: var(--sr-chat-muted) !important;
+}
+.support-msg-dot{
+  background: var(--u, var(--sr-chat-blue)) !important;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.08), 0 0 15px var(--u, rgba(91,140,255,.50)) !important;
+}
+.support-msg-name{
+  color: var(--u, var(--sr-chat-text)) !important;
+  font-weight: 900 !important;
+}
+.support-msg-time{
+  color: rgba(225,232,255,.70) !important;
+  font-size: 12px !important;
+}
+.support-msg-text,
+.support-attach-line{
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  color: rgba(250,252,255,.96) !important;
+  line-height: 1.66 !important;
+  text-shadow: 0 1px 8px rgba(0,0,0,.18) !important;
+}
+.support-del-btn{
+  border: 1px solid rgba(255,255,255,.15) !important;
+  background: rgba(255,255,255,.08) !important;
+  color: rgba(255,255,255,.88) !important;
+  border-radius: 999px !important;
+}
+
+.support-user{
+  border-color: var(--u, rgba(255,255,255,.16)) !important;
+  border-left: 4px solid var(--u, var(--sr-chat-blue)) !important;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--u, #5b8cff) 20%, transparent), rgba(255,255,255,.04) 48%, rgba(255,255,255,.025)) !important;
+}
+.support-user-dot{
+  background: var(--u, var(--sr-chat-blue)) !important;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.08), 0 0 15px var(--u, rgba(91,140,255,.50)) !important;
+}
+.support-user-name{
+  color: var(--sr-chat-text) !important;
+  font-weight: 900 !important;
+}
+.support-user.me,
+.support-user.is-active{
+  border-color: rgba(94,224,111,.36) !important;
+  border-left-color: var(--sr-chat-green) !important;
+  background: linear-gradient(90deg, rgba(94,224,111,.16), rgba(255,255,255,.045)) !important;
+}
+
+/* Suggestions: refined cards, same dimensions and safe readable text. */
+.suggestion-item,
+.sug-reply-item{
+  overflow: visible !important;
+  border-left: 5px solid var(--u, var(--sr-chat-blue)) !important;
+  background:
+    radial-gradient(260px 120px at 0% 0%, rgba(91,140,255,.10), transparent 70%),
+    linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.038)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 13px 30px rgba(0,0,0,.19) !important;
+  color: var(--sr-chat-text) !important;
+}
+.sug-reply-item{
+  border-radius: 16px !important;
+}
+.suggestion-item.has-replies{
+  border-left-color: var(--sr-chat-gold) !important;
+  box-shadow:
+    inset 3px 0 0 rgba(231,197,111,.62),
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 14px 34px rgba(0,0,0,.20) !important;
+}
+.suggestion-meta,
+.sug-reply-meta{
+  color: var(--sr-chat-muted) !important;
+}
+.suggestion-name,
+.sug-reply-name{
+  color: var(--u, var(--sr-chat-text)) !important;
+  font-weight: 900 !important;
+}
+.suggestion-when,
+.sug-reply-when{
+  color: rgba(225,232,255,.64) !important;
+  font-size: 12px !important;
+}
+.suggestion-text,
+.sug-reply-text{
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  color: rgba(250,252,255,.94) !important;
+  line-height: 1.65 !important;
+}
+.suggestion-dot,
+.sug-reply-dot{
+  background: var(--u, var(--sr-chat-blue)) !important;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.08), 0 0 15px var(--u, rgba(91,140,255,.50)) !important;
+}
+
+.sug-replies-toggle{
+  background:
+    linear-gradient(180deg, rgba(231,197,111,.18), rgba(231,197,111,.07)) !important;
+  border: 1px solid rgba(231,197,111,.38) !important;
+  color: rgba(255,246,216,.96) !important;
+  border-radius: 999px !important;
+  box-shadow: 0 10px 24px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.14) !important;
+}
+.sug-replies-toggle:hover{
+  background:
+    linear-gradient(180deg, rgba(231,197,111,.27), rgba(231,197,111,.11)) !important;
+  transform: translateY(-1px) !important;
+}
+.sug-replies-badge,
+.support-user-unread.is-on,
+#badgeSuggestions.is-on,
+#badgeSupport.is-on{
+  background: linear-gradient(135deg, #ff4d6d, #ff8b4a) !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 3px rgba(255,77,109,.15), 0 10px 22px rgba(255,77,109,.22) !important;
+}
+
+#suggestionsFab,
+#supportToggleBtn{
+  background:
+    radial-gradient(120% 120% at 18% 10%, rgba(255,255,255,.26), transparent 48%),
+    linear-gradient(135deg, rgba(25,30,52,.96), rgba(13,17,31,.96)) !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+  color: var(--sr-chat-text) !important;
+  box-shadow: 0 16px 38px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.16) !important;
+}
+#suggestionsFab:hover,
+#supportToggleBtn:hover{
+  transform: translateY(-2px) !important;
+  border-color: rgba(94,224,111,.42) !important;
+}
+
+.support-link{
+  color: #8fb2ff !important;
+  text-decoration-color: rgba(143,178,255,.45) !important;
+}
+.support-attach-chip,
+.support-attach-line{
+  background: rgba(255,255,255,.065) !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  border-radius: 14px !important;
+}
+.support-emoji-grid,
+#supportEmojiPopover{
+  background: rgba(15,19,34,.96) !important;
+  border: 1px solid rgba(255,255,255,.15) !important;
+  box-shadow: 0 18px 46px rgba(0,0,0,.38) !important;
+  border-radius: 16px !important;
+}
+.support-emoji-btn{
+  background: rgba(255,255,255,.06) !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  border-radius: 12px !important;
+}
+.support-emoji-btn:hover{
+  background: rgba(255,255,255,.13) !important;
+}
+
+@supports not (color: color-mix(in srgb, red 10%, transparent)){
+  .support-user{
+    background: linear-gradient(90deg, rgba(91,140,255,.10), rgba(255,255,255,.04)) !important;
+  }
+}
+
+@media (max-width: 720px){
+  #suggestionsOverlay > div,
+  #supportChatOverlay > div,
+  #supportNameOverlay > div{
+    border-radius: 20px !important;
+  }
+  .suggestion-item,
+  .support-msg{
+    border-radius: 16px !important;
+  }
+}

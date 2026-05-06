@@ -11,6 +11,7 @@ function parseAnnouncementText(raw){
   let envelope_text = "";
   let urgent_text = "";
   let urgent_enabled = false;
+  let urgent_voice = "ar-EG-SalmaNeural";
 
   // New format: JSON
   try{
@@ -19,7 +20,8 @@ function parseAnnouncementText(raw){
       envelope_text = String(obj.envelope || obj.envelope_text || "");
       urgent_text = String(obj.urgent || obj.urgent_text || "");
       urgent_enabled = !!(obj.urgent_enabled);
-      return { text, envelope_text, urgent_text, urgent_enabled };
+      urgent_voice = String(obj.urgent_voice || "ar-EG-SalmaNeural");
+      return { text, envelope_text, urgent_text, urgent_enabled, urgent_voice };
     }
   }catch(_){}
 
@@ -28,12 +30,12 @@ function parseAnnouncementText(raw){
   if(text.startsWith(prefix)){
     urgent_enabled = true;
     urgent_text = text.slice(prefix.length).trim();
-    return { text, envelope_text, urgent_text, urgent_enabled };
+    return { text, envelope_text, urgent_text, urgent_enabled, urgent_voice };
   }
 
   // Legacy format: plain text = envelope
   envelope_text = text;
-  return { text, envelope_text, urgent_text, urgent_enabled };
+  return { text, envelope_text, urgent_text, urgent_enabled, urgent_voice };
 }
 
 export async function GET(){
@@ -53,6 +55,7 @@ export async function GET(){
     envelope_text: parsed.envelope_text,
     urgent_text: parsed.urgent_text,
     urgent_enabled: parsed.urgent_enabled,
+    urgent_voice: parsed.urgent_voice || "ar-EG-SalmaNeural",
     created_at: row?.created_at || null
   });
 }
@@ -66,6 +69,7 @@ export async function POST(req){
   const envelope_text = String(body?.envelope_text ?? "");
   const urgent_text = String(body?.urgent_text ?? "");
   const urgent_enabled = !!body?.urgent_enabled;
+  const urgent_voice = String(body?.urgent_voice || "ar-EG-SalmaNeural").trim() || "ar-EG-SalmaNeural";
 
   let text = String(body?.text ?? "");
 
@@ -74,7 +78,8 @@ export async function POST(req){
     text = JSON.stringify({
       envelope: envelope_text,
       urgent: urgent_text,
-      urgent_enabled
+      urgent_enabled,
+      urgent_voice
     });
   }
 
@@ -98,6 +103,7 @@ export async function POST(req){
     envelope_text: parsed.envelope_text,
     urgent_text: parsed.urgent_text,
     urgent_enabled: parsed.urgent_enabled,
+    urgent_voice: parsed.urgent_voice || "ar-EG-SalmaNeural",
     created_at: data?.created_at || null
   });
 }

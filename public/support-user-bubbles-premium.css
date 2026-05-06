@@ -1,0 +1,198 @@
+/*
+ * Support chat bubble override only.
+ * Purpose: make every support message read as a solid premium bubble using a
+ * clear fixed palette, without changing message height, SR data, header, or chat logic.
+ */
+
+#supportMessagesList .support-msg,
+#supportUsersList .support-user{
+  --bubble-main: #2f80ed;
+  --bubble-deep: #102a56;
+  --bubble-soft: rgba(47,128,237,.30);
+  --bubble-edge: #56ccf2;
+}
+
+#supportMessagesList .support-msg[data-bubble-scheme="0"],
+#supportUsersList .support-user[data-bubble-scheme="0"]{ --bubble-main:#2f80ed; --bubble-deep:#102a56; --bubble-soft:rgba(47,128,237,.34); --bubble-edge:#56ccf2; }
+#supportMessagesList .support-msg[data-bubble-scheme="1"],
+#supportUsersList .support-user[data-bubble-scheme="1"]{ --bubble-main:#9b51e0; --bubble-deep:#321456; --bubble-soft:rgba(155,81,224,.34); --bubble-edge:#d783ff; }
+#supportMessagesList .support-msg[data-bubble-scheme="2"],
+#supportUsersList .support-user[data-bubble-scheme="2"]{ --bubble-main:#f2994a; --bubble-deep:#552b0d; --bubble-soft:rgba(242,153,74,.34); --bubble-edge:#ffd166; }
+#supportMessagesList .support-msg[data-bubble-scheme="3"],
+#supportUsersList .support-user[data-bubble-scheme="3"]{ --bubble-main:#00b894; --bubble-deep:#063e36; --bubble-soft:rgba(0,184,148,.34); --bubble-edge:#55efc4; }
+#supportMessagesList .support-msg[data-bubble-scheme="4"],
+#supportUsersList .support-user[data-bubble-scheme="4"]{ --bubble-main:#eb5757; --bubble-deep:#531718; --bubble-soft:rgba(235,87,87,.34); --bubble-edge:#ff9f9f; }
+#supportMessagesList .support-msg[data-bubble-scheme="5"],
+#supportUsersList .support-user[data-bubble-scheme="5"]{ --bubble-main:#00a8ff; --bubble-deep:#08324f; --bubble-soft:rgba(0,168,255,.34); --bubble-edge:#7ed6ff; }
+#supportMessagesList .support-msg[data-bubble-scheme="6"],
+#supportUsersList .support-user[data-bubble-scheme="6"]{ --bubble-main:#e84393; --bubble-deep:#551331; --bubble-soft:rgba(232,67,147,.34); --bubble-edge:#ff8cc6; }
+#supportMessagesList .support-msg[data-bubble-scheme="7"],
+#supportUsersList .support-user[data-bubble-scheme="7"]{ --bubble-main:#6c5ce7; --bubble-deep:#211b59; --bubble-soft:rgba(108,92,231,.34); --bubble-edge:#a29bfe; }
+#supportMessagesList .support-msg[data-bubble-scheme="8"],
+#supportUsersList .support-user[data-bubble-scheme="8"]{ --bubble-main:#f2c94c; --bubble-deep:#4b3908; --bubble-soft:rgba(242,201,76,.30); --bubble-edge:#fff08a; }
+#supportMessagesList .support-msg[data-bubble-scheme="9"],
+#supportUsersList .support-user[data-bubble-scheme="9"]{ --bubble-main:#20bf6b; --bubble-deep:#073b22; --bubble-soft:rgba(32,191,107,.34); --bubble-edge:#7bed9f; }
+#supportMessagesList .support-msg[data-bubble-scheme="10"],
+#supportUsersList .support-user[data-bubble-scheme="10"]{ --bubble-main:#ff7675; --bubble-deep:#542020; --bubble-soft:rgba(255,118,117,.32); --bubble-edge:#fab1a0; }
+#supportMessagesList .support-msg[data-bubble-scheme="11"],
+#supportUsersList .support-user[data-bubble-scheme="11"]{ --bubble-main:#17c0eb; --bubble-deep:#0a3d4c; --bubble-soft:rgba(23,192,235,.32); --bubble-edge:#7efff5; }
+
+#supportMessagesList .support-msg{
+  overflow: visible !important;
+  isolation: auto !important;
+  height: auto !important;
+  min-height: unset !important;
+  max-height: none !important;
+  border-radius: 18px !important;
+  border: 1px solid color-mix(in srgb, var(--bubble-edge) 62%, rgba(255,255,255,.16)) !important;
+  border-left: 9px solid var(--bubble-edge) !important;
+  color: rgba(255,255,255,.98) !important;
+  background-color: var(--bubble-deep) !important;
+  background-image:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--bubble-main) 58%, #060b16) 0%,
+      color-mix(in srgb, var(--bubble-main) 38%, #11182a) 44%,
+      color-mix(in srgb, var(--bubble-edge) 18%, #0b1020) 100%
+    ),
+    radial-gradient(430px 160px at 0% 0%, var(--bubble-soft), transparent 72%),
+    radial-gradient(280px 125px at 100% 100%, color-mix(in srgb, var(--bubble-edge) 24%, transparent), transparent 76%) !important;
+  background-blend-mode: normal, screen, screen !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.16),
+    inset 0 -18px 34px rgba(0,0,0,.20),
+    0 14px 32px rgba(0,0,0,.24),
+    -18px 0 38px -25px var(--bubble-edge) !important;
+}
+
+#supportMessagesList .support-msg:hover{
+  border-color: color-mix(in srgb, var(--bubble-edge) 80%, rgba(255,255,255,.22)) !important;
+  background-image:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--bubble-main) 66%, #060b16) 0%,
+      color-mix(in srgb, var(--bubble-main) 44%, #11182a) 44%,
+      color-mix(in srgb, var(--bubble-edge) 22%, #0b1020) 100%
+    ),
+    radial-gradient(440px 165px at 0% 0%, color-mix(in srgb, var(--bubble-main) 38%, transparent), transparent 72%),
+    radial-gradient(285px 130px at 100% 100%, color-mix(in srgb, var(--bubble-edge) 28%, transparent), transparent 76%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.18),
+    inset 0 -18px 34px rgba(0,0,0,.20),
+    0 17px 38px rgba(0,0,0,.28),
+    -20px 0 40px -24px var(--bubble-edge) !important;
+}
+
+#supportMessagesList .support-msg.mine{
+  border-left-color: var(--bubble-edge) !important;
+  background-color: var(--bubble-deep) !important;
+  box-shadow:
+    inset 4px 0 0 color-mix(in srgb, var(--bubble-edge) 78%, rgba(255,255,255,.18)),
+    inset 0 1px 0 rgba(255,255,255,.15),
+    0 14px 32px rgba(0,0,0,.24),
+    -18px 0 38px -25px var(--bubble-edge) !important;
+}
+
+#supportMessagesList .support-msg-meta{
+  color: rgba(235,241,255,.84) !important;
+}
+
+#supportMessagesList .support-msg-name{
+  color: #fff !important;
+  font-weight: 950 !important;
+  text-shadow: 0 1px 12px rgba(0,0,0,.44), 0 0 18px var(--bubble-edge) !important;
+}
+
+#supportMessagesList .support-msg-time{
+  color: rgba(245,248,255,.74) !important;
+}
+
+#supportMessagesList .support-msg-dot{
+  background: #fff !important;
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--bubble-edge) 42%, transparent),
+    0 0 20px var(--bubble-edge) !important;
+}
+
+#supportMessagesList .support-msg-text,
+#supportMessagesList .support-attach-line{
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  color: rgba(255,255,255,.98) !important;
+  text-shadow: 0 1px 10px rgba(0,0,0,.36) !important;
+  line-height: 1.68 !important;
+}
+
+#supportUsersList .support-user{
+  border-color: color-mix(in srgb, var(--bubble-edge) 58%, rgba(255,255,255,.18)) !important;
+  border-left: 8px solid var(--bubble-edge) !important;
+  background-color: var(--bubble-deep) !important;
+  background-image:
+    linear-gradient(90deg,
+      color-mix(in srgb, var(--bubble-main) 54%, #0b1020),
+      color-mix(in srgb, var(--bubble-main) 24%, rgba(255,255,255,.045)) 54%,
+      rgba(255,255,255,.026)
+    ) !important;
+}
+
+#supportUsersList .support-user-name{
+  color: #fff !important;
+  text-shadow: 0 1px 8px rgba(0,0,0,.32) !important;
+}
+
+.support-presence-badge{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-start: 7px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: .2px;
+  text-transform: uppercase;
+  vertical-align: middle;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.08);
+  color: rgba(235,241,255,.72);
+}
+.support-presence-badge::before{
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #98a2b3;
+  box-shadow: 0 0 0 2px rgba(152,162,179,.16);
+}
+.support-presence-badge.is-online{
+  color: #dfffe8;
+  border-color: rgba(94,224,111,.32);
+  background: rgba(94,224,111,.12);
+}
+.support-presence-badge.is-online::before{
+  background: #5ee06f;
+  box-shadow: 0 0 0 2px rgba(94,224,111,.18), 0 0 12px rgba(94,224,111,.72);
+}
+.support-presence-badge.is-offline{
+  color: rgba(235,241,255,.62);
+  border-color: rgba(255,255,255,.12);
+  background: rgba(255,255,255,.055);
+}
+.support-presence-badge.is-offline::before{
+  background: #a7adbb;
+}
+
+#supportUsersList .support-presence-badge{
+  margin-inline-start: auto;
+  flex: 0 0 auto;
+}
+
+@supports not (color: color-mix(in srgb, red 10%, white)){
+  #supportMessagesList .support-msg{
+    background: linear-gradient(135deg, var(--bubble-main), var(--bubble-deep)) !important;
+    border-color: var(--bubble-edge) !important;
+  }
+  #supportUsersList .support-user{
+    background: linear-gradient(90deg, var(--bubble-main), var(--bubble-deep)) !important;
+  }
+}

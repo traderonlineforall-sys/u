@@ -466,3 +466,16 @@
   border-radius: 10px;
   font-size: 18px;
 }
+
+/* SR Sales Concession Calculate stabilizer.
+   The final correct position is the state after quotaSummaryCard becomes visible.
+   JS below measures that card and temporarily adjusts only #dddiv while the card is hidden. */
+#quotaSummaryCard[hidden] {
+  display: none !important;
+}
+
+#dddiv[data-ua07-concession-stabilized="hidden-summary"] {
+  position: relative !important;
+  transform: none !important;
+}
+

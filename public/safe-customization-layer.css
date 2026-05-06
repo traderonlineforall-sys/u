@@ -1,0 +1,121 @@
+/*
+ * Safe Customization Layer stylesheet
+ *
+ * Safe to edit in future for additive overrides only.
+ * Keep selectors scoped with .scl-* guard classes.
+ *
+ * Protected unless explicitly requested:
+ * - public/app.js
+ * - public/index.html
+ * - SR/menu data and menu HTML structure
+ *
+ * Ahly-theme-only fix pattern (safe):
+ * html.scl-theme-ahly body.scl-theme-ahly .target { ... }
+ */
+
+@layer safe-customization-layer {
+  /* Placeholder hooks only: no visual changes in this task. */
+
+  html.scl-theme-default body.scl-theme-default {
+    /* Future default-theme-safe overrides go here. */
+  }
+
+  html.scl-theme-eid body.scl-theme-eid {
+    /* Future Eid-theme-safe overrides go here. */
+  }
+
+  html.scl-theme-ramadan body.scl-theme-ramadan {
+    /* Future Ramadan-theme-safe overrides go here. */
+  }
+
+  html.scl-theme-ahly body.scl-theme-ahly {
+    /* Future Ahly-theme-only UI fixes go here (scoped, additive). */
+  }
+
+  html.scl-has-search body.scl-has-search {
+    /* Future search-present safe injections go here. */
+  }
+
+  html.scl-has-search body.scl-has-search .mndo-search-logo-row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    overflow: visible;
+  }
+
+  html.scl-has-search body.scl-has-search .mndo-search-hk-anchor {
+    position: relative;
+    flex: 0 0 400px;
+    width: 400px;
+    max-width: 400px;
+    min-width: 400px;
+    height: 34px;
+    max-height: 34px;
+    overflow: visible;
+    align-self: flex-start;
+  }
+
+  html.scl-has-search body.scl-has-search .mndo-search-hk-anchor .search-container {
+    position: relative;
+    z-index: 2;
+    margin: 0 !important;
+    width: 100%;
+    height: 34px;
+    max-height: 34px;
+  }
+
+  html.scl-has-search body.scl-has-search .mndo-search-hk-anchor #hkSmartFloatingLine {
+    position: absolute !important;
+    left: 5% !important;
+    top: 31px !important;
+    margin: 0 !important;
+    z-index: 3 !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  html.scl-has-search body.scl-has-search .mndo-search-hk-anchor #hkSmartFloatingLine:not(.is-visible),
+  html.scl-has-search body.scl-has-search .mndo-search-hk-anchor #hkSmartFloatingLine[aria-hidden="true"] {
+    display: none !important;
+  }
+
+  html.scl-has-search body.scl-has-search .mndo-search-hk-anchor #hkSmartFloatingLine.is-visible,
+  html.scl-has-search body.scl-has-search .mndo-search-hk-anchor #hkSmartFloatingLine[aria-hidden="false"] {
+    display: flex !important;
+  }
+
+  html.scl-has-tags-link body.scl-has-tags-link {
+    /* Future tags-link-present safe injections go here. */
+  }
+
+  html.scl-has-tabs body.scl-has-tabs {
+    /* Future tabs-present safe injections go here. */
+  }
+
+  body #sclUrgentTickerOverlayRoot {
+    position: static;
+  }
+
+  body #SR_URGENT_TICKER {
+    position: fixed !important;
+    top: 42px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: min(1100px, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px) !important;
+    z-index: 2147483647 !important;
+    box-sizing: border-box !important;
+    pointer-events: auto !important;
+  }
+
+  body #SR_URGENT_TICKER .sr-urgent-inner {
+    background: rgba(20, 24, 33, 0.92) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+    backdrop-filter: blur(6px) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  }
+
+}

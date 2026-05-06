@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /
+
+# This is a private/internal SR tool. Preventing crawler indexing reduces accidental traffic.
