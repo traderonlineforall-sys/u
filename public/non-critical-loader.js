@@ -3,16 +3,6 @@
     return import(src).catch(function(){});
   }
 
-  function safeStyle(href){
-    try {
-      if (document.querySelector('link[href="' + href + '"]')) return;
-      var link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = href;
-      document.head.appendChild(link);
-    } catch {}
-  }
-
   var imports = Object.create(null);
   function importOnce(key, src){
     if (!imports[key]) imports[key] = safeImport(src);
@@ -139,7 +129,6 @@
 
     // Picker reactions are scoped to the public Suggestions modal only.
     safeImport('./suggestion-picker-reactions.js?v=20260506-picker1');
-    safeStyle('./slipper-reaction-icon.css?v=20260506');
 
     // Heavy/interactive modules are loaded only when needed.
     bindSupportLauncher();

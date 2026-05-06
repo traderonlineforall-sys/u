@@ -2,24 +2,24 @@ import { getStableUserId } from "./stable-user-identity.js";
 import { supabase } from "./supabase-client.js";
 
 /*
- * Suggestion picker reactions — lightweight rebuild.
+ * Suggestion picker reactions.
  * Scope: public Suggestions modal only.
- * Rules:
- * - The picker button is placed beside the comment/reply author line when possible.
- * - The face shows only selected reactions, like WhatsApp.
- * - Hovering any visible reaction shows the names that selected it.
- * - No MutationObserver, no interval polling, no full-page scanning.
+ * UX:
+ * - Picker button sits beside the author name for every visible suggestion/reply.
+ * - The face shows only reactions already selected by users.
+ * - Hovering a visible reaction shows the user names that selected it.
+ * - No full-page scan, no polling loop, no MutationObserver.
  */
 
 const REACTIONS = [
-  ["like", "👍", "أعجبني"],
-  ["love", "❤️", "أحببته"],
-  ["angry", "😡", "أغضبني"],
-  ["laugh", "😂", "أضحكني"],
-  ["sad", "😢", "أحزنني"],
-  ["slipper", "🩴", "فردة شبشب"]
+  { key: "like", icon: "👍", label: "أعجبني", kind: "emoji" },
+  { key: "love", icon: "❤️", label: "أحببته", kind: "emoji" },
+  { key: "angry", icon: "😡", label: "أغضبني", kind: "emoji" },
+  { key: "laugh", icon: "😂", label: "أضحكني", kind: "emoji" },
+  { key: "sad", icon: "😢", label: "أحزنني", kind: "emoji" },
+  { key: "slipper", icon: "/reactions/slipper-funny.png", label: "فردة شبشب", kind: "image" }
 ];
-const REACTION_MAP = Object.fromEntries(REACTIONS.map(([key, icon, label]) => [key, { icon, label }]));
+const REACTION_MAP = Object.fromEntries(REACTIONS.map((x) => [x.key, x]));
 const API = "/api/suggestion-item-reactions";
 const SUGGESTIONS_TABLE = "suggestions";
 const REPLIES_TABLE = "suggestion_replies";
@@ -71,16 +71,19 @@ function emptyCounts(){ return { like: 0, love: 0, angry: 0, laugh: 0, sad: 0, s
 function emptyUsers(){ return { like: [], love: [], angry: [], laugh: [], sad: [], slipper: [] }; }
 function itemState(item){ return state[keyFor(item.type, item.id)] || { counts: emptyCounts(), mine: "", users: emptyUsers() }; }
 function replyText(row){ return String(row?.text ?? row?.message ?? row?.reply ?? row?.content ?? row?.body ?? "").trim(); }
+function reactionVisual(meta){
+  if (!meta) return "";
+  if (meta.kind === "image") return `<img class="sr-suggest-react-img" src="${esc(meta.icon)}" alt="${esc(meta.label)}" loading="lazy" decoding="async">`;
+  return `<span class="sr-suggest-react-emoji">${esc(meta.icon)}</span>`;
+}
 
 function ensureStyle(){
   if (document.getElementById("sr-suggestion-picker-reactions-style")) return;
   const style = document.createElement("style");
   style.id = "sr-suggestion-picker-reactions-style";
   style.textContent = `
-    .sr-suggest-react-host{display:inline-flex!important;align-items:center!important;gap:5px!important;margin:0 0 0 6px!important;position:relative!important;vertical-align:middle!important;}
-    .sr-suggest-react-host.sr-react-inline{margin-inline-start:7px!important;}
+    .sr-suggest-react-host{display:inline-flex!important;align-items:center!important;gap:5px!important;margin-inline-start:7px!important;position:relative!important;vertical-align:middle!important;}
     .sr-suggest-react-summary{display:inline-flex!important;align-items:center!important;gap:5px!important;border:1px solid rgba(255,255,255,.14)!important;background:rgba(255,255,255,.06)!important;border-radius:999px!important;padding:3px 7px!important;font-size:12px!important;font-weight:800!important;min-height:23px!important;}
-    .sr-suggest-react-summary.is-empty{opacity:.58!important;font-weight:700!important;}
     .sr-suggest-react-badge{display:inline-flex!important;align-items:center!important;gap:2px!important;cursor:help!important;}
     .sr-suggest-react-badge.is-mine{filter:drop-shadow(0 0 6px rgba(34,197,94,.55))!important;}
     .sr-suggest-react-open{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:23px!important;height:23px!important;border-radius:999px!important;border:1px solid rgba(255,255,255,.18)!important;background:rgba(255,255,255,.08)!important;color:inherit!important;cursor:pointer!important;font-weight:900!important;line-height:1!important;padding:0!important;}
@@ -90,6 +93,9 @@ function ensureStyle(){
     .sr-suggest-react-choice{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:34px!important;height:34px!important;border-radius:999px!important;border:0!important;background:rgba(255,255,255,.08)!important;color:#fff!important;cursor:pointer!important;font-size:18px!important;line-height:1!important;}
     .sr-suggest-react-choice:hover{background:rgba(34,197,94,.22)!important;transform:translateY(-2px) scale(1.08)!important;}
     .sr-suggest-react-choice.is-active{background:rgba(34,197,94,.30)!important;outline:1px solid rgba(34,197,94,.75)!important;}
+    .sr-suggest-react-img{width:20px!important;height:20px!important;object-fit:contain!important;border-radius:999px!important;display:inline-block!important;vertical-align:middle!important;filter:drop-shadow(0 1px 3px rgba(0,0,0,.28))!important;}
+    .sr-suggest-react-choice .sr-suggest-react-img{width:29px!important;height:29px!important;}
+    .sr-suggest-react-badge .sr-suggest-react-img{width:20px!important;height:20px!important;}
   `;
   document.head.appendChild(style);
 }
@@ -123,6 +129,25 @@ function cardForRepliesButton(btn){
   }
   return best;
 }
+function findTextElement(scope, rawText){
+  const body = norm(rawText);
+  if (!scope || body.length < 2) return null;
+  const nodes = Array.from(scope.querySelectorAll?.("div,p,span,li,article,section") || []);
+  let best = null;
+  let bestScore = Infinity;
+  for (const el of nodes) {
+    if (!isVisible(el)) continue;
+    if (el.closest?.(".sr-suggest-react-host")) continue;
+    if (el.querySelector?.("textarea,input")) continue;
+    const text = norm(el.textContent || "");
+    if (!text.includes(body)) continue;
+    const extra = Math.max(0, text.length - body.length);
+    const r = el.getBoundingClientRect();
+    const score = extra * 20 + (r.width * r.height) / 160;
+    if (score < bestScore) { bestScore = score; best = el; }
+  }
+  return best;
+}
 function matchSuggestion(card){
   const text = norm(card?.textContent || "");
   let best = null;
@@ -140,43 +165,20 @@ function matchSuggestion(card){
 }
 function findAuthorLine(root, textEl){
   const candidates = [];
-  let cur = textEl || root;
-  for (let depth = 0; depth < 6 && cur; depth += 1, cur = cur.parentElement) {
-    if (!(cur instanceof HTMLElement)) continue;
-    const nodes = Array.from(cur.querySelectorAll?.("div,span,p") || []);
-    for (const el of nodes) {
-      if (!isVisible(el) || el.closest?.(".sr-suggest-react-host")) continue;
-      const t = norm(el.textContent || "");
-      if (!t) continue;
-      const looksMeta = /you|reply|replies|\d{1,2}:\d{2}|am|pm|ago|today|yesterday/i.test(t) || t.length <= 80;
-      if (!looksMeta) continue;
-      const r = el.getBoundingClientRect();
-      const tr = textEl?.getBoundingClientRect?.();
-      const distance = tr ? Math.abs(r.bottom - tr.top) : 0;
-      candidates.push({ el, score: distance + t.length });
-    }
+  const tr = textEl?.getBoundingClientRect?.();
+  const nodes = Array.from(root?.querySelectorAll?.("div,span,p,a,strong,b") || []);
+  for (const el of nodes) {
+    if (!isVisible(el) || el.closest?.(".sr-suggest-react-host")) continue;
+    const t = String(el.textContent || "").trim();
+    if (!/User[-\s]*\d+/i.test(t)) continue;
+    const nt = norm(t);
+    if (nt.includes("replies") || nt.length > 120) continue;
+    const r = el.getBoundingClientRect();
+    const distance = tr ? Math.abs(r.bottom - tr.top) + (r.top > tr.top ? 2000 : 0) : 0;
+    candidates.push({ el, score: distance + nt.length + (r.width * r.height) / 2500 });
   }
   candidates.sort((a,b) => a.score - b.score);
   return candidates[0]?.el || null;
-}
-function findReplyElement(card, rawText){
-  const body = norm(rawText);
-  if (!card || body.length < 2) return null;
-  const nodes = Array.from(card.querySelectorAll?.("div,p,span,li,article,section") || []);
-  let best = null;
-  let bestScore = Infinity;
-  for (const el of nodes) {
-    if (!isVisible(el)) continue;
-    if (el.closest?.(".sr-suggest-react-host")) continue;
-    if (el.querySelector?.("textarea,input")) continue;
-    const text = norm(el.textContent || "");
-    if (!text.includes(body)) continue;
-    const extra = Math.max(0, text.length - body.length);
-    const r = el.getBoundingClientRect();
-    const score = extra * 20 + (r.width * r.height) / 160;
-    if (score < bestScore) { bestScore = score; best = el; }
-  }
-  return best;
 }
 
 async function loadSourceRows(force = false){
@@ -205,23 +207,24 @@ function visibleItemsFromModal(modal){
     const card = cardForRepliesButton(btn);
     const suggestion = matchSuggestion(card);
     if (!suggestion) continue;
+    const mainTextEl = findTextElement(card, suggestion.text) || btn;
     const sKey = keyFor("suggestion", suggestion.id);
     if (!seen.has(sKey)) {
       seen.add(sKey);
-      const metaAnchor = findAuthorLine(card, btn) || btn;
-      out.push({ type: "suggestion", id: suggestion.id, anchor: metaAnchor, fallbackAnchor: btn, container: metaAnchor.parentElement || btn.parentElement || card });
+      const author = findAuthorLine(card, mainTextEl) || mainTextEl;
+      out.push({ type: "suggestion", id: suggestion.id, anchor: author, fallbackAnchor: btn, container: author.parentElement || card });
     }
     for (const reply of repliesBySuggestion.get(suggestion.id) || []) {
       const rid = Number(reply?.id || 0);
       const text = replyText(reply);
       if (!rid || !text) continue;
-      const el = findReplyElement(card, text);
-      if (!el) continue;
+      const replyTextEl = findTextElement(card, text);
+      if (!replyTextEl) continue;
       const rKey = keyFor("reply", rid);
       if (seen.has(rKey)) continue;
       seen.add(rKey);
-      const metaAnchor = findAuthorLine(card, el) || el;
-      out.push({ type: "reply", id: rid, anchor: metaAnchor, fallbackAnchor: el, container: metaAnchor.parentElement || el.parentElement || card });
+      const author = findAuthorLine(card, replyTextEl) || replyTextEl;
+      out.push({ type: "reply", id: rid, anchor: author, fallbackAnchor: replyTextEl, container: author.parentElement || card });
     }
   }
   return out;
@@ -245,14 +248,13 @@ function selectedSummaryHtml(item){
   const st = itemState(item);
   const counts = { ...emptyCounts(), ...(st.counts || {}) };
   const users = { ...emptyUsers(), ...(st.users || {}) };
-  const active = REACTIONS.filter(([key]) => Number(counts[key] || 0) > 0);
-  if (!active.length) return `<span class="sr-suggest-react-summary is-empty">تفاعل</span>`;
-  return `<span class="sr-suggest-react-summary">${active.map(([key]) => {
-    const meta = REACTION_MAP[key];
-    const mineCls = st.mine === key ? " is-mine" : "";
-    const n = Number(counts[key] || 0);
-    const names = (users[key] || []).slice(0, 12).join("، ") || meta.label;
-    return `<span class="sr-suggest-react-badge${mineCls}" title="${esc(names)}"><span>${esc(meta.icon)}</span><span>${n}</span></span>`;
+  const active = REACTIONS.filter((r) => Number(counts[r.key] || 0) > 0);
+  if (!active.length) return "";
+  return `<span class="sr-suggest-react-summary">${active.map((meta) => {
+    const mineCls = st.mine === meta.key ? " is-mine" : "";
+    const n = Number(counts[meta.key] || 0);
+    const names = (users[meta.key] || []).slice(0, 12).join("، ") || meta.label;
+    return `<span class="sr-suggest-react-badge${mineCls}" title="${esc(names)}">${reactionVisual(meta)}<span>${n}</span></span>`;
   }).join("")}</span>`;
 }
 function hostHtml(item){
@@ -260,20 +262,23 @@ function hostHtml(item){
 }
 function attach(items){
   ensureStyle();
+  const activeKeys = new Set(items.map((item) => keyFor(item.type, item.id)));
+  document.querySelectorAll(".sr-suggest-react-host[data-react-key]").forEach((host) => {
+    if (!activeKeys.has(host.dataset.reactKey || "")) host.remove();
+  });
   for (const item of items) {
     const key = keyFor(item.type, item.id);
     let host = document.querySelector(`.sr-suggest-react-host[data-react-key="${cssEscape(key)}"]`);
     if (!host) {
       host = document.createElement("span");
-      host.className = "sr-suggest-react-host sr-react-inline";
+      host.className = "sr-suggest-react-host";
       host.dataset.reactKey = key;
     }
     const html = hostHtml(item);
     if (host.innerHTML !== html) host.innerHTML = html;
-    if (item.anchor?.parentElement) {
-      if (host.previousElementSibling !== item.anchor && host.nextElementSibling !== item.anchor) {
-        item.anchor.insertAdjacentElement("afterend", host);
-      }
+    if (item.anchor) {
+      const target = item.anchor;
+      if (host.parentElement !== target) target.appendChild(host);
     } else if (item.fallbackAnchor?.parentElement) {
       if (host.previousElementSibling !== item.fallbackAnchor) item.fallbackAnchor.insertAdjacentElement("afterend", host);
     } else if (item.container && host.parentElement !== item.container) {
@@ -295,7 +300,7 @@ function itemFrom(type, id){ return visibleItems.find((x) => x.type === type && 
 function openMenu(btn, item){
   const menu = menuElement();
   const mine = itemState(item).mine;
-  menu.innerHTML = REACTIONS.map(([key, icon, label]) => `<button type="button" class="sr-suggest-react-choice ${mine === key ? "is-active" : ""}" data-react-choice="${esc(key)}" data-react-type="${esc(item.type)}" data-react-id="${esc(item.id)}" title="${esc(label)}">${esc(icon)}</button>`).join("");
+  menu.innerHTML = REACTIONS.map((meta) => `<button type="button" class="sr-suggest-react-choice ${mine === meta.key ? "is-active" : ""}" data-react-choice="${esc(meta.key)}" data-react-type="${esc(item.type)}" data-react-id="${esc(item.id)}" title="${esc(meta.label)}">${reactionVisual(meta)}</button>`).join("");
   const r = btn.getBoundingClientRect();
   menu.style.left = `${Math.max(8, Math.min(window.innerWidth - 250, r.left - 105))}px`;
   menu.style.top = `${Math.max(8, r.top - 46)}px`;
