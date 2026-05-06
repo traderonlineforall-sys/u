@@ -5,10 +5,9 @@ import { supabase } from "./supabase-client.js";
  * Suggestion picker reactions — lightweight rebuild.
  * Scope: public Suggestions modal only.
  * Rules:
- * - Do not show all choices on the card face.
- * - Show only reactions that were actually selected by users.
- * - Open the full picker only from the small arrow button.
- * - Works for suggestion comments and visible reply comments.
+ * - The picker button is placed beside the comment/reply author line when possible.
+ * - The face shows only selected reactions, like WhatsApp.
+ * - Hovering any visible reaction shows the names that selected it.
  * - No MutationObserver, no interval polling, no full-page scanning.
  */
 
@@ -69,7 +68,8 @@ function isVisible(el){
 }
 function keyFor(type, id){ return `${type}:${Number(id)}`; }
 function emptyCounts(){ return { like: 0, love: 0, angry: 0, laugh: 0, sad: 0, slipper: 0 }; }
-function itemState(item){ return state[keyFor(item.type, item.id)] || { counts: emptyCounts(), mine: "" }; }
+function emptyUsers(){ return { like: [], love: [], angry: [], laugh: [], sad: [], slipper: [] }; }
+function itemState(item){ return state[keyFor(item.type, item.id)] || { counts: emptyCounts(), mine: "", users: emptyUsers() }; }
 function replyText(row){ return String(row?.text ?? row?.message ?? row?.reply ?? row?.content ?? row?.body ?? "").trim(); }
 
 function ensureStyle(){
@@ -77,12 +77,13 @@ function ensureStyle(){
   const style = document.createElement("style");
   style.id = "sr-suggestion-picker-reactions-style";
   style.textContent = `
-    .sr-suggest-react-host{display:inline-flex!important;align-items:center!important;gap:5px!important;margin:6px 0!important;position:relative!important;vertical-align:middle!important;}
-    .sr-suggest-react-summary{display:inline-flex!important;align-items:center!important;gap:4px!important;border:1px solid rgba(255,255,255,.14)!important;background:rgba(255,255,255,.06)!important;border-radius:999px!important;padding:4px 8px!important;font-size:12px!important;font-weight:800!important;min-height:25px!important;}
+    .sr-suggest-react-host{display:inline-flex!important;align-items:center!important;gap:5px!important;margin:0 0 0 6px!important;position:relative!important;vertical-align:middle!important;}
+    .sr-suggest-react-host.sr-react-inline{margin-inline-start:7px!important;}
+    .sr-suggest-react-summary{display:inline-flex!important;align-items:center!important;gap:5px!important;border:1px solid rgba(255,255,255,.14)!important;background:rgba(255,255,255,.06)!important;border-radius:999px!important;padding:3px 7px!important;font-size:12px!important;font-weight:800!important;min-height:23px!important;}
     .sr-suggest-react-summary.is-empty{opacity:.58!important;font-weight:700!important;}
-    .sr-suggest-react-badge{display:inline-flex!important;align-items:center!important;gap:2px!important;}
+    .sr-suggest-react-badge{display:inline-flex!important;align-items:center!important;gap:2px!important;cursor:help!important;}
     .sr-suggest-react-badge.is-mine{filter:drop-shadow(0 0 6px rgba(34,197,94,.55))!important;}
-    .sr-suggest-react-open{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:24px!important;height:24px!important;border-radius:999px!important;border:1px solid rgba(255,255,255,.18)!important;background:rgba(255,255,255,.08)!important;color:inherit!important;cursor:pointer!important;font-weight:900!important;line-height:1!important;padding:0!important;}
+    .sr-suggest-react-open{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:23px!important;height:23px!important;border-radius:999px!important;border:1px solid rgba(255,255,255,.18)!important;background:rgba(255,255,255,.08)!important;color:inherit!important;cursor:pointer!important;font-weight:900!important;line-height:1!important;padding:0!important;}
     .sr-suggest-react-open:hover{background:rgba(255,255,255,.14)!important;transform:translateY(-1px)!important;}
     .sr-suggest-react-menu{position:fixed!important;z-index:2147483000!important;display:none!important;align-items:center!important;gap:5px!important;padding:7px!important;border-radius:999px!important;background:rgba(18,18,22,.96)!important;border:1px solid rgba(255,255,255,.18)!important;box-shadow:0 14px 40px rgba(0,0,0,.35)!important;backdrop-filter:blur(12px)!important;}
     .sr-suggest-react-menu.is-open{display:flex!important;}
@@ -137,6 +138,27 @@ function matchSuggestion(card){
   }
   return best;
 }
+function findAuthorLine(root, textEl){
+  const candidates = [];
+  let cur = textEl || root;
+  for (let depth = 0; depth < 6 && cur; depth += 1, cur = cur.parentElement) {
+    if (!(cur instanceof HTMLElement)) continue;
+    const nodes = Array.from(cur.querySelectorAll?.("div,span,p") || []);
+    for (const el of nodes) {
+      if (!isVisible(el) || el.closest?.(".sr-suggest-react-host")) continue;
+      const t = norm(el.textContent || "");
+      if (!t) continue;
+      const looksMeta = /you|reply|replies|\d{1,2}:\d{2}|am|pm|ago|today|yesterday/i.test(t) || t.length <= 80;
+      if (!looksMeta) continue;
+      const r = el.getBoundingClientRect();
+      const tr = textEl?.getBoundingClientRect?.();
+      const distance = tr ? Math.abs(r.bottom - tr.top) : 0;
+      candidates.push({ el, score: distance + t.length });
+    }
+  }
+  candidates.sort((a,b) => a.score - b.score);
+  return candidates[0]?.el || null;
+}
 function findReplyElement(card, rawText){
   const body = norm(rawText);
   if (!card || body.length < 2) return null;
@@ -186,7 +208,8 @@ function visibleItemsFromModal(modal){
     const sKey = keyFor("suggestion", suggestion.id);
     if (!seen.has(sKey)) {
       seen.add(sKey);
-      out.push({ type: "suggestion", id: suggestion.id, anchor: btn, container: btn.parentElement || card });
+      const metaAnchor = findAuthorLine(card, btn) || btn;
+      out.push({ type: "suggestion", id: suggestion.id, anchor: metaAnchor, fallbackAnchor: btn, container: metaAnchor.parentElement || btn.parentElement || card });
     }
     for (const reply of repliesBySuggestion.get(suggestion.id) || []) {
       const rid = Number(reply?.id || 0);
@@ -197,7 +220,8 @@ function visibleItemsFromModal(modal){
       const rKey = keyFor("reply", rid);
       if (seen.has(rKey)) continue;
       seen.add(rKey);
-      out.push({ type: "reply", id: rid, anchor: el, container: el.parentElement || card });
+      const metaAnchor = findAuthorLine(card, el) || el;
+      out.push({ type: "reply", id: rid, anchor: metaAnchor, fallbackAnchor: el, container: metaAnchor.parentElement || el.parentElement || card });
     }
   }
   return out;
@@ -220,13 +244,15 @@ async function loadState(items, force = false){
 function selectedSummaryHtml(item){
   const st = itemState(item);
   const counts = { ...emptyCounts(), ...(st.counts || {}) };
+  const users = { ...emptyUsers(), ...(st.users || {}) };
   const active = REACTIONS.filter(([key]) => Number(counts[key] || 0) > 0);
   if (!active.length) return `<span class="sr-suggest-react-summary is-empty">تفاعل</span>`;
   return `<span class="sr-suggest-react-summary">${active.map(([key]) => {
     const meta = REACTION_MAP[key];
     const mineCls = st.mine === key ? " is-mine" : "";
     const n = Number(counts[key] || 0);
-    return `<span class="sr-suggest-react-badge${mineCls}" title="${esc(meta.label)}"><span>${esc(meta.icon)}</span><span>${n}</span></span>`;
+    const names = (users[key] || []).slice(0, 12).join("، ") || meta.label;
+    return `<span class="sr-suggest-react-badge${mineCls}" title="${esc(names)}"><span>${esc(meta.icon)}</span><span>${n}</span></span>`;
   }).join("")}</span>`;
 }
 function hostHtml(item){
@@ -239,17 +265,17 @@ function attach(items){
     let host = document.querySelector(`.sr-suggest-react-host[data-react-key="${cssEscape(key)}"]`);
     if (!host) {
       host = document.createElement("span");
-      host.className = "sr-suggest-react-host";
+      host.className = "sr-suggest-react-host sr-react-inline";
       host.dataset.reactKey = key;
     }
     const html = hostHtml(item);
     if (host.innerHTML !== html) host.innerHTML = html;
     if (item.anchor?.parentElement) {
-      if (item.type === "suggestion") {
-        if (host.nextElementSibling !== item.anchor) item.anchor.parentElement.insertBefore(host, item.anchor);
-      } else if (host.previousElementSibling !== item.anchor) {
+      if (host.previousElementSibling !== item.anchor && host.nextElementSibling !== item.anchor) {
         item.anchor.insertAdjacentElement("afterend", host);
       }
+    } else if (item.fallbackAnchor?.parentElement) {
+      if (host.previousElementSibling !== item.fallbackAnchor) item.fallbackAnchor.insertAdjacentElement("afterend", host);
     } else if (item.container && host.parentElement !== item.container) {
       item.container.appendChild(host);
     }
@@ -304,7 +330,7 @@ async function toggle(type, id, reaction){
   if (prev.mine && counts[prev.mine] > 0) counts[prev.mine] -= 1;
   const mine = prev.mine === reaction ? "" : reaction;
   if (mine) counts[mine] = (counts[mine] || 0) + 1;
-  state[key] = { counts, mine };
+  state[key] = { counts, mine, users: prev.users || emptyUsers() };
   attach(visibleItems);
   try {
     const res = await fetch(API, {
