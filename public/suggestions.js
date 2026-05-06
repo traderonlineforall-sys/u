@@ -207,6 +207,7 @@ async function loadSuggestions() {
             <span class="suggestion-who">
               <span class="suggestion-dot" aria-hidden="true"></span>
               <span class="suggestion-name">${name}</span>
+              <span class="sr-suggest-react-anchor" data-reaction-target-type="suggestion" data-reaction-target-id="${escapeHtml(sid)}" aria-label="Suggestion reaction"></span>
             </span>
             <span class="suggestion-when">${when}</span>
           </div>
@@ -235,6 +236,7 @@ async function loadSuggestions() {
       });
     });
   }
+  window.dispatchEvent(new CustomEvent("sr:suggestions-rendered"));
 }
 
 async function addSuggestion() {
@@ -287,11 +289,13 @@ function renderReplyItem(r){
   const name = escapeHtml(r?.name || aliasForUserId(uid) || "User");
   const col = colorForUserId(uid || name);
   const text = escapeHtml(r?.text ?? "");
+  const rid = String(r?.id || "");
   return `
-    <div class="sug-reply-item" style="--u:${escapeHtml(col)}">
+    <div class="sug-reply-item" style="--u:${escapeHtml(col)}" data-reply-id="${escapeHtml(rid)}">
       <div class="sug-reply-meta">
         <span class="sug-reply-dot" aria-hidden="true"></span>
         <b class="sug-reply-name">${name}</b>
+        <span class="sr-suggest-react-anchor" data-reaction-target-type="reply" data-reaction-target-id="${escapeHtml(rid)}" aria-label="Reply reaction"></span>
         <span class="sug-reply-when">${when}</span>
       </div>
       <div class="sug-reply-text">${text}</div>
@@ -401,6 +405,7 @@ async function renderRepliesPanel(suggestionId, box, btn){
       post();
     }
   });
+  window.dispatchEvent(new CustomEvent("sr:suggestions-rendered"));
   setTimeout(()=> input?.focus(), 0);
 }
 
