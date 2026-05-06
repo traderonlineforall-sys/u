@@ -1,0 +1,127 @@
+/*
+ * Urgent admin voice auto-activation helper.
+ * Scope: #SR_URGENT_TICKER only.
+ * Purpose: make the existing urgent Arabic voice flow feel automatic whenever
+ * the browser allows it, and defer the visible manual button until it is truly needed.
+ */
+(function(){
+  if (window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V1) return;
+  window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V1 = true;
+
+  var PLAY_SELECTOR = 'button[data-sr-urgent-voice-button="1"]';
+  var deferredPlay = null;
+  var deferredShownTimer = 0;
+  var lastRetryKey = '';
+  var retryCount = 0;
+
+  function urgentWrap(){ return document.getElementById('SR_URGENT_TICKER'); }
+  function urgentStatus(){ return document.getElementById('SR_URGENT_VOICE_STATUS'); }
+  function isAckTarget(target){
+    try { return !!(target && target.closest && target.closest('#SR_URGENT_ACK')); } catch { return false; }
+  }
+  function isVisibleUrgent(){
+    var wrap = urgentWrap();
+    return !!wrap && wrap.style.display === 'block';
+  }
+  function getButton(){
+    var wrap = urgentWrap();
+    return wrap ? wrap.querySelector(PLAY_SELECTOR) : null;
+  }
+  function setStatus(text){
+    var status = urgentStatus();
+    if (!status) return;
+    var btn = getButton();
+    status.textContent = text || '';
+    if (btn && btn.parentElement !== status) status.appendChild(btn);
+    else if (btn) status.appendChild(btn);
+  }
+  function hideButton(btn){
+    if (!btn) return;
+    btn.style.display = 'none';
+    btn.setAttribute('aria-hidden', 'true');
+  }
+  function showButton(btn){
+    if (!btn || !isVisibleUrgent()) return;
+    btn.style.display = 'inline-flex';
+    btn.setAttribute('aria-hidden', 'false');
+  }
+  function clickButton(btn){
+    if (!btn || !isVisibleUrgent()) return false;
+    try {
+      btn.click();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  function armDeferredPlay(btn){
+    deferredPlay = btn;
+    hideButton(btn);
+    setStatus('جاري تفعيل صوت رسالة الأدمن تلقائيًا');
+    clearTimeout(deferredShownTimer);
+    deferredShownTimer = setTimeout(function(){
+      if (deferredPlay === btn && isVisibleUrgent()) {
+        setStatus('اضغط تشغيل الصوت لو المتصفح منع التشغيل التلقائي');
+        showButton(btn);
+      }
+    }, 4500);
+  }
+  function triggerDeferred(event){
+    if (!deferredPlay || !isVisibleUrgent()) return;
+    if (isAckTarget(event && event.target)) return;
+    var btn = deferredPlay;
+    deferredPlay = null;
+    clearTimeout(deferredShownTimer);
+    setStatus('جاري تشغيل صوت رسالة الأدمن');
+    clickButton(btn);
+  }
+  function autoRetryFailure(btn){
+    var key = String(btn.dataset.urgentText || '') + '\n' + String(btn.dataset.urgentVoice || '');
+    if (lastRetryKey !== key) {
+      lastRetryKey = key;
+      retryCount = 0;
+    }
+    if (retryCount >= 2) return;
+    retryCount += 1;
+    hideButton(btn);
+    setStatus('جاري إعادة محاولة تشغيل الصوت تلقائيًا');
+    setTimeout(function(){
+      if (!isVisibleUrgent()) return;
+      clickButton(btn);
+    }, retryCount === 1 ? 900 : 2800);
+  }
+  function evaluate(){
+    if (!isVisibleUrgent()) {
+      deferredPlay = null;
+      clearTimeout(deferredShownTimer);
+      return;
+    }
+    var btn = getButton();
+    if (!btn) return;
+    var label = String(btn.textContent || '').trim();
+    if (label.indexOf('تشغيل الصوت') !== -1) {
+      armDeferredPlay(btn);
+      setTimeout(function(){ if (deferredPlay === btn) clickButton(btn); }, 650);
+      return;
+    }
+    if (label.indexOf('إعادة المحاولة') !== -1) {
+      autoRetryFailure(btn);
+    }
+  }
+
+  ['pointerdown','mousedown','touchstart','keydown','focusin'].forEach(function(evt){
+    document.addEventListener(evt, triggerDeferred, true);
+  });
+
+  try {
+    var observer = new MutationObserver(function(){ setTimeout(evaluate, 40); });
+    observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, characterData: true });
+  } catch {}
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(evaluate, 300); }, { once: true });
+  } else {
+    setTimeout(evaluate, 300);
+  }
+  setInterval(evaluate, 2500);
+})();
