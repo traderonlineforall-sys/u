@@ -1,5 +1,6 @@
 /* Premium visual skin for Suggestions + Support only.
-   Visual CSS only: no SR data, no header, no menus, no theme logic. */
+   Visual CSS only: no SR data, no header, no menus, no theme logic.
+   Safe version: never changes chat row sizing/flow or hides message content. */
 
 :root{
   --sr-chat-glass: rgba(13, 17, 31, .82);
@@ -7,26 +8,18 @@
   --sr-chat-line: rgba(255,255,255,.13);
   --sr-chat-line-strong: rgba(255,255,255,.22);
   --sr-chat-text: rgba(245,248,255,.94);
-  --sr-chat-muted: rgba(220,228,255,.68);
+  --sr-chat-muted: rgba(220,228,255,.70);
   --sr-chat-green: #5ee06f;
   --sr-chat-blue: #5b8cff;
   --sr-chat-gold: #e7c56f;
-  --sr-chat-rose: #ff6b8a;
-  --sr-chat-cyan: #64e8ff;
-  --sr-chat-violet: #a98bff;
-  --sr-chat-panel-shadow: 0 30px 100px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.13);
-  --sr-chat-card-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 16px 36px rgba(0,0,0,.22);
 }
 
 #suggestionsOverlay,
 #supportChatOverlay,
 #supportNameOverlay{
-  backdrop-filter: blur(16px) saturate(155%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(155%) !important;
-  background:
-    radial-gradient(760px 420px at 18% 10%, rgba(91,140,255,.18), transparent 62%),
-    radial-gradient(640px 360px at 86% 18%, rgba(231,197,111,.12), transparent 58%),
-    rgba(1, 3, 12, .68) !important;
+  backdrop-filter: blur(14px) saturate(145%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(145%) !important;
+  background: rgba(1, 3, 12, .64) !important;
 }
 
 #suggestionsOverlay > div,
@@ -35,32 +28,15 @@
 .support-chat-panel,
 .suggestions-panel,
 .support-name-panel{
-  position: relative !important;
-  overflow: hidden !important;
   background:
-    radial-gradient(900px 420px at 12% 0%, rgba(91,140,255,.22), transparent 60%),
-    radial-gradient(760px 420px at 95% 12%, rgba(94,224,111,.13), transparent 55%),
-    radial-gradient(620px 360px at 50% 112%, rgba(231,197,111,.10), transparent 60%),
-    linear-gradient(180deg, rgba(22,28,48,.95), rgba(10,13,25,.94)) !important;
+    radial-gradient(900px 420px at 12% 0%, rgba(91,140,255,.18), transparent 60%),
+    radial-gradient(760px 420px at 95% 12%, rgba(94,224,111,.12), transparent 55%),
+    linear-gradient(180deg, rgba(21,26,43,.92), rgba(12,15,28,.92)) !important;
   border: 1px solid var(--sr-chat-line-strong) !important;
-  box-shadow: var(--sr-chat-panel-shadow) !important;
+  box-shadow:
+    0 28px 90px rgba(0,0,0,.58),
+    inset 0 1px 0 rgba(255,255,255,.12) !important;
   color: var(--sr-chat-text) !important;
-}
-
-#suggestionsOverlay > div::before,
-#supportChatOverlay > div::before,
-#supportNameOverlay > div::before,
-.support-chat-panel::before,
-.suggestions-panel::before,
-.support-name-panel::before{
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(90deg, transparent, rgba(255,255,255,.10), transparent) 0 0 / 100% 1px no-repeat,
-    radial-gradient(480px 160px at 50% 0%, rgba(255,255,255,.10), transparent 72%);
-  opacity: .9;
 }
 
 #suggestionsOverlay h1,
@@ -72,7 +48,7 @@
 #supportChatTitle{
   color: var(--sr-chat-text) !important;
   letter-spacing: .15px !important;
-  text-shadow: 0 2px 18px rgba(0,0,0,.38) !important;
+  text-shadow: 0 2px 16px rgba(0,0,0,.35) !important;
 }
 
 #suggestionsOverlay p,
@@ -88,17 +64,15 @@
 #supportNameCloseBtn,
 #supportChatBackBtn{
   border: 1px solid rgba(255,255,255,.18) !important;
-  background: rgba(255,255,255,.075) !important;
+  background: rgba(255,255,255,.07) !important;
   color: var(--sr-chat-text) !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 10px 28px rgba(0,0,0,.25) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.09), 0 10px 28px rgba(0,0,0,.25) !important;
 }
 #suggestionsCloseBtn:hover,
 #supportChatCloseBtn:hover,
 #supportNameCloseBtn:hover,
 #supportChatBackBtn:hover{
-  background: rgba(255,255,255,.14) !important;
+  background: rgba(255,255,255,.13) !important;
   transform: translateY(-1px) !important;
 }
 
@@ -106,14 +80,13 @@
 #supportMessageInput,
 #supportNameInput,
 .sug-reply-input{
-  background:
-    linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.045)) !important;
+  background: rgba(255,255,255,.055) !important;
   border: 1px solid rgba(255,255,255,.18) !important;
   color: var(--sr-chat-text) !important;
   caret-color: var(--sr-chat-green) !important;
-  border-radius: 18px !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.09), inset 0 -10px 24px rgba(0,0,0,.12) !important;
-  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease, transform .16s ease !important;
+  border-radius: 16px !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), inset 0 -10px 24px rgba(0,0,0,.10) !important;
+  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease !important;
 }
 #suggestionInput::placeholder,
 #supportMessageInput::placeholder,
@@ -126,13 +99,12 @@
 #supportNameInput:focus,
 .sug-reply-input:focus{
   outline: none !important;
-  border-color: rgba(94,224,111,.62) !important;
-  background: rgba(255,255,255,.09) !important;
-  transform: translateY(-1px) !important;
+  border-color: rgba(94,224,111,.58) !important;
+  background: rgba(255,255,255,.08) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.12),
+    inset 0 1px 0 rgba(255,255,255,.10),
     0 0 0 3px rgba(94,224,111,.13),
-    0 16px 36px rgba(0,0,0,.27) !important;
+    0 14px 34px rgba(0,0,0,.25) !important;
 }
 
 #suggestionAddBtn,
@@ -140,13 +112,13 @@
 #supportNameConfirmBtn,
 .sug-reply-send{
   background:
-    radial-gradient(120% 120% at 18% 10%, rgba(255,255,255,.30), transparent 45%),
-    linear-gradient(135deg, #68e57b, #38bf58 48%, #24a949) !important;
-  border: 1px solid rgba(255,255,255,.20) !important;
+    radial-gradient(120% 120% at 18% 10%, rgba(255,255,255,.28), transparent 45%),
+    linear-gradient(135deg, #58d66b, #39b855) !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
   color: #06110a !important;
   font-weight: 900 !important;
   border-radius: 999px !important;
-  box-shadow: 0 17px 36px rgba(52,185,85,.28), inset 0 1px 0 rgba(255,255,255,.38) !important;
+  box-shadow: 0 16px 34px rgba(52,185,85,.25), inset 0 1px 0 rgba(255,255,255,.34) !important;
   transition: transform .12s ease, filter .12s ease, box-shadow .12s ease !important;
 }
 #suggestionAddBtn:hover,
@@ -154,8 +126,8 @@
 #supportNameConfirmBtn:hover,
 .sug-reply-send:hover{
   transform: translateY(-1px) !important;
-  filter: brightness(1.06) saturate(1.08) !important;
-  box-shadow: 0 19px 40px rgba(52,185,85,.38), inset 0 1px 0 rgba(255,255,255,.42) !important;
+  filter: brightness(1.05) saturate(1.05) !important;
+  box-shadow: 0 18px 38px rgba(52,185,85,.34), inset 0 1px 0 rgba(255,255,255,.38) !important;
 }
 #suggestionAddBtn:disabled,
 #supportSendBtn:disabled,
@@ -167,15 +139,14 @@
 
 #supportEmojiBtn,
 #supportAttachBtn{
-  background: rgba(255,255,255,.07) !important;
+  background: rgba(255,255,255,.065) !important;
   border: 1px solid rgba(255,255,255,.16) !important;
   color: var(--sr-chat-text) !important;
-  border-radius: 15px !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 10px 22px rgba(0,0,0,.18) !important;
+  border-radius: 14px !important;
 }
 #supportEmojiBtn:hover,
 #supportAttachBtn:hover{
-  background: rgba(255,255,255,.13) !important;
+  background: rgba(255,255,255,.12) !important;
 }
 
 #suggestionsList,
@@ -190,7 +161,7 @@
 #suggestionsList::-webkit-scrollbar-thumb,
 #supportMessagesList::-webkit-scrollbar-thumb,
 #supportUsersList::-webkit-scrollbar-thumb{
-  background: linear-gradient(180deg, rgba(231,197,111,.75), rgba(91,140,255,.48));
+  background: linear-gradient(180deg, rgba(231,197,111,.70), rgba(91,140,255,.42));
   border-radius: 999px;
 }
 #suggestionsList::-webkit-scrollbar-track,
@@ -200,148 +171,91 @@
   border-radius: 999px;
 }
 
-/* ---------- Support chat: distinct per-user premium message identity ---------- */
-.support-msg{
-  position: relative !important;
-  overflow: hidden !important;
-  isolation: isolate !important;
-  border-radius: 20px !important;
+.suggestion-item,
+.sug-reply-item,
+.support-msg,
+.support-user{
   background:
-    radial-gradient(220px 110px at 0% 0%, var(--ubg, rgba(91,140,255,.20)), transparent 72%),
-    radial-gradient(260px 120px at 100% 100%, rgba(255,255,255,.060), transparent 70%),
-    linear-gradient(135deg, var(--ubg, rgba(255,255,255,.075)), rgba(255,255,255,.040) 46%, rgba(4,7,18,.22)) !important;
-  border: 1px solid var(--uborder, rgba(255,255,255,.13)) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.10),
-    inset 0 -18px 36px rgba(0,0,0,.10),
-    0 14px 30px rgba(0,0,0,.22),
-    0 0 0 1px rgba(255,255,255,.035) !important;
+    linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.035)) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 12px 28px rgba(0,0,0,.18) !important;
   color: var(--sr-chat-text) !important;
-  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease !important;
 }
-.support-msg::before{
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 5px;
-  z-index: -1;
-  background: linear-gradient(180deg, rgba(255,255,255,.55), var(--u, var(--sr-chat-blue)), rgba(255,255,255,.10));
-  box-shadow: 0 0 24px var(--u, rgba(91,140,255,.55));
-  opacity: .95;
+.suggestion-item,
+.support-msg{
+  border-radius: 18px !important;
 }
-.support-msg::after{
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
+.suggestion-item:hover,
+.sug-reply-item:hover,
+.support-msg:hover,
+.support-user:hover{
+  border-color: rgba(255,255,255,.22) !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.045)) !important;
+}
+
+/* Support messages: readable per-user identity without changing row geometry. */
+.support-msg{
+  overflow: visible !important;
+  isolation: auto !important;
+  min-height: unset !important;
+  max-height: none !important;
+  height: auto !important;
+  border-left: 5px solid var(--u, var(--sr-chat-blue)) !important;
   background:
-    linear-gradient(115deg, rgba(255,255,255,.12), transparent 22%, transparent 78%, rgba(255,255,255,.045)),
-    radial-gradient(180px 70px at 18px 0%, var(--u, rgba(91,140,255,.14)), transparent 74%);
-  opacity: .26;
-}
-.support-msg:hover{
-  transform: translateY(-1px) !important;
-  border-color: var(--u, rgba(255,255,255,.26)) !important;
+    linear-gradient(90deg, var(--ubg, rgba(91,140,255,.16)), rgba(255,255,255,.045) 45%, rgba(255,255,255,.025)) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.13),
-    inset 0 -18px 36px rgba(0,0,0,.10),
-    0 18px 38px rgba(0,0,0,.26),
-    0 0 0 1px rgba(255,255,255,.045),
-    0 0 24px rgba(91,140,255,.16) !important;
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 12px 28px rgba(0,0,0,.18),
+    -10px 0 24px -20px var(--u, rgba(91,140,255,.55)) !important;
 }
 .support-msg.mine{
+  border-left-color: var(--sr-chat-green) !important;
   background:
-    radial-gradient(230px 110px at 100% 0%, rgba(94,224,111,.18), transparent 72%),
-    radial-gradient(220px 120px at 0% 100%, var(--ubg, rgba(91,140,255,.18)), transparent 70%),
-    linear-gradient(135deg, rgba(94,224,111,.125), var(--ubg, rgba(255,255,255,.070)) 52%, rgba(255,255,255,.040)) !important;
-  border-color: var(--u, rgba(94,224,111,.42)) !important;
+    linear-gradient(90deg, rgba(94,224,111,.14), var(--ubg, rgba(91,140,255,.11)) 52%, rgba(255,255,255,.028)) !important;
   box-shadow:
-    inset 3px 0 0 rgba(94,224,111,.78),
-    inset 0 1px 0 rgba(255,255,255,.12),
-    0 16px 36px rgba(0,0,0,.22),
-    0 0 26px rgba(94,224,111,.08) !important;
-}
-.support-msg.mine::before{
-  background: linear-gradient(180deg, #d8ffe0, var(--sr-chat-green), var(--u, var(--sr-chat-green))) !important;
-  box-shadow: 0 0 26px rgba(94,224,111,.55) !important;
+    inset 3px 0 0 rgba(94,224,111,.72),
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 14px 34px rgba(0,0,0,.20) !important;
 }
 .support-msg-meta{
-  position: relative !important;
-  z-index: 1 !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 7px !important;
   color: var(--sr-chat-muted) !important;
 }
 .support-msg-dot{
-  width: 10px !important;
-  height: 10px !important;
-  border-radius: 50% !important;
   background: var(--u, var(--sr-chat-blue)) !important;
-  box-shadow: 0 0 0 3px rgba(255,255,255,.10), 0 0 18px var(--u, rgba(91,140,255,.55)) !important;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.08), 0 0 15px var(--u, rgba(91,140,255,.50)) !important;
 }
 .support-msg-name{
   color: var(--u, var(--sr-chat-text)) !important;
-  font-weight: 950 !important;
-  letter-spacing: .08px !important;
-  text-shadow: 0 0 16px rgba(91,140,255,.24) !important;
+  font-weight: 900 !important;
 }
 .support-msg-time{
-  color: rgba(225,232,255,.62) !important;
-  font-size: 11.5px !important;
-  margin-inline-start: auto !important;
-  white-space: nowrap !important;
+  color: rgba(225,232,255,.64) !important;
+  font-size: 12px !important;
 }
-.support-msg-text{
-  position: relative !important;
-  z-index: 1 !important;
+.support-msg-text,
+.support-attach-line{
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
   color: rgba(250,252,255,.94) !important;
-  line-height: 1.68 !important;
-  letter-spacing: .02px !important;
-  text-shadow: 0 1px 8px rgba(0,0,0,.16) !important;
+  line-height: 1.65 !important;
 }
 .support-del-btn{
   border: 1px solid rgba(255,255,255,.15) !important;
   background: rgba(255,255,255,.08) !important;
   color: rgba(255,255,255,.88) !important;
   border-radius: 999px !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.10) !important;
-}
-.support-del-btn:hover{
-  background: rgba(255,77,109,.18) !important;
-  border-color: rgba(255,77,109,.36) !important;
 }
 
 .support-user{
-  position: relative !important;
-  overflow: hidden !important;
+  border-color: var(--u, rgba(255,255,255,.16)) !important;
+  border-left: 4px solid var(--u, var(--sr-chat-blue)) !important;
   background:
-    radial-gradient(140px 70px at 0% 50%, var(--u, rgba(91,140,255,.18)), transparent 74%),
-    linear-gradient(180deg, rgba(255,255,255,.072), rgba(255,255,255,.036)) !important;
-  border: 1px solid var(--u, rgba(255,255,255,.12)) !important;
-  color: var(--sr-chat-text) !important;
-  box-shadow: var(--sr-chat-card-shadow) !important;
-}
-.support-user::before{
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 4px;
-  background: var(--u, var(--sr-chat-blue));
-  opacity: .9;
-  box-shadow: 0 0 18px var(--u, var(--sr-chat-blue));
-}
-.support-user:hover{
-  transform: translateY(-1px) !important;
-  border-color: var(--u, rgba(255,255,255,.18)) !important;
-  background:
-    radial-gradient(160px 80px at 0% 50%, var(--u, rgba(91,140,255,.22)), transparent 74%),
-    linear-gradient(180deg, rgba(255,255,255,.092), rgba(255,255,255,.046)) !important;
+    linear-gradient(90deg, color-mix(in srgb, var(--u, #5b8cff) 20%, transparent), rgba(255,255,255,.04) 48%, rgba(255,255,255,.025)) !important;
 }
 .support-user-dot{
   background: var(--u, var(--sr-chat-blue)) !important;
-  box-shadow: 0 0 0 3px rgba(255,255,255,.10), 0 0 18px var(--u, rgba(91,140,255,.55)) !important;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.08), 0 0 15px var(--u, rgba(91,140,255,.50)) !important;
 }
 .support-user-name{
   color: var(--sr-chat-text) !important;
@@ -349,129 +263,71 @@
 }
 .support-user.me,
 .support-user.is-active{
-  border-color: rgba(94,224,111,.42) !important;
-  background:
-    radial-gradient(160px 80px at 0% 50%, rgba(94,224,111,.24), transparent 74%),
-    linear-gradient(180deg, rgba(94,224,111,.13), rgba(255,255,255,.045)) !important;
+  border-color: rgba(94,224,111,.36) !important;
+  border-left-color: var(--sr-chat-green) !important;
+  background: linear-gradient(90deg, rgba(94,224,111,.16), rgba(255,255,255,.045)) !important;
 }
 
-/* ---------- Suggestions: mature modern world-class cards ---------- */
+/* Suggestions: refined cards, same dimensions and safe readable text. */
 .suggestion-item,
 .sug-reply-item{
-  position: relative !important;
-  overflow: hidden !important;
-  isolation: isolate !important;
-  color: var(--sr-chat-text) !important;
+  overflow: visible !important;
+  border-left: 5px solid var(--u, var(--sr-chat-blue)) !important;
   background:
-    radial-gradient(260px 130px at 0% 0%, var(--u, rgba(91,140,255,.18)), transparent 72%),
-    radial-gradient(220px 110px at 100% 100%, rgba(231,197,111,.10), transparent 70%),
-    linear-gradient(145deg, rgba(255,255,255,.078), rgba(255,255,255,.040) 52%, rgba(5,8,20,.18)) !important;
-  border: 1px solid var(--u, rgba(255,255,255,.12)) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.10),
-    inset 0 -18px 36px rgba(0,0,0,.10),
-    0 15px 34px rgba(0,0,0,.21) !important;
-  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease !important;
-}
-.suggestion-item{
-  border-radius: 22px !important;
+    radial-gradient(260px 120px at 0% 0%, rgba(91,140,255,.10), transparent 70%),
+    linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.038)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 13px 30px rgba(0,0,0,.19) !important;
+  color: var(--sr-chat-text) !important;
 }
 .sug-reply-item{
-  border-radius: 18px !important;
-}
-.suggestion-item::before,
-.sug-reply-item::before{
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 5px;
-  z-index: -1;
-  background: linear-gradient(180deg, rgba(255,255,255,.55), var(--u, var(--sr-chat-blue)), rgba(231,197,111,.28));
-  box-shadow: 0 0 24px var(--u, rgba(91,140,255,.48));
-}
-.suggestion-item::after,
-.sug-reply-item::after{
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    linear-gradient(112deg, rgba(255,255,255,.12), transparent 24%, transparent 75%, rgba(255,255,255,.045)),
-    radial-gradient(260px 76px at 28px 0%, var(--u, rgba(91,140,255,.18)), transparent 75%);
-  opacity: .28;
-}
-.suggestion-item:hover,
-.sug-reply-item:hover{
-  transform: translateY(-1px) !important;
-  border-color: var(--u, rgba(255,255,255,.20)) !important;
-  background:
-    radial-gradient(280px 140px at 0% 0%, var(--u, rgba(91,140,255,.22)), transparent 72%),
-    radial-gradient(230px 120px at 100% 100%, rgba(231,197,111,.13), transparent 70%),
-    linear-gradient(145deg, rgba(255,255,255,.095), rgba(255,255,255,.048) 52%, rgba(5,8,20,.18)) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.13),
-    inset 0 -18px 36px rgba(0,0,0,.10),
-    0 18px 40px rgba(0,0,0,.26),
-    0 0 24px rgba(91,140,255,.16) !important;
+  border-radius: 16px !important;
 }
 .suggestion-item.has-replies{
+  border-left-color: var(--sr-chat-gold) !important;
   box-shadow:
-    inset 5px 0 0 rgba(231,197,111,.78),
-    inset 0 1px 0 rgba(255,255,255,.10),
-    0 18px 40px rgba(0,0,0,.23),
-    0 0 24px rgba(231,197,111,.06) !important;
+    inset 3px 0 0 rgba(231,197,111,.62),
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 14px 34px rgba(0,0,0,.20) !important;
 }
 .suggestion-meta,
 .sug-reply-meta{
-  position: relative !important;
-  z-index: 1 !important;
   color: var(--sr-chat-muted) !important;
 }
 .suggestion-name,
 .sug-reply-name{
   color: var(--u, var(--sr-chat-text)) !important;
-  font-weight: 950 !important;
-  text-shadow: 0 0 16px rgba(91,140,255,.24) !important;
+  font-weight: 900 !important;
 }
 .suggestion-when,
 .sug-reply-when{
-  color: rgba(225,232,255,.62) !important;
-  font-size: 11.5px !important;
+  color: rgba(225,232,255,.64) !important;
+  font-size: 12px !important;
 }
 .suggestion-text,
 .sug-reply-text{
-  position: relative !important;
-  z-index: 1 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
   color: rgba(250,252,255,.94) !important;
-  line-height: 1.68 !important;
-  letter-spacing: .015px !important;
-  text-shadow: 0 1px 8px rgba(0,0,0,.16) !important;
+  line-height: 1.65 !important;
 }
 .suggestion-dot,
 .sug-reply-dot{
   background: var(--u, var(--sr-chat-blue)) !important;
-  box-shadow: 0 0 0 3px rgba(255,255,255,.10), 0 0 18px var(--u, rgba(91,140,255,.56)) !important;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.08), 0 0 15px var(--u, rgba(91,140,255,.50)) !important;
 }
 
-.suggestion-actions,
-.sug-reply-actions{
-  position: relative !important;
-  z-index: 1 !important;
-}
 .sug-replies-toggle{
   background:
-    radial-gradient(120% 120% at 20% 0%, rgba(255,255,255,.20), transparent 48%),
-    linear-gradient(180deg, rgba(231,197,111,.22), rgba(231,197,111,.08)) !important;
-  border: 1px solid rgba(231,197,111,.42) !important;
-  color: rgba(255,247,220,.98) !important;
+    linear-gradient(180deg, rgba(231,197,111,.18), rgba(231,197,111,.07)) !important;
+  border: 1px solid rgba(231,197,111,.38) !important;
+  color: rgba(255,246,216,.96) !important;
   border-radius: 999px !important;
-  box-shadow: 0 11px 25px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.16) !important;
+  box-shadow: 0 10px 24px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.14) !important;
 }
 .sug-replies-toggle:hover{
   background:
-    radial-gradient(120% 120% at 20% 0%, rgba(255,255,255,.25), transparent 48%),
-    linear-gradient(180deg, rgba(231,197,111,.31), rgba(231,197,111,.12)) !important;
+    linear-gradient(180deg, rgba(231,197,111,.27), rgba(231,197,111,.11)) !important;
   transform: translateY(-1px) !important;
 }
 .sug-replies-badge,
@@ -486,45 +342,48 @@
 #suggestionsFab,
 #supportToggleBtn{
   background:
-    radial-gradient(120% 120% at 18% 10%, rgba(255,255,255,.28), transparent 48%),
-    radial-gradient(120% 120% at 90% 90%, rgba(94,224,111,.16), transparent 50%),
-    linear-gradient(135deg, rgba(25,30,52,.97), rgba(13,17,31,.97)) !important;
-  border: 1px solid rgba(255,255,255,.23) !important;
+    radial-gradient(120% 120% at 18% 10%, rgba(255,255,255,.26), transparent 48%),
+    linear-gradient(135deg, rgba(25,30,52,.96), rgba(13,17,31,.96)) !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
   color: var(--sr-chat-text) !important;
-  box-shadow: 0 17px 40px rgba(0,0,0,.40), inset 0 1px 0 rgba(255,255,255,.17) !important;
+  box-shadow: 0 16px 38px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.16) !important;
 }
 #suggestionsFab:hover,
 #supportToggleBtn:hover{
   transform: translateY(-2px) !important;
-  border-color: rgba(94,224,111,.46) !important;
+  border-color: rgba(94,224,111,.42) !important;
 }
 
 .support-link{
-  color: #9ab8ff !important;
-  text-decoration-color: rgba(154,184,255,.45) !important;
+  color: #8fb2ff !important;
+  text-decoration-color: rgba(143,178,255,.45) !important;
 }
 .support-attach-chip,
 .support-attach-line{
-  background: rgba(255,255,255,.070) !important;
-  border: 1px solid rgba(255,255,255,.14) !important;
-  border-radius: 15px !important;
+  background: rgba(255,255,255,.065) !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  border-radius: 14px !important;
 }
 .support-emoji-grid,
 #supportEmojiPopover{
-  background:
-    radial-gradient(240px 140px at 20% 0%, rgba(91,140,255,.18), transparent 70%),
-    rgba(15,19,34,.97) !important;
-  border: 1px solid rgba(255,255,255,.16) !important;
-  box-shadow: 0 19px 48px rgba(0,0,0,.40) !important;
-  border-radius: 17px !important;
+  background: rgba(15,19,34,.96) !important;
+  border: 1px solid rgba(255,255,255,.15) !important;
+  box-shadow: 0 18px 46px rgba(0,0,0,.38) !important;
+  border-radius: 16px !important;
 }
 .support-emoji-btn{
-  background: rgba(255,255,255,.065) !important;
-  border: 1px solid rgba(255,255,255,.105) !important;
+  background: rgba(255,255,255,.06) !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
   border-radius: 12px !important;
 }
 .support-emoji-btn:hover{
-  background: rgba(255,255,255,.14) !important;
+  background: rgba(255,255,255,.13) !important;
+}
+
+@supports not (color: color-mix(in srgb, red 10%, transparent)){
+  .support-user{
+    background: linear-gradient(90deg, rgba(91,140,255,.10), rgba(255,255,255,.04)) !important;
+  }
 }
 
 @media (max-width: 720px){
@@ -535,9 +394,6 @@
   }
   .suggestion-item,
   .support-msg{
-    border-radius: 17px !important;
-  }
-  .support-msg-time{
-    margin-inline-start: 0 !important;
+    border-radius: 16px !important;
   }
 }
