@@ -127,9 +127,6 @@
     // Admin Suggestions reply controls are scoped to Admin Panel -> Suggestions only.
     safeImport('./admin-suggestions-replies-control.js?v=20260506');
 
-    // Clean WhatsApp-like reactions for suggestion cards only.
-    safeImport('./suggestion-reactions.js?v=20260506-clean2');
-
     // Heavy/interactive modules are loaded only when needed.
     bindSupportLauncher();
     bindAdminLauncher();
