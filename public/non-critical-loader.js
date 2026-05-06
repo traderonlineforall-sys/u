@@ -129,6 +129,7 @@
 
     // WhatsApp-like reactions for suggestion cards only.
     safeImport('./suggestion-reactions.js?v=20260506');
+    safeImport('./suggestion-extra-reactions.js?v=20260506');
 
     // Heavy/interactive modules are loaded only when needed.
     bindSupportLauncher();
