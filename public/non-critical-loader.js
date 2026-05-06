@@ -3,6 +3,16 @@
     return import(src).catch(function(){});
   }
 
+  function safeStyle(href){
+    try {
+      if (document.querySelector('link[href="' + href + '"]')) return;
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = href;
+      document.head.appendChild(link);
+    } catch {}
+  }
+
   var imports = Object.create(null);
   function importOnce(key, src){
     if (!imports[key]) imports[key] = safeImport(src);
@@ -120,6 +130,9 @@
   function boot(){
     // Layout fixes are small and affect perceived stability, so run them as soon as DOM is ready.
     loadLayoutFixes();
+
+    // Premium visual skin for Suggestions + Support only.
+    safeStyle('./support-suggestions-premium.css?v=20260506-premium1');
 
     // Urgent admin voice auto-activation is scoped to #SR_URGENT_TICKER only.
     safeImport('./urgent-voice-auto-activation.js?v=20260506');
