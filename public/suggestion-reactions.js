@@ -8,7 +8,7 @@ import { supabase } from "./supabase-client.js";
  * - No polling against Cloudflare.
  * - Reaction counts are read directly from Supabase.
  * - Live updates use Supabase Realtime.
- * - Writes use the existing /api/suggestion-reactions endpoint only when the user clicks a reaction.
+ * - Writes use /api/suggestion-reactions only when the user clicks a reaction.
  * - Public suggestion cards are detected even if the original renderer did not add data-suggestion-id.
  * Does not change SR data, header, search, menus, themes, or suggestion deletion behavior.
  */
@@ -16,11 +16,15 @@ import { supabase } from "./supabase-client.js";
 const REACTIONS = [
   ["like", "👍", "أعجبني"],
   ["love", "❤️", "أحببته"],
-  ["angry", "😡", "أغضبني"]
+  ["angry", "😡", "أغضبني"],
+  ["laugh", "😂", "أضحكني"],
+  ["sad", "😢", "أحزنني"],
+  ["slipper", "🩴", "فردة شبشب"]
 ];
 
 const REACTIONS_TABLE = "suggestion_reactions";
 const SUGGESTIONS_TABLE = "suggestions";
+const ALL_REACTION_KEYS = REACTIONS.map(([key]) => key);
 
 let renderTimer = 0;
 let loading = false;
@@ -31,6 +35,7 @@ let suggestionsCache = [];
 let suggestionsLoadedAt = 0;
 let lastLoadKey = "";
 let lastLoadAt = 0;
+const renderedHtmlById = new Map();
 
 function esc(value = ""){
   return String(value == null ? "" : value)
@@ -56,7 +61,11 @@ function normalizeId(value){
 
 function normalizeReaction(value){
   const s = String(value || "").trim();
-  return REACTIONS.some(([key]) => key === s) ? s : "";
+  return ALL_REACTION_KEYS.includes(s) ? s : "";
+}
+
+function emptyCounts(){
+  return { like: 0, love: 0, angry: 0, laugh: 0, sad: 0, slipper: 0 };
 }
 
 function normalizeText(value = ""){
@@ -65,6 +74,17 @@ function normalizeText(value = ""){
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase();
+}
+
+function isVisibleElement(el){
+  try {
+    if (!(el instanceof HTMLElement)) return false;
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    return r.width > 8 && r.height > 6 && cs.display !== "none" && cs.visibility !== "hidden" && Number(cs.opacity || 1) !== 0;
+  } catch {
+    return false;
+  }
 }
 
 async function loadSuggestionsForMatching(force = false){
@@ -122,18 +142,66 @@ function getSuggestionIdFromElement(el){
   return "";
 }
 
-function findPublicSuggestionCardFromRepliesButton(btn){
-  if (!btn) return null;
-  let best = null;
-  let el = btn;
-  for (let i = 0; i < 8 && el; i += 1, el = el.parentElement) {
-    if (!(el instanceof HTMLElement)) continue;
-    const text = normalizeText(el.textContent || "");
-    if (!text || text.length < 8) continue;
-    const hasReplyBox = !!el.querySelector?.("textarea[placeholder*='reply' i], input[placeholder*='reply' i]");
-    const hasSuggestion = !!matchSuggestionIdFromText(text);
-    if (hasSuggestion) best = el;
-    if (hasSuggestion && hasReplyBox) return el;
+function isRepliesButton(el){
+  const label = normalizeText(el?.textContent || "");
+  return /replies\s*\(\d+\)/i.test(label);
+}
+
+function findRepliesButtonIn(el){
+  if (!el?.querySelectorAll) return null;
+  return Array.from(el.querySelectorAll("button, a, [role='button']")).find(isRepliesButton) || null;
+}
+
+function findSuggestionBodyElement(row){
+  const id = normalizeId(row?.id);
+  const body = normalizeText(row?.text || "");
+  if (!id || !body) return null;
+
+  const direct = document.querySelector(`[data-suggestion-id="${cssEscape(id)}"], [data-suggestion_id="${cssEscape(id)}"]`);
+  if (direct && isVisibleElement(direct)) return direct;
+
+  const candidates = [];
+  const roots = Array.from(document.querySelectorAll("[id*='suggestion' i], [class*='suggestion' i]")).filter(isVisibleElement);
+  const searchRoots = roots.length ? roots : [document.body || document.documentElement];
+
+  for (const root of searchRoots) {
+    const nodes = root.querySelectorAll?.("div, p, span, li, article, section, main") || [];
+    for (const el of nodes) {
+      if (!isVisibleElement(el)) continue;
+      if (el.closest?.(".sr-suggestion-reactions-host")) continue;
+      const tag = String(el.tagName || "").toLowerCase();
+      if (["script", "style", "textarea", "input", "button", "a"].includes(tag)) continue;
+      const text = normalizeText(el.textContent || "");
+      if (!text || !text.includes(body)) continue;
+
+      const r = el.getBoundingClientRect();
+      const extra = Math.max(0, text.length - body.length);
+      const hasReplies = !!findRepliesButtonIn(el);
+      const hasReplyBox = !!el.querySelector?.("textarea[placeholder*='reply' i], input[placeholder*='reply' i]");
+      const area = Math.max(1, r.width * r.height);
+      const score = (hasReplies ? 0 : 8000) + (hasReplyBox ? 0 : 1000) + extra * 8 + Math.min(area / 100, 5000);
+      candidates.push({ el, score, hasReplies, hasReplyBox });
+    }
+  }
+
+  candidates.sort((a, b) => a.score - b.score);
+  return candidates[0]?.el || null;
+}
+
+function climbToSuggestionCard(el){
+  if (!el) return null;
+  let best = el;
+  let cur = el;
+  for (let i = 0; i < 7 && cur; i += 1, cur = cur.parentElement) {
+    if (!(cur instanceof HTMLElement)) continue;
+    const replies = findRepliesButtonIn(cur);
+    const replyBox = cur.querySelector?.("textarea[placeholder*='reply' i], input[placeholder*='reply' i]");
+    if (replies || replyBox) {
+      best = cur;
+      break;
+    }
+    const r = cur.getBoundingClientRect();
+    if (r.width >= 260 && r.height >= 60) best = cur;
   }
   return best;
 }
@@ -142,34 +210,35 @@ function findSuggestionContainers(){
   const out = [];
   const seen = new Set();
 
-  function push(el, id, mode, anchor = null){
+  function push(el, id, mode, anchor = null, textEl = null){
     id = normalizeId(id);
     if (!el || !id) return;
-    const key = `${mode}:${id}:${anchor ? "anchor" : "card"}:${out.length}`;
+    const key = `${mode}:${id}`;
     if (seen.has(key)) return;
     seen.add(key);
-    out.push({ el, id, mode, anchor });
+    out.push({ el, id, mode, anchor, textEl });
   }
 
   document.querySelectorAll("#adminTabSuggestions .admin-row").forEach((row) => {
     const id = getSuggestionIdFromElement(row);
-    if (id) push(row, id, "admin");
+    if (id) push(row, id, "admin", null, row);
+  });
+
+  suggestionsCache.forEach((row) => {
+    const id = normalizeId(row?.id);
+    const textEl = findSuggestionBodyElement(row);
+    if (!id || !textEl) return;
+    const card = climbToSuggestionCard(textEl) || textEl;
+    const anchor = findRepliesButtonIn(card) || null;
+    push(card, id, "public", anchor, textEl);
   });
 
   document.querySelectorAll("[data-suggestion-id], [data-suggestion_id]").forEach((el) => {
     if (el.closest?.("#adminTabSuggestions")) return;
     const id = getSuggestionIdFromElement(el);
-    if (id) push(el, id, "public");
-  });
-
-  // Fallback for the current Suggestions modal renderer: it shows a Replies(n) button
-  // but does not expose data-suggestion-id on the card.
-  document.querySelectorAll("button, a, [role='button']").forEach((btn) => {
-    const label = normalizeText(btn.textContent || "");
-    if (!/replies\s*\(\d+\)/i.test(label)) return;
-    const card = findPublicSuggestionCardFromRepliesButton(btn);
-    const id = getSuggestionIdFromElement(card);
-    if (card && id) push(card, id, "public-replies", btn);
+    if (!id) return;
+    const anchor = findRepliesButtonIn(el) || null;
+    push(el, id, "public-data", anchor, el);
   });
 
   return out;
@@ -189,7 +258,7 @@ function summarizeRows(rows = [], userId = getUserId()){
     const sid = String(row?.suggestion_id || "");
     const reaction = normalizeReaction(row?.reaction);
     if (!sid || !reaction) return;
-    if (!out[sid]) out[sid] = { counts: { like: 0, love: 0, angry: 0 }, mine: "" };
+    if (!out[sid]) out[sid] = { counts: emptyCounts(), mine: "" };
     out[sid].counts[reaction] = (out[sid].counts[reaction] || 0) + 1;
     if (userId && String(row?.user_id || "") === userId) out[sid].mine = reaction;
   });
@@ -236,7 +305,7 @@ async function loadReactions(options = {}){
 
 function reactionCounts(id){
   const item = reactionState[String(id)] || {};
-  return item.counts || { like: 0, love: 0, angry: 0 };
+  return item.counts || emptyCounts();
 }
 
 function myReaction(id){
@@ -250,13 +319,13 @@ function buildHtml(id){
   const buttons = REACTIONS.map(([key, icon, label]) => {
     const active = mine === key;
     return `
-      <button type="button" class="sr-suggestion-reaction-btn" data-suggestion-reaction="${esc(key)}" data-suggestion-id="${esc(id)}" aria-pressed="${active ? "true" : "false"}" title="${esc(label)}" style="border:1px solid ${active ? "rgba(34,197,94,.85)" : "rgba(255,255,255,.18)"};border-radius:999px;padding:5px 9px;cursor:pointer;background:${active ? "rgba(34,197,94,.20)" : "rgba(255,255,255,.08)"};color:inherit;font-weight:800;display:inline-flex;align-items:center;gap:5px;line-height:1;transition:transform .12s ease, background .12s ease;">
+      <button type="button" class="sr-suggestion-reaction-btn" data-suggestion-reaction="${esc(key)}" data-suggestion-id="${esc(id)}" aria-pressed="${active ? "true" : "false"}" title="${esc(label)}" style="border:1px solid ${active ? "rgba(34,197,94,.85)" : "rgba(255,255,255,.18)"};border-radius:999px;padding:5px 9px;cursor:pointer;background:${active ? "rgba(34,197,94,.20)" : "rgba(255,255,255,.08)"};color:inherit;font-weight:800;display:inline-flex;align-items:center;gap:5px;line-height:1;transition:transform .12s ease, background .12s ease;min-width:46px;justify-content:center;">
         <span>${icon}</span><span style="font-size:12px;">${Number(counts[key] || 0)}</span>
       </button>
     `;
   }).join("");
   return `
-    <div class="sr-suggestion-reactions" data-suggestion-reactions-for="${esc(id)}" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:9px;">
+    <div class="sr-suggestion-reactions" data-suggestion-reactions-for="${esc(id)}" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:10px 0 7px;padding:7px 9px;width:fit-content;max-width:100%;border-radius:999px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.12);box-shadow:0 8px 22px rgba(0,0,0,.18);">
       <span style="font-size:12px;opacity:.75;font-weight:800;margin-inline-end:2px;">تفاعل:</span>
       ${buttons}
     </div>
@@ -264,23 +333,32 @@ function buildHtml(id){
 }
 
 function attachToContainer(item){
-  const { el, id, mode, anchor } = item;
+  const { el, id, mode, anchor, textEl } = item;
   if (!el || !id) return;
-  let host = el.querySelector?.(`.sr-suggestion-reactions-host[data-suggestion-reactions-host="${cssEscape(id)}"]`);
+  let host = document.querySelector(`.sr-suggestion-reactions-host[data-suggestion-reactions-host="${cssEscape(id)}"]`);
   if (!host) {
     host = document.createElement("div");
     host.className = "sr-suggestion-reactions-host";
     host.dataset.suggestionReactionsHost = id;
     host.style.marginTop = "8px";
-
-    if (anchor && anchor.parentElement) {
-      anchor.insertAdjacentElement("afterend", host);
-    } else {
-      const main = mode === "admin" ? el.querySelector(".admin-row-main") : el;
-      (main || el).appendChild(host);
-    }
   }
-  host.innerHTML = buildHtml(id);
+
+  if (mode === "admin") {
+    const main = el.querySelector(".admin-row-main") || el;
+    if (host.parentElement !== main) main.appendChild(host);
+  } else if (anchor && anchor.parentElement) {
+    if (host.nextElementSibling !== anchor) anchor.parentElement.insertBefore(host, anchor);
+  } else if (textEl && textEl.parentElement) {
+    if (host.previousElementSibling !== textEl) textEl.insertAdjacentElement("afterend", host);
+  } else if (host.parentElement !== el) {
+    el.appendChild(host);
+  }
+
+  const html = buildHtml(id);
+  if (renderedHtmlById.get(id) !== html || host.innerHTML !== html) {
+    host.innerHTML = html;
+    renderedHtmlById.set(id, html);
+  }
 }
 
 function renderAll(){
@@ -288,7 +366,7 @@ function renderAll(){
 }
 
 function applyOptimistic(id, reaction){
-  const state = reactionState[id] || { counts: { like: 0, love: 0, angry: 0 }, mine: "" };
+  const state = reactionState[id] || { counts: emptyCounts(), mine: "" };
   const prev = state.mine || "";
   if (prev && state.counts[prev] > 0) state.counts[prev] -= 1;
   if (prev === reaction) {
@@ -298,6 +376,7 @@ function applyOptimistic(id, reaction){
     state.counts[reaction] = (state.counts[reaction] || 0) + 1;
   }
   reactionState[id] = state;
+  renderedHtmlById.delete(id);
   renderAll();
 }
 
@@ -323,7 +402,8 @@ async function toggleReaction(btn){
   try {
     const data = await apiToggle(id, reaction);
     if (data?.reactions && typeof data.reactions === "object") {
-      reactionState[id] = data.reactions[id] || { counts: { like: 0, love: 0, angry: 0 }, mine: "" };
+      reactionState[id] = data.reactions[id] || { counts: emptyCounts(), mine: "" };
+      renderedHtmlById.delete(id);
       renderAll();
     }
     scheduleLoad(250, { force: true });
@@ -368,6 +448,15 @@ function bind(){
     event.preventDefault();
     event.stopPropagation();
     toggleReaction(btn);
+  }, true);
+
+  document.addEventListener("mouseenter", (event) => {
+    const btn = event.target?.closest?.("button[data-suggestion-reaction]");
+    if (btn) btn.style.transform = "translateY(-1px) scale(1.04)";
+  }, true);
+  document.addEventListener("mouseleave", (event) => {
+    const btn = event.target?.closest?.("button[data-suggestion-reaction]");
+    if (btn) btn.style.transform = "";
   }, true);
 
   try {
