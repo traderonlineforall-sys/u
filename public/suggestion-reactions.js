@@ -3,8 +3,13 @@ import { supabase } from "./supabase-client.js";
 
 /*
  * Suggestion reactions UI.
- * Scope: suggestion cards/rows only. Does not change SR data, header, search,
- * menus, themes, or suggestion deletion behavior.
+ * Scope: suggestion cards/rows only.
+ * Cloudflare-friendly design:
+ * - No Worker/API polling for reactions.
+ * - Reads/writes suggestion_reactions directly through Supabase anon + RLS.
+ * - Uses Supabase Realtime for live updates.
+ * - Only refreshes on page focus/visibility or DOM changes, with debouncing.
+ * Does not change SR data, header, search, menus, themes, or suggestion deletion behavior.
  */
 
 const REACTIONS = [
@@ -13,8 +18,7 @@ const REACTIONS = [
   ["angry", "😡", "أغضبني"]
 ];
 
-const FALLBACK_POLL_MS = 30000;
-const REALTIME_FALLBACK_DELAY_MS = 7000;
+const TABLE = "suggestion_reactions";
 
 let renderTimer = 0;
 let loading = false;
@@ -22,8 +26,8 @@ let reactionState = Object.create(null);
 let realtimeChannel = null;
 let realtimeIdsKey = "";
 let realtimeReady = false;
-let realtimeFallbackTimer = 0;
-let pollTimer = 0;
+let lastLoadKey = "";
+let lastLoadAt = 0;
 
 function esc(value = ""){
   return String(value == null ? "" : value)
@@ -39,12 +43,17 @@ function cssEscape(value = ""){
 }
 
 function getUserId(){
-  try { return getStableUserId(); } catch { return ""; }
+  try { return String(getStableUserId() || "").trim(); } catch { return ""; }
 }
 
 function normalizeId(value){
   const s = String(value || "").trim();
   return /^\d+$/.test(s) ? s : "";
+}
+
+function normalizeReaction(value){
+  const s = String(value || "").trim();
+  return REACTIONS.some(([key]) => key === s) ? s : "";
 }
 
 function getSuggestionIdFromElement(el){
@@ -95,35 +104,47 @@ function idsKey(ids = idsOnPage()){
   return ids.slice().sort((a, b) => Number(a) - Number(b)).join(",");
 }
 
-async function api(body){
-  const res = await fetch("/api/suggestion-reactions", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ ...body, user_id: getUserId() })
+function summarizeRows(rows = [], userId = getUserId()){
+  const out = Object.create(null);
+  rows.forEach((row) => {
+    const sid = String(row?.suggestion_id || "");
+    const reaction = normalizeReaction(row?.reaction);
+    if (!sid || !reaction) return;
+    if (!out[sid]) out[sid] = { counts: { like: 0, love: 0, angry: 0 }, mine: "" };
+    out[sid].counts[reaction] = (out[sid].counts[reaction] || 0) + 1;
+    if (userId && String(row?.user_id || "") === userId) out[sid].mine = reaction;
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || "Request failed");
-  return data;
+  return out;
 }
 
-async function loadReactions(){
+async function loadReactions(options = {}){
   if (loading) return;
   const ids = idsOnPage();
   if (!ids.length) return;
+
+  const key = idsKey(ids);
+  const now = Date.now();
+  if (!options.force && key === lastLoadKey && now - lastLoadAt < 1200) {
+    ensureRealtimeSubscription(ids);
+    return;
+  }
+
   loading = true;
+  lastLoadKey = key;
+  lastLoadAt = now;
   try {
-    const data = await api({ action: "list", suggestion_ids: ids.map(Number) });
-    if (data?.missing_table) {
-      reactionState = Object.create(null);
-      renderAll({ missingTable: true });
-      return;
-    }
-    reactionState = data?.reactions && typeof data.reactions === "object" ? data.reactions : Object.create(null);
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select("suggestion_id,user_id,reaction")
+      .in("suggestion_id", ids.map(Number))
+      .limit(5000);
+
+    if (error) throw error;
+    reactionState = summarizeRows(Array.isArray(data) ? data : []);
     renderAll();
     ensureRealtimeSubscription(ids);
   } catch {
     // Keep the suggestions UI stable if reactions are temporarily unavailable.
-    ensureFallbackPolling();
   } finally {
     loading = false;
   }
@@ -139,10 +160,7 @@ function myReaction(id){
   return String(item.mine || "");
 }
 
-function buildHtml(id, missingTable = false){
-  if (missingTable) {
-    return `<div class="sr-suggestion-reactions-disabled" style="font-size:12px;opacity:.68;margin-top:8px;">Suggestion reactions table is not configured yet.</div>`;
-  }
+function buildHtml(id){
   const counts = reactionCounts(id);
   const mine = myReaction(id);
   const buttons = REACTIONS.map(([key, icon, label]) => {
@@ -161,7 +179,7 @@ function buildHtml(id, missingTable = false){
   `;
 }
 
-function attachToContainer(item, options = {}){
+function attachToContainer(item){
   const { el, id, mode } = item;
   if (!el || !id) return;
   let host = el.querySelector?.(`.sr-suggestion-reactions-host[data-suggestion-reactions-host="${cssEscape(id)}"]`);
@@ -172,56 +190,66 @@ function attachToContainer(item, options = {}){
     const main = mode === "admin" ? el.querySelector(".admin-row-main") : el;
     (main || el).appendChild(host);
   }
-  host.innerHTML = buildHtml(id, !!options.missingTable);
+  host.innerHTML = buildHtml(id);
 }
 
-function renderAll(options = {}){
-  findSuggestionContainers().forEach((item) => attachToContainer(item, options));
+function renderAll(){
+  findSuggestionContainers().forEach((item) => attachToContainer(item));
+}
+
+function applyOptimistic(id, reaction){
+  const state = reactionState[id] || { counts: { like: 0, love: 0, angry: 0 }, mine: "" };
+  const prev = state.mine || "";
+  if (prev && state.counts[prev] > 0) state.counts[prev] -= 1;
+  if (prev === reaction) {
+    state.mine = "";
+  } else {
+    state.mine = reaction;
+    state.counts[reaction] = (state.counts[reaction] || 0) + 1;
+  }
+  reactionState[id] = state;
+  renderAll();
 }
 
 async function toggleReaction(btn){
   const id = normalizeId(btn?.dataset?.suggestionId || "");
-  const reaction = String(btn?.dataset?.suggestionReaction || "").trim();
-  if (!id || !REACTIONS.some(([key]) => key === reaction)) return;
+  const reaction = normalizeReaction(btn?.dataset?.suggestionReaction || "");
+  const userId = getUserId();
+  if (!id || !reaction || !userId) return;
+
   btn.disabled = true;
+  const current = myReaction(id);
+  applyOptimistic(id, reaction);
+
   try {
-    const data = await api({ action: "toggle", suggestion_id: Number(id), reaction });
-    if (data?.reactions && typeof data.reactions === "object") {
-      reactionState[id] = data.reactions[id] || { counts: { like: 0, love: 0, angry: 0 }, mine: "" };
+    if (current === reaction) {
+      const { error } = await supabase
+        .from(TABLE)
+        .delete()
+        .eq("suggestion_id", Number(id))
+        .eq("user_id", userId);
+      if (error) throw error;
+    } else {
+      const { error: deleteError } = await supabase
+        .from(TABLE)
+        .delete()
+        .eq("suggestion_id", Number(id))
+        .eq("user_id", userId);
+      if (deleteError) throw deleteError;
+      const { error: insertError } = await supabase
+        .from(TABLE)
+        .insert({ suggestion_id: Number(id), user_id: userId, reaction });
+      if (insertError) throw insertError;
     }
-    renderAll();
-    setTimeout(scheduleLoad, 250);
+    scheduleLoad(250, { force: true });
   } catch {
-    btn.disabled = false;
+    scheduleLoad(120, { force: true });
   }
 }
 
-function scheduleLoad(delay = 350){
+function scheduleLoad(delay = 350, options = {}){
   clearTimeout(renderTimer);
-  renderTimer = setTimeout(loadReactions, delay);
-}
-
-function stopFallbackPolling(){
-  if (!pollTimer) return;
-  clearInterval(pollTimer);
-  pollTimer = 0;
-}
-
-function ensureFallbackPolling(){
-  if (realtimeReady) {
-    stopFallbackPolling();
-    return;
-  }
-  if (pollTimer) return;
-  pollTimer = setInterval(() => {
-    if (realtimeReady) {
-      stopFallbackPolling();
-      return;
-    }
-    if (document.visibilityState === "hidden") return;
-    if (!idsOnPage().length) return;
-    loadReactions();
-  }, FALLBACK_POLL_MS);
+  renderTimer = setTimeout(() => loadReactions(options), delay);
 }
 
 function ensureRealtimeSubscription(ids = idsOnPage()){
@@ -229,7 +257,6 @@ function ensureRealtimeSubscription(ids = idsOnPage()){
   if (!key || realtimeIdsKey === key) return;
   realtimeIdsKey = key;
   realtimeReady = false;
-  clearTimeout(realtimeFallbackTimer);
 
   try {
     if (realtimeChannel) supabase.removeChannel(realtimeChannel);
@@ -240,29 +267,16 @@ function ensureRealtimeSubscription(ids = idsOnPage()){
     const visible = new Set(ids.map(String));
     realtimeChannel = supabase
       .channel(`sr_suggestion_reactions_${key.replaceAll(",", "_")}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "suggestion_reactions" }, (payload) => {
+      .on("postgres_changes", { event: "*", schema: "public", table: TABLE }, (payload) => {
         const sid = String(payload?.new?.suggestion_id || payload?.old?.suggestion_id || "");
-        if (!sid || visible.has(sid)) scheduleLoad(80);
+        if (!sid || visible.has(sid)) scheduleLoad(80, { force: true });
       })
       .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          realtimeReady = true;
-          stopFallbackPolling();
-          return;
-        }
-        if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(String(status || ""))) {
-          realtimeReady = false;
-          ensureFallbackPolling();
-        }
+        realtimeReady = status === "SUBSCRIBED";
       });
-
-    realtimeFallbackTimer = setTimeout(() => {
-      if (!realtimeReady) ensureFallbackPolling();
-    }, REALTIME_FALLBACK_DELAY_MS);
   } catch {
     realtimeChannel = null;
     realtimeReady = false;
-    ensureFallbackPolling();
   }
 }
 
@@ -277,23 +291,22 @@ function bind(){
 
   try {
     const observer = new MutationObserver(() => {
-      scheduleLoad(250);
+      scheduleLoad(300);
       ensureRealtimeSubscription(idsOnPage());
     });
     observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
   } catch {}
 
-  window.addEventListener("focus", () => scheduleLoad(120));
+  window.addEventListener("focus", () => scheduleLoad(120, { force: true }));
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") scheduleLoad(120);
+    if (document.visibilityState === "visible") scheduleLoad(120, { force: true });
   });
 }
 
 function boot(){
   bind();
   scheduleLoad();
-  setTimeout(scheduleLoad, 1500);
-  setTimeout(() => { if (!realtimeReady) ensureFallbackPolling(); }, REALTIME_FALLBACK_DELAY_MS + 1500);
+  setTimeout(() => scheduleLoad(0, { force: true }), 1500);
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, { once: true });
