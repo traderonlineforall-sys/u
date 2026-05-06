@@ -25,7 +25,8 @@
     loadExtras._done = true;
     [
       './online-users-count.js',
-      './eid-hud.js'
+      './eid-hud.js',
+      './urgent-voice-auto-activation.js?v=20260507-private-audio'
     ].forEach(function(src){
       safeImport(src);
     });
