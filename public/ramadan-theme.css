@@ -1,0 +1,187 @@
+/*
+  Ramadan UI theme (visual-only)
+  -----------------------------
+  This stylesheet is intentionally isolated.
+  - To disable Ramadan styling: remove the <link> tag that loads this file.
+  - No JS logic or backend dependencies.
+*/
+
+:root{
+  --ramadan-bg-0: #060c14;
+  --ramadan-bg-1: #071628;
+  --ramadan-bg-2: rgba(255,255,255,0.06);
+  --ramadan-gold: #d4af37;
+  --ramadan-gold-2: #f1d27a;
+  --ramadan-emerald: #10b981;
+  --ramadan-emerald-2: #34d399;
+  --ramadan-text: rgba(255,255,255,0.92);
+  --ramadan-muted: rgba(255,255,255,0.68);
+  --ramadan-stroke: rgba(255,255,255,0.14);
+  --ramadan-shadow: 0 20px 60px rgba(0,0,0,0.55);
+}
+
+/* Background: subtle premium gradient + geometric pattern + glow */
+html, body{
+  /* Pattern + glows + base gradient */
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='rgba(255,255,255,0.12)' stroke-width='1'%3E%3Cpath d='M70 6 90 30 70 54 50 30 70 6Z'/%3E%3Cpath d='M70 54 90 78 70 102 50 78 70 54Z'/%3E%3Cpath d='M22 30 42 54 22 78 2 54 22 30Z'/%3E%3Cpath d='M118 30 138 54 118 78 98 54 118 30Z'/%3E%3Cpath d='M70 102 90 126 70 134 50 126 70 102Z'/%3E%3Cpath d='M70 0v140M0 70h140' stroke='rgba(255,255,255,0.06)'/%3E%3C/g%3E%3C/svg%3E") repeat,
+    radial-gradient(1200px 700px at 12% 10%, rgba(16,185,129,0.14), transparent 55%),
+    radial-gradient(900px 540px at 88% 12%, rgba(212,175,55,0.14), transparent 55%),
+    radial-gradient(900px 640px at 50% 92%, rgba(241,210,122,0.08), transparent 55%),
+    linear-gradient(180deg, var(--ramadan-bg-1), var(--ramadan-bg-0));
+  background-size: 180px 180px, auto, auto, auto, auto;
+  color: var(--ramadan-text);
+}
+
+/* ---------- Ramadan Toggle button ("رمضان كريم") ---------- */
+/*
+  IMPORTANT: We do NOT change UA07/AHT/Tags positions here.
+  The layout must remain as in the original tool.
+  This styling only makes the toggle look festive.
+*/
+
+#RAMADAN_TOGGLE_BTN,
+.ramadan-toggle-btn{
+  /* Premium, festive-but-compact Ramadan button */
+  position: relative !important;
+  overflow: visible !important;
+  height: 20px !important;
+  padding: 0 12px !important;
+  background: linear-gradient(90deg, rgba(212,175,55,0.26), rgba(16,185,129,0.20)) !important;
+  border: 1px solid rgba(241,210,122,0.45) !important;
+  color: rgba(255,255,255,0.95) !important;
+  box-shadow: 0 14px 30px rgba(0,0,0,0.48) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.45);
+}
+
+.ramadan-toggle-btn:hover{ filter: brightness(1.08); }
+.ramadan-toggle-btn:active{ transform: translateY(1px); }
+
+/* Crescent icon (left) */
+.ramadan-toggle-btn::before{
+  content: "";
+  width: 14px;
+  height: 14px;
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: -2px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Cpath d='M11.7 2.2c-3.3.6-5.7 3.5-5.7 6.9 0 3.9 3.2 7 7.1 7 .9 0 1.7-.1 2.5-.4-1.2 1-2.7 1.6-4.5 1.6-3.9 0-7.1-3.2-7.1-7.1 0-3.1 2-5.8 4.9-6.7.9-.3 1.9-.4 2.8-.3z' fill='%23f1d27a' fill-opacity='0.95'/%3E%3Ccircle cx='13.6' cy='5.2' r='1.1' fill='%2310b981' fill-opacity='0.95'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.95;
+}
+
+/* Lantern string under the button (does NOT affect layout) */
+.ramadan-toggle-btn::after{
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: calc(100% - 2px);
+  width: 150px;
+  height: 26px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='32' viewBox='0 0 180 32'%3E%3Cpath d='M2 6 Q90 0 178 6' fill='none' stroke='%23f1d27a' stroke-opacity='.45' stroke-width='1.4'/%3E%3Cg transform='translate(26 6)'%3E%3Cpath d='M10 0 v7' stroke='%23f1d27a' stroke-opacity='.55'/%3E%3Cpath d='M10 7c-6 3-7 8-7 12 0 7 3 11 7 11s7-4 7-11c0-4-1-9-7-12z' fill='%23d4af37' fill-opacity='.20' stroke='%23f1d27a' stroke-opacity='.60'/%3E%3Ccircle cx='10' cy='22' r='1.6' fill='%2310b981' fill-opacity='.95'/%3E%3C/g%3E%3Cg transform='translate(86 6)'%3E%3Cpath d='M10 0 v7' stroke='%23f1d27a' stroke-opacity='.55'/%3E%3Cpath d='M10 7c-6 3-7 8-7 12 0 7 3 11 7 11s7-4 7-11c0-4-1-9-7-12z' fill='%2310b981' fill-opacity='.16' stroke='%23f1d27a' stroke-opacity='.60'/%3E%3Ccircle cx='10' cy='22' r='1.6' fill='%23f1d27a' fill-opacity='.95'/%3E%3C/g%3E%3Cg transform='translate(146 6)'%3E%3Cpath d='M10 0 v7' stroke='%23f1d27a' stroke-opacity='.55'/%3E%3Cpath d='M10 7c-6 3-7 8-7 12 0 7 3 11 7 11s7-4 7-11c0-4-1-9-7-12z' fill='%23d4af37' fill-opacity='.18' stroke='%23f1d27a' stroke-opacity='.60'/%3E%3Ccircle cx='10' cy='22' r='1.6' fill='%2310b981' fill-opacity='.95'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.92;
+  filter: drop-shadow(0 10px 18px rgba(0,0,0,0.35));
+  animation: ramadanLanternTwinkle 3.4s ease-in-out infinite;
+}
+
+@keyframes ramadanLanternTwinkle{
+  0%, 100%{ opacity: 0.82; transform: translateX(-50%) translateY(0px); }
+  50%{ opacity: 1; transform: translateX(-50%) translateY(1px); }
+}
+
+/* Envelope + online pill visual upgrade */
+#UA07_SECRET_ENVELOPE,
+#UA07_UPDATE_ICON{
+  border-color: rgba(212,175,55,0.25) !important;
+  background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.06)) !important;
+  box-shadow: 0 14px 30px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.18) !important;
+}
+#UA07_SECRET_ENVELOPE:hover,
+#UA07_UPDATE_ICON:hover{
+  border-color: rgba(212,175,55,0.55) !important;
+}
+
+/* Make the online "lamp" feel premium */
+#UA07_ONLINE_COUNT{
+  border-color: rgba(212,175,55,0.20) !important;
+  background: rgba(0,0,0,0.22) !important;
+  box-shadow: 0 10px 26px rgba(0,0,0,0.40);
+}
+
+/* Ramadan styling for floating actions (visual only) */
+.floating-actions .suggestions-fab,
+.floating-actions .support-fab{
+  border: 1px solid rgba(212,175,55,0.22) !important;
+  background: linear-gradient(90deg, rgba(212,175,55,0.22), rgba(16,185,129,0.18)) !important;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.52) !important;
+  color: rgba(255,255,255,0.92) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.fab-badge{
+  background: linear-gradient(180deg, #ff3b3b, #ff1a1a) !important;
+}
+
+/* ---------- Upgrade overlays (Support / Suggestions / Admin) to match theme ---------- */
+.support-overlay,
+.suggestions-overlay{
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.support-modal,
+.suggestions-modal,
+.admin-modal{
+  border: 1px solid rgba(212,175,55,0.16) !important;
+  background: linear-gradient(180deg, rgba(10,16,26,0.92), rgba(7,13,20,0.92)) !important;
+  box-shadow: var(--ramadan-shadow) !important;
+}
+
+.support-modal-header,
+.suggestions-header{
+  border-bottom: 1px solid rgba(255,255,255,0.10) !important;
+}
+
+/* Inputs & textareas: premium */
+.support-form input,
+.support-form textarea,
+.suggestions-form textarea{
+  border: 1px solid rgba(255,255,255,0.14) !important;
+  background: rgba(255,255,255,0.06) !important;
+  color: rgba(255,255,255,0.92) !important;
+}
+
+.support-form input:focus,
+.support-form textarea:focus,
+.suggestions-form textarea:focus{
+  border-color: rgba(212,175,55,0.42) !important;
+  box-shadow: 0 0 0 3px rgba(212,175,55,0.14) !important;
+  outline: none !important;
+}
+
+/* Buttons */
+.support-form button,
+.suggestions-form button,
+.admin-action{
+  border: 1px solid rgba(212,175,55,0.22) !important;
+  background: linear-gradient(90deg, rgba(212,175,55,0.26), rgba(16,185,129,0.18)) !important;
+  color: rgba(255,255,255,0.95) !important;
+}
+
+/* Reduce motion preference */
+@media (prefers-reduced-motion: reduce){
+  #MNDO_UA07_LOGO3 .ua07-shine{ animation: none !important; }
+}
+
+/* Responsive tweaks */
+@media (max-width: 520px){
+  /* Keep responsiveness gentle without moving original layout blocks */
+  .ramadan-toggle-btn{ font-size: 11px; }
+  .ramadan-toggle-btn::after{ width: 120px; }
+}
