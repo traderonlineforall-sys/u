@@ -1,4 +1,5 @@
 import { getStableUserId } from "./stable-user-identity.js";
+import { supabase } from "./supabase-client.js";
 
 /*
  * Suggestion reactions UI.
@@ -12,9 +13,14 @@ const REACTIONS = [
   ["angry", "😡", "أغضبني"]
 ];
 
+const POLL_MS = 6000;
+
 let renderTimer = 0;
 let loading = false;
 let reactionState = Object.create(null);
+let realtimeChannel = null;
+let realtimeIdsKey = "";
+let pollTimer = 0;
 
 function esc(value = ""){
   return String(value == null ? "" : value)
@@ -23,6 +29,10 @@ function esc(value = ""){
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function cssEscape(value = ""){
+  try { return CSS.escape(String(value)); } catch { return String(value).replace(/[^a-zA-Z0-9_-]/g, "\\$&"); }
 }
 
 function getUserId(){
@@ -78,6 +88,10 @@ function idsOnPage(){
   return Array.from(new Set(findSuggestionContainers().map((x) => x.id).filter(Boolean)));
 }
 
+function idsKey(ids = idsOnPage()){
+  return ids.slice().sort((a, b) => Number(a) - Number(b)).join(",");
+}
+
 async function api(body){
   const res = await fetch("/api/suggestion-reactions", {
     method: "POST",
@@ -103,6 +117,8 @@ async function loadReactions(){
     }
     reactionState = data?.reactions && typeof data.reactions === "object" ? data.reactions : Object.create(null);
     renderAll();
+    ensureRealtimeSubscription(ids);
+    ensurePolling();
   } catch {
     // Keep the suggestions UI stable if reactions are temporarily unavailable.
   } finally {
@@ -129,7 +145,7 @@ function buildHtml(id, missingTable = false){
   const buttons = REACTIONS.map(([key, icon, label]) => {
     const active = mine === key;
     return `
-      <button type="button" class="sr-suggestion-reaction-btn" data-suggestion-reaction="${esc(key)}" data-suggestion-id="${esc(id)}" aria-pressed="${active ? "true" : "false"}" title="${esc(label)}" style="border:1px solid ${active ? "rgba(34,197,94,.85)" : "rgba(255,255,255,.18)"};border-radius:999px;padding:5px 9px;cursor:pointer;background:${active ? "rgba(34,197,94,.20)" : "rgba(255,255,255,.08)"};color:inherit;font-weight:800;display:inline-flex;align-items:center;gap:5px;line-height:1;">
+      <button type="button" class="sr-suggestion-reaction-btn" data-suggestion-reaction="${esc(key)}" data-suggestion-id="${esc(id)}" aria-pressed="${active ? "true" : "false"}" title="${esc(label)}" style="border:1px solid ${active ? "rgba(34,197,94,.85)" : "rgba(255,255,255,.18)"};border-radius:999px;padding:5px 9px;cursor:pointer;background:${active ? "rgba(34,197,94,.20)" : "rgba(255,255,255,.08)"};color:inherit;font-weight:800;display:inline-flex;align-items:center;gap:5px;line-height:1;transition:transform .12s ease, background .12s ease;">
         <span>${icon}</span><span style="font-size:12px;">${Number(counts[key] || 0)}</span>
       </button>
     `;
@@ -145,7 +161,7 @@ function buildHtml(id, missingTable = false){
 function attachToContainer(item, options = {}){
   const { el, id, mode } = item;
   if (!el || !id) return;
-  let host = el.querySelector?.(`.sr-suggestion-reactions-host[data-suggestion-reactions-host="${CSS.escape(id)}"]`);
+  let host = el.querySelector?.(`.sr-suggestion-reactions-host[data-suggestion-reactions-host="${cssEscape(id)}"]`);
   if (!host) {
     host = document.createElement("div");
     host.className = "sr-suggestion-reactions-host";
@@ -171,14 +187,48 @@ async function toggleReaction(btn){
       reactionState[id] = data.reactions[id] || { counts: { like: 0, love: 0, angry: 0 }, mine: "" };
     }
     renderAll();
+    setTimeout(scheduleLoad, 250);
   } catch {
     btn.disabled = false;
   }
 }
 
-function scheduleLoad(){
+function scheduleLoad(delay = 350){
   clearTimeout(renderTimer);
-  renderTimer = setTimeout(loadReactions, 350);
+  renderTimer = setTimeout(loadReactions, delay);
+}
+
+function ensureRealtimeSubscription(ids = idsOnPage()){
+  const key = idsKey(ids);
+  if (!key || realtimeIdsKey === key) return;
+  realtimeIdsKey = key;
+
+  try {
+    if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+  } catch {}
+  realtimeChannel = null;
+
+  try {
+    const visible = new Set(ids.map(String));
+    realtimeChannel = supabase
+      .channel(`sr_suggestion_reactions_${key.replaceAll(",", "_")}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "suggestion_reactions" }, (payload) => {
+        const sid = String(payload?.new?.suggestion_id || payload?.old?.suggestion_id || "");
+        if (!sid || visible.has(sid)) scheduleLoad(80);
+      })
+      .subscribe();
+  } catch {
+    realtimeChannel = null;
+  }
+}
+
+function ensurePolling(){
+  if (pollTimer) return;
+  pollTimer = setInterval(() => {
+    if (document.visibilityState === "hidden") return;
+    if (!idsOnPage().length) return;
+    loadReactions();
+  }, POLL_MS);
 }
 
 function bind(){
@@ -191,15 +241,24 @@ function bind(){
   }, true);
 
   try {
-    const observer = new MutationObserver(() => scheduleLoad());
+    const observer = new MutationObserver(() => {
+      scheduleLoad(250);
+      ensureRealtimeSubscription(idsOnPage());
+    });
     observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
   } catch {}
+
+  window.addEventListener("focus", () => scheduleLoad(120));
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") scheduleLoad(120);
+  });
 }
 
 function boot(){
   bind();
   scheduleLoad();
   setTimeout(scheduleLoad, 1500);
+  ensurePolling();
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, { once: true });
