@@ -3,7 +3,7 @@ import { getServiceSupabase } from "../../../lib/server/admin.js";
 import { enforceSameOrigin, noStore } from "../../../lib/server/auth.js";
 
 const TABLE = "suggestion_reactions";
-const ALLOWED_REACTIONS = new Set(["like", "love", "angry"]);
+const ALLOWED_REACTIONS = new Set(["like", "love", "angry", "laugh", "sad", "slipper"]);
 
 function j(body, init){
   return noStore(NextResponse.json(body, init));
@@ -30,13 +30,17 @@ function isMissingTableError(error){
   return code === "42P01" || /relation .*suggestion_reactions.* does not exist/i.test(msg) || /Could not find the table/i.test(msg);
 }
 
+function createEmptyCounts(){
+  return { like: 0, love: 0, angry: 0, laugh: 0, sad: 0, slipper: 0 };
+}
+
 function summarizeRows(rows = [], userId = ""){
   const out = Object.create(null);
   for (const row of rows) {
     const sid = String(row?.suggestion_id || "");
     const reaction = normalizeReaction(row?.reaction);
     if (!sid || !reaction) continue;
-    if (!out[sid]) out[sid] = { counts: { like: 0, love: 0, angry: 0 }, mine: "" };
+    if (!out[sid]) out[sid] = { counts: createEmptyCounts(), mine: "" };
     out[sid].counts[reaction] = (out[sid].counts[reaction] || 0) + 1;
     if (userId && String(row?.user_id || "") === userId) out[sid].mine = reaction;
   }
