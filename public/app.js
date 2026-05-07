@@ -2543,13 +2543,22 @@ function bindUpdateNotes(){
                                         }
 
                                         if (document.getElementById("extra30").classList.contains("active")) {
-                                                Extra += 52;
+                                                Extra += 60;
                                         }
                                         if (document.getElementById("extra50").classList.contains("active")) {
-                                                Extra += 105;
+                                                Extra += 120;
                                         }
                                         if (document.getElementById("extra100").classList.contains("active")) {
-                                                Extra += 170;
+                                                Extra += 190;
+                                        }
+                                        if (document.getElementById("gigaTank400").classList.contains("active")) {
+                                                Extra += 500;
+                                        }
+                                        if (document.getElementById("gigaTank2000").classList.contains("active")) {
+                                                Extra += 2000;
+                                        }
+                                        if (document.getElementById("gameOn400").classList.contains("active")) {
+                                                Extra += 40;
                                         }
 
                                         if (document.getElementById("op10").classList.contains("active")) {
@@ -2563,10 +2572,10 @@ function bindUpdateNotes(){
                                         }
 
                                         if (document.getElementById("add1").classList.contains("active")) {
-                                                paly += 75;
+                                                paly += 120;
                                         }
                                         if (document.getElementById("add2").classList.contains("active")) {
-                                                paly += 150;
+                                                paly += 240;
                                         }
 
                                         var balanceVal = parseFloat(document.getElementById("balance").value);
