@@ -1,19 +1,20 @@
 /*
  * Urgent admin voice auto-activation helper.
  * Scope: #SR_URGENT_TICKER only.
- * Purpose: make urgent Arabic voice reliable in normal and private/incognito
- * windows by using Web Audio. A trusted user gesture resumes AudioContext once,
- * and the prepared TTS buffer can then start without the HTMLAudio autoplay trap.
+ * Purpose: make Edge TTS playback work in normal and private/incognito windows
+ * without relying on any local Arabic system voice. The trusted click starts an
+ * HTMLAudioElement immediately, then the remote TTS MP3 is attached to that same
+ * user-initiated audio element.
  */
 (function(){
-  if (window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V3) return;
-  window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V3 = true;
+  if (window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V5) return;
+  window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V5 = true;
 
   var PLAY_SELECTOR = 'button[data-sr-urgent-voice-button="1"]';
   var DEFAULT_VOICE = 'ar-EG-SalmaNeural';
-  var audioCtx = null;
-  var activeSource = null;
-  var state = { key: '', text: '', voice: DEFAULT_VOICE, status: 'idle', buffer: null, promise: null, wanted: false };
+  var activeAudio = null;
+  var activeUrl = '';
+  var prefetch = { key: '', state: 'idle', text: '', voice: DEFAULT_VOICE, buffer: null, promise: null, error: '' };
   var lastStatus = '';
 
   function urgentWrap(){ return document.getElementById('SR_URGENT_TICKER'); }
@@ -59,148 +60,209 @@
     btn.style.display = 'none';
     btn.setAttribute('aria-hidden', 'true');
   }
-  function getAudioContext(){
-    if (audioCtx) return audioCtx;
-    var Ctor = window.AudioContext || window.webkitAudioContext;
-    if (!Ctor) return null;
-    audioCtx = new Ctor();
-    return audioCtx;
-  }
-  function resumeAudioContext(){
-    var ctx = getAudioContext();
-    if (!ctx) return Promise.resolve(null);
+  function stopAudio(){
     try {
-      if (ctx.state === 'suspended') return ctx.resume().then(function(){ return ctx; }).catch(function(){ return ctx; });
+      if (activeAudio) {
+        activeAudio.pause();
+        activeAudio.removeAttribute('src');
+        activeAudio.load && activeAudio.load();
+      }
     } catch {}
-    return Promise.resolve(ctx);
+    try { if (activeUrl) URL.revokeObjectURL(activeUrl); } catch {}
+    activeAudio = null;
+    activeUrl = '';
   }
-  function stopActiveSource(){
-    try { if (activeSource) activeSource.stop(0); } catch {}
-    try { if (activeSource) activeSource.disconnect(); } catch {}
-    activeSource = null;
-    try { window.speechSynthesis && window.speechSynthesis.cancel && window.speechSynthesis.cancel(); } catch {}
+  function resetPrefetch(key, text, voice){
+    prefetch = { key: key, state: 'idle', text: text, voice: voice, buffer: null, promise: null, error: '' };
   }
-  function resetForKey(key, text, voice){
-    stopActiveSource();
-    state = { key: key, text: text, voice: voice, status: 'idle', buffer: null, promise: null, wanted: false };
+  function fetchTtsBuffer(text, voice){
+    return fetch('/api/urgent-tts', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text: text, voice: voice })
+    }).then(function(res){
+      if (!res.ok) throw new Error('TTS HTTP ' + res.status);
+      return res.arrayBuffer();
+    });
   }
-  function ensureBuffer(btn){
+  function ensurePrefetch(btn){
     if (!btn || !isVisibleUrgent()) return null;
     var text = getText(btn);
     var voice = getVoice(btn);
     var key = voice + '\n' + text;
     if (!text) return null;
 
-    if (state.key !== key) resetForKey(key, text, voice);
-    if (state.status === 'ready' || state.status === 'loading') return state.promise;
+    if (prefetch.key !== key) resetPrefetch(key, text, voice);
+    if (prefetch.state === 'ready' || prefetch.state === 'loading') return prefetch.promise;
 
-    state.status = 'loading';
-    state.wanted = state.wanted || false;
+    prefetch.state = 'loading';
+    prefetch.error = '';
     showButton(btn);
     setStatus('جاري تجهيز صوت رسالة الأدمن');
 
-    state.promise = fetch('/api/urgent-tts', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ text: text, voice: voice })
-    }).then(function(res){
-      if (!res.ok) throw new Error('urgent-tts-failed');
-      return res.arrayBuffer();
-    }).then(function(arrayBuffer){
-      var ctx = getAudioContext();
-      if (!ctx) throw new Error('web-audio-unavailable');
-      return ctx.decodeAudioData(arrayBuffer.slice(0));
-    }).then(function(buffer){
-      if (state.key !== key || !isVisibleUrgent()) return null;
-      state.buffer = buffer;
-      state.status = 'ready';
+    prefetch.promise = fetchTtsBuffer(text, voice).then(function(buffer){
+      if (prefetch.key !== key || !isVisibleUrgent()) return null;
+      prefetch.buffer = buffer;
+      prefetch.state = 'ready';
       setStatus('الصوت جاهز — اضغط تشغيل الصوت');
       showButton(getButton());
-      if (state.wanted) playBuffer(getButton());
       return buffer;
-    }).catch(function(){
-      if (state.key === key) {
-        state.status = 'failed';
-        state.buffer = null;
-        setStatus('اضغط تشغيل الصوت لإعادة تجهيز الصوت');
+    }).catch(function(error){
+      if (prefetch.key === key) {
+        prefetch.state = 'failed';
+        prefetch.error = String(error && error.message || 'TTS failed');
+        setStatus('تعذر تجهيز TTS: ' + prefetch.error);
         showButton(getButton());
       }
       return null;
     });
 
-    return state.promise;
+    return prefetch.promise;
   }
-  function playBuffer(btn){
-    if (!btn || !isVisibleUrgent()) return false;
-    var key = getKey(btn);
-    if (state.key !== key) return false;
-    if (!state.buffer) {
-      state.wanted = true;
-      ensureBuffer(btn);
-      setStatus('جاري تجهيز الصوت — سيتم تشغيله فورًا');
-      showButton(btn);
-      return false;
-    }
-
-    var ctx = getAudioContext();
-    if (!ctx) {
-      setStatus('المتصفح لا يدعم تشغيل الصوت هنا');
-      showButton(btn);
-      return false;
-    }
-
-    stopActiveSource();
+  function playBlobBuffer(btn, buffer){
+    if (!btn || !buffer || !isVisibleUrgent()) return false;
+    stopAudio();
+    var blob = new Blob([buffer], { type: 'audio/mpeg' });
+    var url = URL.createObjectURL(blob);
+    var audio = new Audio();
+    activeAudio = audio;
+    activeUrl = url;
+    audio.preload = 'auto';
+    audio.autoplay = false;
+    audio.setAttribute('playsinline', '');
+    audio.playsInline = true;
+    audio.src = url;
     hideButton(btn);
     setStatus('جاري قراءة رسالة الأدمن العاجلة');
-
+    audio.onended = function(){
+      if (!isVisibleUrgent()) return;
+      setStatus('انتهت قراءة رسالة الأدمن العاجلة');
+      showButton(getButton());
+    };
+    audio.onerror = function(){
+      if (!isVisibleUrgent()) return;
+      setStatus('فشل تشغيل ملف TTS الجاهز');
+      showButton(getButton());
+    };
     try {
-      var source = ctx.createBufferSource();
-      source.buffer = state.buffer;
-      source.connect(ctx.destination);
-      source.onended = function(){
-        if (activeSource === source) activeSource = null;
-        if (!isVisibleUrgent()) return;
-        state.status = 'ended';
-        setStatus('انتهت قراءة رسالة الأدمن العاجلة');
-        showButton(getButton());
-      };
-      activeSource = source;
-      source.start(0);
-      state.status = 'playing';
-      state.wanted = false;
+      var p = audio.play();
+      if (p && typeof p.then === 'function') {
+        p.catch(function(error){
+          setStatus('المتصفح منع التشغيل: ' + String(error && error.name || 'play blocked'));
+          showButton(getButton());
+        });
+      }
       return true;
-    } catch {
-      state.status = 'failed';
-      setStatus('اضغط تشغيل الصوت لإعادة المحاولة');
+    } catch(error) {
+      setStatus('المتصفح منع التشغيل: ' + String(error && error.name || 'play blocked'));
       showButton(getButton());
       return false;
     }
   }
-  function requestPlay(btn){
-    if (!btn || !isVisibleUrgent()) return;
-    resumeAudioContext().then(function(){
-      if (!isVisibleUrgent()) return;
-      if (state.status === 'ready' && state.buffer) {
-        playBuffer(btn);
+  function playViaMediaSource(btn){
+    if (!btn || !isVisibleUrgent()) return false;
+    var text = getText(btn);
+    var voice = getVoice(btn);
+    if (!text) return false;
+
+    if (!('MediaSource' in window)) return false;
+    try {
+      if (MediaSource.isTypeSupported && !MediaSource.isTypeSupported('audio/mpeg')) return false;
+    } catch {}
+
+    stopAudio();
+    var mediaSource = new MediaSource();
+    var url = URL.createObjectURL(mediaSource);
+    var audio = new Audio();
+    activeAudio = audio;
+    activeUrl = url;
+    audio.preload = 'auto';
+    audio.autoplay = false;
+    audio.setAttribute('playsinline', '');
+    audio.playsInline = true;
+    audio.src = url;
+
+    hideButton(btn);
+    setStatus('جاري فتح قناة صوت TTS');
+
+    var playPromise;
+    try {
+      playPromise = audio.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(function(error){
+          setStatus('المتصفح منع قناة الصوت: ' + String(error && error.name || 'play blocked'));
+          showButton(getButton());
+        });
+      }
+    } catch(error) {
+      setStatus('المتصفح منع قناة الصوت: ' + String(error && error.name || 'play blocked'));
+      showButton(getButton());
+      return false;
+    }
+
+    mediaSource.addEventListener('sourceopen', function(){
+      var sourceBuffer;
+      try {
+        sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+      } catch(error) {
+        setStatus('MediaSource لا يدعم MP3 هنا');
+        showButton(getButton());
         return;
       }
-      state.wanted = true;
-      ensureBuffer(btn);
-      setStatus('جاري تجهيز الصوت — سيتم تشغيله فورًا');
-      showButton(btn);
-    });
+      setStatus('جاري تحميل صوت TTS');
+      fetchTtsBuffer(text, voice).then(function(buffer){
+        if (!isVisibleUrgent() || activeAudio !== audio) return;
+        setStatus('جاري قراءة رسالة الأدمن العاجلة');
+        sourceBuffer.addEventListener('updateend', function(){
+          try { if (mediaSource.readyState === 'open') mediaSource.endOfStream(); } catch {}
+        }, { once: true });
+        sourceBuffer.appendBuffer(buffer);
+      }).catch(function(error){
+        setStatus('فشل TTS: ' + String(error && error.message || 'request failed'));
+        showButton(getButton());
+      });
+    }, { once: true });
+
+    audio.onended = function(){
+      if (!isVisibleUrgent()) return;
+      setStatus('انتهت قراءة رسالة الأدمن العاجلة');
+      showButton(getButton());
+    };
+    audio.onerror = function(){
+      if (!isVisibleUrgent()) return;
+      setStatus('فشل مشغل الصوت');
+      showButton(getButton());
+    };
+    return true;
+  }
+  function requestPlay(btn){
+    if (!btn || !isVisibleUrgent()) return;
+    var key = getKey(btn);
+    if (prefetch.key === key && prefetch.state === 'ready' && prefetch.buffer) {
+      playBlobBuffer(btn, prefetch.buffer);
+      return;
+    }
+
+    // Strong Private-window path: start the audio element immediately from the
+    // trusted click, then feed TTS bytes into it. No local Arabic voice is used.
+    if (playViaMediaSource(btn)) return;
+
+    // Fallback when MediaSource is unavailable: prepare TTS and ask for another
+    // real click. This still uses Edge TTS only, never the local system voice.
+    ensurePrefetch(btn);
+    setStatus('جاري تجهيز TTS — اضغط تشغيل الصوت مرة أخرى بعد الجاهزية');
+    showButton(btn);
   }
   function handleTrustedEvent(event){
     if (!isVisibleUrgent()) return;
     if (isAckTarget(event && event.target)) {
-      stopActiveSource();
+      stopAudio();
       return;
     }
     var btn = getButton();
     if (!btn) return;
 
-    // Always start preparing early.
-    ensureBuffer(btn);
+    ensurePrefetch(btn);
 
     if (isVoiceButtonTarget(event && event.target)) {
       try {
@@ -208,21 +270,14 @@
         event.stopImmediatePropagation();
       } catch {}
       requestPlay(btn);
-      return;
     }
-
-    // Any real interaction can unlock Web Audio, then play if the sound is ready.
-    resumeAudioContext().then(function(){
-      if (!isVisibleUrgent()) return;
-      if (state.status === 'ready' && state.buffer) playBuffer(getButton());
-    });
   }
   function evaluate(){
     if (!isVisibleUrgent()) return;
     var btn = getButton();
     if (!btn) return;
     showButton(btn);
-    ensureBuffer(btn);
+    ensurePrefetch(btn);
   }
 
   ['pointerdown','mousedown','touchstart','keydown','click'].forEach(function(evt){
@@ -239,5 +294,5 @@
   } else {
     setTimeout(evaluate, 0);
   }
-  setInterval(evaluate, 200);
+  setInterval(evaluate, 250);
 })();
