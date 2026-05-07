@@ -2,8 +2,8 @@
  * Urgent admin voice auto-activation helper.
  * Scope: #SR_URGENT_TICKER only.
  * Purpose: make the existing urgent Arabic voice flow feel automatic whenever
- * the browser allows it, while keeping the manual voice button immediately
- * available when autoplay is blocked, especially in private/incognito windows.
+ * the browser allows it, while preserving the user's real voice-button click
+ * for private/incognito windows that reject synthetic autoplay.
  */
 (function(){
   if (window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V1) return;
@@ -21,6 +21,7 @@
   }
   function hasUserActivation(){
     try {
+      if (navigator.userActivation && navigator.userActivation.isActive) return true;
       if (navigator.userActivation && navigator.userActivation.hasBeenActive) return true;
     } catch {}
     return userActivated;
@@ -30,6 +31,9 @@
   function urgentStatus(){ return document.getElementById('SR_URGENT_VOICE_STATUS'); }
   function isAckTarget(target){
     try { return !!(target && target.closest && target.closest('#SR_URGENT_ACK')); } catch { return false; }
+  }
+  function isVoiceButtonTarget(target){
+    try { return !!(target && target.closest && target.closest(PLAY_SELECTOR)); } catch { return false; }
   }
   function isVisibleUrgent(){
     var wrap = urgentWrap();
@@ -74,8 +78,20 @@
   }
   function triggerDeferred(event){
     markUserActivated();
-    if (!deferredPlay || !isVisibleUrgent()) return;
+    if (!isVisibleUrgent()) return;
     if (isAckTarget(event && event.target)) return;
+
+    // Critical for Private/Incognito: never replace the user's real click on the
+    // voice button with a synthetic btn.click(). Let the trusted click reach the
+    // original button handler so audio.play() keeps the browser activation token.
+    if (isVoiceButtonTarget(event && event.target)) {
+      deferredPlay = null;
+      clearTimeout(deferredShownTimer);
+      setStatus('جاري تشغيل صوت رسالة الأدمن');
+      return;
+    }
+
+    if (!deferredPlay) return;
     var btn = deferredPlay;
     deferredPlay = null;
     clearTimeout(deferredShownTimer);
@@ -86,7 +102,7 @@
       if (!isVisibleUrgent()) return;
       var currentBtn = getButton();
       if (currentBtn) showButton(currentBtn);
-    }, 1200);
+    }, 700);
   }
   function autoRetryFailure(btn){
     var key = String(btn.dataset.urgentText || '') + '\n' + String(btn.dataset.urgentVoice || '');
@@ -94,7 +110,7 @@
       lastRetryKey = key;
       retryCount = 0;
     }
-    if (retryCount >= 2) {
+    if (retryCount >= 1) {
       setStatus('اضغط تشغيل الصوت لو المتصفح منع التشغيل التلقائي');
       showButton(btn);
       return;
@@ -113,8 +129,8 @@
         if (!isVisibleUrgent()) return;
         var currentBtn = getButton();
         if (currentBtn) showButton(currentBtn);
-      }, 1200);
-    }, retryCount === 1 ? 80 : 250);
+      }, 700);
+    }, 40);
   }
   function evaluate(){
     if (!isVisibleUrgent()) {
@@ -127,9 +143,6 @@
     var label = String(btn.textContent || '').trim();
     if (label.indexOf('تشغيل الصوت') !== -1) {
       armDeferredPlay(btn);
-      if (hasUserActivation()) {
-        setTimeout(function(){ if (deferredPlay === btn) triggerDeferred({ target: btn }); }, 30);
-      }
       return;
     }
     if (label.indexOf('إعادة المحاولة') !== -1) {
@@ -142,14 +155,14 @@
   });
 
   try {
-    var observer = new MutationObserver(function(){ setTimeout(evaluate, 40); });
+    var observer = new MutationObserver(function(){ setTimeout(evaluate, 0); });
     observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, characterData: true });
   } catch {}
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function(){ setTimeout(evaluate, 300); }, { once: true });
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(evaluate, 50); }, { once: true });
   } else {
-    setTimeout(evaluate, 300);
+    setTimeout(evaluate, 0);
   }
-  setInterval(evaluate, 2500);
+  setInterval(evaluate, 700);
 })();
