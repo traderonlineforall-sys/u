@@ -5,8 +5,8 @@
  * Private/incognito path uses a direct GET audio URL and never auto-retries after failure.
  */
 (function(){
-  if (window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V7) return;
-  window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V7 = true;
+  if (window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V8) return;
+  window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V8 = true;
 
   var PLAY_SELECTOR = 'button[data-sr-urgent-voice-button="1"]';
   var DEFAULT_VOICE = 'ar-EG-SalmaNeural';
@@ -32,7 +32,10 @@
     try { return !!(target && target.closest && target.closest(PLAY_SELECTOR)); } catch { return false; }
   }
   function getVoice(btn){
-    return String((btn && btn.dataset && btn.dataset.urgentVoice) || DEFAULT_VOICE).trim() || DEFAULT_VOICE;
+    var wrap = urgentWrap();
+    var wrapVoice = String((wrap && wrap.dataset && wrap.dataset.urgentVoice) || '').trim();
+    var buttonVoice = String((btn && btn.dataset && btn.dataset.urgentVoice) || '').trim();
+    return wrapVoice || buttonVoice || DEFAULT_VOICE;
   }
   function getText(btn){
     return String((btn && btn.dataset && btn.dataset.urgentText) || '').replace(/\s+/g, ' ').trim();
@@ -79,11 +82,11 @@
     var gulf = /sa-|ae-|kw-|qa-|bh-|om-/.test(v);
     var levant = /jo-|lb-|sy-/.test(v);
     var maghreb = /ma-|tn-/.test(v);
-    if (male && gulf) return { rate: 0.94 };
-    if (male) return { rate: 0.91 };
-    if (gulf) return { rate: 1.04 };
-    if (levant) return { rate: 1.02 };
-    if (maghreb) return { rate: 1.06 };
+    if (male && gulf) return { rate: 0.9 };
+    if (male) return { rate: 0.86 };
+    if (gulf) return { rate: 1.05 };
+    if (levant) return { rate: 1.03 };
+    if (maghreb) return { rate: 1.08 };
     return { rate: 1.0 };
   }
   function applyVoiceProfile(audio, voice){
@@ -92,12 +95,13 @@
     try { audio.preservesPitch = false; } catch {}
     try { audio.mozPreservesPitch = false; } catch {}
     try { audio.webkitPreservesPitch = false; } catch {}
-    try { audio.playbackRate = Math.max(0.85, Math.min(1.12, profile.rate || 1)); } catch {}
+    try { audio.playbackRate = Math.max(0.82, Math.min(1.12, profile.rate || 1)); } catch {}
   }
   function primeButton(btn){
     if (!btn || !isVisibleUrgent()) return;
     var key = getKey(btn);
     if (!getText(btn)) return;
+    try { btn.dataset.urgentVoice = getVoice(btn); } catch {}
     if (lastKey !== key) {
       lastKey = key;
       failedKey = '';
