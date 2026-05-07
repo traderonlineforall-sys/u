@@ -5,8 +5,8 @@
  * Private/incognito path uses a direct GET audio URL and never auto-retries after failure.
  */
 (function(){
-  if (window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V6) return;
-  window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V6 = true;
+  if (window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V7) return;
+  window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V7 = true;
 
   var PLAY_SELECTOR = 'button[data-sr-urgent-voice-button="1"]';
   var DEFAULT_VOICE = 'ar-EG-SalmaNeural';
@@ -73,6 +73,27 @@
     } catch {}
     activeAudio = null;
   }
+  function voiceProfile(voice){
+    var v = String(voice || '').toLowerCase();
+    var male = /shakir|hamed|hamdan|taim|fahed|moaz|ali|bassel|rami|jamal|abdullah|laith|hedi|saleh/.test(v);
+    var gulf = /sa-|ae-|kw-|qa-|bh-|om-/.test(v);
+    var levant = /jo-|lb-|sy-/.test(v);
+    var maghreb = /ma-|tn-/.test(v);
+    if (male && gulf) return { rate: 0.94 };
+    if (male) return { rate: 0.91 };
+    if (gulf) return { rate: 1.04 };
+    if (levant) return { rate: 1.02 };
+    if (maghreb) return { rate: 1.06 };
+    return { rate: 1.0 };
+  }
+  function applyVoiceProfile(audio, voice){
+    if (!audio) return;
+    var profile = voiceProfile(voice);
+    try { audio.preservesPitch = false; } catch {}
+    try { audio.mozPreservesPitch = false; } catch {}
+    try { audio.webkitPreservesPitch = false; } catch {}
+    try { audio.playbackRate = Math.max(0.85, Math.min(1.12, profile.rate || 1)); } catch {}
+  }
   function primeButton(btn){
     if (!btn || !isVisibleUrgent()) return;
     var key = getKey(btn);
@@ -89,6 +110,7 @@
     if (!btn || !isVisibleUrgent()) return;
     var text = getText(btn);
     var key = getKey(btn);
+    var voice = getVoice(btn);
     if (!text) return;
 
     stopAudio();
@@ -101,6 +123,7 @@
     audio.crossOrigin = 'same-origin';
     audio.setAttribute('playsinline', '');
     audio.playsInline = true;
+    applyVoiceProfile(audio, voice);
 
     hideButton(btn);
     setStatus('جاري تحميل وتشغيل صوت TTS');
