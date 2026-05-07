@@ -3,11 +3,13 @@ import { enforceSameOrigin, noStore } from "../../../lib/server/auth.js";
 
 const EDGE_TRUSTED_CLIENT_TOKEN = "6A5AA1D4EAFF4E9FB37E23D68491D6F4";
 const EDGE_TTS_ENDPOINT = "https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1";
+const GOOGLE_TTS_ENDPOINT = "https://translate.google.com/translate_tts";
 const CHROMIUM_FULL_VERSION = "134.0.3124.66";
 const CHROMIUM_MAJOR_VERSION = CHROMIUM_FULL_VERSION.split(".", 1)[0];
 const SEC_MS_GEC_VERSION = `1-${CHROMIUM_FULL_VERSION}`;
 const EDGE_AUDIO_FORMAT = "audio-24khz-48kbitrate-mono-mp3";
 const MAX_TEXT_LENGTH = 1800;
+const GOOGLE_TTS_CHUNK_LENGTH = 180;
 
 const ARABIC_EDGE_VOICES = [
   { id: "ar-EG-SalmaNeural", label: "Salma - Egypt Female", lang: "ar-EG" },
@@ -41,6 +43,7 @@ const ARABIC_EDGE_VOICES = [
 ];
 
 const DEFAULT_ARABIC_VOICE = "ar-EG-SalmaNeural";
+const FALLBACK_ARABIC_VOICES = ["ar-EG-SalmaNeural", "ar-EG-ShakirNeural"];
 const VOICE_BY_ID = new Map(ARABIC_EDGE_VOICES.map((voice) => [voice.id, voice]));
 
 function textResponse(message, status = 400) {
@@ -51,9 +54,31 @@ function jsonResponse(body, status = 200) {
   return noStore(NextResponse.json(body, { status }));
 }
 
+function audioResponse(audioBuf, voice, provider = "edge-tts") {
+  return noStore(new NextResponse(audioBuf, {
+    status: 200,
+    headers: {
+      "content-type": "audio/mpeg",
+      "cache-control": "no-store",
+      "x-ua07-tts-provider": provider,
+      "x-ua07-tts-voice": voice
+    }
+  }));
+}
+
 function normalizeVoiceId(value) {
   const requested = String(value || "").trim();
   return VOICE_BY_ID.has(requested) ? requested : DEFAULT_ARABIC_VOICE;
+}
+
+function normalizeArabicText(value) {
+  return String(value || "").replace(/\s+/g, " ").trim().slice(0, MAX_TEXT_LENGTH);
+}
+
+function validateArabicText(text) {
+  if (!text) return "Text is required";
+  if (!/[\u0600-\u06FF]/.test(text)) return "Arabic text is required for urgent Arabic TTS";
+  return "";
 }
 
 function escapeSsml(value = "") {
@@ -253,7 +278,7 @@ function waitForEdgeAudio(socket) {
       cleanup();
       try { socket.close(); } catch {}
       reject(new Error("edge-tts-timeout"));
-    }, 12000);
+    }, 6500);
 
     socket.addEventListener("message", onMessage);
     socket.addEventListener("close", onClose);
@@ -269,13 +294,114 @@ async function synthesizeArabicWithEdge(text, voiceId) {
   return await waitForEdgeAudio(socket);
 }
 
-export async function GET() {
-  return jsonResponse({
-    ok: true,
-    provider: "edge-tts",
-    default_voice: DEFAULT_ARABIC_VOICE,
-    voices: ARABIC_EDGE_VOICES
+async function synthesizeArabicWithEdgeRetry(text, preferredVoiceId) {
+  const preferred = normalizeVoiceId(preferredVoiceId);
+  const voiceIds = Array.from(new Set([preferred, ...FALLBACK_ARABIC_VOICES]));
+  let lastError = null;
+
+  for (const voiceId of voiceIds) {
+    try {
+      const audioBuf = await synthesizeArabicWithEdge(text, voiceId);
+      return { audioBuf, voice: voiceId, provider: "edge-tts" };
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, 120));
+    }
+  }
+
+  throw lastError || new Error("edge-tts-failed-after-retries");
+}
+
+function splitForGoogleTts(text) {
+  const words = normalizeArabicText(text).split(/\s+/).filter(Boolean);
+  const chunks = [];
+  let current = "";
+
+  for (const word of words) {
+    if (!current) {
+      current = word;
+      continue;
+    }
+    if ((current + " " + word).length <= GOOGLE_TTS_CHUNK_LENGTH) {
+      current += " " + word;
+    } else {
+      chunks.push(current);
+      current = word;
+    }
+  }
+
+  if (current) chunks.push(current);
+  return chunks.length ? chunks : [normalizeArabicText(text).slice(0, GOOGLE_TTS_CHUNK_LENGTH)];
+}
+
+async function fetchGoogleTtsChunk(chunk) {
+  const url = `${GOOGLE_TTS_ENDPOINT}?ie=UTF-8&client=tw-ob&tl=ar&q=${encodeURIComponent(chunk)}`;
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent": `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${CHROMIUM_MAJOR_VERSION}.0.0.0 Safari/537.36`,
+      "Accept": "audio/mpeg,audio/*,*/*;q=0.8",
+      "Accept-Language": "ar,en-US;q=0.9,en;q=0.8",
+      "Referer": "https://translate.google.com/"
+    }
   });
+
+  if (!res.ok) throw new Error(`google-tts-http-${res.status}`);
+  const ct = String(res.headers.get("content-type") || "").toLowerCase();
+  const audioBuf = await res.arrayBuffer();
+  if (!audioBuf || audioBuf.byteLength < 128) throw new Error("google-tts-empty-audio");
+  if (ct && !ct.includes("audio") && !ct.includes("mpeg") && !ct.includes("octet-stream")) {
+    throw new Error(`google-tts-invalid-content-type:${ct}`);
+  }
+  return audioBuf;
+}
+
+async function synthesizeArabicWithGoogleFallback(text) {
+  const chunks = splitForGoogleTts(text).slice(0, 12);
+  const audioChunks = [];
+
+  for (const chunk of chunks) {
+    audioChunks.push(await fetchGoogleTtsChunk(chunk));
+    await new Promise((resolve) => setTimeout(resolve, 40));
+  }
+
+  return concatAudio(audioChunks.map((buf) => new Uint8Array(buf)));
+}
+
+async function synthesizeArabicRobust(text, preferredVoiceId) {
+  try {
+    return await synthesizeArabicWithEdgeRetry(text, preferredVoiceId);
+  } catch (edgeError) {
+    const audioBuf = await synthesizeArabicWithGoogleFallback(text);
+    return { audioBuf, voice: "ar", provider: `google-translate-tts-fallback; edge_error=${String(edgeError?.message || "edge failed").slice(0, 120)}` };
+  }
+}
+
+export async function GET(req) {
+  const url = new URL(req.url);
+  const rawText = url.searchParams.get("text") || "";
+
+  if (!rawText) {
+    return jsonResponse({
+      ok: true,
+      provider: "edge-tts-with-google-fallback",
+      default_voice: DEFAULT_ARABIC_VOICE,
+      voices: ARABIC_EDGE_VOICES
+    });
+  }
+
+  const text = normalizeArabicText(rawText);
+  const validationError = validateArabicText(text);
+  if (validationError) return textResponse(validationError, 400);
+
+  const voice = normalizeVoiceId(url.searchParams.get("voice"));
+
+  try {
+    const result = await synthesizeArabicRobust(text, voice);
+    return audioResponse(result.audioBuf, result.voice, result.provider);
+  } catch (error) {
+    const message = String(error?.message || "TTS failed");
+    return textResponse(`TTS failed: ${message}`, 502);
+  }
 }
 
 export async function POST(req) {
@@ -283,25 +409,17 @@ export async function POST(req) {
   if (!sameOrigin.ok) return textResponse(sameOrigin.error, sameOrigin.status);
 
   const body = await req.json().catch(() => ({}));
-  const text = String(body?.text || "").replace(/\s+/g, " ").trim().slice(0, MAX_TEXT_LENGTH);
-  if (!text) return textResponse("Text is required", 400);
-  if (!/[\u0600-\u06FF]/.test(text)) return textResponse("Arabic text is required for urgent Arabic TTS", 400);
+  const text = normalizeArabicText(body?.text || "");
+  const validationError = validateArabicText(text);
+  if (validationError) return textResponse(validationError, 400);
 
   const voice = normalizeVoiceId(body?.voice || body?.urgent_voice);
 
   try {
-    const audioBuf = await synthesizeArabicWithEdge(text, voice);
-    return noStore(new NextResponse(audioBuf, {
-      status: 200,
-      headers: {
-        "content-type": "audio/mpeg",
-        "cache-control": "no-store",
-        "x-ua07-tts-provider": "edge-tts",
-        "x-ua07-tts-voice": voice
-      }
-    }));
+    const result = await synthesizeArabicRobust(text, voice);
+    return audioResponse(result.audioBuf, result.voice, result.provider);
   } catch (error) {
-    const message = String(error?.message || "Edge TTS failed");
-    return textResponse(`Edge TTS failed: ${message}`, 502);
+    const message = String(error?.message || "TTS failed");
+    return textResponse(`TTS failed: ${message}`, 502);
   }
 }
