@@ -5,14 +5,21 @@
  * voice audible and visible instead of silently sounding like one fallback voice.
  */
 (function(){
-  if (window.__UA07_URGENT_VOICE_SELECTION_CONTROL_V1) return;
-  window.__UA07_URGENT_VOICE_SELECTION_CONTROL_V1 = true;
+  if (window.__UA07_URGENT_VOICE_SELECTION_CONTROL_V2) return;
+  window.__UA07_URGENT_VOICE_SELECTION_CONTROL_V2 = true;
+
+  // This branch intentionally lets this controller own the urgent voice button.
+  // It prevents the previous auto-activation helper from also handling the same
+  // trusted click and briefly showing AbortError before the selected voice plays.
+  window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V9 = true;
 
   var PLAY_SELECTOR = 'button[data-sr-urgent-voice-button="1"]';
   var DEFAULT_VOICE = 'ar-EG-SalmaNeural';
   var audioCtx = null;
   var activeSource = null;
   var activeKey = '';
+  var lastLaunchKey = '';
+  var lastLaunchAt = 0;
 
   function urgentWrap(){ return document.getElementById('SR_URGENT_TICKER'); }
   function urgentStatus(){ return document.getElementById('SR_URGENT_VOICE_STATUS'); }
@@ -115,6 +122,11 @@
     var key = keyFor(btn);
     if (!text || !isVisibleUrgent()) return;
 
+    var now = Date.now();
+    if (lastLaunchKey === key && now - lastLaunchAt < 650) return;
+    lastLaunchKey = key;
+    lastLaunchAt = now;
+
     stopActive();
     activeKey = key;
     hideButton(btn);
@@ -149,13 +161,19 @@
     source.start(0);
   }
 
-  document.addEventListener('click', function(event){
+  function shouldHandleKey(event){
+    if (event.type !== 'keydown') return true;
+    var key = String(event.key || '');
+    return key === 'Enter' || key === ' ' || key === 'Spacebar';
+  }
+  function handleVoiceIntent(event){
     if (!isVisibleUrgent()) return;
     if (isAckTarget(event.target)) {
       stopActive();
       return;
     }
     if (!isVoiceButtonTarget(event.target)) return;
+    if (!shouldHandleKey(event)) return;
 
     var btn = getButton();
     if (!btn) return;
@@ -169,5 +187,9 @@
       setStatus('تعذر تشغيل الصوت المختار: ' + String(error && error.message || error || 'unknown'));
       showButton(getButton());
     });
-  }, true);
+  }
+
+  ['pointerdown','mousedown','touchstart','keydown','click'].forEach(function(evt){
+    document.addEventListener(evt, handleVoiceIntent, true);
+  });
 })();
