@@ -2,7 +2,8 @@
  * Urgent admin voice auto-activation helper.
  * Scope: #SR_URGENT_TICKER only.
  * Purpose: make the existing urgent Arabic voice flow feel automatic whenever
- * the browser allows it, and defer the visible manual button until it is truly needed.
+ * the browser allows it, while keeping the manual voice button immediately
+ * available when autoplay is blocked, especially in private/incognito windows.
  */
 (function(){
   if (window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V1) return;
@@ -67,15 +68,9 @@
   }
   function armDeferredPlay(btn){
     deferredPlay = btn;
-    hideButton(btn);
-    setStatus('جاري تفعيل صوت رسالة الأدمن تلقائيًا');
+    showButton(btn);
+    setStatus('اضغط تشغيل الصوت لو المتصفح منع التشغيل التلقائي');
     clearTimeout(deferredShownTimer);
-    deferredShownTimer = setTimeout(function(){
-      if (deferredPlay === btn && isVisibleUrgent()) {
-        setStatus('اضغط تشغيل الصوت لو المتصفح منع التشغيل التلقائي');
-        showButton(btn);
-      }
-    }, 4500);
   }
   function triggerDeferred(event){
     markUserActivated();
@@ -84,8 +79,14 @@
     var btn = deferredPlay;
     deferredPlay = null;
     clearTimeout(deferredShownTimer);
+    hideButton(btn);
     setStatus('جاري تشغيل صوت رسالة الأدمن');
     clickButton(btn);
+    setTimeout(function(){
+      if (!isVisibleUrgent()) return;
+      var currentBtn = getButton();
+      if (currentBtn) showButton(currentBtn);
+    }, 1200);
   }
   function autoRetryFailure(btn){
     var key = String(btn.dataset.urgentText || '') + '\n' + String(btn.dataset.urgentVoice || '');
@@ -93,18 +94,27 @@
       lastRetryKey = key;
       retryCount = 0;
     }
-    if (retryCount >= 2) return;
+    if (retryCount >= 2) {
+      setStatus('اضغط تشغيل الصوت لو المتصفح منع التشغيل التلقائي');
+      showButton(btn);
+      return;
+    }
     retryCount += 1;
-    hideButton(btn);
     if (!hasUserActivation()) {
       armDeferredPlay(btn);
       return;
     }
+    hideButton(btn);
     setStatus('جاري إعادة محاولة تشغيل الصوت تلقائيًا');
     setTimeout(function(){
       if (!isVisibleUrgent()) return;
       clickButton(btn);
-    }, retryCount === 1 ? 120 : 450);
+      setTimeout(function(){
+        if (!isVisibleUrgent()) return;
+        var currentBtn = getButton();
+        if (currentBtn) showButton(currentBtn);
+      }, 1200);
+    }, retryCount === 1 ? 80 : 250);
   }
   function evaluate(){
     if (!isVisibleUrgent()) {
