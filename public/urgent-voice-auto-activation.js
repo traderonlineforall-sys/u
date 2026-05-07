@@ -5,8 +5,8 @@
  * Private/incognito path uses a direct GET audio URL and never auto-retries after failure.
  */
 (function(){
-  if (window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V8) return;
-  window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V8 = true;
+  if (window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V9) return;
+  window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V9 = true;
 
   var PLAY_SELECTOR = 'button[data-sr-urgent-voice-button="1"]';
   var DEFAULT_VOICE = 'ar-EG-SalmaNeural';
@@ -83,7 +83,7 @@
     var levant = /jo-|lb-|sy-/.test(v);
     var maghreb = /ma-|tn-/.test(v);
     if (male && gulf) return { rate: 0.9 };
-    if (male) return { rate: 0.86 };
+    if (male) return { rate: 0.84 };
     if (gulf) return { rate: 1.05 };
     if (levant) return { rate: 1.03 };
     if (maghreb) return { rate: 1.08 };
@@ -95,7 +95,7 @@
     try { audio.preservesPitch = false; } catch {}
     try { audio.mozPreservesPitch = false; } catch {}
     try { audio.webkitPreservesPitch = false; } catch {}
-    try { audio.playbackRate = Math.max(0.82, Math.min(1.12, profile.rate || 1)); } catch {}
+    try { audio.playbackRate = Math.max(0.8, Math.min(1.12, profile.rate || 1)); } catch {}
   }
   function primeButton(btn){
     if (!btn || !isVisibleUrgent()) return;
@@ -132,7 +132,14 @@
     hideButton(btn);
     setStatus('جاري تحميل وتشغيل صوت TTS');
 
+    audio.onloadedmetadata = function(){
+      applyVoiceProfile(audio, voice);
+    };
+    audio.oncanplay = function(){
+      applyVoiceProfile(audio, voice);
+    };
     audio.onplaying = function(){
+      applyVoiceProfile(audio, voice);
       setStatus('جاري قراءة رسالة الأدمن العاجلة');
       hideButton(getButton());
     };
