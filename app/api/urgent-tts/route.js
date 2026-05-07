@@ -43,7 +43,7 @@ const ARABIC_EDGE_VOICES = [
 ];
 
 const DEFAULT_ARABIC_VOICE = "ar-EG-SalmaNeural";
-const FALLBACK_ARABIC_VOICES = ["ar-EG-SalmaNeural", "ar-EG-ShakirNeural", "ar-SA-HamedNeural", "ar-AE-HamdanNeural"];
+const FALLBACK_ARABIC_VOICES = ["ar-EG-SalmaNeural", "ar-EG-ShakirNeural"];
 const VOICE_BY_ID = new Map(ARABIC_EDGE_VOICES.map((voice) => [voice.id, voice]));
 
 function textResponse(message, status = 400) {
@@ -278,7 +278,7 @@ function waitForEdgeAudio(socket) {
       cleanup();
       try { socket.close(); } catch {}
       reject(new Error("edge-tts-timeout"));
-    }, 12000);
+    }, 6500);
 
     socket.addEventListener("message", onMessage);
     socket.addEventListener("close", onClose);
@@ -300,14 +300,12 @@ async function synthesizeArabicWithEdgeRetry(text, preferredVoiceId) {
   let lastError = null;
 
   for (const voiceId of voiceIds) {
-    for (let attempt = 1; attempt <= 2; attempt += 1) {
-      try {
-        const audioBuf = await synthesizeArabicWithEdge(text, voiceId);
-        return { audioBuf, voice: voiceId, provider: "edge-tts" };
-      } catch (error) {
-        lastError = error;
-        await new Promise((resolve) => setTimeout(resolve, attempt === 1 ? 180 : 350));
-      }
+    try {
+      const audioBuf = await synthesizeArabicWithEdge(text, voiceId);
+      return { audioBuf, voice: voiceId, provider: "edge-tts" };
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, 120));
     }
   }
 
@@ -363,7 +361,7 @@ async function synthesizeArabicWithGoogleFallback(text) {
 
   for (const chunk of chunks) {
     audioChunks.push(await fetchGoogleTtsChunk(chunk));
-    await new Promise((resolve) => setTimeout(resolve, 80));
+    await new Promise((resolve) => setTimeout(resolve, 40));
   }
 
   return concatAudio(audioChunks.map((buf) => new Uint8Array(buf)));
