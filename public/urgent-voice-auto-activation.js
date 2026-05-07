@@ -2,15 +2,18 @@
  * Urgent admin voice auto-activation helper.
  * Scope: #SR_URGENT_TICKER only.
  * Purpose: make urgent Arabic voice reliable in normal and private/incognito
- * windows by preparing the TTS audio as soon as the urgent voice button exists,
- * then playing the prepared audio directly inside the user's trusted click.
+ * windows by using Web Audio. A trusted user gesture resumes AudioContext once,
+ * and the prepared TTS buffer can then start without the HTMLAudio autoplay trap.
  */
 (function(){
-  if (window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V2) return;
-  window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V2 = true;
+  if (window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V3) return;
+  window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V3 = true;
 
   var PLAY_SELECTOR = 'button[data-sr-urgent-voice-button="1"]';
-  var prefetch = { key: '', state: 'idle', text: '', voice: '', audio: null, url: '', promise: null };
+  var DEFAULT_VOICE = 'ar-EG-SalmaNeural';
+  var audioCtx = null;
+  var activeSource = null;
+  var state = { key: '', text: '', voice: DEFAULT_VOICE, status: 'idle', buffer: null, promise: null, wanted: false };
   var lastStatus = '';
 
   function urgentWrap(){ return document.getElementById('SR_URGENT_TICKER'); }
@@ -29,19 +32,13 @@
   function isVoiceButtonTarget(target){
     try { return !!(target && target.closest && target.closest(PLAY_SELECTOR)); } catch { return false; }
   }
-  function isTrustedPlayEvent(event){
-    var type = String(event && event.type || '');
-    return /^(pointerdown|mousedown|touchstart|click|keydown)$/.test(type);
-  }
   function getVoice(btn){
-    return String((btn && btn.dataset && btn.dataset.urgentVoice) || 'ar-EG-SalmaNeural').trim() || 'ar-EG-SalmaNeural';
+    return String((btn && btn.dataset && btn.dataset.urgentVoice) || DEFAULT_VOICE).trim() || DEFAULT_VOICE;
   }
   function getText(btn){
     return String((btn && btn.dataset && btn.dataset.urgentText) || '').replace(/\s+/g, ' ').trim();
   }
-  function getKey(btn){
-    return getVoice(btn) + '\n' + getText(btn);
-  }
+  function getKey(btn){ return getVoice(btn) + '\n' + getText(btn); }
   function setStatus(text){
     var status = urgentStatus();
     if (!status) return;
@@ -62,153 +59,170 @@
     btn.style.display = 'none';
     btn.setAttribute('aria-hidden', 'true');
   }
-  function cleanupPrefetch(){
-    try {
-      if (prefetch.audio) {
-        prefetch.audio.pause();
-        prefetch.audio.removeAttribute('src');
-        prefetch.audio.load && prefetch.audio.load();
-      }
-    } catch {}
-    try { if (prefetch.url) URL.revokeObjectURL(prefetch.url); } catch {}
-    prefetch.audio = null;
-    prefetch.url = '';
-    prefetch.promise = null;
+  function getAudioContext(){
+    if (audioCtx) return audioCtx;
+    var Ctor = window.AudioContext || window.webkitAudioContext;
+    if (!Ctor) return null;
+    audioCtx = new Ctor();
+    return audioCtx;
   }
-  function ensurePrefetch(btn){
+  function resumeAudioContext(){
+    var ctx = getAudioContext();
+    if (!ctx) return Promise.resolve(null);
+    try {
+      if (ctx.state === 'suspended') return ctx.resume().then(function(){ return ctx; }).catch(function(){ return ctx; });
+    } catch {}
+    return Promise.resolve(ctx);
+  }
+  function stopActiveSource(){
+    try { if (activeSource) activeSource.stop(0); } catch {}
+    try { if (activeSource) activeSource.disconnect(); } catch {}
+    activeSource = null;
+    try { window.speechSynthesis && window.speechSynthesis.cancel && window.speechSynthesis.cancel(); } catch {}
+  }
+  function resetForKey(key, text, voice){
+    stopActiveSource();
+    state = { key: key, text: text, voice: voice, status: 'idle', buffer: null, promise: null, wanted: false };
+  }
+  function ensureBuffer(btn){
     if (!btn || !isVisibleUrgent()) return null;
     var text = getText(btn);
     var voice = getVoice(btn);
     var key = voice + '\n' + text;
     if (!text) return null;
 
-    if (prefetch.key === key && (prefetch.state === 'loading' || prefetch.state === 'ready')) {
-      return prefetch.promise;
-    }
+    if (state.key !== key) resetForKey(key, text, voice);
+    if (state.status === 'ready' || state.status === 'loading') return state.promise;
 
-    cleanupPrefetch();
-    prefetch = { key: key, state: 'loading', text: text, voice: voice, audio: null, url: '', promise: null };
+    state.status = 'loading';
+    state.wanted = state.wanted || false;
     showButton(btn);
     setStatus('جاري تجهيز صوت رسالة الأدمن');
 
-    prefetch.promise = fetch('/api/urgent-tts', {
+    state.promise = fetch('/api/urgent-tts', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ text: text, voice: voice })
     }).then(function(res){
       if (!res.ok) throw new Error('urgent-tts-failed');
-      var ct = String(res.headers.get('content-type') || '').toLowerCase();
-      if (ct && ct.indexOf('audio/') === -1 && ct.indexOf('mpeg') === -1 && ct.indexOf('wav') === -1) {
-        throw new Error('urgent-tts-invalid-content-type');
-      }
-      return res.blob();
-    }).then(function(blob){
-      if (prefetch.key !== key || !isVisibleUrgent()) return null;
-      var url = URL.createObjectURL(blob);
-      var audio = new Audio();
-      audio.preload = 'auto';
-      audio.autoplay = false;
-      audio.setAttribute('playsinline', '');
-      audio.playsInline = true;
-      audio.src = url;
-      try { audio.load(); } catch {}
-      prefetch.url = url;
-      prefetch.audio = audio;
-      prefetch.state = 'ready';
+      return res.arrayBuffer();
+    }).then(function(arrayBuffer){
+      var ctx = getAudioContext();
+      if (!ctx) throw new Error('web-audio-unavailable');
+      return ctx.decodeAudioData(arrayBuffer.slice(0));
+    }).then(function(buffer){
+      if (state.key !== key || !isVisibleUrgent()) return null;
+      state.buffer = buffer;
+      state.status = 'ready';
       setStatus('الصوت جاهز — اضغط تشغيل الصوت');
       showButton(getButton());
-      return audio;
+      if (state.wanted) playBuffer(getButton());
+      return buffer;
     }).catch(function(){
-      if (prefetch.key === key) {
-        prefetch.state = 'failed';
-        setStatus('اضغط تشغيل الصوت لإعادة المحاولة');
+      if (state.key === key) {
+        state.status = 'failed';
+        state.buffer = null;
+        setStatus('اضغط تشغيل الصوت لإعادة تجهيز الصوت');
         showButton(getButton());
       }
       return null;
     });
 
-    return prefetch.promise;
+    return state.promise;
   }
-  function playPrepared(btn){
+  function playBuffer(btn){
     if (!btn || !isVisibleUrgent()) return false;
     var key = getKey(btn);
-    if (prefetch.key !== key || prefetch.state !== 'ready' || !prefetch.audio) return false;
+    if (state.key !== key) return false;
+    if (!state.buffer) {
+      state.wanted = true;
+      ensureBuffer(btn);
+      setStatus('جاري تجهيز الصوت — سيتم تشغيله فورًا');
+      showButton(btn);
+      return false;
+    }
 
-    try { window.speechSynthesis && window.speechSynthesis.cancel && window.speechSynthesis.cancel(); } catch {}
-    try {
-      prefetch.audio.pause();
-      prefetch.audio.currentTime = 0;
-    } catch {}
+    var ctx = getAudioContext();
+    if (!ctx) {
+      setStatus('المتصفح لا يدعم تشغيل الصوت هنا');
+      showButton(btn);
+      return false;
+    }
 
+    stopActiveSource();
     hideButton(btn);
     setStatus('جاري قراءة رسالة الأدمن العاجلة');
 
     try {
-      var p = prefetch.audio.play();
-      if (p && typeof p.then === 'function') {
-        p.then(function(){
-          hideButton(getButton());
-        }).catch(function(){
-          setStatus('اضغط تشغيل الصوت لو المتصفح منع التشغيل');
-          showButton(getButton());
-        });
-      }
-      prefetch.audio.onended = function(){
+      var source = ctx.createBufferSource();
+      source.buffer = state.buffer;
+      source.connect(ctx.destination);
+      source.onended = function(){
+        if (activeSource === source) activeSource = null;
         if (!isVisibleUrgent()) return;
+        state.status = 'ended';
         setStatus('انتهت قراءة رسالة الأدمن العاجلة');
         showButton(getButton());
       };
-      prefetch.audio.onerror = function(){
-        if (!isVisibleUrgent()) return;
-        prefetch.state = 'failed';
-        setStatus('اضغط تشغيل الصوت لإعادة المحاولة');
-        showButton(getButton());
-      };
+      activeSource = source;
+      source.start(0);
+      state.status = 'playing';
+      state.wanted = false;
       return true;
     } catch {
-      setStatus('اضغط تشغيل الصوت لو المتصفح منع التشغيل');
+      state.status = 'failed';
+      setStatus('اضغط تشغيل الصوت لإعادة المحاولة');
       showButton(getButton());
       return false;
     }
   }
+  function requestPlay(btn){
+    if (!btn || !isVisibleUrgent()) return;
+    resumeAudioContext().then(function(){
+      if (!isVisibleUrgent()) return;
+      if (state.status === 'ready' && state.buffer) {
+        playBuffer(btn);
+        return;
+      }
+      state.wanted = true;
+      ensureBuffer(btn);
+      setStatus('جاري تجهيز الصوت — سيتم تشغيله فورًا');
+      showButton(btn);
+    });
+  }
   function handleTrustedEvent(event){
     if (!isVisibleUrgent()) return;
-    if (isAckTarget(event && event.target)) return;
+    if (isAckTarget(event && event.target)) {
+      stopActiveSource();
+      return;
+    }
     var btn = getButton();
     if (!btn) return;
 
-    ensurePrefetch(btn);
+    // Always start preparing early.
+    ensureBuffer(btn);
 
     if (isVoiceButtonTarget(event && event.target)) {
-      if (prefetch.state === 'ready' && playPrepared(btn)) {
-        try {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-        } catch {}
-        return;
-      }
-      if (prefetch.state === 'loading') {
-        try {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-        } catch {}
-        setStatus('جاري تجهيز الصوت — اضغط تشغيل الصوت بعد لحظة');
-        showButton(btn);
-        return;
-      }
+      try {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      } catch {}
+      requestPlay(btn);
       return;
     }
 
-    if (isTrustedPlayEvent(event) && prefetch.state === 'ready') {
-      playPrepared(btn);
-    }
+    // Any real interaction can unlock Web Audio, then play if the sound is ready.
+    resumeAudioContext().then(function(){
+      if (!isVisibleUrgent()) return;
+      if (state.status === 'ready' && state.buffer) playBuffer(getButton());
+    });
   }
   function evaluate(){
     if (!isVisibleUrgent()) return;
     var btn = getButton();
     if (!btn) return;
     showButton(btn);
-    ensurePrefetch(btn);
+    ensureBuffer(btn);
   }
 
   ['pointerdown','mousedown','touchstart','keydown','click'].forEach(function(evt){
@@ -225,5 +239,5 @@
   } else {
     setTimeout(evaluate, 0);
   }
-  setInterval(evaluate, 250);
+  setInterval(evaluate, 200);
 })();
