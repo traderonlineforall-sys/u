@@ -13,6 +13,17 @@
   var deferredShownTimer = 0;
   var lastRetryKey = '';
   var retryCount = 0;
+  var userActivated = false;
+
+  function markUserActivated(){
+    userActivated = true;
+  }
+  function hasUserActivation(){
+    try {
+      if (navigator.userActivation && navigator.userActivation.hasBeenActive) return true;
+    } catch {}
+    return userActivated;
+  }
 
   function urgentWrap(){ return document.getElementById('SR_URGENT_TICKER'); }
   function urgentStatus(){ return document.getElementById('SR_URGENT_VOICE_STATUS'); }
@@ -67,6 +78,7 @@
     }, 4500);
   }
   function triggerDeferred(event){
+    markUserActivated();
     if (!deferredPlay || !isVisibleUrgent()) return;
     if (isAckTarget(event && event.target)) return;
     var btn = deferredPlay;
@@ -84,11 +96,15 @@
     if (retryCount >= 2) return;
     retryCount += 1;
     hideButton(btn);
+    if (!hasUserActivation()) {
+      armDeferredPlay(btn);
+      return;
+    }
     setStatus('جاري إعادة محاولة تشغيل الصوت تلقائيًا');
     setTimeout(function(){
       if (!isVisibleUrgent()) return;
       clickButton(btn);
-    }, retryCount === 1 ? 900 : 2800);
+    }, retryCount === 1 ? 120 : 450);
   }
   function evaluate(){
     if (!isVisibleUrgent()) {
@@ -101,7 +117,9 @@
     var label = String(btn.textContent || '').trim();
     if (label.indexOf('تشغيل الصوت') !== -1) {
       armDeferredPlay(btn);
-      setTimeout(function(){ if (deferredPlay === btn) clickButton(btn); }, 650);
+      if (hasUserActivation()) {
+        setTimeout(function(){ if (deferredPlay === btn) triggerDeferred({ target: btn }); }, 30);
+      }
       return;
     }
     if (label.indexOf('إعادة المحاولة') !== -1) {
@@ -109,7 +127,7 @@
     }
   }
 
-  ['pointerdown','mousedown','touchstart','keydown','focusin'].forEach(function(evt){
+  ['pointerdown','mousedown','touchstart','keydown','focusin','click','input'].forEach(function(evt){
     document.addEventListener(evt, triggerDeferred, true);
   });
 
