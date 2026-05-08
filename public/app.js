@@ -3396,6 +3396,11 @@ if (link && link.indexOf("srTypeId=100047001") !== -1) {
                                         var fbbServiceContent = "FBB Num (" + fbbAdslNumber + ") Accepted (3) GB for (2) days related tts - outage - ir  id (xxx) on mobile (xxx) ";
                                         link = link.replace(/([?&]serviceContent=)[^&]*/i, "$1" + encodeURIComponent(fbbServiceContent));
                                 }
+if (link && link.indexOf("srTypeId=100047021") !== -1) {
+                                        var fbbAdslNumber = (document.getElementById("arabicNumber").value || "").trim();
+                                        var fbbServiceContent = "FBB Num (" + fbbAdslNumber + ") Accepted (3) GB for (5) days related Zero SELT tts  id (xxx) on mobile (xxx) ";
+                                        link = link.replace(/([?&]serviceContent=)[^&]*/i, "$1" + encodeURIComponent(fbbServiceContent));
+                                }
 
                                 link += myVariable; // إضافة المتغير إلى الرابط
                                 window.open(link); // فتح الرابط الجديد مع المتغير المضاف
