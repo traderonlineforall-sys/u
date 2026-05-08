@@ -101,7 +101,7 @@
     return { rate: 1.0, label: 'نسائي مصري' };
   }
   function makeUrl(text, voice){
-    return '/api/urgent-tts?voice=' + encodeURIComponent(voice) + '&text=' + encodeURIComponent(text) + '&t=' + Date.now().toString(36);
+    return '/api/urgent-tts?allowGoogleFallback=1&voice=' + encodeURIComponent(voice) + '&text=' + encodeURIComponent(text) + '&t=' + Date.now().toString(36);
   }
   async function fetchTts(text, voice){
     var res = await fetch(makeUrl(text, voice), { method: 'GET', cache: 'no-store' });
@@ -149,7 +149,7 @@
     source.connect(ctx.destination);
     activeSource = source;
 
-    var providerText = /fallback|google/i.test(result.provider) ? 'Fallback مضبوط حسب الاختيار' : 'Edge voice';
+    var providerText = /fallback|google/i.test(result.provider) ? 'Fallback قريب من الاختيار' : 'Edge voice';
     setStatus('جاري القراءة: ' + voiceLabel(requestedVoice) + ' - ' + providerText);
 
     source.onended = function(){
