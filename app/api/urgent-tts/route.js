@@ -10,6 +10,7 @@ const SEC_MS_GEC_VERSION = `1-${CHROMIUM_FULL_VERSION}`;
 const EDGE_AUDIO_FORMAT = "audio-24khz-48kbitrate-mono-mp3";
 const MAX_TEXT_LENGTH = 1800;
 const GOOGLE_TTS_CHUNK_LENGTH = 180;
+const SHAPED_GOOGLE_FALLBACK_PROVIDER = "google-translate-tts-shaped-fallback";
 
 const ARABIC_EDGE_VOICES = [
   { id: "ar-EG-SalmaNeural", label: "Salma - Egypt Female", lang: "ar-EG" },
@@ -392,7 +393,7 @@ async function synthesizeArabicRobust(text, preferredVoiceId, allowGoogleFallbac
   } catch (edgeError) {
     if (!allowGoogleFallback) throw edgeError;
     const audioBuf = await synthesizeArabicWithGoogleFallback(text);
-    return { audioBuf, voice: "ar", provider: `google-translate-tts-fallback; edge_error=${String(edgeError?.message || "edge failed").slice(0, 120)}` };
+    return { audioBuf, voice: normalizeVoiceId(preferredVoiceId), provider: `${SHAPED_GOOGLE_FALLBACK_PROVIDER}; edge_error=${String(edgeError?.message || "edge failed").slice(0, 120)}` };
   }
 }
 
@@ -403,7 +404,7 @@ export async function GET(req) {
   if (!rawText) {
     return jsonResponse({
       ok: true,
-      provider: "edge-tts-with-google-fallback",
+      provider: "edge-tts-with-shaped-google-fallback",
       default_voice: DEFAULT_ARABIC_VOICE,
       voices: ARABIC_EDGE_VOICES
     });
