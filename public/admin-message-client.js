@@ -27,9 +27,10 @@ const LS_SEEN_KEY = "sr_admin_ann_seen_key";
 const LS_URGENT_DISMISSED_AT = "sr_admin_urgent_dismissed_at";
 const LS_URGENT_DISMISSED_KEY = "sr_admin_urgent_dismissed_key";
 const LS_URGENT_DISMISSED_SOURCE = "sr_admin_urgent_dismissed_source";
+const LS_URGENT_ACK_STATE = "urgentAdminAckState";
 const LS_URGENT_SHOW_COUNT_PREFIX = "sr_admin_urgent_show_count";
 const SS_ANNOUNCEMENT_CACHE = "sr_admin_announcement_cache_v1";
-const MAX_URGENT_SHOWS_PER_USER = 2;
+const MAX_URGENT_ACKS_PER_MESSAGE = 3;
 const URGENT_PREFIX = "URGENT_TICKER::";
 const ANNOUNCEMENT_REALTIME_CHANNEL = "sr_admin_announcements_realtime";
 // Do not cache admin announcements in-session; correctness is more important here.
@@ -61,6 +62,7 @@ let lastStartedUrgentKey = "";
 let currentUrgentAudio = null;
 let currentUrgentAudioUrl = "";
 let urgentArabicPlayback = { key: "", text: "", voice: DEFAULT_URGENT_ARABIC_TTS_VOICE, status: "idle", audio: null, url: "", blockedInteractionRetry: false };
+const urgentHiddenThisPageKeys = new Set();
 
 function announceStateChanged(kind, payload = {}) {
   try {
@@ -144,6 +146,70 @@ function bumpUrgentShowCount(annKey){
   }
 }
 
+
+function readUrgentAckState(){
+  try{
+    const raw = localStorage.getItem(LS_URGENT_ACK_STATE) || "{}";
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  }catch{
+    return {};
+  }
+}
+
+function writeUrgentAckState(state){
+  try{
+    localStorage.setItem(LS_URGENT_ACK_STATE, JSON.stringify(state && typeof state === "object" ? state : {}));
+  }catch{}
+}
+
+function normalizeUrgentAckCount(value){
+  const n = Number(value || 0);
+  if(!Number.isFinite(n) || n <= 0) return 0;
+  return Math.min(MAX_URGENT_ACKS_PER_MESSAGE, Math.floor(n));
+}
+
+function getUrgentAckRecord(messageKey){
+  const key = String(messageKey || "").trim();
+  if(!key) return { ackCount: 0, lastAckAt: "" };
+  const state = readUrgentAckState();
+  const record = state[key] && typeof state[key] === "object" ? state[key] : {};
+  let ackCount = normalizeUrgentAckCount(record.ackCount);
+
+  // One-time compatibility with the previous single-dismiss flag: an old
+  // explicit "فهمت" counts as exactly one acknowledgement, not a permanent hide.
+  if(ackCount === 0 && getUrgentDismissedKey() === key && getUrgentDismissedSource() === "ack"){
+    ackCount = 1;
+    state[key] = {
+      ackCount,
+      lastAckAt: record.lastAckAt || localStorage.getItem(LS_URGENT_DISMISSED_AT) || ""
+    };
+    writeUrgentAckState(state);
+  }
+
+  return {
+    ackCount,
+    lastAckAt: String(record.lastAckAt || "")
+  };
+}
+
+function getUrgentAckCount(messageKey){
+  return getUrgentAckRecord(messageKey).ackCount;
+}
+
+function acknowledgeUrgentMessage(messageKey){
+  const key = String(messageKey || "").trim();
+  if(!key) return 0;
+  const state = readUrgentAckState();
+  const record = state[key] && typeof state[key] === "object" ? state[key] : {};
+  const ackCount = Math.min(MAX_URGENT_ACKS_PER_MESSAGE, normalizeUrgentAckCount(record.ackCount) + 1);
+  const lastAckAt = new Date().toISOString();
+  state[key] = { ackCount, lastAckAt };
+  writeUrgentAckState(state);
+  announceStateChanged("urgent-acknowledged", { key, ackCount, lastAckAt });
+  return ackCount;
+}
+
 function escapeHtml(s = "") {
   return String(s)
     .replaceAll("&", "&amp;")
@@ -190,6 +256,20 @@ function getAnnouncementKey(ann){
   return created || `${env}__${urgent}`;
 }
 
+
+function getUrgentMessageKey(ann, urgentText = "", urgentVoice = ""){
+  if(!ann) return "";
+  const keySource = {
+    updated_at: String(ann.updated_at || "").trim(),
+    created_at: String(ann.created_at || "").trim(),
+    urgent: String(urgentText || ann.urgent_text || "").trim(),
+    voice: normalizeUrgentArabicTtsVoice(urgentVoice || ann.urgent_voice),
+    enabled: !!ann.urgent_enabled,
+    text: String(ann.text || "").trim()
+  };
+  return `client:${simpleHashKey(JSON.stringify(keySource))}`;
+}
+
 function clearEnvelopeUnreadIfOpen() {
   const modal = document.getElementById("UA07_SECRET_MODAL");
   if (!modal) return;
@@ -218,15 +298,7 @@ function getUrgentDismissedSource(){
 }
 
 function isUrgentUserDismissed(annKey){
-  const key = String(annKey || "").trim();
-  if(!key) return false;
-  const dismissedKey = getUrgentDismissedKey();
-  if(!dismissedKey || dismissedKey !== key) return false;
-
-  // Older builds auto-dismissed urgent messages after a display-count limit and
-  // did not store a source. Treat only explicit ACK dismissals as final, so
-  // existing auto-dismissed urgent messages become visible again after this fix.
-  return getUrgentDismissedSource() === "ack";
+  return getUrgentAckCount(annKey) >= MAX_URGENT_ACKS_PER_MESSAGE;
 }
 
 function dismissUrgent(createdAtIso, key, source = "ack"){
@@ -285,7 +357,8 @@ function normalizeAnnouncementRow(row){
     urgent_text: parsed.urgent_text,
     urgent_enabled: parsed.urgent_enabled,
     urgent_voice: normalizeUrgentArabicTtsVoice(parsed.urgent_voice),
-    created_at: row?.created_at || null
+    created_at: row?.created_at || null,
+    updated_at: row?.updated_at || null
   };
 }
 
@@ -667,18 +740,25 @@ function bindUrgentVoiceUnlock() {
 }
 
 function showUrgent(createdAtIso, text, annKey, urgentVoice = DEFAULT_URGENT_ARABIC_TTS_VOICE){
-  const wrap = ensureUrgentTicker();
   const effectiveKey = String(annKey || createdAtIso || text || "").trim();
+  if(!effectiveKey || urgentHiddenThisPageKeys.has(effectiveKey) || getUrgentAckCount(effectiveKey) >= MAX_URGENT_ACKS_PER_MESSAGE){
+    hideUrgent();
+    return;
+  }
+
+  const wrap = ensureUrgentTicker();
   const selectedVoice = normalizeUrgentArabicTtsVoice(urgentVoice);
   const isAlreadyVisibleSame = wrap.style.display === 'block' && wrap.dataset.urgentActiveKey === effectiveKey && wrap.dataset.urgentVoice === selectedVoice;
 
-  if(!isAlreadyVisibleSame){
-    wrap.dataset.urgentActiveKey = effectiveKey;
-    wrap.dataset.urgentVoice = selectedVoice;
+  wrap.dataset.urgentActiveKey = effectiveKey;
+  wrap.dataset.urgentCreatedAt = String(createdAtIso || "");
+  wrap.dataset.urgentVoice = selectedVoice;
 
-    // Keep the alert visible until the user explicitly presses "فهمت".
-    // Play the sound once per urgent message per browser session, without using
-    // a show-count limit that can accidentally hide the urgent ticker forever.
+  setUrgentText(text);
+  wrap.style.display = 'block';
+
+  if(!isAlreadyVisibleSame){
+    // Play the sound only after this urgent message is actually visible.
     try {
       const soundKey = `sr_admin_urgent_sound_played:${simpleHashKey(effectiveKey)}`;
       if(!sessionStorage.getItem(soundKey)){
@@ -688,16 +768,17 @@ function showUrgent(createdAtIso, text, annKey, urgentVoice = DEFAULT_URGENT_ARA
     } catch {}
   }
 
-  setUrgentText(text);
-  wrap.style.display = 'block';
-
   const ack = wrap.querySelector('#SR_URGENT_ACK');
   if(ack && !ack.__bound){
     ack.__bound = true;
     ack.addEventListener('click', ()=>{
+      const activeKey = String(wrap.dataset.urgentActiveKey || "").trim();
+      const activeCreatedAt = String(wrap.dataset.urgentCreatedAt || "").trim();
+      const ackCount = acknowledgeUrgentMessage(activeKey);
+      if(activeKey) urgentHiddenThisPageKeys.add(activeKey);
       stopUrgentAudio();
       wrap.style.display = 'none';
-      dismissUrgent(createdAtIso, effectiveKey, "ack");
+      dismissUrgent(activeCreatedAt, activeKey, ackCount >= MAX_URGENT_ACKS_PER_MESSAGE ? "ack-limit" : "ack");
     });
   }
 
@@ -745,11 +826,12 @@ function normalizeAnnouncementPayload(data = {}) {
   const urgent_enabled = !!(data?.urgent_enabled);
   const urgent_voice = normalizeUrgentArabicTtsVoice(data?.urgent_voice);
   const created_at = data?.created_at || null;
+  const updated_at = data?.updated_at || null;
 
   if (!envelope_text && !(urgent_enabled && urgent_text)) {
-    return { envelope_text: "", urgent_text: "", urgent_enabled: false, urgent_voice, created_at };
+    return { envelope_text: "", urgent_text: "", urgent_enabled: false, urgent_voice, created_at, updated_at };
   }
-  return { envelope_text, urgent_text, urgent_enabled, urgent_voice, created_at };
+  return { envelope_text, urgent_text, urgent_enabled, urgent_voice, created_at, updated_at };
 }
 
 function readAnnouncementCache() {
@@ -809,8 +891,8 @@ function updateUrgentUI(){
 
   if(!urgentEnabled || !urgentText){ hideUrgent(); return; }
 
-  const annKey = getAnnouncementKey(ann);
-  if(isUrgentUserDismissed(annKey)) { hideUrgent(); return; }
+  const annKey = getUrgentMessageKey(ann, urgentText, urgentVoice);
+  if(urgentHiddenThisPageKeys.has(annKey) || isUrgentUserDismissed(annKey)) { hideUrgent(); return; }
 
   const annTs = Date.parse(ann.created_at);
   if(!Number.isFinite(annTs)) {
@@ -939,7 +1021,7 @@ function observeModalOpen() {
 function bindAnnouncementSync() {
   window.addEventListener("storage", (e) => {
     if (!e?.key) return;
-    if ([LS_SEEN_AT, LS_SEEN_KEY, LS_URGENT_DISMISSED_AT, LS_URGENT_DISMISSED_KEY].includes(e.key)) {
+    if ([LS_SEEN_AT, LS_SEEN_KEY, LS_URGENT_DISMISSED_AT, LS_URGENT_DISMISSED_KEY, LS_URGENT_ACK_STATE].includes(e.key)) {
       updateBadgeUI();
       updateUrgentUI();
     }
@@ -1016,7 +1098,7 @@ function init() {
 
   // Keep multiple tabs/windows in sync for the same user.
   window.addEventListener("storage", (e) => {
-    const keys = [LS_SEEN_AT, LS_SEEN_KEY, LS_URGENT_DISMISSED_AT, LS_URGENT_DISMISSED_KEY, LS_URGENT_DISMISSED_SOURCE];
+    const keys = [LS_SEEN_AT, LS_SEEN_KEY, LS_URGENT_DISMISSED_AT, LS_URGENT_DISMISSED_KEY, LS_URGENT_DISMISSED_SOURCE, LS_URGENT_ACK_STATE];
     if (!e || !keys.includes(e.key)) return;
     updateBadgeUI();
     updateUrgentUI();
