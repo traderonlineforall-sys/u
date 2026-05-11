@@ -2862,6 +2862,8 @@ function resetAllPackages() {
                                                                         var hasVisibleData = packageText !== '' || remainingText !== '' || consumedText !== '';
                                                                         nodes.card.hidden = !hasVisibleData;
                                                                         if (!hasVisibleData) return;
+                                                                        var packageLabelNode = nodes.packageValue.parentElement ? nodes.packageValue.parentElement.querySelector('.quota-label') : null;
+                                                                        if (packageLabelNode) packageLabelNode.textContent = getSelectedQuotaPackageName();
                                                                         setQuotaSummaryValue(nodes.packageValue, packageText, null);
                                                                         setQuotaSummaryValue(nodes.remainingValue, remainingText, rawBytes.remainingBytes);
                                                                         setQuotaSummaryValue(nodes.consumedValue, consumedText, rawBytes.consumedBytes);
