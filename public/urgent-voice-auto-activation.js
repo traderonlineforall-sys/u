@@ -5,7 +5,8 @@
  * Private/incognito path uses a direct GET audio URL and never auto-retries after failure.
  */
 (function(){
-  if (window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V9) return;
+  if (window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V10 || window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V9) return;
+  window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V10 = true;
   window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V9 = true;
 
   var PLAY_SELECTOR = 'button[data-sr-urgent-voice-button="1"]';
@@ -76,26 +77,15 @@
     } catch {}
     activeAudio = null;
   }
-  function voiceProfile(voice){
-    var v = String(voice || '').toLowerCase();
-    var male = /shakir|hamed|hamdan|taim|fahed|moaz|ali|bassel|rami|jamal|abdullah|laith|hedi|saleh/.test(v);
-    var gulf = /sa-|ae-|kw-|qa-|bh-|om-/.test(v);
-    var levant = /jo-|lb-|sy-/.test(v);
-    var maghreb = /ma-|tn-/.test(v);
-    if (male && gulf) return { rate: 0.9 };
-    if (male) return { rate: 0.84 };
-    if (gulf) return { rate: 1.05 };
-    if (levant) return { rate: 1.03 };
-    if (maghreb) return { rate: 1.08 };
-    return { rate: 1.0 };
-  }
   function applyVoiceProfile(audio, voice){
     if (!audio) return;
-    var profile = voiceProfile(voice);
-    try { audio.preservesPitch = false; } catch {}
-    try { audio.mozPreservesPitch = false; } catch {}
-    try { audio.webkitPreservesPitch = false; } catch {}
-    try { audio.playbackRate = Math.max(0.8, Math.min(1.12, profile.rate || 1)); } catch {}
+    // Keep generated Arabic voices natural. Changing playbackRate through the
+    // audio element can make Arabic sound robotic/deep and was the main reason
+    // some voices became noticeably worse.
+    try { audio.playbackRate = 1; } catch {}
+    try { audio.preservesPitch = true; } catch {}
+    try { audio.mozPreservesPitch = true; } catch {}
+    try { audio.webkitPreservesPitch = true; } catch {}
   }
   function primeButton(btn){
     if (!btn || !isVisibleUrgent()) return;

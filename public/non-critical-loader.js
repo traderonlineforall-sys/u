@@ -138,7 +138,7 @@
     safeImport('./support-presence-visual.js?v=20260506-presence1');
 
     // Urgent admin voice selection controller must load before the auto-activation helper.
-    safeImport('./urgent-voice-selection-control.js?v=20260507-voice-control1');
+    safeImport('./urgent-voice-selection-control.js?v=20260511-natural-voice1');
 
     // Urgent admin voice auto-activation is scoped to #SR_URGENT_TICKER only.
     safeImport('./urgent-voice-auto-activation.js?v=20260506');

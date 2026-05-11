@@ -4,12 +4,13 @@ import { enforceSameOrigin, noStore } from "../../../lib/server/auth.js";
 const EDGE_TRUSTED_CLIENT_TOKEN = "6A5AA1D4EAFF4E9FB37E23D68491D6F4";
 const EDGE_TTS_ENDPOINT = "https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1";
 const GOOGLE_TTS_ENDPOINT = "https://translate.google.com/translate_tts";
-const CHROMIUM_FULL_VERSION = "134.0.3124.66";
+const CHROMIUM_FULL_VERSION = "143.0.3650.75";
 const CHROMIUM_MAJOR_VERSION = CHROMIUM_FULL_VERSION.split(".", 1)[0];
 const SEC_MS_GEC_VERSION = `1-${CHROMIUM_FULL_VERSION}`;
 const EDGE_AUDIO_FORMAT = "audio-24khz-48kbitrate-mono-mp3";
 const MAX_TEXT_LENGTH = 1800;
 const GOOGLE_TTS_CHUNK_LENGTH = 180;
+const SHAPED_GOOGLE_FALLBACK_PROVIDER = "google-translate-tts-shaped-fallback";
 
 const ARABIC_EDGE_VOICES = [
   { id: "ar-EG-SalmaNeural", label: "Salma - Egypt Female", lang: "ar-EG" },
@@ -43,7 +44,14 @@ const ARABIC_EDGE_VOICES = [
 ];
 
 const DEFAULT_ARABIC_VOICE = "ar-EG-SalmaNeural";
-const FALLBACK_ARABIC_VOICES = ["ar-EG-SalmaNeural", "ar-EG-ShakirNeural"];
+const FALLBACK_ARABIC_VOICES = [
+  "ar-EG-SalmaNeural",
+  "ar-EG-ShakirNeural",
+  "ar-SA-ZariyahNeural",
+  "ar-SA-HamedNeural",
+  "ar-AE-FatimaNeural",
+  "ar-AE-HamdanNeural"
+];
 const VOICE_BY_ID = new Map(ARABIC_EDGE_VOICES.map((voice) => [voice.id, voice]));
 
 function textResponse(message, status = 400) {
@@ -54,14 +62,15 @@ function jsonResponse(body, status = 200) {
   return noStore(NextResponse.json(body, { status }));
 }
 
-function audioResponse(audioBuf, voice, provider = "edge-tts") {
+function audioResponse(audioBuf, voice, provider = "edge-tts", requestedVoice = voice) {
   return noStore(new NextResponse(audioBuf, {
     status: 200,
     headers: {
       "content-type": "audio/mpeg",
       "cache-control": "no-store",
       "x-ua07-tts-provider": provider,
-      "x-ua07-tts-voice": voice
+      "x-ua07-tts-voice": voice,
+      "x-ua07-tts-requested-voice": requestedVoice
     }
   }));
 }
@@ -156,21 +165,39 @@ function makeSsmlMessage(text, voice) {
   ].join("\r\n");
 }
 
+function makeEdgeHeaders() {
+  const major = CHROMIUM_MAJOR_VERSION;
+  const full = CHROMIUM_FULL_VERSION;
+  return {
+    "Upgrade": "websocket",
+    "Origin": "chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold",
+    "User-Agent": `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${major}.0.0.0 Safari/537.36 Edg/${major}.0.0.0`,
+    "Cache-Control": "no-cache",
+    "Pragma": "no-cache",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Sec-CH-UA": `" Not;A Brand";v="99", "Microsoft Edge";v="${major}", "Chromium";v="${major}"`,
+    "Sec-CH-UA-Mobile": "?0",
+    "Sec-CH-UA-Platform": "Windows",
+    "Sec-CH-UA-Platform-Version": "10.0.0",
+    "Sec-CH-UA-Arch": "x86_64",
+    "Sec-CH-UA-Bitness": "64",
+    "Sec-CH-UA-Full-Version": full,
+    "Sec-CH-UA-Full-Version-List": `" Not;A Brand";v="99.0.0.0", "Microsoft Edge";v="${full}", "Chromium";v="${full}"`,
+    "Sec-CH-UA-Model": "",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Dest": "empty",
+    "Cookie": `muid=${makeMuid()};`
+  };
+}
+
 async function openEdgeSocket() {
   const connectionId = makeRequestId();
   const secMsGec = await generateSecMsGec();
   const url = `${EDGE_TTS_ENDPOINT}?TrustedClientToken=${EDGE_TRUSTED_CLIENT_TOKEN}&Sec-MS-GEC=${secMsGec}&Sec-MS-GEC-Version=${SEC_MS_GEC_VERSION}&ConnectionId=${connectionId}`;
 
   const response = await fetch(url, {
-    headers: {
-      "Upgrade": "websocket",
-      "Origin": "chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold",
-      "User-Agent": `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${CHROMIUM_MAJOR_VERSION}.0.0.0 Safari/537.36 Edg/${CHROMIUM_MAJOR_VERSION}.0.0.0`,
-      "Cache-Control": "no-cache",
-      "Pragma": "no-cache",
-      "Accept-Language": "en-US,en;q=0.9",
-      "Cookie": `muid=${makeMuid()};`
-    }
+    headers: makeEdgeHeaders()
   });
 
   if (response.status !== 101 || !response.webSocket) {
@@ -278,7 +305,7 @@ function waitForEdgeAudio(socket) {
       cleanup();
       try { socket.close(); } catch {}
       reject(new Error("edge-tts-timeout"));
-    }, 6500);
+    }, 9500);
 
     socket.addEventListener("message", onMessage);
     socket.addEventListener("close", onClose);
@@ -309,7 +336,7 @@ async function synthesizeArabicWithEdgeRetry(text, preferredVoiceId) {
     }
   }
 
-  throw lastError || new Error("edge-tts-failed-after-retries");
+  throw lastError || new Error(`edge-tts-failed-for-selected-voice:${preferred}`);
 }
 
 function splitForGoogleTts(text) {
@@ -367,12 +394,13 @@ async function synthesizeArabicWithGoogleFallback(text) {
   return concatAudio(audioChunks.map((buf) => new Uint8Array(buf)));
 }
 
-async function synthesizeArabicRobust(text, preferredVoiceId) {
+async function synthesizeArabicRobust(text, preferredVoiceId, allowGoogleFallback = false) {
   try {
     return await synthesizeArabicWithEdgeRetry(text, preferredVoiceId);
   } catch (edgeError) {
+    if (!allowGoogleFallback) throw edgeError;
     const audioBuf = await synthesizeArabicWithGoogleFallback(text);
-    return { audioBuf, voice: "ar", provider: `google-translate-tts-fallback; edge_error=${String(edgeError?.message || "edge failed").slice(0, 120)}` };
+    return { audioBuf, voice: normalizeVoiceId(preferredVoiceId), provider: `${SHAPED_GOOGLE_FALLBACK_PROVIDER}; edge_error=${String(edgeError?.message || "edge failed").slice(0, 120)}` };
   }
 }
 
@@ -383,7 +411,7 @@ export async function GET(req) {
   if (!rawText) {
     return jsonResponse({
       ok: true,
-      provider: "edge-tts-with-google-fallback",
+      provider: "edge-tts-with-shaped-google-fallback",
       default_voice: DEFAULT_ARABIC_VOICE,
       voices: ARABIC_EDGE_VOICES
     });
@@ -394,10 +422,11 @@ export async function GET(req) {
   if (validationError) return textResponse(validationError, 400);
 
   const voice = normalizeVoiceId(url.searchParams.get("voice"));
+  const allowGoogleFallback = /^(1|true|yes)$/i.test(String(url.searchParams.get("allowGoogleFallback") || ""));
 
   try {
-    const result = await synthesizeArabicRobust(text, voice);
-    return audioResponse(result.audioBuf, result.voice, result.provider);
+    const result = await synthesizeArabicRobust(text, voice, allowGoogleFallback);
+    return audioResponse(result.audioBuf, result.voice, result.provider, voice);
   } catch (error) {
     const message = String(error?.message || "TTS failed");
     return textResponse(`TTS failed: ${message}`, 502);
@@ -414,10 +443,11 @@ export async function POST(req) {
   if (validationError) return textResponse(validationError, 400);
 
   const voice = normalizeVoiceId(body?.voice || body?.urgent_voice);
+  const allowGoogleFallback = body?.allowGoogleFallback === true;
 
   try {
-    const result = await synthesizeArabicRobust(text, voice);
-    return audioResponse(result.audioBuf, result.voice, result.provider);
+    const result = await synthesizeArabicRobust(text, voice, allowGoogleFallback);
+    return audioResponse(result.audioBuf, result.voice, result.provider, voice);
   } catch (error) {
     const message = String(error?.message || "TTS failed");
     return textResponse(`TTS failed: ${message}`, 502);
