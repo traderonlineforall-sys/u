@@ -44,7 +44,14 @@ const ARABIC_EDGE_VOICES = [
 ];
 
 const DEFAULT_ARABIC_VOICE = "ar-EG-SalmaNeural";
-const FALLBACK_ARABIC_VOICES = [];
+const FALLBACK_ARABIC_VOICES = [
+  "ar-EG-SalmaNeural",
+  "ar-EG-ShakirNeural",
+  "ar-SA-ZariyahNeural",
+  "ar-SA-HamedNeural",
+  "ar-AE-FatimaNeural",
+  "ar-AE-HamdanNeural"
+];
 const VOICE_BY_ID = new Map(ARABIC_EDGE_VOICES.map((voice) => [voice.id, voice]));
 
 function textResponse(message, status = 400) {
@@ -298,7 +305,7 @@ function waitForEdgeAudio(socket) {
       cleanup();
       try { socket.close(); } catch {}
       reject(new Error("edge-tts-timeout"));
-    }, 6500);
+    }, 9500);
 
     socket.addEventListener("message", onMessage);
     socket.addEventListener("close", onClose);

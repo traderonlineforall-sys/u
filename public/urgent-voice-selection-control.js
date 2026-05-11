@@ -1,22 +1,23 @@
 /*
  * Urgent voice selection controller.
  * Scope: #SR_URGENT_TICKER voice button only.
- * Goal: preserve the working normal/private playback path, but make the chosen
- * voice audible and visible instead of silently sounding like one fallback voice.
+ * Goal: keep Arabic TTS natural by playing the MP3 exactly as generated.
+ * Avoid WebAudio decoding/playbackRate changes because they distort Arabic voices
+ * and can fail on fallback MP3 streams.
  */
 (function(){
-  if (window.__UA07_URGENT_VOICE_SELECTION_CONTROL_V2) return;
-  window.__UA07_URGENT_VOICE_SELECTION_CONTROL_V2 = true;
+  if (window.__UA07_URGENT_VOICE_SELECTION_CONTROL_V3) return;
+  window.__UA07_URGENT_VOICE_SELECTION_CONTROL_V3 = true;
 
-  // This branch intentionally lets this controller own the urgent voice button.
-  // It prevents the previous auto-activation helper from also handling the same
-  // trusted click and briefly showing AbortError before the selected voice plays.
+  // Let this controller own the urgent voice button and prevent the older helper
+  // from double-handling the same click.
+  window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V10 = true;
   window.__UA07_URGENT_VOICE_AUTO_ACTIVATION_V9 = true;
 
   var PLAY_SELECTOR = 'button[data-sr-urgent-voice-button="1"]';
   var DEFAULT_VOICE = 'ar-EG-SalmaNeural';
-  var audioCtx = null;
-  var activeSource = null;
+  var activeAudio = null;
+  var activeUrl = '';
   var activeKey = '';
   var lastLaunchKey = '';
   var lastLaunchAt = 0;
@@ -73,48 +74,81 @@
     btn.style.display = 'none';
     btn.setAttribute('aria-hidden', 'true');
   }
-  function getAudioContext(){
-    if (audioCtx) return audioCtx;
-    var Ctor = window.AudioContext || window.webkitAudioContext;
-    if (!Ctor) return null;
-    audioCtx = new Ctor();
-    return audioCtx;
-  }
   function stopActive(){
-    try { if (activeSource) activeSource.stop(0); } catch {}
-    try { if (activeSource) activeSource.disconnect(); } catch {}
-    activeSource = null;
+    try {
+      if (activeAudio) {
+        activeAudio.pause();
+        activeAudio.removeAttribute('src');
+        activeAudio.load && activeAudio.load();
+      }
+    } catch {}
+    try { if (activeUrl) URL.revokeObjectURL(activeUrl); } catch {}
+    activeAudio = null;
+    activeUrl = '';
     activeKey = '';
   }
-  function voiceProfile(voice){
-    var v = String(voice || '').toLowerCase();
-    var male = /shakir|hamed|hamdan|taim|fahed|moaz|ali|bassel|rami|jamal|abdullah|laith|hedi|saleh/.test(v);
-    var gulf = /sa-|ae-|kw-|qa-|bh-|om-/.test(v);
-    var levant = /jo-|lb-|sy-/.test(v);
-    var maghreb = /ma-|tn-/.test(v);
-
-    if (male && gulf) return { rate: 0.78, label: 'رجالي خليجي' };
-    if (male) return { rate: 0.72, label: 'رجالي' };
-    if (gulf) return { rate: 1.08, label: 'نسائي خليجي' };
-    if (levant) return { rate: 0.96, label: 'نسائي شامي' };
-    if (maghreb) return { rate: 1.12, label: 'نسائي مغاربي' };
-    return { rate: 1.0, label: 'نسائي مصري' };
+  function isAutoplayBlocked(error){
+    var name = String((error && error.name) || '');
+    var message = String((error && error.message) || '');
+    return /NotAllowedError/i.test(name) || /autoplay|user gesture|user activation|not allowed/i.test(message);
   }
-  function makeUrl(text, voice){
-    return '/api/urgent-tts?allowGoogleFallback=1&voice=' + encodeURIComponent(voice) + '&text=' + encodeURIComponent(text) + '&t=' + Date.now().toString(36);
-  }
-  async function fetchTts(text, voice){
-    var res = await fetch(makeUrl(text, voice), { method: 'GET', cache: 'no-store' });
-    var provider = String(res.headers.get('x-ua07-tts-provider') || 'unknown');
-    var actualVoice = String(res.headers.get('x-ua07-tts-voice') || voice);
-    var contentType = String(res.headers.get('content-type') || '').toLowerCase();
-    if (!res.ok) throw new Error('TTS HTTP ' + res.status);
-    if (contentType && contentType.indexOf('audio') === -1 && contentType.indexOf('mpeg') === -1) {
-      throw new Error('TTS invalid content: ' + contentType);
+  async function fetchTtsBlob(text, voice, allowGoogleFallback){
+    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = controller ? setTimeout(function(){ try { controller.abort(); } catch {} }, 12000) : null;
+    try {
+      var res = await fetch('/api/urgent-tts', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        cache: 'no-store',
+        body: JSON.stringify({
+          text: String(text || ''),
+          voice: String(voice || DEFAULT_VOICE),
+          allowGoogleFallback: !!allowGoogleFallback
+        }),
+        signal: controller && controller.signal
+      });
+      var provider = String(res.headers.get('x-ua07-tts-provider') || 'unknown');
+      var actualVoice = String(res.headers.get('x-ua07-tts-voice') || voice || DEFAULT_VOICE);
+      var contentType = String(res.headers.get('content-type') || '').toLowerCase();
+      if (!res.ok) throw new Error('TTS HTTP ' + res.status);
+      if (contentType && contentType.indexOf('audio') === -1 && contentType.indexOf('mpeg') === -1 && contentType.indexOf('octet-stream') === -1) {
+        throw new Error('TTS invalid content: ' + contentType);
+      }
+      var blob = await res.blob();
+      if (!blob || blob.size < 128) throw new Error('TTS empty audio');
+      return { blob: blob, provider: provider, actualVoice: actualVoice };
+    } finally {
+      if (timer) clearTimeout(timer);
     }
-    var buffer = await res.arrayBuffer();
-    if (!buffer || buffer.byteLength < 128) throw new Error('TTS empty audio');
-    return { buffer: buffer, provider: provider, actualVoice: actualVoice };
+  }
+  async function fetchTtsBlobRobust(text, voice){
+    try {
+      return await fetchTtsBlob(text, voice, false);
+    } catch (edgeError) {
+      // Last resort only. It may sound less natural, but it keeps the message playable
+      // when Edge blocks or times out.
+      var fallback = await fetchTtsBlob(text, voice, true);
+      fallback.edgeError = edgeError;
+      return fallback;
+    }
+  }
+  function createAudioFromBlob(blob){
+    if (activeUrl) {
+      try { URL.revokeObjectURL(activeUrl); } catch {}
+    }
+    activeUrl = URL.createObjectURL(blob);
+    var audio = new Audio(activeUrl);
+    audio.preload = 'auto';
+    audio.autoplay = false;
+    audio.setAttribute('playsinline', '');
+    audio.playsInline = true;
+    // Keep the natural pitch/rate from the generated Arabic voice.
+    try { audio.playbackRate = 1; } catch {}
+    try { audio.preservesPitch = true; } catch {}
+    try { audio.mozPreservesPitch = true; } catch {}
+    try { audio.webkitPreservesPitch = true; } catch {}
+    activeAudio = audio;
+    return audio;
   }
   async function playSelectedVoice(btn){
     var text = getText(btn);
@@ -130,35 +164,41 @@
     stopActive();
     activeKey = key;
     hideButton(btn);
-    setStatus('جاري تجهيز الصوت المختار: ' + voiceLabel(requestedVoice));
+    setStatus('جاري تجهيز الصوت العربي: ' + voiceLabel(requestedVoice));
 
-    var ctx = getAudioContext();
-    if (!ctx) throw new Error('WebAudio غير مدعوم');
-    try { if (ctx.state === 'suspended') await ctx.resume(); } catch {}
-
-    var result = await fetchTts(text, requestedVoice);
+    var result = await fetchTtsBlobRobust(text, requestedVoice);
     if (!isVisibleUrgent() || activeKey !== key) return;
 
-    var decoded = await ctx.decodeAudioData(result.buffer.slice(0));
-    if (!isVisibleUrgent() || activeKey !== key) return;
+    var audio = createAudioFromBlob(result.blob);
+    var providerText = /fallback|google/i.test(result.provider) ? 'صوت احتياطي' : 'صوت Edge طبيعي';
 
-    var selected = voiceProfile(requestedVoice);
-    var source = ctx.createBufferSource();
-    source.buffer = decoded;
-    source.playbackRate.value = Math.max(0.65, Math.min(1.16, selected.rate || 1));
-    source.connect(ctx.destination);
-    activeSource = source;
-
-    var providerText = /fallback|google/i.test(result.provider) ? 'Fallback قريب من الاختيار' : 'Edge voice';
-    setStatus('جاري القراءة: ' + voiceLabel(requestedVoice) + ' - ' + providerText);
-
-    source.onended = function(){
-      if (activeSource === source) activeSource = null;
-      if (!isVisibleUrgent()) return;
+    audio.onplaying = function(){
+      if (!isVisibleUrgent() || activeKey !== key) return;
+      setStatus('جاري القراءة: ' + voiceLabel(requestedVoice) + ' - ' + providerText);
+      hideButton(getButton());
+    };
+    audio.onended = function(){
+      if (!isVisibleUrgent() || activeKey !== key) return;
       setStatus('انتهت القراءة - آخر صوت: ' + voiceLabel(requestedVoice));
       showButton(getButton());
     };
-    source.start(0);
+    audio.onerror = function(){
+      if (!isVisibleUrgent() || activeKey !== key) return;
+      setStatus('تعذر تشغيل الصوت - اضغط لإعادة المحاولة');
+      showButton(getButton());
+    };
+
+    try {
+      await audio.play();
+    } catch (error) {
+      if (!isVisibleUrgent() || activeKey !== key) return;
+      if (isAutoplayBlocked(error)) {
+        setStatus('المتصفح منع التشغيل التلقائي - اضغط تشغيل الصوت');
+      } else {
+        setStatus('تعذر تشغيل الصوت: ' + String((error && error.message) || error || 'unknown'));
+      }
+      showButton(getButton());
+    }
   }
 
   function shouldHandleKey(event){
@@ -184,7 +224,7 @@
 
     playSelectedVoice(btn).catch(function(error){
       if (!isVisibleUrgent()) return;
-      setStatus('تعذر تشغيل الصوت المختار: ' + String(error && error.message || error || 'unknown'));
+      setStatus('تعذر تشغيل الصوت المختار: ' + String((error && error.message) || error || 'unknown'));
       showButton(getButton());
     });
   }

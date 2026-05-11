@@ -9,6 +9,10 @@ function j(body, init){
 const ALLOWED_TABLES = new Set(["suggestions","support_messages","support_users","blocks","announcements","suggestion_replies"]);
 
 export async function POST(req){
+  const so = enforceSameOrigin(req);
+  if(!so.ok) return j({ error: so.error }, { status: so.status || 403 });
+  const sess = await requireUserSession(req);
+  if(!sess.ok) return j({ error: sess.error }, { status: sess.status || 401 });
   const body = await req.json().catch(()=> ({}));
   const chk = requireAdminPassword(body);
   if(!chk.ok) return j({ error: chk.error }, { status: 401 });
