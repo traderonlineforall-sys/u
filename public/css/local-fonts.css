@@ -1,29 +1,29 @@
-/* Local fonts for stable original layout metrics, using lighter/safe WOFF2 assets. */
+/* Local fonts for full offline usage */
 @font-face {
   font-family: 'Open Sans';
   font-style: normal;
   font-weight: 400;
-  src: url('../fonts/OpenSans-Regular.woff2') format('woff2');
+  src: url('../fonts/OpenSans-Regular.ttf') format('truetype');
   font-display: swap;
 }
 @font-face {
   font-family: 'Open Sans';
   font-style: italic;
   font-weight: 400;
-  src: url('../fonts/OpenSans-Italic.woff2') format('woff2');
+  src: url('../fonts/OpenSans-Italic.ttf') format('truetype');
   font-display: swap;
 }
 @font-face {
   font-family: 'Open Sans';
   font-style: normal;
   font-weight: 700;
-  src: url('../fonts/OpenSans-Bold.woff2') format('woff2');
+  src: url('../fonts/OpenSans-Bold.ttf') format('truetype');
   font-display: swap;
 }
 @font-face {
   font-family: 'Open Sans';
   font-style: italic;
   font-weight: 700;
-  src: url('../fonts/OpenSans-BoldItalic.woff2') format('woff2');
+  src: url('../fonts/OpenSans-BoldItalic.ttf') format('truetype');
   font-display: swap;
 }

@@ -902,6 +902,7 @@
 </style>
 
 </head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 
 <body>
 
@@ -3400,16 +3401,11 @@ const MORE_SCROLL_TO_RECOMPACT = Math.max(40, Math.round(SCROLL_THRESHOLD * 0.5)
   const notification = document.getElementById("notification");
 
   function copyToClipboard(element) {
-    var source = document.querySelector(element);
-    var temp = document.createElement("textarea");
-    temp.value = source ? source.textContent : "";
-    temp.setAttribute("readonly", "");
-    temp.style.position = "fixed";
-    temp.style.left = "-9999px";
-    document.body.appendChild(temp);
-    temp.select();
+    var $temp = $("<input>");
+    $("body").append($temp);
+    $temp.val($(element).text()).select();
     document.execCommand("copy");
-    document.body.removeChild(temp);
+    $temp.remove();
 
     notification.textContent = "تم النسخ ✅";
     notification.style.opacity = 1;
