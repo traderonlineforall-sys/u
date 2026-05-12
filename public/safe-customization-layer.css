@@ -145,3 +145,59 @@
   }
 
 }
+
+/* ===== SR_SAFE_LAYOUT_LOCK_V1 =====
+ * Purpose: restore the original desktop visual ordering and keep it stable
+ * when browser zoom is changed to 90% on desktop screens.
+ * Scope: CSS-only. No SR link logic, no urgent voice logic, no HTML reorder.
+ */
+@media (min-width: 900px) {
+  html,
+  body,
+  body #myBody {
+    min-width: 1180px !important;
+  }
+
+  body #myBody {
+    max-width: none !important;
+  }
+
+  body .mndo-search-logo-row {
+    width: 1365px !important;
+    min-width: 1365px !important;
+    max-width: 1365px !important;
+    margin-left: 50% !important;
+    margin-right: 0 !important;
+    transform: translateX(-50%) !important;
+    padding-left: 493px !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-start !important;
+    align-items: flex-start !important;
+    gap: 54px !important;
+    box-sizing: border-box !important;
+  }
+
+  body .mndo-search-hk-anchor,
+  body .mndo-search-logo-row .search-container {
+    flex: 0 0 400px !important;
+    width: 400px !important;
+    min-width: 400px !important;
+    max-width: 400px !important;
+  }
+
+  body .mndo-header-logo-slot {
+    flex: 0 0 176px !important;
+    width: 176px !important;
+    min-width: 176px !important;
+    max-width: 176px !important;
+  }
+
+  body #arabiccNumber,
+  body #arabicNumber,
+  body #copyBtn,
+  body #copyBtn1,
+  body #bat2 {
+    flex: 0 0 auto !important;
+  }
+}
+/* ===== /SR_SAFE_LAYOUT_LOCK_V1 ===== */
