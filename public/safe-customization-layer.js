@@ -39,7 +39,7 @@
     var link = document.createElement("link");
     link.id = "safeCustomizationLayerCss";
     link.rel = "stylesheet";
-    link.href = "./safe-customization-layer.css";
+    link.href = "./safe-customization-layer.css?v=20260512-layoutfreeze4";
     document.head.appendChild(link);
   }
 
@@ -167,6 +167,58 @@
     }, 15000);
   }
 
+
+
+  function stabilizeDesktopMenuDirection() {
+    var BASE_RIGHT = 1366;
+    function contentFor(host) {
+      if (!host || !host.querySelector) return null;
+      return host.querySelector('.sub-dropdown-content') || host.querySelector('.dropdown-content');
+    }
+    function adjust(host) {
+      var panel = contentFor(host);
+      if (!panel || !panel.getBoundingClientRect) return;
+      panel.classList.remove('open-left');
+      var rect = panel.getBoundingClientRect();
+      if (rect && rect.right > BASE_RIGHT) {
+        panel.classList.add('open-left');
+      }
+    }
+    ['mouseenter', 'mouseover', 'pointerenter', 'pointerover'].forEach(function (name) {
+      document.addEventListener(name, function (event) {
+      var host = event.target && event.target.closest ? event.target.closest('.sub-dropdown, .dropdown') : null;
+      if (!host) return;
+      try { requestAnimationFrame(function () { adjust(host); }); }
+      catch (_) { setTimeout(function () { adjust(host); }, 0); }
+      }, true);
+    });
+  }
+
+  function pinMainLayoutAfterLegacyNudges() {
+    var searchBox = document.querySelector('.mndo-search-hk-anchor .search-container');
+    if (searchBox) {
+      try {
+        searchBox.style.removeProperty('top');
+        searchBox.style.removeProperty('left');
+        searchBox.style.removeProperty('right');
+      } catch (_) {}
+    }
+  }
+
+  function initLayoutFreeze() {
+    document.documentElement.classList.add('sr-desktop-layout-freeze-v4');
+    document.body && document.body.classList.add('sr-desktop-layout-freeze-v4');
+    stabilizeDesktopMenuDirection();
+    pinMainLayoutAfterLegacyNudges();
+    [0, 50, 250, 900].forEach(function (delay) {
+      setTimeout(pinMainLayoutAfterLegacyNudges, delay);
+    });
+    window.addEventListener('resize', function () {
+      setTimeout(pinMainLayoutAfterLegacyNudges, 0);
+      setTimeout(pinMainLayoutAfterLegacyNudges, 140);
+    }, true);
+  }
+
   window.SafeCustomizationLayer = Object.freeze({
     version: "1.0.0",
     applyAllStateClasses: applyAllStateClasses,
@@ -174,12 +226,15 @@
     applyUiStateClasses: applyUiStateClasses,
     createScopedStyle: createScopedStyle,
     whenElement: whenElement,
-    setStateClass: setStateClass
+    setStateClass: setStateClass,
+    initLayoutFreeze: initLayoutFreeze,
+    pinMainLayoutAfterLegacyNudges: pinMainLayoutAfterLegacyNudges
   });
 
   ready(function () {
     ensureCssLoaded();
     applyAllStateClasses();
     initUrgentTickerOverlayMove();
+    initLayoutFreeze();
   });
 })();

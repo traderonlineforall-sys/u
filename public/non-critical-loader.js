@@ -31,7 +31,7 @@
     if (loadLayoutFixes._done) return;
     loadLayoutFixes._done = true;
     [
-      './safe-customization-layer.js'
+      './safe-customization-layer.js?v=20260512-layoutfreeze4'
     ].forEach(function(src){
       safeImport(src);
     });
