@@ -31,8 +31,7 @@
     if (loadLayoutFixes._done) return;
     loadLayoutFixes._done = true;
     [
-      './safe-customization-layer.js',
-      './search-results-repricing-fix.js?v=first-baseline-admin-repricing-1'
+      './safe-customization-layer.js'
     ].forEach(function(src){
       safeImport(src);
     });
