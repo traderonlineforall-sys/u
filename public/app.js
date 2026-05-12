@@ -2828,6 +2828,17 @@ function resetAllPackages() {
                                                                         }
                                                                 }
 
+                                                                function getSelectedQuotaPackageName() {
+                                                                        var selectedOption = document.querySelector('#pkgs option:checked');
+                                                                        if (!selectedOption || selectedOption.value === 'other' || selectedOption.value === '') return 'الباقه الاساسيه';
+                                                                        var quota = selectedOption.getAttribute('data-quota');
+                                                                        var label = selectedOption.textContent.trim();
+                                                                        if (quota) {
+                                                                                label = label.replace(quota, '').trim();
+                                                                        }
+                                                                        return label || 'الباقه الاساسيه';
+                                                                }
+
                                                                 function buildQuotaSummaryHtml() {
                                                                         var packageText = document.getElementById('pq') ? document.getElementById('pq').textContent.trim() : '';
                                                                         var remainingText = document.getElementById('rq') ? document.getElementById('rq').textContent.trim() : '';
@@ -2835,7 +2846,8 @@ function resetAllPackages() {
                                                                         var packageDisplay = getQuotaDisplayData(packageText, null).exact;
                                                                         var remainingDisplay = getQuotaDisplayData(remainingText, null).exact;
                                                                         var consumedDisplay = getQuotaDisplayData(consumedText, null).exact;
-                                                                        return `الباقه الاساسيه  :	${packageDisplay}<br>
+                                                                        var packageLabel = getSelectedQuotaPackageName();
+                                                                        return `${packageLabel} :	${packageDisplay}<br>
 المتبقى  :	${remainingDisplay}<br>
 الاستهلاك  :	${consumedDisplay}`;
                                                                 }
@@ -2850,6 +2862,8 @@ function resetAllPackages() {
                                                                         var hasVisibleData = packageText !== '' || remainingText !== '' || consumedText !== '';
                                                                         nodes.card.hidden = !hasVisibleData;
                                                                         if (!hasVisibleData) return;
+                                                                        var packageLabelNode = nodes.packageValue.parentElement ? nodes.packageValue.parentElement.querySelector('.quota-label') : null;
+                                                                        if (packageLabelNode) packageLabelNode.textContent = getSelectedQuotaPackageName();
                                                                         setQuotaSummaryValue(nodes.packageValue, packageText, null);
                                                                         setQuotaSummaryValue(nodes.remainingValue, remainingText, rawBytes.remainingBytes);
                                                                         setQuotaSummaryValue(nodes.consumedValue, consumedText, rawBytes.consumedBytes);
@@ -2966,7 +2980,9 @@ function resetAllPackages() {
 
                                                                                 $("#bss_pkg").val("");
 
-                                                                                var selected = $("#pkgs option:selected").text().trim();
+                                                                                var selectedOption = $("#pkgs option:selected");
+                                                                                var selected = selectedOption.text().trim();
+                                                                                var selectedQuota = selectedOption.data('quota');
 
                                                                                 console.log(selected)
 
@@ -2975,7 +2991,7 @@ function resetAllPackages() {
 
                                                                                         $("#other_pkg").show();
 
-                                                                                } else if (selected.toLowerCase() == "please select") {
+                                                                                } else if (selected.toLowerCase() == "please select" || selectedOption.val() === "") {
                                                                                         $("#other_pkg").hide();
 
                                                                                         clearall();
@@ -2988,7 +3004,7 @@ function resetAllPackages() {
 
                                                                                         clearall();
 
-                                                                                        pkg = selected;
+                                                                                        pkg = selectedQuota || selected;
 
                                                                                         var pq = pkg
 
@@ -3394,6 +3410,11 @@ if (link && link.indexOf("srTypeId=103038004") !== -1) {
 if (link && link.indexOf("srTypeId=100047001") !== -1) {
                                         var fbbAdslNumber = (document.getElementById("arabicNumber").value || "").trim();
                                         var fbbServiceContent = "FBB Num (" + fbbAdslNumber + ") Accepted (3) GB for (2) days related tts - outage - ir  id (xxx) on mobile (xxx) ";
+                                        link = link.replace(/([?&]serviceContent=)[^&]*/i, "$1" + encodeURIComponent(fbbServiceContent));
+                                }
+if (link && link.indexOf("srTypeId=100047021") !== -1) {
+                                        var fbbAdslNumber = (document.getElementById("arabicNumber").value || "").trim();
+                                        var fbbServiceContent = "FBB Num (" + fbbAdslNumber + ") Accepted (3) GB for (5) days related Zero SELT tts  id (xxx) on mobile (xxx) ";
                                         link = link.replace(/([?&]serviceContent=)[^&]*/i, "$1" + encodeURIComponent(fbbServiceContent));
                                 }
 

@@ -452,9 +452,13 @@ function wire() {
 }
 
 function init() {
+  if (window.__srSuggestionsReady) return;
   if (!elInput || !elBtn || !elStatus || !elList) return;
 
   wire();
+  window.__srSuggestionsReady = true;
+  window.__srOpenSuggestionsPanel = openPanel;
+  window.__srCloseSuggestionsPanel = closePanel;
 
   if (!isConfigured()) {
     setStatus(`Configuration is missing. Please contact ${ADMIN_NAME}.`, "error");
@@ -498,4 +502,8 @@ function init() {
   });
 }
 
-document.addEventListener("DOMContentLoaded", init);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init, { once: true });
+} else {
+  init();
+}
