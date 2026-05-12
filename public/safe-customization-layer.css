@@ -100,7 +100,7 @@
   body #SR_URGENT_TICKER {
     position: fixed !important;
     /* Keep inline display:block untouched for urgent voice compatibility. */
-    top: 92px !important;
+    top: 72px !important;
     left: 50% !important;
     transform: translateX(-50%) !important;
     width: clamp(340px, 50vw, 560px) !important;
@@ -140,7 +140,7 @@
   @media (max-width: 720px) {
     body #SR_URGENT_TICKER {
       width: calc(100vw - 24px) !important;
-      top: 96px !important;
+      top: 82px !important;
     }
   }
 
