@@ -99,10 +99,11 @@
 
   body #SR_URGENT_TICKER {
     position: fixed !important;
-    top: 42px !important;
+    /* Keep inline display:block untouched for urgent voice compatibility. */
+    top: 92px !important;
     left: 50% !important;
     transform: translateX(-50%) !important;
-    width: min(1100px, calc(100vw - 24px)) !important;
+    width: clamp(340px, 50vw, 560px) !important;
     max-width: calc(100vw - 24px) !important;
     z-index: 2147483647 !important;
     box-sizing: border-box !important;
@@ -116,6 +117,31 @@
     border-radius: 14px !important;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28) !important;
     border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    overflow: hidden !important;
+  }
+
+  body #SR_URGENT_TICKER .sr-urgent-label {
+    display: none !important;
+  }
+
+  body #SR_URGENT_TICKER .sr-urgent-track {
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  body #SR_URGENT_TICKER .sr-urgent-ack {
+    flex: 0 0 auto !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+  }
+
+  @media (max-width: 720px) {
+    body #SR_URGENT_TICKER {
+      width: calc(100vw - 24px) !important;
+      top: 96px !important;
+    }
   }
 
 }
