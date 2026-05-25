@@ -13,13 +13,137 @@
     <link rel="dns-prefetch" href="//ajax.aspnetcdn.com">
     <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
     <link rel="dns-prefetch" href="//kit.fontawesome.com">
-    <link rel="preload" href="app.js?v=20260525-v10-safe-restore-themed-search" as="script">
-    <link rel="preload" href="safe-tool-upgrade.js?v=20260525-v10-safe-restore-themed-search" as="script">
+    <link rel="preload" href="app.js" as="script">
+    <link rel="preload" href="safe-tool-upgrade.js" as="script">
     <link rel="dns-prefetch" href="//fasahcfstjwdfthxzzxx.supabase.co">
     <link rel="dns-prefetch" href="//esm.sh">
     <link rel="preload" href="/uwk07-logo.webp" as="image" fetchpriority="high">
-    <link rel="stylesheet" href="styles.css?v=20260525-v10-safe-restore-themed-search">
-    <link rel="stylesheet" href="safe-tool-upgrade.css?v=20260525-v10-safe-restore-themed-search">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="safe-tool-upgrade.css">
+    <style id="mndo-fixed-menu-baseline-lock-css">
+/*
+ * Fixed Menu Baseline Lock
+ * الهدف: تثبيت ترتيب أزرار الأقسام والقوائم أسفلها على ترتيب عرض 100%.
+ * عند تصغير الشاشة يتم تصغير اللوحة بالكامل بدل إعادة ترتيب العناصر أو لفّها.
+ */
+:root {
+  --mndo-fixed-baseline-width: 1366px;
+  --mndo-fixed-layout-scale: 1;
+}
+
+html.mndo-fixed-menu-baseline-ready,
+html.mndo-fixed-menu-baseline-ready body {
+  overflow-x: hidden !important;
+}
+
+.mndo-menu-lock-viewport {
+  position: relative !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  contain: layout style;
+}
+
+.mndo-menu-lock-plane {
+  position: absolute !important;
+  top: 0 !important;
+  left: 50% !important;
+  width: var(--mndo-fixed-baseline-width) !important;
+  max-width: none !important;
+  min-width: var(--mndo-fixed-baseline-width) !important;
+  transform: translateX(-50%) scale(var(--mndo-fixed-layout-scale)) !important;
+  transform-origin: top center !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+  will-change: transform;
+}
+
+/* Main SR tabs: keep the exact row order; never wrap or reshuffle. */
+#tabs[data-mndo-fixed-baseline="1"] {
+  width: var(--mndo-fixed-baseline-width) !important;
+  min-width: var(--mndo-fixed-baseline-width) !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: visible !important;
+  gap: 10px !important;
+  white-space: nowrap !important;
+}
+
+#tabs[data-mndo-fixed-baseline="1"] .tablinks {
+  float: none !important;
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  min-width: max-content !important;
+}
+
+/* Active tab panel gets a fixed 100%-baseline coordinate plane. */
+.tabcontent[data-mndo-fixed-baseline="1"] {
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+.tabcontent[data-mndo-fixed-baseline="1"] > .mndo-tabcontent-lock-viewport {
+  position: relative !important;
+  width: 100% !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+  clear: both !important;
+}
+
+.tabcontent[data-mndo-fixed-baseline="1"] > .mndo-tabcontent-lock-viewport > .mndo-menu-lock-plane {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Dropdown rows/direct links inside panels: keep original order and prevent responsive reflow. */
+.tabcontent[data-mndo-fixed-baseline="1"] .dropdown,
+.tabcontent[data-mndo-fixed-baseline="1"] .navbar a,
+.tabcontent[data-mndo-fixed-baseline="1"] #singlelink,
+.tabcontent[data-mndo-fixed-baseline="1"] .singlelink-fixed-slot {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+}
+
+.tabcontent[data-mndo-fixed-baseline="1"] .dropdown-content,
+.tabcontent[data-mndo-fixed-baseline="1"] .sub-dropdown-content {
+  max-width: min(520px, calc(var(--mndo-fixed-baseline-width) - 24px)) !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+  z-index: 2147483000 !important;
+}
+
+/* Disable small-screen direction flips that move submenus away from their baseline place. */
+.tabcontent[data-mndo-fixed-baseline="1"] .sub-dropdown-content {
+  left: 100% !important;
+  right: auto !important;
+}
+
+.tabcontent[data-mndo-fixed-baseline="1"] .sub-dropdown-content.left,
+.tabcontent[data-mndo-fixed-baseline="1"] .sub-dropdown-content.open-left {
+  left: auto !important;
+  right: 100% !important;
+}
+
+/* Keep theme skins visual-only; this layer owns geometry. */
+html.ahly-premium-theme-live #tabs[data-mndo-fixed-baseline="1"],
+html.ahly-premium-theme-live .tabcontent[data-mndo-fixed-baseline="1"] > .mndo-tabcontent-lock-viewport > .mndo-menu-lock-plane {
+  overflow: visible !important;
+}
+
+@media (max-width: 700px) {
+  #tabs[data-mndo-fixed-baseline="1"] {
+    gap: 8px !important;
+  }
+}
+
+    </style>
     <link rel="icon" href="/favicon.ico?v=uwk07c">
 <!-- Eid visual theme (safe, toggleable, non-invasive) -->
     <link id="eidThemeLink" rel="stylesheet" href="eid-theme.css">
@@ -19775,10 +19899,327 @@ button {border-radius:999px !important;}
 
 
 
-    <script src="app.js?v=20260525-v10-safe-restore-themed-search"></script>
-    <script src="./search-results-stability-guard.js?v=20260525-v10-safe-restore-themed-search"></script>
+    <script src="app.js"></script>
+    <script src="./search-results-stability-guard.js?v=20260525-search-frame-polish"></script>
     <script src="haya-karima-smart-helper.js"></script>
-    <script src="safe-tool-upgrade.js?v=20260525-v10-safe-restore-themed-search"></script>
+    <script src="safe-tool-upgrade.js"></script>
+    <script id="mndo-fixed-menu-baseline-lock-js">
+(function () {
+  "use strict";
+
+  if (window.__mndoFixedMenuBaselineLockLoaded) return;
+  window.__mndoFixedMenuBaselineLockLoaded = true;
+
+  var MIN_BASELINE_WIDTH = 1366;
+  var UPDATE_DELAYS = [0, 60, 180, 420, 900];
+  var baselineWidth = MIN_BASELINE_WIDTH;
+  var resizeTimer = 0;
+  var mutationTimer = 0;
+  var ro = null;
+
+  var ROOT = document.documentElement;
+
+  function ready(fn) {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", fn, { once: true });
+    } else {
+      fn();
+    }
+  }
+
+  function viewportWidth() {
+    return Math.max(
+      document.documentElement ? document.documentElement.clientWidth || 0 : 0,
+      window.innerWidth || 0,
+      MIN_BASELINE_WIDTH
+    );
+  }
+
+  function visibleViewportWidth() {
+    return Math.max(
+      document.documentElement ? document.documentElement.clientWidth || 0 : 0,
+      window.innerWidth || 0,
+      320
+    );
+  }
+
+  function isElementNode(node) {
+    return node && node.nodeType === 1;
+  }
+
+  function cssEscapeId(id) {
+    if (window.CSS && typeof window.CSS.escape === "function") return window.CSS.escape(id);
+    return String(id || "").replace(/([ #;?%&,.+*~':"!^$[\]()=>|/@])/g, "\\$1");
+  }
+
+  function getTabs() {
+    return document.getElementById("tabs");
+  }
+
+  function getPanels() {
+    return Array.prototype.slice.call(document.querySelectorAll(".tabcontent"));
+  }
+
+  function getActivePanel() {
+    var activeBtn = document.querySelector("#tabs .tablinks.active");
+    var city = null;
+    if (activeBtn) {
+      var inline = activeBtn.getAttribute("onclick") || "";
+      var match = inline.match(/openCity\(event,\s*'([^']+)'\)/);
+      city = match && match[1] ? match[1] : null;
+    }
+    if (city) {
+      var byId = document.getElementById(city);
+      if (byId) return byId;
+    }
+    var panels = getPanels();
+    for (var i = 0; i < panels.length; i++) {
+      if (panels[i].style.display === "block") return panels[i];
+    }
+    return null;
+  }
+
+  function makeViewport(className) {
+    var viewport = document.createElement("div");
+    viewport.className = "mndo-menu-lock-viewport " + className;
+    viewport.setAttribute("data-mndo-menu-lock", "viewport");
+    return viewport;
+  }
+
+  function makePlane(className) {
+    var plane = document.createElement("div");
+    plane.className = "mndo-menu-lock-plane " + className;
+    plane.setAttribute("data-mndo-menu-lock", "plane");
+    return plane;
+  }
+
+  function wrapTabs() {
+    var tabs = getTabs();
+    if (!tabs || tabs.getAttribute("data-mndo-fixed-baseline") === "1") return;
+
+    var parent = tabs.parentNode;
+    if (!parent) return;
+
+    var viewport = makeViewport("mndo-tabs-lock-viewport");
+    var plane = makePlane("mndo-tabs-lock-plane");
+    parent.insertBefore(viewport, tabs);
+    viewport.appendChild(plane);
+    plane.appendChild(tabs);
+
+    tabs.setAttribute("data-mndo-fixed-baseline", "1");
+  }
+
+  function wrapPanel(panel) {
+    if (!panel || panel.getAttribute("data-mndo-fixed-baseline") === "1") return;
+
+    var viewport = makeViewport("mndo-tabcontent-lock-viewport");
+    var plane = makePlane("mndo-tabcontent-lock-plane");
+
+    while (panel.firstChild) {
+      plane.appendChild(panel.firstChild);
+    }
+
+    viewport.appendChild(plane);
+    panel.appendChild(viewport);
+    panel.setAttribute("data-mndo-fixed-baseline", "1");
+  }
+
+  function wrapPanels() {
+    getPanels().forEach(wrapPanel);
+  }
+
+  function elementIsRendered(el) {
+    if (!el) return false;
+    var cs = window.getComputedStyle(el);
+    return cs.display !== "none" && cs.visibility !== "hidden";
+  }
+
+  function measurePlaneHeight(plane) {
+    if (!plane) return 0;
+
+    var height = Math.max(plane.scrollHeight || 0, plane.offsetHeight || 0);
+    var planeRect;
+    try { planeRect = plane.getBoundingClientRect(); } catch (_) { planeRect = null; }
+
+    if (planeRect) {
+      var nodes = plane.children ? Array.prototype.slice.call(plane.children) : [];
+      for (var i = 0; i < nodes.length; i++) {
+        var child = nodes[i];
+        if (!isElementNode(child)) continue;
+        if (!elementIsRendered(child)) continue;
+        try {
+          var r = child.getBoundingClientRect();
+          var bottom = (r.bottom - planeRect.top) / currentScale();
+          if (Number.isFinite(bottom)) height = Math.max(height, Math.ceil(bottom));
+        } catch (_) {}
+      }
+    }
+
+    return Math.max(1, Math.ceil(height));
+  }
+
+  function currentScale() {
+    var raw = getComputedStyle(ROOT).getPropertyValue("--mndo-fixed-layout-scale");
+    var n = parseFloat(raw);
+    return Number.isFinite(n) && n > 0 ? n : 1;
+  }
+
+  function updateBaselineWidth() {
+    var tabs = getTabs();
+    var tabScroll = 0;
+    try { tabScroll = tabs ? tabs.scrollWidth || 0 : 0; } catch (_) {}
+
+    // Grow the baseline only. This captures the natural 100% layout when the user opens/maximizes the page,
+    // then preserves that coordinate system while shrinking below it.
+    baselineWidth = Math.max(baselineWidth, MIN_BASELINE_WIDTH, viewportWidth(), tabScroll + 24);
+    ROOT.style.setProperty("--mndo-fixed-baseline-width", Math.ceil(baselineWidth) + "px");
+  }
+
+  function updateScale() {
+    var scale = Math.min(1, visibleViewportWidth() / Math.max(MIN_BASELINE_WIDTH, baselineWidth));
+    ROOT.style.setProperty("--mndo-fixed-layout-scale", scale.toFixed(5));
+    ROOT.classList.add("mndo-fixed-menu-baseline-ready");
+    return scale;
+  }
+
+  function updateViewportHeight(viewport) {
+    if (!viewport) return;
+    var plane = viewport.querySelector(":scope > .mndo-menu-lock-plane");
+    if (!plane) return;
+    var height = measurePlaneHeight(plane);
+    var scaled = Math.ceil(height * currentScale());
+    var nextHeight = Math.max(1, scaled) + "px";
+    if (viewport.style.height !== nextHeight) viewport.style.height = nextHeight;
+  }
+
+  function updateAllHeights() {
+    var tabsVp = document.querySelector(".mndo-tabs-lock-viewport");
+    updateViewportHeight(tabsVp);
+
+    getPanels().forEach(function (panel) {
+      if (!panel || panel.style.display === "none") return;
+      var vp = panel.querySelector(":scope > .mndo-tabcontent-lock-viewport");
+      updateViewportHeight(vp);
+    });
+  }
+
+  function updateLayout() {
+    updateBaselineWidth();
+    updateScale();
+    updateAllHeights();
+  }
+
+  function scheduleUpdate(delay) {
+    window.setTimeout(updateLayout, typeof delay === "number" ? delay : 0);
+  }
+
+  function scheduleBurst() {
+    for (var i = 0; i < UPDATE_DELAYS.length; i++) scheduleUpdate(UPDATE_DELAYS[i]);
+  }
+
+  function patchOpenCity() {
+    if (typeof window.openCity !== "function" || window.openCity.__mndoFixedBaselinePatched) return;
+    var original = window.openCity;
+    var patched = function () {
+      var result = original.apply(this, arguments);
+      scheduleBurst();
+      return result;
+    };
+    patched.__mndoFixedBaselinePatched = true;
+    patched.__mndoOriginalOpenCity = original;
+    window.openCity = patched;
+  }
+
+  function bindEvents() {
+    window.addEventListener("resize", function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(scheduleBurst, 80);
+    }, { passive: true });
+
+    window.addEventListener("orientationchange", function () {
+      setTimeout(scheduleBurst, 120);
+    }, { passive: true });
+
+    document.addEventListener("click", function (evt) {
+      var target = evt.target && evt.target.closest ? evt.target.closest("#tabs .tablinks") : null;
+      if (target) scheduleBurst();
+    }, true);
+
+    if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(function () {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(updateAllHeights, 80);
+      });
+      document.querySelectorAll(".mndo-menu-lock-plane").forEach(function (plane) {
+        try { ro.observe(plane); } catch (_) {}
+      });
+    }
+
+    if (typeof MutationObserver !== "undefined") {
+      var mo = new MutationObserver(function (mutations) {
+        var shouldUpdate = false;
+        for (var i = 0; i < mutations.length; i++) {
+          if (mutations[i].type === "childList") { shouldUpdate = true; break; }
+          if (mutations[i].type === "attributes") {
+            var name = mutations[i].attributeName;
+            if (name === "style" || name === "class") { shouldUpdate = true; break; }
+          }
+        }
+        if (!shouldUpdate) return;
+        clearTimeout(mutationTimer);
+        mutationTimer = setTimeout(function () {
+          patchOpenCity();
+          updateAllHeights();
+        }, 80);
+      });
+      try {
+        mo.observe(document.documentElement, {
+          subtree: true,
+          childList: true,
+          attributes: true,
+          attributeFilter: ["style", "class"]
+        });
+      } catch (_) {}
+    }
+  }
+
+  function setKnownTabOrderAttributes() {
+    var order = [
+      "SR Sales",
+      "SR Technical",
+      "Installation OM",
+      "Fixed Voice",
+      "FTTH",
+      "Option Pack",
+      "CPE Config",
+      "Calculate",
+      "Call Back",
+      "Mobile"
+    ];
+
+    var buttons = Array.prototype.slice.call(document.querySelectorAll("#tabs .tablinks"));
+    buttons.forEach(function (btn, index) {
+      var label = (btn.textContent || "").replace(/\s+/g, " ").trim();
+      var orderIndex = order.indexOf(label);
+      if (orderIndex < 0 && /installation/i.test(label)) orderIndex = 2;
+      btn.setAttribute("data-mndo-fixed-order", String(orderIndex >= 0 ? orderIndex + 1 : index + 1));
+    });
+  }
+
+  function boot() {
+    wrapTabs();
+    wrapPanels();
+    setKnownTabOrderAttributes();
+    patchOpenCity();
+    bindEvents();
+    scheduleBurst();
+    window.addEventListener("load", scheduleBurst, { once: true });
+  }
+
+  ready(boot);
+})();
+
+    </script>
     <script src="outage-by-mail.js"></script>
     <!-- When the Tags overlay is open, hide all other elements via this CSS rule -->
     <style id="tagsOverlayCss">
@@ -19990,16 +20431,16 @@ button {border-radius:999px !important;}
 </div>
 
 
-<script type="module" src="./suggestions.js?v=20260525-v10-safe-restore-themed-search"></script>
+<script type="module" src="./suggestions.js"></script>
 
 <!-- Support + Admin UI wiring (partly lazy-loaded for faster first paint) -->
-<script type="module" src="./admin-message-client.js?v=20260525-v10-safe-restore-themed-search"></script>
-<script src="./runtime-safety-guard.js?v=20260525-v10-safe-restore-themed-search"></script>
+<script type="module" src="./admin-message-client.js"></script>
+<script src="./runtime-safety-guard.js?v=20260525-safe-upgrade"></script>
 
     <!-- Announcement client: handles admin announcements for all users -->
 
 	    <!-- Defer non-core visual helpers to keep first load lighter on weak devices -->
-	    <script src="./non-critical-loader.js?v=20260525-v10-safe-restore-themed-search"></script>
+	    <script src="./non-critical-loader.js?v=support-visible-20260426"></script>
 </body>
 
 </html>
