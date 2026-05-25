@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "../../../lib/server/admin.js";
 import { enforceSameOrigin, noStore } from "../../../lib/server/auth.js";
+export const dynamic = "force-dynamic";
 
 const TABLE = "suggestion_reactions";
 const ALLOWED_REACTIONS = new Set(["like", "love", "angry", "laugh", "sad", "slipper"]);

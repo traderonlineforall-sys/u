@@ -16,6 +16,10 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Missing area_code or landline' }, { status: 400 });
   }
 
+  if (!/^\d{1,5}$/.test(areaCode) || !/^\d{5,12}$/.test(landline)) {
+    return NextResponse.json({ error: 'Invalid area_code or landline' }, { status: 400 });
+  }
+
   const upstreamUrl = `https://10.19.44.2/ireport/api/haya_karima_api.php?area_code=${encodeURIComponent(areaCode)}&landline=${encodeURIComponent(landline)}`;
 
   const controller = new AbortController();
@@ -25,18 +29,23 @@ export async function GET(request) {
     const response = await fetch(upstreamUrl, {
       method: 'GET',
       cache: 'no-store',
+      redirect: 'manual',
       signal: controller.signal,
       headers: {
         'accept': 'application/json,text/html;q=0.9,*/*;q=0.8'
       }
     });
 
+    if (response.status >= 300 && response.status < 400) {
+      return NextResponse.json({ error: 'Upstream redirect blocked' }, { status: 502 });
+    }
+
     const text = await response.text();
     let payload;
     try {
       payload = JSON.parse(text);
     } catch (parseError) {
-      return NextResponse.json({ error: 'Invalid upstream payload', raw: text.slice(0, 500) }, { status: 502 });
+      return NextResponse.json({ error: 'Invalid upstream payload' }, { status: 502 });
     }
 
     return NextResponse.json(payload, { status: 200 });

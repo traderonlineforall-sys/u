@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCookieName, signSession } from "../../../lib/session.js";
 import { enforceSameOrigin, noStore } from "../../../lib/server/auth.js";
+export const dynamic = "force-dynamic";
 
 export const runtime = "nodejs";
 
@@ -11,7 +12,7 @@ export async function POST(request) {
   }
   const BASIC_USER = process.env.BASIC_AUTH_USER || "";
   const BASIC_PASS = process.env.BASIC_AUTH_PASS || "";
-  const SESSION_SECRET = process.env.SESSION_SECRET || process.env.BASIC_AUTH_PASS || "";
+  const SESSION_SECRET = process.env.SESSION_SECRET || "";
 
   if (!SESSION_SECRET) {
     return noStore(NextResponse.json(
