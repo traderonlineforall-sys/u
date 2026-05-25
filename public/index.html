@@ -20442,20 +20442,25 @@ button {border-radius:999px !important;}
 <!-- MNDO_TAGS_CLICK_MODAL_LAYER_FIX_START -->
 <style id="mndoTagsClickModalLayerFixCss">
   /*
-    Clean safe layer:
-    - Makes the real Tags button itself easier to press.
-    - Puts Support/Suggestions above the header/logo only when they are actually open.
-    - Does NOT open or force-display Admin. Admin opens only from its original logo trigger.
+    MNDO_DIALOG_REACTION_AHT_LIGHT_FIX_V3
+    One-file safe layer only:
+    - Suggestions close button is always on top and fully clickable.
+    - Reaction emoji menu opens above Suggestions instead of behind the overlay.
+    - Support/Suggestions stay above header/logo/buttons without forcing Admin open.
+    - AHT + Tags are locked after their first good position, so old scripts cannot push them upward.
+    - No heavy global click/keydown recalculation loops.
   */
+
+  /* Tags click target: easier click, but no visual jump or oversized hit layer. */
   #bat2,
   #MNDO_AHT_TAGS_STACK #bat2{
     box-sizing: border-box !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    min-width: 64px !important;
-    min-height: 32px !important;
-    padding: 7px 16px !important;
+    min-width: 60px !important;
+    min-height: 30px !important;
+    padding: 6px 14px !important;
     line-height: 1 !important;
     cursor: pointer !important;
     pointer-events: auto !important;
@@ -20463,31 +20468,65 @@ button {border-radius:999px !important;}
     user-select: none !important;
     -webkit-user-select: none !important;
     -webkit-tap-highlight-color: transparent !important;
-    position: relative !important;
-    overflow: visible !important;
+    transform: none !important;
+  }
+  #bat2:hover,
+  #bat2:active,
+  #MNDO_AHT_TAGS_STACK #bat2:hover,
+  #MNDO_AHT_TAGS_STACK #bat2:active{
+    transform: none !important;
   }
   #bat2:focus-visible,
   #MNDO_AHT_TAGS_STACK #bat2:focus-visible{
-    outline: 2px solid rgba(255,255,255,0.72) !important;
+    outline: 2px solid rgba(255,255,255,0.70) !important;
     outline-offset: 3px !important;
   }
-  #MNDO_AHT_TAGS_STACK{
+
+  /* Lock AHT + Tags in their captured good viewport position. */
+  #MNDO_AHT_TAGS_STACK.mndo-aht-tags-hard-lock{
+    position: fixed !important;
+    top: var(--mndo-aht-tags-top, 64px) !important;
+    right: var(--mndo-aht-tags-right, 0px) !important;
+    left: auto !important;
+    bottom: auto !important;
+    margin: 0 !important;
+    transform: none !important;
+    z-index: 9000 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px !important;
     pointer-events: auto !important;
-    overflow: visible !important;
+    white-space: nowrap !important;
+    contain: layout style !important;
+  }
+  #MNDO_AHT_TAGS_STACK.mndo-aht-tags-hard-lock #mndoQueryTimer,
+  #MNDO_AHT_TAGS_STACK.mndo-aht-tags-hard-lock #bat2{
+    position: static !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    margin: 0 !important;
+    transform: none !important;
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
   }
 
-  /* Only overlays that JS confirms as open get lifted. No attribute-space matching hacks. */
+  /* Open dialogs sit over every header/logo/tool element. */
   #suggestionsOverlay.mndo-dialog-layer-open,
   #supportNameOverlay.mndo-dialog-layer-open,
   #supportChatOverlay.mndo-dialog-layer-open{
     position: fixed !important;
     inset: 0 !important;
-    z-index: 2147483646 !important;
+    z-index: 2147483000 !important;
     isolation: isolate !important;
     pointer-events: auto !important;
-    background: rgba(0,0,0,0.72) !important;
-    -webkit-backdrop-filter: blur(4px) saturate(120%) !important;
-    backdrop-filter: blur(4px) saturate(120%) !important;
+    background: rgba(0,0,0,0.68) !important;
+    -webkit-backdrop-filter: blur(5px) saturate(120%) !important;
+    backdrop-filter: blur(5px) saturate(120%) !important;
   }
   #suggestionsOverlay.mndo-dialog-layer-open,
   #supportNameOverlay.mndo-dialog-layer-open,
@@ -20497,12 +20536,46 @@ button {border-radius:999px !important;}
   #adminOverlay.mndo-admin-layer-open{
     position: fixed !important;
     inset: 0 !important;
-    z-index: 2147483647 !important;
+    z-index: 2147483646 !important;
     isolation: isolate !important;
     pointer-events: auto !important;
   }
-  .mndo-dialog-layer-open .suggestions-modal,
-  .mndo-dialog-layer-open .suggestions-panel,
+
+  /* Suggestions close button fix: panel must not cover the close button. */
+  #suggestionsOverlay.mndo-dialog-layer-open .suggestions-modal{
+    position: relative !important;
+    z-index: 2 !important;
+    isolation: isolate !important;
+  }
+  #suggestionsOverlay.mndo-dialog-layer-open .suggestions-panel{
+    position: relative !important;
+    z-index: 1 !important;
+  }
+  #suggestionsOverlay #suggestionsCloseBtn,
+  #suggestionsOverlay.mndo-dialog-layer-open #suggestionsCloseBtn,
+  #suggestionsOverlay .suggestions-close{
+    position: absolute !important;
+    top: 10px !important;
+    right: 12px !important;
+    z-index: 20 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    color: rgba(255,255,255,0.96) !important;
+    background: rgba(15,16,24,0.78) !important;
+    border-color: rgba(255,255,255,0.26) !important;
+    line-height: 1 !important;
+    transform: none !important;
+  }
+  #suggestionsOverlay #suggestionsCloseBtn:hover{
+    filter: brightness(1.12) !important;
+    transform: none !important;
+  }
+
   .mndo-dialog-layer-open .support-modal,
   .mndo-dialog-layer-open .support-chat,
   #adminOverlay.mndo-admin-layer-open .admin-modal{
@@ -20511,7 +20584,7 @@ button {border-radius:999px !important;}
     isolation: isolate !important;
   }
 
-  /* While a front dialog is open, header/search/logo/buttons must not float above it. */
+  /* While a front dialog is open, header/search/logo/buttons cannot cover it. */
   body.mndo-front-dialog-open #MNDO_UA07_LOGO3,
   body.mndo-front-dialog-open #MNDO_UA07_LOGO,
   body.mndo-front-dialog-open #UA07_LUX_LOGO_BETWEEN,
@@ -20541,67 +20614,228 @@ button {border-radius:999px !important;}
     visibility: hidden !important;
     pointer-events: none !important;
   }
+
+  /* Reaction emoji menu must appear above the Suggestions overlay. */
+  #suggestionsOverlay .sr-react-open{
+    min-width: 28px !important;
+    min-height: 28px !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    position: relative !important;
+    z-index: 5 !important;
+    transform: none !important;
+  }
+  #suggestionsOverlay .sr-react-host,
+  #suggestionsOverlay .sr-suggest-react-anchor{
+    pointer-events: auto !important;
+    position: relative !important;
+    z-index: 4 !important;
+  }
+  #sr-react-menu,
+  #sr-react-menu.open{
+    z-index: 2147483602 !important;
+    pointer-events: auto !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  #sr-react-menu .choice,
+  #sr-react-menu .choice:hover,
+  #sr-react-menu .choice.active{
+    transform: none !important;
+    transition: background-color .12s ease, filter .12s ease !important;
+  }
 </style>
 <script id="mndoTagsClickModalLayerFixJs">
 (function(){
   'use strict';
 
-  function byId(id){ return document.getElementById(id); }
+  var ROOT = document.documentElement;
+  var lockedAhtTags = false;
+  var lockedTop = null;
+  var lockedRight = null;
+  var ahtTry = 0;
+  var dialogRaf = 0;
 
-  function isActuallyOpen(el){
+  function byId(id){ return document.getElementById(id); }
+  function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+  function px(n){ return Math.round(n) + 'px'; }
+
+  function isVisibleOpen(el, kind){
     if(!el) return false;
+    if(kind === 'suggestions'){
+      return !!(el.classList && el.classList.contains('is-open') && el.getAttribute('aria-hidden') !== 'true');
+    }
     if(el.getAttribute && el.getAttribute('aria-hidden') === 'true') return false;
-    if(el.style && String(el.style.display || '').trim().toLowerCase() === 'none') return false;
-    var cs = window.getComputedStyle ? window.getComputedStyle(el) : null;
+    var inlineDisplay = '';
+    try{ inlineDisplay = String(el.style && el.style.display || '').trim().toLowerCase(); }catch(e){}
+    if(inlineDisplay === 'none') return false;
+    var cs = null;
+    try{ cs = window.getComputedStyle ? window.getComputedStyle(el) : null; }catch(e){}
     if(cs && (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity || 1) === 0)) return false;
-    if(el.id === 'suggestionsOverlay') return !!(el.classList && el.classList.contains('is-open'));
+    /* Support/Admin overlays are hidden with inline display:none; if it is not none, they are actually open. */
     return true;
   }
 
-  function syncDialogLayer(){
+  function syncDialogLayerNow(){
+    dialogRaf = 0;
     var suggestions = byId('suggestionsOverlay');
     var supportName = byId('supportNameOverlay');
     var supportChat = byId('supportChatOverlay');
     var admin = byId('adminOverlay');
 
-    var suggestionsOpen = isActuallyOpen(suggestions);
-    var supportNameOpen = isActuallyOpen(supportName);
-    var supportChatOpen = isActuallyOpen(supportChat);
-    var adminOpen = isActuallyOpen(admin);
+    var suggestionsOpen = isVisibleOpen(suggestions, 'suggestions');
+    var supportNameOpen = isVisibleOpen(supportName, 'support');
+    var supportChatOpen = isVisibleOpen(supportChat, 'support');
+    var adminOpen = isVisibleOpen(admin, 'admin');
 
     if(suggestions) suggestions.classList.toggle('mndo-dialog-layer-open', suggestionsOpen);
     if(supportName) supportName.classList.toggle('mndo-dialog-layer-open', supportNameOpen);
     if(supportChat) supportChat.classList.toggle('mndo-dialog-layer-open', supportChatOpen);
     if(admin) admin.classList.toggle('mndo-admin-layer-open', adminOpen);
 
-    var frontOpen = suggestionsOpen || supportNameOpen || supportChatOpen || adminOpen;
-    document.body.classList.toggle('mndo-front-dialog-open', frontOpen);
-
-    var sr = byId('searchResults');
-    if(sr){
-      if(frontOpen){
-        sr.style.visibility = 'hidden';
-      }else{
-        sr.style.visibility = '';
-      }
-    }
+    document.body.classList.toggle('mndo-front-dialog-open', !!(suggestionsOpen || supportNameOpen || supportChatOpen || adminOpen));
   }
 
-  function watch(el){
-    if(!el || el.__mndoCleanDialogLayerWatched) return;
-    el.__mndoCleanDialogLayerWatched = true;
+  function scheduleDialogSync(delay){
+    if(delay){ setTimeout(scheduleDialogSync, delay); return; }
+    if(dialogRaf) return;
+    dialogRaf = window.requestAnimationFrame ? requestAnimationFrame(syncDialogLayerNow) : setTimeout(syncDialogLayerNow, 0);
+  }
+
+  function closeSuggestionsHard(){
+    var overlay = byId('suggestionsOverlay');
+    if(!overlay) return;
+    overlay.classList.remove('is-open');
+    overlay.classList.remove('mndo-dialog-layer-open');
+    overlay.setAttribute('aria-hidden', 'true');
+    var fab = byId('suggestionsFab');
+    if(fab) fab.setAttribute('aria-expanded', 'false');
+    var menu = byId('sr-react-menu');
+    if(menu) menu.classList.remove('open');
+    scheduleDialogSync();
+    scheduleDialogSync(60);
+  }
+
+  function watchDialog(el){
+    if(!el || el.__mndoLightDialogWatched) return;
+    el.__mndoLightDialogWatched = true;
     try{
-      new MutationObserver(syncDialogLayer).observe(el, { attributes:true, attributeFilter:['class','style','aria-hidden'] });
+      new MutationObserver(function(){ scheduleDialogSync(); }).observe(el, { attributes:true, attributeFilter:['class','style','aria-hidden'] });
     }catch(e){}
   }
 
+  function ensureReactionMenuLayer(){
+    var menu = byId('sr-react-menu');
+    if(!menu) return;
+    menu.style.zIndex = '2147483602';
+    menu.style.pointerEvents = 'auto';
+    menu.style.visibility = 'visible';
+    menu.style.opacity = '1';
+  }
+
+  function getAhtTagsWrap(){
+    var wrap = byId('MNDO_AHT_TAGS_STACK');
+    var tags = byId('bat2');
+    var aht = byId('mndoQueryTimer');
+    if(!wrap && (tags || aht)){
+      wrap = document.createElement('div');
+      wrap.id = 'MNDO_AHT_TAGS_STACK';
+      document.body.appendChild(wrap);
+    }
+    if(wrap){
+      try{ if(aht && aht.parentNode !== wrap) wrap.insertBefore(aht, wrap.firstChild); }catch(e){}
+      try{ if(tags && tags.parentNode !== wrap) wrap.appendChild(tags); }catch(e){}
+      try{ if(aht && tags && aht.nextSibling !== tags) wrap.insertBefore(tags, aht.nextSibling); }catch(e){}
+    }
+    return wrap;
+  }
+
+  function headerFallbackTop(){
+    var row = document.querySelector('.mndo-search-logo-row') || document.querySelector('.search-container') || byId('MNDO_UA07_LOGO3');
+    if(row){
+      try{
+        var r = row.getBoundingClientRect();
+        if(r && isFinite(r.top)) return clamp(Math.round(r.top + 2), 14, 120);
+      }catch(e){}
+    }
+    return 64;
+  }
+
+  function captureAhtTagsPosition(){
+    var wrap = getAhtTagsWrap();
+    if(!wrap) return false;
+
+    var r = null;
+    try{ r = wrap.getBoundingClientRect(); }catch(e){}
+    var top = r ? Math.round(r.top) : NaN;
+    var right = r ? Math.round(window.innerWidth - r.right) : NaN;
+
+    /* Do not lock the broken "stuck at page top" state. */
+    if(!isFinite(top) || top < 8) top = headerFallbackTop();
+    if(!isFinite(right) || right < 0 || right > window.innerWidth - 40) right = 0;
+
+    lockedTop = top;
+    lockedRight = right;
+    lockedAhtTags = true;
+    applyAhtTagsLock();
+    return true;
+  }
+
+  function applyAhtTagsLock(){
+    var wrap = getAhtTagsWrap();
+    if(!wrap) return false;
+    if(!lockedAhtTags){
+      ahtTry++;
+      if(ahtTry < 40){ setTimeout(applyAhtTagsLock, 80); }
+      return captureAhtTagsPosition();
+    }
+    wrap.classList.add('mndo-aht-tags-hard-lock');
+    wrap.style.setProperty('--mndo-aht-tags-top', px(lockedTop == null ? headerFallbackTop() : lockedTop));
+    wrap.style.setProperty('--mndo-aht-tags-right', px(lockedRight == null ? 0 : lockedRight));
+    return true;
+  }
+
   function init(){
-    ['suggestionsOverlay','supportNameOverlay','supportChatOverlay','adminOverlay'].forEach(function(id){ watch(byId(id)); });
-    document.addEventListener('click', function(){ setTimeout(syncDialogLayer, 0); }, true);
-    document.addEventListener('keydown', function(){ setTimeout(syncDialogLayer, 0); }, true);
-    window.addEventListener('resize', syncDialogLayer, { passive:true });
-    setTimeout(syncDialogLayer, 0);
-    setTimeout(syncDialogLayer, 300);
+    ['suggestionsOverlay','supportNameOverlay','supportChatOverlay','adminOverlay'].forEach(function(id){ watchDialog(byId(id)); });
+
+    document.addEventListener('click', function(e){
+      var t = e.target;
+      if(t && t.closest && t.closest('#suggestionsCloseBtn')){
+        e.preventDefault();
+        e.stopPropagation();
+        closeSuggestionsHard();
+        return;
+      }
+      if(t && t.closest && t.closest('#suggestionsFab,#supportToggleBtn,#supportNameCloseBtn,#supportChatCloseBtn,#supportChatBackBtn,#adminCloseBtn,#UA07_SECRET_ENVELOPE')){
+        scheduleDialogSync();
+        scheduleDialogSync(80);
+      }
+      if(t && t.closest && t.closest('button.sr-react-open,#sr-react-menu button.choice')){
+        setTimeout(ensureReactionMenuLayer, 0);
+        setTimeout(ensureReactionMenuLayer, 80);
+      }
+    }, true);
+
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape') scheduleDialogSync(30);
+    }, true);
+
+    window.addEventListener('resize', function(){
+      scheduleDialogSync(40);
+      /* Keep the captured AHT/Tags place; only re-apply variables after old scripts run. */
+      setTimeout(applyAhtTagsLock, 90);
+    }, { passive:true });
+    document.addEventListener('visibilitychange', function(){
+      if(!document.hidden){ setTimeout(applyAhtTagsLock, 80); scheduleDialogSync(80); }
+    });
+    window.addEventListener('pageshow', function(){ setTimeout(applyAhtTagsLock, 80); scheduleDialogSync(80); });
+
+    scheduleDialogSync();
+    scheduleDialogSync(250);
+    setTimeout(applyAhtTagsLock, 180);
+    setTimeout(applyAhtTagsLock, 700);
+    setTimeout(applyAhtTagsLock, 1400);
   }
 
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
