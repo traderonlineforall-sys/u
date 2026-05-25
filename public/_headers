@@ -63,3 +63,9 @@
 
 /webfonts/*
   Cache-Control: public, max-age=31536000, immutable
+
+/api/*
+  Cache-Control: no-store
+
+/reactions/*
+  Cache-Control: public, max-age=2592000, immutable

@@ -21,12 +21,18 @@ export async function POST(req){
 
   const supabase = getServiceSupabase();
   const nowIso = new Date().toISOString();
-  // best effort: expire any active blocks
-  const { error } = await supabase
-    .from("blocks")
-    .update({ expires_at: nowIso, blocked_until: nowIso })
-    .eq("user_id", user_id);
 
-  if(error) return j({ error: error.message }, { status: 500 });
+  async function tryExpire(payload) {
+    return await supabase.from("blocks").update(payload).eq("user_id", user_id);
+  }
+
+  // Compatible with legacy schemas that may expose either expires_at or blocked_until.
+  let r = await tryExpire({ expires_at: nowIso, blocked_until: nowIso });
+  if (r.error) {
+    r = await tryExpire({ expires_at: nowIso });
+    if (r.error) r = await tryExpire({ blocked_until: nowIso });
+  }
+
+  if(r.error) return j({ error: r.error.message }, { status: 500 });
   return j({ ok: true });
 }
