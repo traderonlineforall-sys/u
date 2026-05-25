@@ -1036,3 +1036,24 @@
     setTimeout(insertFixedVoiceLabel, 80);
   });
 })();
+
+/* UA07 FULL TOOL LAYOUT LOCK V2
+   Visual-only: lock the desktop layout width using the actual screen width so
+   reducing the window/zoom to 80% does not reorder menu/dropdown elements. */
+(function(){
+  try {
+    var root = document.documentElement;
+    if (!root || !root.style) return;
+    var screenW = 0;
+    try { screenW = window.screen && window.screen.width ? Number(window.screen.width) : 0; } catch (_) {}
+    var viewportW = Math.max(
+      Number(window.innerWidth) || 0,
+      Number(document.documentElement && document.documentElement.clientWidth) || 0,
+      Number(document.body && document.body.clientWidth) || 0
+    );
+    var lockW = Math.max(1366, Math.round(screenW || 0), Math.round(viewportW || 0));
+    if (!isFinite(lockW) || lockW < 1366) lockW = 1366;
+    root.style.setProperty('--ua07-layout-lock-width', lockW + 'px');
+    root.setAttribute('data-ua07-layout-lock', String(lockW));
+  } catch (_) {}
+})();
