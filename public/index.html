@@ -20960,50 +20960,57 @@ button {border-radius:999px !important;}
 <!-- MNDO_TOP_HEADER_FULL_WIDTH_BRIDGE_START -->
 <style id="mndoTopHeaderFullWidthBridgeCss">
   /*
-    MNDO_TOP_HEADER_FULL_WIDTH_BRIDGE_V1
-    Visual-only safe layer: gives the whole top controls area one continuous
-    full-width header surface up to the Tags/AHT column, without moving SR data,
-    search logic, tabs, or scaling logic.
+    MNDO_TOP_HEADER_FULL_WIDTH_BRIDGE_V2
+    Real visible full-width top surface. The previous pseudo-element could sit
+    under the page background in some theme states, so this version uses a real
+    non-clickable layer inserted once at the top of the page.
+    Visual only: no SR/search/theme/scale logic is changed.
   */
   :root{
-    --mndo-top-header-bridge-height: 82px;
+    --mndo-top-header-bridge-height: 86px;
+    --mndo-top-header-bridge-z: 2;
   }
 
   html.mndo-clean-baseline-lock body{
     position: relative !important;
   }
 
-  html.mndo-clean-baseline-lock body::before{
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: max(100vw, var(--mndo-clean-baseline-width, 1349px));
-    height: var(--mndo-top-header-bridge-height);
-    pointer-events: none;
-    z-index: 0;
+  #mndoTopHeaderFullWidthBridge{
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: max(100vw, var(--mndo-clean-baseline-width, 1349px)) !important;
+    min-width: max(100vw, var(--mndo-clean-baseline-width, 1349px)) !important;
+    height: var(--mndo-top-header-bridge-height) !important;
+    pointer-events: none !important;
+    z-index: var(--mndo-top-header-bridge-z) !important;
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    box-sizing: border-box !important;
     background:
-      radial-gradient(900px 80px at 50% 0%, rgba(255,255,255,0.055), rgba(255,255,255,0) 62%),
-      linear-gradient(180deg, rgba(2,4,8,0.82) 0%, rgba(3,5,10,0.54) 62%, rgba(0,0,0,0.10) 100%);
-    border-bottom: 1px solid rgba(255,255,255,0.075);
+      radial-gradient(720px 92px at 70% 0%, rgba(145,0,0,0.20), rgba(145,0,0,0) 68%),
+      radial-gradient(500px 80px at 38% 0%, rgba(255,220,130,0.075), rgba(255,220,130,0) 66%),
+      linear-gradient(180deg, rgba(3,4,7,0.94) 0%, rgba(5,5,9,0.82) 58%, rgba(5,0,0,0.56) 100%) !important;
+    border-bottom: 1px solid rgba(255,220,130,0.14) !important;
     box-shadow:
-      inset 0 -1px 0 rgba(0,0,0,0.42),
-      0 10px 28px rgba(0,0,0,0.25);
+      inset 0 -1px 0 rgba(0,0,0,0.62),
+      0 10px 26px rgba(0,0,0,0.34) !important;
   }
 
-  html.ahly-premium-theme-live body::before{
+  html.ahly-premium-theme-live #mndoTopHeaderFullWidthBridge{
     background:
-      radial-gradient(520px 78px at 72% 0%, rgba(165,0,0,0.24), rgba(165,0,0,0) 68%),
-      radial-gradient(420px 70px at 36% 0%, rgba(255,218,118,0.075), rgba(255,218,118,0) 65%),
-      linear-gradient(180deg, rgba(6,5,5,0.86) 0%, rgba(24,0,0,0.56) 62%, rgba(0,0,0,0.10) 100%);
-    border-bottom-color: rgba(255,218,118,0.12);
+      radial-gradient(660px 94px at 74% 0%, rgba(165,0,0,0.38), rgba(165,0,0,0) 68%),
+      radial-gradient(470px 78px at 34% 0%, rgba(255,218,118,0.11), rgba(255,218,118,0) 66%),
+      linear-gradient(180deg, rgba(7,5,5,0.96) 0%, rgba(18,0,0,0.86) 58%, rgba(7,0,0,0.66) 100%) !important;
+    border-bottom-color: rgba(255,218,118,0.22) !important;
     box-shadow:
-      inset 0 -1px 0 rgba(0,0,0,0.55),
-      0 10px 30px rgba(0,0,0,0.34),
-      0 0 34px rgba(145,0,0,0.10);
+      inset 0 -1px 0 rgba(0,0,0,0.70),
+      0 12px 30px rgba(0,0,0,0.42),
+      0 0 36px rgba(130,0,0,0.14) !important;
   }
 
-  /* Keep every visible top control above the bridge. */
+  /* Put every visible top control above the bridge; positions are preserved. */
   #arabiccNumber,
   #arabicNumber,
   #copyBtn,
@@ -21013,26 +21020,40 @@ button {border-radius:999px !important;}
   .mndo-search-logo-row,
   .mndo-search-hk-anchor,
   .search-container,
+  .search-input,
+  .search-icon,
   .mndo-header-logo-slot,
   #MNDO_UA07_LOGO3,
+  #UA07_SECRET_ENVELOPE_WRAP,
   #MNDO_AHT_TAGS_STACK,
+  #mndoQueryTimer,
+  #bat2,
   #myBtn{
-    z-index: 20 !important;
-  }
-
-  .mndo-search-logo-row,
-  .mndo-search-hk-anchor,
-  .search-container,
-  .mndo-header-logo-slot,
-  #MNDO_UA07_LOGO3{
     position: relative !important;
+    z-index: 20 !important;
   }
 
   #tabs.tab{
     position: relative !important;
-    z-index: 5 !important;
+    z-index: 6 !important;
   }
 </style>
+<script id="mndoTopHeaderFullWidthBridgeJs">
+(function(){
+  'use strict';
+  function ensureBridge(){
+    if(document.getElementById('mndoTopHeaderFullWidthBridge')) return;
+    var bridge = document.createElement('div');
+    bridge.id = 'mndoTopHeaderFullWidthBridge';
+    bridge.setAttribute('aria-hidden', 'true');
+    var body = document.body;
+    if(!body) return;
+    body.insertBefore(bridge, body.firstChild);
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ensureBridge);
+  else ensureBridge();
+})();
+</script>
 <!-- MNDO_TOP_HEADER_FULL_WIDTH_BRIDGE_END -->
 
 
