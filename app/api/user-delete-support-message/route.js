@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { enforceSameOrigin, noStore } from "../../../lib/server/auth.js";
 import { getServiceSupabase } from "../../../lib/server/admin.js";
-export const dynamic = "force-dynamic";
 
 function j(body, init){
   return noStore(NextResponse.json(body, init));

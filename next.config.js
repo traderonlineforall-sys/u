@@ -2,16 +2,15 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  // Keep CI/local builds stable on small containers; avoids hangs during output file tracing.
-  experimental: { cpus: 1 },
+  compress: true,
+  productionBrowserSourceMaps: false,
   async rewrites() {
-    return {
-      beforeFiles: [
-        // Serve the legacy static tool directly at / instead of booting a Next page + iframe.
-        { source: "/", destination: "/index.html" },
-        { source: "/tags", destination: "/Tags.html" }
-      ]
-    };
+    return [
+      // Serve the original static tool (public/index.html) on the root path
+      { source: "/", destination: "/index.html" },
+      // Optional friendly route for Tags
+      { source: "/tags", destination: "/Tags.html" }
+    ];
   }
 };
 

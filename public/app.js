@@ -4630,6 +4630,11 @@ function performBalanceConversion() {
       if(isHq && hqReady && hqWorker) return hqWorker;
       if(!isHq && fastReady && fastWorker) return fastWorker;
       if(!window.Tesseract || !window.Tesseract.createWorker){
+        if(typeof window.__SR_LOAD_TESSERACT_ON_DEMAND === 'function'){
+          await window.__SR_LOAD_TESSERACT_ON_DEMAND();
+        }
+      }
+      if(!window.Tesseract || !window.Tesseract.createWorker){
         throw new Error('Tesseract.js not loaded');
       }
 

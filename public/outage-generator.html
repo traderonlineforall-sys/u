@@ -1113,7 +1113,7 @@ details{
   <div id="objectionBox" class="box"></div>
 </div>
 
-<script src="https://unpkg.com/tesseract.js@5.0.5/dist/tesseract.min.js"></script>
+<script src="./ocr-lazy-loader.js"></script>
 
 <script>
 let officialOnly = "";
@@ -1878,9 +1878,9 @@ try{
 
   // Pre-warm OCR worker in idle time for instant paste experience
   if ("requestIdleCallback" in window) {
-    window.requestIdleCallback(() => { ensureWorker().catch(() => {}); }, { timeout: 50 });
+    window.requestIdleCallback(() => {}, { timeout: 50 });
   } else {
-    window.setTimeout(() => { ensureWorker().catch(() => {}); }, 50);
+    window.setTimeout(() => {}, 50);
   }
 
   $("modeSelect").addEventListener("change", ()=>{ refreshSelectColors(); refreshModeUI(); $("ocrStatus").textContent=""; });

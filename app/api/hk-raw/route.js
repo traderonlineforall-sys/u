@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { noStore } from "../../../lib/server/auth.js";
-export const dynamic = "force-dynamic";
 
 export const runtime = "nodejs";
 
@@ -9,7 +8,7 @@ const ALLOWED_PATHS = [/^\/ireport\/api\/haya_karima_api\.php$/i];
 
 function isAllowedTarget(target) {
   return (
-    target.protocol === "https:" &&
+    (target.protocol === "https:" || target.protocol === "http:") &&
     ALLOWED_HOSTS.has(target.hostname) &&
     ALLOWED_PATHS.some((pattern) => pattern.test(target.pathname || ""))
   );
@@ -41,18 +40,12 @@ export async function GET(request) {
     const upstream = await fetch(target.toString(), {
       method: "GET",
       cache: "no-store",
-      redirect: "manual",
+      redirect: "follow",
       signal: controller.signal,
       headers: {
         Accept: "application/json,text/plain,*/*"
       }
     });
-
-    if (upstream.status >= 300 && upstream.status < 400) {
-      return noStore(
-        NextResponse.json({ error: "Upstream redirect blocked." }, { status: 502 })
-      );
-    }
 
     const rawText = await upstream.text();
     let payload = null;
@@ -67,7 +60,8 @@ export async function GET(request) {
         NextResponse.json(
           {
             error: "Upstream request failed.",
-            upstream_status: upstream.status
+            upstream_status: upstream.status,
+            raw: payload || rawText
           },
           { status: 502 }
         )
@@ -78,7 +72,8 @@ export async function GET(request) {
       return noStore(
         NextResponse.json(
           {
-            error: "Invalid upstream JSON."
+            error: "Invalid upstream JSON.",
+            raw: rawText.slice(0, 1200)
           },
           { status: 502 }
         )

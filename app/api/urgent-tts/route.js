@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { enforceSameOrigin, noStore } from "../../../lib/server/auth.js";
-export const dynamic = "force-dynamic";
 
 const EDGE_TRUSTED_CLIENT_TOKEN = "6A5AA1D4EAFF4E9FB37E23D68491D6F4";
 const EDGE_TTS_ENDPOINT = "https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1";

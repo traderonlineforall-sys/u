@@ -292,15 +292,10 @@ function sanitizeFileName(name){
 }
 
 async function uploadAttachment(file){
-  // Basic upload guard (public chat): images only, 5MB max.
-  const allowedTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
-  if(!allowedTypes.has(String(file.type || "").toLowerCase())){
-    throw new Error("Only PNG, JPG, WebP, or GIF images are allowed.");
-  }
-
-  const max = 5 * 1024 * 1024;
+  // Basic size guard (public chat): 10MB
+  const max = 10 * 1024 * 1024;
   if((file.size || 0) > max){
-    throw new Error("File is too large (max 5MB)");
+    throw new Error("File is too large (max 10MB)");
   }
 
   const safeName = sanitizeFileName(file.name);

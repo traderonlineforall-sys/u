@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdminPassword, getServiceSupabase } from "../../../lib/server/admin.js";
 import { enforceSameOrigin, requireUserSession, noStore } from "../../../lib/server/auth.js";
-export const dynamic = "force-dynamic";
 
 function j(body, init){
   return noStore(NextResponse.json(body, init));
