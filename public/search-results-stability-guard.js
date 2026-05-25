@@ -6,7 +6,6 @@
   var NUMBER_INPUT_IDS = ['arabiccNumber', 'arabicNumber'];
   var keepUntil = 0;
   var restoreTimers = [];
-  var layerReady = false;
   var rafPosition = 0;
 
   function byId(id) { return document.getElementById(id); }
@@ -31,32 +30,64 @@
       '#arabiccNumber:focus,#arabicNumber:focus{',
       '  outline:0 !important;',
       '}',
-      '/* Keep search results exactly under the search box and above the rest of the page. */',
-      '.mndo-search-logo-row{position:relative !important; overflow:visible !important; z-index:2147483600 !important;}',
-      '.mndo-search-hk-anchor{position:relative !important; overflow:visible !important; z-index:2147483601 !important;}',
-      '.search-container{position:relative !important; overflow:visible !important; z-index:2147483602 !important;}',
+      '/* Keep search results inside the original search frame, but always above page content. */',
+      '.mndo-search-logo-row{ position:relative !important; overflow:visible !important; z-index:2147483600 !important; }',
+      '.mndo-search-hk-anchor{ position:relative !important; overflow:visible !important; z-index:2147483601 !important; }',
+      '.mndo-search-hk-anchor .search-container, .search-container{',
+      '  position:relative !important;',
+      '  overflow:visible !important;',
+      '  z-index:2147483602 !important;',
+      '  isolation:isolate;',
+      '}',
       '#searchResults.search-results,#searchResults{',
+      '  display:none;',
       '  position:absolute !important;',
-      '  top:calc(100% + 6px) !important;',
       '  left:0 !important;',
       '  right:auto !important;',
-      '  margin:0 !important;',
+      '  top:calc(100% + 6px) !important;',
       '  width:100% !important;',
       '  min-width:100% !important;',
       '  max-width:100% !important;',
-      '  z-index:2147483646 !important;',
+      '  margin:0 !important;',
+      '  transform:none !important;',
       '  box-sizing:border-box !important;',
+      '  max-height:min(500px, calc(100vh - 92px)) !important;',
       '  overflow-y:auto !important;',
       '  overflow-x:hidden !important;',
-      '  max-height:min(500px,calc(100vh - 90px)) !important;',
-      '  -webkit-overflow-scrolling:touch;',
+      '  z-index:2147483647 !important;',
+      '  border-radius:20px !important;',
+      '  border:1px solid rgba(204,204,204,0.95) !important;',
+      '  background:#fff !important;',
+      '  box-shadow:0 12px 28px rgba(0,0,0,0.24) !important;',
+      '  padding:6px 0 !important;',
+      '  scrollbar-width:thin;',
       '}',
+      '#searchResults.search-results::-webkit-scrollbar,#searchResults::-webkit-scrollbar{ width:8px; }',
+      '#searchResults.search-results::-webkit-scrollbar-thumb,#searchResults::-webkit-scrollbar-thumb{ background:rgba(145,172,230,0.75); border-radius:999px; }',
       '#searchResults.search-results a,#searchResults a{',
       '  position:relative;',
       '  z-index:1;',
       '  pointer-events:auto !important;',
       '  white-space:normal !important;',
       '  word-break:break-word;',
+      '  box-sizing:border-box !important;',
+      '  display:block !important;',
+      '  margin:0 !important;',
+      '  padding:10px 16px !important;',
+      '  line-height:1.35 !important;',
+      '  border:0 !important;',
+      '  border-bottom:1px solid rgba(145,172,230,0.42) !important;',
+      '  background:#fff !important;',
+      '  transition:background-color .14s ease, padding-left .14s ease, color .14s ease;',
+      '}',
+      '#searchResults.search-results a:first-child,#searchResults a:first-child{ border-top-left-radius:18px !important; border-top-right-radius:18px !important; }',
+      '#searchResults.search-results a:last-child,#searchResults a:last-child{ border-bottom:0 !important; border-bottom-left-radius:18px !important; border-bottom-right-radius:18px !important; }',
+      '#searchResults.search-results a:hover,#searchResults a:hover,',
+      '#searchResults.search-results a:focus,#searchResults a:focus{',
+      '  background:#f3f6ff !important;',
+      '  color:rgb(50,50,54) !important;',
+      '  padding-left:18px !important;',
+      '  outline:0 !important;',
       '}',
       '#searchInput{ pointer-events:auto !important; }'
     ].join('\n');
@@ -87,20 +118,18 @@
   }
 
   function setStyle(el, name, value) {
-    if (!el || el.style[name] === value) return;
-    el.style[name] = value;
+    if (!el) return;
+    el.style.setProperty(name.replace(/[A-Z]/g, function (m) { return '-' + m.toLowerCase(); }), String(value), 'important');
   }
 
-  function ensureSearchLayer() {
+  function ensureResultsInContainer() {
     var p = parts();
     if (!p.input || !p.results) return false;
-    var container = p.input.closest ? p.input.closest('.search-container') : null;
-    if (!container) container = p.input.parentNode;
+    var container = p.input.closest('.search-container') || p.input.parentNode;
     if (!container) return false;
     if (p.results.parentNode !== container) {
       container.appendChild(p.results);
     }
-    layerReady = true;
     return true;
   }
 
@@ -108,27 +137,28 @@
     rafPosition = 0;
     var p = parts();
     if (!p.input || !p.results) return;
-    if (!ensureSearchLayer()) return;
-    var rect = p.input.getBoundingClientRect();
-    if (!rect || rect.width <= 0 || rect.height <= 0) return;
+    if (!ensureResultsInContainer()) return;
 
+    var inputRect = p.input.getBoundingClientRect();
+    var container = p.input.closest('.search-container') || p.input.parentNode;
+    var containerRect = container && container.getBoundingClientRect ? container.getBoundingClientRect() : inputRect;
     var viewportH = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
-    var maxH = Math.max(140, Math.min(500, viewportH - Math.round(rect.bottom) - 12));
-    var container = p.input.closest ? p.input.closest('.search-container') : null;
-    var width = container ? Math.round(container.getBoundingClientRect().width) : Math.round(rect.width);
-    if (width < 220) width = Math.max(220, Math.round(rect.width));
+    var width = Math.max(220, Math.round(containerRect.width || inputRect.width || 0));
+    var topGap = 6;
+    var availableBelow = Math.max(140, Math.floor(viewportH - inputRect.bottom - 18));
+    var maxH = Math.max(160, Math.min(420, availableBelow));
 
     setStyle(p.results, 'position', 'absolute');
     setStyle(p.results, 'left', '0px');
-    setStyle(p.results, 'top', 'calc(100% + 6px)');
+    setStyle(p.results, 'right', 'auto');
+    setStyle(p.results, 'top', 'calc(100% + ' + topGap + 'px)');
     setStyle(p.results, 'width', width + 'px');
     setStyle(p.results, 'minWidth', width + 'px');
     setStyle(p.results, 'maxWidth', width + 'px');
-    setStyle(p.results, 'right', 'auto');
     setStyle(p.results, 'marginTop', '0px');
-    setStyle(p.results, 'zIndex', '2147483646');
     setStyle(p.results, 'boxSizing', 'border-box');
     setStyle(p.results, 'maxHeight', maxH + 'px');
+    setStyle(p.results, 'zIndex', '2147483647');
   }
 
   function positionResults() {
@@ -139,7 +169,7 @@
   function showResults() {
     var p = parts();
     if (!hasText(p.input) || !hasResults(p.results)) return;
-    ensureSearchLayer();
+    ensureResultsInContainer();
     positionResults();
     setStyle(p.results, 'display', 'block');
   }
@@ -369,14 +399,14 @@
 
   function bindPositioning() {
     injectStyle();
-    var p = parts();
-    if (p.results) ensureSearchLayer();
+    ensureResultsInContainer();
+    positionResults();
 
     ['input', 'focus', 'keyup', 'change'].forEach(function (name) {
       document.addEventListener(name, function (event) {
         if (!event || event.target !== byId(SEARCH_INPUT_ID)) return;
-        setTimeout(function () { ensureSearchLayer(); showResults(); }, 0);
-        setTimeout(function () { ensureSearchLayer(); showResults(); }, 80);
+        setTimeout(function () { ensureResultsInContainer(); showResults(); }, 0);
+        setTimeout(function () { ensureResultsInContainer(); showResults(); }, 80);
       }, true);
     });
 
@@ -410,7 +440,7 @@
       var results = byId(SEARCH_RESULTS_ID);
       if (results) {
         var mo = new MutationObserver(function () {
-          if (!layerReady) ensureSearchLayer();
+          ensureResultsInContainer();
           showResults();
           positionResults();
         });
@@ -418,8 +448,8 @@
       }
     } catch (_) {}
 
-    setTimeout(function () { ensureSearchLayer(); positionResults(); }, 60);
-    setTimeout(function () { ensureSearchLayer(); positionResults(); }, 400);
+    setTimeout(function () { ensureResultsInContainer(); positionResults(); }, 60);
+    setTimeout(function () { ensureResultsInContainer(); positionResults(); }, 400);
   }
 
   if (document.readyState === 'loading') {
