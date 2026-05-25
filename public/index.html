@@ -20,130 +20,6 @@
     <link rel="preload" href="/uwk07-logo.webp" as="image" fetchpriority="high">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="safe-tool-upgrade.css">
-    <style id="mndo-fixed-menu-baseline-lock-css">
-/*
- * Fixed Menu Baseline Lock
- * الهدف: تثبيت ترتيب أزرار الأقسام والقوائم أسفلها على ترتيب عرض 100%.
- * عند تصغير الشاشة يتم تصغير اللوحة بالكامل بدل إعادة ترتيب العناصر أو لفّها.
- */
-:root {
-  --mndo-fixed-baseline-width: 1366px;
-  --mndo-fixed-layout-scale: 1;
-}
-
-html.mndo-fixed-menu-baseline-ready,
-html.mndo-fixed-menu-baseline-ready body {
-  overflow-x: hidden !important;
-}
-
-.mndo-menu-lock-viewport {
-  position: relative !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  overflow: visible !important;
-  box-sizing: border-box !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
-  contain: layout style;
-}
-
-.mndo-menu-lock-plane {
-  position: absolute !important;
-  top: 0 !important;
-  left: 50% !important;
-  width: var(--mndo-fixed-baseline-width) !important;
-  max-width: none !important;
-  min-width: var(--mndo-fixed-baseline-width) !important;
-  transform: translateX(-50%) scale(var(--mndo-fixed-layout-scale)) !important;
-  transform-origin: top center !important;
-  box-sizing: border-box !important;
-  overflow: visible !important;
-  will-change: transform;
-}
-
-/* Main SR tabs: keep the exact row order; never wrap or reshuffle. */
-#tabs[data-mndo-fixed-baseline="1"] {
-  width: var(--mndo-fixed-baseline-width) !important;
-  min-width: var(--mndo-fixed-baseline-width) !important;
-  max-width: none !important;
-  box-sizing: border-box !important;
-  display: flex !important;
-  flex-wrap: nowrap !important;
-  align-items: center !important;
-  justify-content: center !important;
-  overflow: visible !important;
-  gap: 10px !important;
-  white-space: nowrap !important;
-}
-
-#tabs[data-mndo-fixed-baseline="1"] .tablinks {
-  float: none !important;
-  flex: 0 0 auto !important;
-  white-space: nowrap !important;
-  min-width: max-content !important;
-}
-
-/* Active tab panel gets a fixed 100%-baseline coordinate plane. */
-.tabcontent[data-mndo-fixed-baseline="1"] {
-  overflow: visible !important;
-  box-sizing: border-box !important;
-}
-
-.tabcontent[data-mndo-fixed-baseline="1"] > .mndo-tabcontent-lock-viewport {
-  position: relative !important;
-  width: 100% !important;
-  overflow: visible !important;
-  box-sizing: border-box !important;
-  clear: both !important;
-}
-
-.tabcontent[data-mndo-fixed-baseline="1"] > .mndo-tabcontent-lock-viewport > .mndo-menu-lock-plane {
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-}
-
-/* Dropdown rows/direct links inside panels: keep original order and prevent responsive reflow. */
-.tabcontent[data-mndo-fixed-baseline="1"] .dropdown,
-.tabcontent[data-mndo-fixed-baseline="1"] .navbar a,
-.tabcontent[data-mndo-fixed-baseline="1"] #singlelink,
-.tabcontent[data-mndo-fixed-baseline="1"] .singlelink-fixed-slot {
-  flex: 0 0 auto !important;
-  white-space: nowrap !important;
-}
-
-.tabcontent[data-mndo-fixed-baseline="1"] .dropdown-content,
-.tabcontent[data-mndo-fixed-baseline="1"] .sub-dropdown-content {
-  max-width: min(520px, calc(var(--mndo-fixed-baseline-width) - 24px)) !important;
-  overflow-wrap: normal !important;
-  word-break: normal !important;
-  z-index: 2147483000 !important;
-}
-
-/* Disable small-screen direction flips that move submenus away from their baseline place. */
-.tabcontent[data-mndo-fixed-baseline="1"] .sub-dropdown-content {
-  left: 100% !important;
-  right: auto !important;
-}
-
-.tabcontent[data-mndo-fixed-baseline="1"] .sub-dropdown-content.left,
-.tabcontent[data-mndo-fixed-baseline="1"] .sub-dropdown-content.open-left {
-  left: auto !important;
-  right: 100% !important;
-}
-
-/* Keep theme skins visual-only; this layer owns geometry. */
-html.ahly-premium-theme-live #tabs[data-mndo-fixed-baseline="1"],
-html.ahly-premium-theme-live .tabcontent[data-mndo-fixed-baseline="1"] > .mndo-tabcontent-lock-viewport > .mndo-menu-lock-plane {
-  overflow: visible !important;
-}
-
-@media (max-width: 700px) {
-  #tabs[data-mndo-fixed-baseline="1"] {
-    gap: 8px !important;
-  }
-}
-
-    </style>
     <link rel="icon" href="/favicon.ico?v=uwk07c">
 <!-- Eid visual theme (safe, toggleable, non-invasive) -->
     <link id="eidThemeLink" rel="stylesheet" href="eid-theme.css">
@@ -19538,7 +19414,7 @@ button {border-radius:999px !important;}
 
 
 
-<script>!function(){const e=e=>document.getElementById(e);function t(t,a,n){const o=e(t);if(!o)return;const i=()=>{let e=o.value&&o.value.trim().length?o.value.trim():"";e||"timePaste"===t||(e=o.placeholder||"");const i=Math.min(n,Math.max(a,e.length+1));o.style.width=i+"ch"};o.addEventListener("input",i),o.addEventListener("change",i),i()}function a(e){return(e||"").replace("T"," ")}function n(){const t=e("modeSelect").value,a=e("modeWrap").classList;a.remove("mode-unplanned","mode-planned"),a.add("planned"===t?"mode-planned":"mode-unplanned");const n=e("outageTypeUI");if(!t)return n.disabled=!0,n.value="",e("outageType").value="normal",void(e("majorReasonLegacy").value="صيانة");n.disabled=!1,n.value||(n.value="normal"),e("outageType").value=n.value||"normal";const o="planned"===t;[n.querySelector('option[value="major_maint"]'),n.querySelector('option[value="major_theft"]')].forEach(e=>{e&&(e.disabled=o,e.hidden=o)}),!o||"major_maint"!==n.value&&"major_theft"!==n.value||(n.value="normal");const i=n.value;let l="normal",s="صيانة";"unstable"===i?l="unstable":"major_maint"===i?(l="major",s="صيانة"):"major_theft"===i?(l="major",s="سرقة"):l="normal",e("outageType").value=l,e("majorReasonLegacy").value=s;const r=e("typeWrap").classList;r.remove("type-normal","type-unstable","type-major","type-majorMaint","type-majorTheft"),"unstable"===i?r.add("type-unstable"):"major_maint"===i?r.add("type-majorMaint"):"major_theft"===i?r.add("type-majorTheft"):r.add("type-normal")}function o(){e("timeLabel").textContent="planned"===e("modeSelect").value?"وقت الانتهاء (Planned) — اختار/الصق/Ctrl+V صورة":"وقت البداية (Unplanned) — اختار/الصق/Ctrl+V صورة"}function i(e){let t=(e||"").replace(/[\r\n]+/g," ").replace(/[^\x20-\x7E]+/g," ").replace(/\s+/g," ").trim();const a=[],n=/\b\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}\s*(AM|PM)?\b/gi,o=/\b\d{4}-\d{2}-\d{2}\s*\d{1,2}:\d{2}\s*(AM|PM)\b/gi,i=/\b\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}\s*(AM|PM)\b/gi;for(const e of t.matchAll(i))a.push(e[0]);for(const e of t.matchAll(o))a.push(e[0]);for(const e of t.matchAll(n))a.push(e[0]);const l=(t.match(/\b\d{4}-\d{2}-\d{2}\b/g)||[])[0],s=(t.match(/\b\d{1,2}:\d{2}\s*(AM|PM)\b/i)||[])[0];return l&&s&&a.push(`${l} ${s}`),Array.from(new Set(a.map(e=>e.replace(/\s+/g," ").trim())))}function l(e){const t=Date.parse(e);return isNaN(t)?NaN:t}let s=!1,r=null;async function c(){s&&r||(r=await Tesseract.createWorker("eng",1,{langPath:"https://tessdata.projectnaptha.com/4.0.0_fast"}),await r.setParameters({tessedit_pageseg_mode:"7",user_defined_dpi:"300",tessedit_char_whitelist:"0123456789:/- AaPpMm",preserve_interword_spaces:"1"}),s=!0)}async function d(t){const a=e("ocrStatus");try{a.textContent="OCR جاري…",await c();const n=async(e,a)=>{await r.setParameters({tessedit_pageseg_mode:String(e)});const n=await async function(e,t={}){const a=await createImageBitmap(e),n=t.scale||3,o=t.pad||0,i=t.mode||"gray",l=!1!==t.crop,s=a.width*n,r=a.height*n,c=document.createElement("canvas");c.width=s+2*o,c.height=r+2*o;const d=c.getContext("2d",{willReadFrequently:!0});d.fillStyle="#fff",d.fillRect(0,0,c.width,c.height),d.imageSmoothingEnabled=!0,d.imageSmoothingQuality="high",d.drawImage(a,o,o,s,r);const u=d.getImageData(0,0,c.width,c.height),m=u.data;let p=0,h=0;for(let e=0;e<m.length;e+=400)p+=.299*m[e]+.587*m[e+1]+.114*m[e+2],h++;const g=p/Math.max(1,h)<128,f=t.thr??(g?175:155);for(let e=0;e<m.length;e+=4){let t=m[e],a=m[e+1],n=m[e+2];g&&(t=255-t,a=255-a,n=255-n);const o=.299*t+.587*a+.114*n;if("binary"===i){const t=o>f?255:0;m[e]=m[e+1]=m[e+2]=t}else{const t=Math.max(0,Math.min(255,1.35*(o-128)+128));m[e]=m[e+1]=m[e+2]=t}m[e+3]=255}if(d.putImageData(u,0,0),l){const t=c.width,a=c.height,n=d.getImageData(0,0,t,a).data;let o=t,i=a,l=0,s=0,r=!1;for(let e=0;e<a;e+=1)for(let a=0;a<t;a+=1)n[4*(e*t+a)]<245&&(r=!0,a<o&&(o=a),e<i&&(i=e),a>l&&(l=a),e>s&&(s=e));if(r){const n=18;o=Math.max(0,o-n),i=Math.max(0,i-n),l=Math.min(t-1,l+n),s=Math.min(a-1,s+n);const r=l-o+1,d=s-i+1,u=document.createElement("canvas");u.width=r,u.height=d;const m=u.getContext("2d",{willReadFrequently:!0});return m.fillStyle="#fff",m.fillRect(0,0,r,d),m.drawImage(c,o,i,r,d,0,0,r,d),await new Promise(t=>u.toBlob(a=>t(a||e),"image/png"))}}return await new Promise(t=>c.toBlob(a=>t(a||e),"image/png"))}(t,a),{data:o}=await r.recognize(n),l=o&&o.text?o.text:"";return{text:l,dates:i(l)}};let o=await n(7,{scale:4,pad:10,mode:"gray",crop:!0}),s=o.dates,d=o.text;if(!s.length||!/(AM|PM)/i.test(d)){const e=await n(7,{scale:4,pad:10,mode:"binary",thr:160,crop:!0});if(d=(d||"")+" "+(e.text||""),s.length){if(!/(AM|PM)/i.test(s[0])){const e=d.match(/(AM|PM)/i);e&&(s=s.map(t=>/(AM|PM)/i.test(t)?t:t+" "+e[1].toUpperCase()))}}else s=e.dates}if(s.length&&!/(AM|PM)/i.test(s[0])){const e=((await n(8,{scale:5,pad:12,mode:"binary",thr:165,crop:!0})).text||"").match(/(AM|PM)/i);e&&(s=s.map(t=>t+" "+e[1].toUpperCase()))}if(!s.length)return void(a.textContent="فشل OCR. لو ممكن: الصق الوقت كنص أو جرّب لقطة أوضح/أكبر.");const u="planned"===e("modeSelect").value?function(e){let t=null,a=-1/0;for(const n of e){const e=l(n);!isNaN(e)&&e>a&&(a=e,t=n)}return t||e[0]||""}(s):s[0];e("timePaste").value=u,a.textContent=`تم استخراج: ${u}`}catch(t){console.error(t),e("ocrStatus").textContent="فشل OCR — جرّب صورة أوضح/أكبر."}}function u(){const t=(e("complaintId").value||"").trim(),n=e("modeSelect").value,o=e("outageType").value;let i=[];if("planned"===n&&i.push("planned"),"unstable"===o&&i.push("unstable"),"major"===o){const t=e("majorReasonLegacy").value||"صيانة";i.push(`Major Fault ${t} سيرفر`)}i.length||i.push("outage");const l=[];t&&l.push(`CID: ${t}`),l.push(i.join(" "));const s=(r=function(){const t=(e("timePaste").value||"").trim();if(t)return t;const n=(e("timePicker").value||"").trim();return n?a(n):""}())?/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(r)?a(r):r.trim():"";var r;if("unplanned"===n)s&&l.push(s);else{const e=a((new Date).toISOString().slice(0,16));s&&l.push(s),l.push(e)}return l.join("\n")}e("timePaste").addEventListener("paste",e=>{const t=e.clipboardData&&e.clipboardData.items;if(t)for(const a of t)if(a.type&&a.type.startsWith("image/")){e.preventDefault();const t=a.getAsFile();return void(t&&d(t))}}),e("modeSelect").value="",o(),n(),t("complaintId",8,14),t("timePaste",18,30),0,e("modeSelect").addEventListener("change",()=>{n(),o(),e("ocrStatus").textContent=""}),e("outageTypeUI").addEventListener("change",()=>{n(),e("ocrStatus").textContent=""}),e("genSimpleBtn").addEventListener("click",function(){if(e("modeSelect").value)if(e("outageTypeUI").value){e("inputText").value=u();try{e("complaintId").disabled=!1,e("complaintId").readOnly=!1,e("complaintId").removeAttribute("readonly")}catch(e){}autoSizeByValue(document.getElementById("complaintId"),5,24),autoSizeByValue(document.getElementById("timePaste"),14,40),autoSizeByValue(document.getElementById("timePicker"),16,24),"function"==typeof window.generateResponse&&window.generateResponse(),function(){const t=e("output");t&&t.innerHTML&&t.innerHTML.includes("highlight-box")&&(t.innerHTML=t.innerHTML.replace(/<br\s*\/?>/gi,'</div><div class="line">').replace(/(<div class=\"highlight-box\">)/i,'$1<div class="line">'))}()}else e("ocrStatus").textContent="اختار نوع الـ Outage.";else e("ocrStatus").textContent="اختار الوضع الأول."}),e("resetBtn").addEventListener("click",function(){e("complaintId").value="",autoSizeByValue(document.getElementById("complaintId"),5,24),e("modeSelect").value="",e("outageType").value="normal",e("majorReasonLegacy").value="صيانة",e("timePicker").value="",e("timePaste").value="",autoSizeByValue(document.getElementById("timePaste"),14,40),e("ocrStatus").textContent="",e("inputText").value="",e("output").innerHTML="",e("objectionBox").innerHTML="",e("timerBar").hidden=!0,e("timerHint").textContent="",n(),t("complaintId",8,14),t("timePaste",18,30),o()})}();
+<script>!function(){const e=e=>document.getElementById(e);function t(t,a,n){const o=e(t);if(!o)return;const i=()=>{let e=o.value&&o.value.trim().length?o.value.trim():"";e||"timePaste"===t||(e=o.placeholder||"");const i=Math.min(n,Math.max(a,e.length+1));o.style.width=i+"ch"};o.addEventListener("input",i),o.addEventListener("change",i),i()}function a(e){return(e||"").replace("T"," ")}function n(){const t=e("modeSelect").value,a=e("modeWrap").classList;a.remove("mode-unplanned","mode-planned"),a.add("planned"===t?"mode-planned":"mode-unplanned");const n=e("outageTypeUI");if(!t)return n.disabled=!0,n.value="",e("outageType").value="normal",void(e("majorReasonLegacy").value="صيانة");n.disabled=!1,n.value||(n.value="normal"),e("outageType").value=n.value||"normal";const o="planned"===t;[n.querySelector('option[value="major_maint"]'),n.querySelector('option[value="major_theft"]')].forEach(e=>{e&&(e.disabled=o,e.hidden=o)}),!o||"major_maint"!==n.value&&"major_theft"!==n.value||(n.value="normal");const i=n.value;let l="normal",s="صيانة";"unstable"===i?l="unstable":"major_maint"===i?(l="major",s="صيانة"):"major_theft"===i?(l="major",s="سرقة"):l="normal",e("outageType").value=l,e("majorReasonLegacy").value=s;const r=e("typeWrap").classList;r.remove("type-normal","type-unstable","type-major","type-majorMaint","type-majorTheft"),"unstable"===i?r.add("type-unstable"):"major_maint"===i?r.add("type-majorMaint"):"major_theft"===i?r.add("type-majorTheft"):r.add("type-normal")}function o(){e("timeLabel").textContent="planned"===e("modeSelect").value?"وقت الانتهاء (Planned) — اختار/الصق/Ctrl+V صورة":"وقت البداية (Unplanned) — اختار/الصق/Ctrl+V صورة"}function i(e){let t=(e||"").replace(/[\r\n]+/g," ").replace(/[^\x20-\x7E]+/g," ").replace(/\s+/g," ").trim();const a=[],n=/\b\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}\s*(AM|PM)?\b/gi,o=/\b\d{4}-\d{2}-\d{2}\s*\d{1,2}:\d{2}\s*(AM|PM)\b/gi,i=/\b\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}\s*(AM|PM)\b/gi;for(const e of t.matchAll(i))a.push(e[0]);for(const e of t.matchAll(o))a.push(e[0]);for(const e of t.matchAll(n))a.push(e[0]);const l=(t.match(/\b\d{4}-\d{2}-\d{2}\b/g)||[])[0],s=(t.match(/\b\d{1,2}:\d{2}\s*(AM|PM)\b/i)||[])[0];return l&&s&&a.push(`${l} ${s}`),Array.from(new Set(a.map(e=>e.replace(/\s+/g," ").trim())))}function l(e){const t=Date.parse(e);return isNaN(t)?NaN:t}let s=!1,r=null;async function c(){s&&r||(r=await Tesseract.createWorker("eng",1,{langPath:"https://tessdata.projectnaptha.com/4.0.0_fast"}),await r.setParameters({tessedit_pageseg_mode:"7",user_defined_dpi:"300",tessedit_char_whitelist:"0123456789:/- AaPpMm",preserve_interword_spaces:"1"}),s=!0)}async function d(t){const a=e("ocrStatus");try{a.textContent="OCR جاري…",await c();const n=async(e,a)=>{await r.setParameters({tessedit_pageseg_mode:String(e)});const n=await async function(e,t={}){const a=await createImageBitmap(e),n=t.scale||3,o=t.pad||0,i=t.mode||"gray",l=!1!==t.crop,s=a.width*n,r=a.height*n,c=document.createElement("canvas");c.width=s+2*o,c.height=r+2*o;const d=c.getContext("2d",{willReadFrequently:!0});d.fillStyle="#fff",d.fillRect(0,0,c.width,c.height),d.imageSmoothingEnabled=!0,d.imageSmoothingQuality="high",d.drawImage(a,o,o,s,r);const u=d.getImageData(0,0,c.width,c.height),m=u.data;let p=0,h=0;for(let e=0;e<m.length;e+=400)p+=.299*m[e]+.587*m[e+1]+.114*m[e+2],h++;const g=p/Math.max(1,h)<128,f=t.thr??(g?175:155);for(let e=0;e<m.length;e+=4){let t=m[e],a=m[e+1],n=m[e+2];g&&(t=255-t,a=255-a,n=255-n);const o=.299*t+.587*a+.114*n;if("binary"===i){const t=o>f?255:0;m[e]=m[e+1]=m[e+2]=t}else{const t=Math.max(0,Math.min(255,1.35*(o-128)+128));m[e]=m[e+1]=m[e+2]=t}m[e+3]=255}if(d.putImageData(u,0,0),l){const t=c.width,a=c.height,n=d.getImageData(0,0,t,a).data;let o=t,i=a,l=0,s=0,r=!1;for(let e=0;e<a;e+=1)for(let a=0;a<t;a+=1)n[4*(e*t+a)]<245&&(r=!0,a<o&&(o=a),e<i&&(i=e),a>l&&(l=a),e>s&&(s=e));if(r){const n=18;o=Math.max(0,o-n),i=Math.max(0,i-n),l=Math.min(t-1,l+n),s=Math.min(a-1,s+n);const r=l-o+1,d=s-i+1,u=document.createElement("canvas");u.width=r,u.height=d;const m=u.getContext("2d",{willReadFrequently:!0});return m.fillStyle="#fff",m.fillRect(0,0,r,d),m.drawImage(c,o,i,r,d,0,0,r,d),await new Promise(t=>u.toBlob(a=>t(a||e),"image/png"))}}return await new Promise(t=>c.toBlob(a=>t(a||e),"image/png"))}(t,a),{data:o}=await r.recognize(n),l=o&&o.text?o.text:"";return{text:l,dates:i(l)}};let o=await n(7,{scale:4,pad:10,mode:"gray",crop:!0}),s=o.dates,d=o.text;if(!s.length||!/(AM|PM)/i.test(d)){const e=await n(7,{scale:4,pad:10,mode:"binary",thr:160,crop:!0});if(d=(d||"")+" "+(e.text||""),s.length){if(!/(AM|PM)/i.test(s[0])){const e=d.match(/(AM|PM)/i);e&&(s=s.map(t=>/(AM|PM)/i.test(t)?t:t+" "+e[1].toUpperCase()))}}else s=e.dates}if(s.length&&!/(AM|PM)/i.test(s[0])){const e=((await n(8,{scale:5,pad:12,mode:"binary",thr:165,crop:!0})).text||"").match(/(AM|PM)/i);e&&(s=s.map(t=>t+" "+e[1].toUpperCase()))}if(!s.length)return void(a.textContent="فشل OCR. لو ممكن: الصق الوقت كنص أو جرّب لقطة أوضح/أكبر.");const u="planned"===e("modeSelect").value?function(e){let t=null,a=-1/0;for(const n of e){const e=l(n);!isNaN(e)&&e>a&&(a=e,t=n)}return t||e[0]||""}(s):s[0];e("timePaste").value=u,a.textContent=`تم استخراج: ${u}`}catch(t){console.error(t),e("ocrStatus").textContent="فشل OCR — جرّب صورة أوضح/أكبر."}}function u(){const t=(e("complaintId").value||"").trim(),n=e("modeSelect").value,o=e("outageType").value;let i=[];if("planned"===n&&i.push("planned"),"unstable"===o&&i.push("unstable"),"major"===o){const t=e("majorReasonLegacy").value||"صيانة";i.push(`Major Fault ${t} سيرفر`)}i.length||i.push("outage");const l=[];t&&l.push(`CID: ${t}`),l.push(i.join(" "));const s=(r=function(){const t=(e("timePaste").value||"").trim();if(t)return t;const n=(e("timePicker").value||"").trim();return n?a(n):""}())?/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(r)?a(r):r.trim():"";var r;if("unplanned"===n)s&&l.push(s);else{const e=a((new Date).toISOString().slice(0,16));s&&l.push(s),l.push(e)}return l.join("\n")}e("timePaste").addEventListener("paste",e=>{const t=e.clipboardData&&e.clipboardData.items;if(t)for(const a of t)if(a.type&&a.type.startsWith("image/")){e.preventDefault();const t=a.getAsFile();return void(t&&d(t))}}),e("modeSelect").value="",o(),n(),t("complaintId",8,14),t("timePaste",18,30),0,e("modeSelect").addEventListener("change",()=>{n(),o(),e("ocrStatus").textContent=""}),e("outageTypeUI").addEventListener("change",()=>{n(),e("ocrStatus").textContent=""}),e("genSimpleBtn").addEventListener("click",function(){if(e("modeSelect").value)if(e("outageTypeUI").value){e("inputText").value=u();try{e("complaintId").disabled=!1,e("complaintId").readOnly=!1,e("complaintId").removeAttribute("readonly")}catch(e){}autoSizeByValue(document.getElementById("complaintId"),5,24),autoSizeByValue(document.getElementById("timePaste"),14,40),autoSizeByValue(document.getElementById("timePicker"),16,24),"function"==typeof window.generateResponse&&window.generateResponse(),function(){const t=e("output");t&&t.innerHTML&&t.innerHTML.includes("highlight-box")&&(t.innerHTML=t.innerHTML.replace(/<br\s*\/?>/gi,'</div><div class="line">').replace(/(<div class="highlight-box">)/i,'$1<div class="line">'))}()}else e("ocrStatus").textContent="اختار نوع الـ Outage.";else e("ocrStatus").textContent="اختار الوضع الأول."}),e("resetBtn").addEventListener("click",function(){e("complaintId").value="",autoSizeByValue(document.getElementById("complaintId"),5,24),e("modeSelect").value="",e("outageType").value="normal",e("majorReasonLegacy").value="صيانة",e("timePicker").value="",e("timePaste").value="",autoSizeByValue(document.getElementById("timePaste"),14,40),e("ocrStatus").textContent="",e("inputText").value="",e("output").innerHTML="",e("objectionBox").innerHTML="",e("timerBar").hidden=!0,e("timerHint").textContent="",n(),t("complaintId",8,14),t("timePaste",18,30),o()})}();
 </script>
 
 
@@ -19903,323 +19779,6 @@ button {border-radius:999px !important;}
     <script src="./search-results-stability-guard.js?v=20260525-search-frame-polish"></script>
     <script src="haya-karima-smart-helper.js"></script>
     <script src="safe-tool-upgrade.js"></script>
-    <script id="mndo-fixed-menu-baseline-lock-js">
-(function () {
-  "use strict";
-
-  if (window.__mndoFixedMenuBaselineLockLoaded) return;
-  window.__mndoFixedMenuBaselineLockLoaded = true;
-
-  var MIN_BASELINE_WIDTH = 1366;
-  var UPDATE_DELAYS = [0, 60, 180, 420, 900];
-  var baselineWidth = MIN_BASELINE_WIDTH;
-  var resizeTimer = 0;
-  var mutationTimer = 0;
-  var ro = null;
-
-  var ROOT = document.documentElement;
-
-  function ready(fn) {
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", fn, { once: true });
-    } else {
-      fn();
-    }
-  }
-
-  function viewportWidth() {
-    return Math.max(
-      document.documentElement ? document.documentElement.clientWidth || 0 : 0,
-      window.innerWidth || 0,
-      MIN_BASELINE_WIDTH
-    );
-  }
-
-  function visibleViewportWidth() {
-    return Math.max(
-      document.documentElement ? document.documentElement.clientWidth || 0 : 0,
-      window.innerWidth || 0,
-      320
-    );
-  }
-
-  function isElementNode(node) {
-    return node && node.nodeType === 1;
-  }
-
-  function cssEscapeId(id) {
-    if (window.CSS && typeof window.CSS.escape === "function") return window.CSS.escape(id);
-    return String(id || "").replace(/([ #;?%&,.+*~':"!^$[\]()=>|/@])/g, "\\$1");
-  }
-
-  function getTabs() {
-    return document.getElementById("tabs");
-  }
-
-  function getPanels() {
-    return Array.prototype.slice.call(document.querySelectorAll(".tabcontent"));
-  }
-
-  function getActivePanel() {
-    var activeBtn = document.querySelector("#tabs .tablinks.active");
-    var city = null;
-    if (activeBtn) {
-      var inline = activeBtn.getAttribute("onclick") || "";
-      var match = inline.match(/openCity\(event,\s*'([^']+)'\)/);
-      city = match && match[1] ? match[1] : null;
-    }
-    if (city) {
-      var byId = document.getElementById(city);
-      if (byId) return byId;
-    }
-    var panels = getPanels();
-    for (var i = 0; i < panels.length; i++) {
-      if (panels[i].style.display === "block") return panels[i];
-    }
-    return null;
-  }
-
-  function makeViewport(className) {
-    var viewport = document.createElement("div");
-    viewport.className = "mndo-menu-lock-viewport " + className;
-    viewport.setAttribute("data-mndo-menu-lock", "viewport");
-    return viewport;
-  }
-
-  function makePlane(className) {
-    var plane = document.createElement("div");
-    plane.className = "mndo-menu-lock-plane " + className;
-    plane.setAttribute("data-mndo-menu-lock", "plane");
-    return plane;
-  }
-
-  function wrapTabs() {
-    var tabs = getTabs();
-    if (!tabs || tabs.getAttribute("data-mndo-fixed-baseline") === "1") return;
-
-    var parent = tabs.parentNode;
-    if (!parent) return;
-
-    var viewport = makeViewport("mndo-tabs-lock-viewport");
-    var plane = makePlane("mndo-tabs-lock-plane");
-    parent.insertBefore(viewport, tabs);
-    viewport.appendChild(plane);
-    plane.appendChild(tabs);
-
-    tabs.setAttribute("data-mndo-fixed-baseline", "1");
-  }
-
-  function wrapPanel(panel) {
-    if (!panel || panel.getAttribute("data-mndo-fixed-baseline") === "1") return;
-
-    var viewport = makeViewport("mndo-tabcontent-lock-viewport");
-    var plane = makePlane("mndo-tabcontent-lock-plane");
-
-    while (panel.firstChild) {
-      plane.appendChild(panel.firstChild);
-    }
-
-    viewport.appendChild(plane);
-    panel.appendChild(viewport);
-    panel.setAttribute("data-mndo-fixed-baseline", "1");
-  }
-
-  function wrapPanels() {
-    getPanels().forEach(wrapPanel);
-  }
-
-  function elementIsRendered(el) {
-    if (!el) return false;
-    var cs = window.getComputedStyle(el);
-    return cs.display !== "none" && cs.visibility !== "hidden";
-  }
-
-  function measurePlaneHeight(plane) {
-    if (!plane) return 0;
-
-    var height = Math.max(plane.scrollHeight || 0, plane.offsetHeight || 0);
-    var planeRect;
-    try { planeRect = plane.getBoundingClientRect(); } catch (_) { planeRect = null; }
-
-    if (planeRect) {
-      var nodes = plane.children ? Array.prototype.slice.call(plane.children) : [];
-      for (var i = 0; i < nodes.length; i++) {
-        var child = nodes[i];
-        if (!isElementNode(child)) continue;
-        if (!elementIsRendered(child)) continue;
-        try {
-          var r = child.getBoundingClientRect();
-          var bottom = (r.bottom - planeRect.top) / currentScale();
-          if (Number.isFinite(bottom)) height = Math.max(height, Math.ceil(bottom));
-        } catch (_) {}
-      }
-    }
-
-    return Math.max(1, Math.ceil(height));
-  }
-
-  function currentScale() {
-    var raw = getComputedStyle(ROOT).getPropertyValue("--mndo-fixed-layout-scale");
-    var n = parseFloat(raw);
-    return Number.isFinite(n) && n > 0 ? n : 1;
-  }
-
-  function updateBaselineWidth() {
-    var tabs = getTabs();
-    var tabScroll = 0;
-    try { tabScroll = tabs ? tabs.scrollWidth || 0 : 0; } catch (_) {}
-
-    // Grow the baseline only. This captures the natural 100% layout when the user opens/maximizes the page,
-    // then preserves that coordinate system while shrinking below it.
-    baselineWidth = Math.max(baselineWidth, MIN_BASELINE_WIDTH, viewportWidth(), tabScroll + 24);
-    ROOT.style.setProperty("--mndo-fixed-baseline-width", Math.ceil(baselineWidth) + "px");
-  }
-
-  function updateScale() {
-    var scale = Math.min(1, visibleViewportWidth() / Math.max(MIN_BASELINE_WIDTH, baselineWidth));
-    ROOT.style.setProperty("--mndo-fixed-layout-scale", scale.toFixed(5));
-    ROOT.classList.add("mndo-fixed-menu-baseline-ready");
-    return scale;
-  }
-
-  function updateViewportHeight(viewport) {
-    if (!viewport) return;
-    var plane = viewport.querySelector(":scope > .mndo-menu-lock-plane");
-    if (!plane) return;
-    var height = measurePlaneHeight(plane);
-    var scaled = Math.ceil(height * currentScale());
-    var nextHeight = Math.max(1, scaled) + "px";
-    if (viewport.style.height !== nextHeight) viewport.style.height = nextHeight;
-  }
-
-  function updateAllHeights() {
-    var tabsVp = document.querySelector(".mndo-tabs-lock-viewport");
-    updateViewportHeight(tabsVp);
-
-    getPanels().forEach(function (panel) {
-      if (!panel || panel.style.display === "none") return;
-      var vp = panel.querySelector(":scope > .mndo-tabcontent-lock-viewport");
-      updateViewportHeight(vp);
-    });
-  }
-
-  function updateLayout() {
-    updateBaselineWidth();
-    updateScale();
-    updateAllHeights();
-  }
-
-  function scheduleUpdate(delay) {
-    window.setTimeout(updateLayout, typeof delay === "number" ? delay : 0);
-  }
-
-  function scheduleBurst() {
-    for (var i = 0; i < UPDATE_DELAYS.length; i++) scheduleUpdate(UPDATE_DELAYS[i]);
-  }
-
-  function patchOpenCity() {
-    if (typeof window.openCity !== "function" || window.openCity.__mndoFixedBaselinePatched) return;
-    var original = window.openCity;
-    var patched = function () {
-      var result = original.apply(this, arguments);
-      scheduleBurst();
-      return result;
-    };
-    patched.__mndoFixedBaselinePatched = true;
-    patched.__mndoOriginalOpenCity = original;
-    window.openCity = patched;
-  }
-
-  function bindEvents() {
-    window.addEventListener("resize", function () {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(scheduleBurst, 80);
-    }, { passive: true });
-
-    window.addEventListener("orientationchange", function () {
-      setTimeout(scheduleBurst, 120);
-    }, { passive: true });
-
-    document.addEventListener("click", function (evt) {
-      var target = evt.target && evt.target.closest ? evt.target.closest("#tabs .tablinks") : null;
-      if (target) scheduleBurst();
-    }, true);
-
-    if (typeof ResizeObserver !== "undefined") {
-      ro = new ResizeObserver(function () {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(updateAllHeights, 80);
-      });
-      document.querySelectorAll(".mndo-menu-lock-plane").forEach(function (plane) {
-        try { ro.observe(plane); } catch (_) {}
-      });
-    }
-
-    if (typeof MutationObserver !== "undefined") {
-      var mo = new MutationObserver(function (mutations) {
-        var shouldUpdate = false;
-        for (var i = 0; i < mutations.length; i++) {
-          if (mutations[i].type === "childList") { shouldUpdate = true; break; }
-          if (mutations[i].type === "attributes") {
-            var name = mutations[i].attributeName;
-            if (name === "style" || name === "class") { shouldUpdate = true; break; }
-          }
-        }
-        if (!shouldUpdate) return;
-        clearTimeout(mutationTimer);
-        mutationTimer = setTimeout(function () {
-          patchOpenCity();
-          updateAllHeights();
-        }, 80);
-      });
-      try {
-        mo.observe(document.documentElement, {
-          subtree: true,
-          childList: true,
-          attributes: true,
-          attributeFilter: ["style", "class"]
-        });
-      } catch (_) {}
-    }
-  }
-
-  function setKnownTabOrderAttributes() {
-    var order = [
-      "SR Sales",
-      "SR Technical",
-      "Installation OM",
-      "Fixed Voice",
-      "FTTH",
-      "Option Pack",
-      "CPE Config",
-      "Calculate",
-      "Call Back",
-      "Mobile"
-    ];
-
-    var buttons = Array.prototype.slice.call(document.querySelectorAll("#tabs .tablinks"));
-    buttons.forEach(function (btn, index) {
-      var label = (btn.textContent || "").replace(/\s+/g, " ").trim();
-      var orderIndex = order.indexOf(label);
-      if (orderIndex < 0 && /installation/i.test(label)) orderIndex = 2;
-      btn.setAttribute("data-mndo-fixed-order", String(orderIndex >= 0 ? orderIndex + 1 : index + 1));
-    });
-  }
-
-  function boot() {
-    wrapTabs();
-    wrapPanels();
-    setKnownTabOrderAttributes();
-    patchOpenCity();
-    bindEvents();
-    scheduleBurst();
-    window.addEventListener("load", scheduleBurst, { once: true });
-  }
-
-  ready(boot);
-})();
-
-    </script>
     <script src="outage-by-mail.js"></script>
     <!-- When the Tags overlay is open, hide all other elements via this CSS rule -->
     <style id="tagsOverlayCss">
@@ -20441,6 +20000,227 @@ button {border-radius:999px !important;}
 
 	    <!-- Defer non-core visual helpers to keep first load lighter on weak devices -->
 	    <script src="./non-critical-loader.js?v=support-visible-20260426"></script>
+
+<!-- MNDO_CLEAN_BASELINE_SCALE_LOCK_START -->
+<style id="mndoCleanBaselineScaleCss">
+  /*
+    MNDO_CLEAN_BASELINE_SCALE_LOCK
+    Safe inline layer only: no new files, no link/SR logic changes.
+    Freezes the 100% desktop layout width, then scales it down on smaller screens
+    instead of letting tab buttons/dropdown rows re-wrap into new positions.
+  */
+  :root{
+    --mndo-clean-baseline-width: 1366px;
+    --mndo-clean-scale: 1;
+  }
+
+  html.mndo-clean-baseline-lock,
+  html.mndo-clean-baseline-lock body{
+    overflow-x: hidden !important;
+  }
+
+  /* Main title tabs: never wrap. Their order stays fixed: SR Sales ... Mobile. */
+  html.mndo-clean-baseline-lock #tabs.tab{
+    display: inline-flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    width: max-content !important;
+    min-width: max-content !important;
+    max-width: none !important;
+    overflow: visible !important;
+    transform-origin: top left !important;
+  }
+
+  html.mndo-clean-baseline-lock #tabs .tablinks{
+    float: none !important;
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+    transform: none !important;
+    min-width: max-content !important;
+  }
+
+  /* Stop old injected :active/hover transform from making every click look like shrink/jump. */
+  html.mndo-clean-baseline-lock #tabs .tablinks:hover,
+  html.mndo-clean-baseline-lock #tabs .tablinks:active,
+  html.mndo-clean-baseline-lock #tabs .tablinks.active{
+    transform: none !important;
+  }
+
+  /* Every opened tab content keeps the same 100% desktop canvas width.
+     Existing float/dropdown layout remains exactly as the original page makes it at that width. */
+  html.mndo-clean-baseline-lock .tabcontent{
+    width: var(--mndo-clean-baseline-width) !important;
+    max-width: none !important;
+    min-width: var(--mndo-clean-baseline-width) !important;
+    transform-origin: top left !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
+  }
+
+  html.mndo-clean-baseline-lock .tabcontent::after{
+    content: "";
+    display: block;
+    clear: both;
+  }
+
+  /* Keep dropdown/menu direction stable; do not flip positions on small screens. */
+  html.mndo-clean-baseline-lock .dropdown-content.open-left{
+    left: 0 !important;
+    right: auto !important;
+  }
+
+  html.mndo-clean-baseline-lock .sub-dropdown-content,
+  html.mndo-clean-baseline-lock .sub-dropdown-content.open-left{
+    left: 100% !important;
+    right: auto !important;
+  }
+
+  @media (max-width: 768px){
+    html.mndo-clean-baseline-lock .sub-dropdown-content,
+    html.mndo-clean-baseline-lock .sub-dropdown-content.open-left{
+      left: 100% !important;
+      right: auto !important;
+    }
+  }
+
+  /* Chrome/Edge/Android path: zoom changes the real box size, so clicks stay clean. */
+  html.mndo-clean-use-zoom #tabs.tab,
+  html.mndo-clean-use-zoom .tabcontent{
+    zoom: var(--mndo-clean-scale);
+    transform: none !important;
+  }
+
+  /* Fallback path for browsers without zoom support. */
+  html.mndo-clean-use-transform #tabs.tab,
+  html.mndo-clean-use-transform .tabcontent{
+    transform: scale(var(--mndo-clean-scale)) !important;
+  }
+</style>
+<script id="mndoCleanBaselineScaleJs">
+(function(){
+  'use strict';
+
+  var ROOT = document.documentElement;
+  var DEFAULT_BASELINE = 1366;
+  var MIN_SCALE = 0.58;
+  var baselineWidth = DEFAULT_BASELINE;
+  var scheduled = false;
+
+  function px(n){ return Math.round(n) + 'px'; }
+
+  function getTabs(){
+    return document.getElementById('tabs');
+  }
+
+  function browserSupportsZoom(){
+    var el = document.createElement('div');
+    return 'zoom' in el.style;
+  }
+
+  function chooseBaseline(){
+    var tabs = getTabs();
+    var viewport = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+    var tabWidth = 0;
+
+    if (tabs){
+      var oldWidth = tabs.style.width;
+      var oldMinWidth = tabs.style.minWidth;
+      tabs.style.width = 'max-content';
+      tabs.style.minWidth = 'max-content';
+      tabWidth = Math.ceil(tabs.scrollWidth || tabs.getBoundingClientRect().width || 0) + 24;
+      tabs.style.width = oldWidth;
+      tabs.style.minWidth = oldMinWidth;
+    }
+
+    /* Use the original desktop 100% canvas when available; never baseline to a tiny phone width. */
+    baselineWidth = Math.max(DEFAULT_BASELINE, tabWidth, viewport >= 1000 ? viewport : 0);
+    ROOT.style.setProperty('--mndo-clean-baseline-width', px(baselineWidth));
+  }
+
+  function currentScale(){
+    var viewport = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+    var available = Math.max(320, viewport - 8);
+    return Math.min(1, Math.max(MIN_SCALE, available / baselineWidth));
+  }
+
+  function applyScale(){
+    scheduled = false;
+    ROOT.classList.add('mndo-clean-baseline-lock');
+
+    var useZoom = browserSupportsZoom();
+    ROOT.classList.toggle('mndo-clean-use-zoom', useZoom);
+    ROOT.classList.toggle('mndo-clean-use-transform', !useZoom);
+
+    var scale = currentScale();
+    ROOT.style.setProperty('--mndo-clean-scale', String(scale));
+
+    var tabs = getTabs();
+    if (tabs){
+      tabs.style.transformOrigin = 'top left';
+      if (useZoom){
+        tabs.style.zoom = String(scale);
+        tabs.style.transform = 'none';
+      } else {
+        tabs.style.zoom = '';
+        tabs.style.transform = 'scale(' + scale + ')';
+      }
+    }
+
+    Array.prototype.forEach.call(document.querySelectorAll('.tabcontent'), function(el){
+      el.style.transformOrigin = 'top left';
+      el.style.width = px(baselineWidth);
+      el.style.minWidth = px(baselineWidth);
+      el.style.maxWidth = 'none';
+      if (useZoom){
+        el.style.zoom = String(scale);
+        el.style.transform = 'none';
+      } else {
+        el.style.zoom = '';
+        el.style.transform = 'scale(' + scale + ')';
+      }
+    });
+  }
+
+  function scheduleApply(){
+    if (scheduled) return;
+    scheduled = true;
+    window.requestAnimationFrame(applyScale);
+  }
+
+  function init(){
+    chooseBaseline();
+    applyScale();
+    window.addEventListener('resize', scheduleApply, { passive: true });
+    window.addEventListener('orientationchange', function(){ setTimeout(scheduleApply, 80); }, { passive: true });
+
+    /* Re-apply after tab changes so newly opened content uses the same fixed canvas. */
+    if (typeof window.openCity === 'function' && !window.openCity.__mndoCleanBaselineWrapped){
+      var originalOpenCity = window.openCity;
+      window.openCity = function(){
+        var result = originalOpenCity.apply(this, arguments);
+        scheduleApply();
+        return result;
+      };
+      window.openCity.__mndoCleanBaselineWrapped = true;
+    }
+
+    document.addEventListener('click', function(e){
+      if (e.target && e.target.closest && e.target.closest('#tabs .tablinks')){
+        scheduleApply();
+      }
+    }, true);
+
+    if (document.fonts && document.fonts.ready){
+      document.fonts.ready.then(function(){ chooseBaseline(); scheduleApply(); }).catch(function(){});
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
+<!-- MNDO_CLEAN_BASELINE_SCALE_LOCK_END -->
+
 </body>
 
 </html>
