@@ -33,7 +33,7 @@
     [
       './safe-customization-layer.js'
     ].forEach(function(src){
-      importOnce(src, src);
+      safeImport(src);
     });
   }
 
@@ -115,7 +115,7 @@
       './online-users-count.js',
       './eid-hud.js'
     ].forEach(function(src){
-      importOnce(src, src);
+      safeImport(src);
     });
   }
 
@@ -135,17 +135,19 @@
     safeStyle('./support-suggestions-premium.css?v=20260506-premium1');
     safeStyle('./suggestions-rounded-premium.css?v=20260506-rounded1');
     safeStyle('./support-user-bubbles-premium.css?v=20260506-bubbles2');
-    importOnce('support-presence-visual', './support-presence-visual.js?v=20260506-presence1');
+    safeImport('./support-presence-visual.js?v=20260506-presence1');
 
     // Urgent admin voice selection controller must load before the auto-activation helper.
-    importOnce('urgent-voice-selection', './urgent-voice-selection-control.js?v=20260511-natural-voice1')
-      .then(function(){ return importOnce('urgent-voice-auto', './urgent-voice-auto-activation.js?v=20260506'); });
+    safeImport('./urgent-voice-selection-control.js?v=20260511-natural-voice1');
+
+    // Urgent admin voice auto-activation is scoped to #SR_URGENT_TICKER only.
+    safeImport('./urgent-voice-auto-activation.js?v=20260506');
 
     // Admin Suggestions reply controls are scoped to Admin Panel -> Suggestions only.
-    importOnce('admin-suggestion-replies', './admin-suggestions-replies-control.js?v=20260506');
+    safeImport('./admin-suggestions-replies-control.js?v=20260506');
 
     // Anchor-based reactions are scoped to public Suggestions anchors only.
-    importOnce('suggestion-anchor-reactions', './suggestion-anchor-reactions.js?v=20260506-anchor1');
+    safeImport('./suggestion-anchor-reactions.js?v=20260506-anchor1');
 
     // Heavy/interactive modules are loaded only when needed.
     bindSupportLauncher();
