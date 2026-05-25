@@ -1339,107 +1339,166 @@
 
 
   function installFixedMenuLayoutV4() {
-    var styleId = 'ua07-fixed-menu-layout-v7-safe-100';
+    var styleId = 'ua07-fixed-menu-layout-v6';
+    var tabIds = [
+      'SR Sales',
+      'SR Technical',
+      'Installation Follow OM',
+      'Installation OM',
+      'Fixed Voice',
+      'FTTH',
+      'GSM',
+      'Option Pack',
+      'CPE Config',
+      'Calculate',
+      'Call Back',
+      'Mobile'
+    ];
     var BASE_100_WIDTH = 1366;
+    var maxSeenWidth = Math.max(BASE_100_WIDTH, Math.round(window.innerWidth || document.documentElement.clientWidth || BASE_100_WIDTH));
+    var resizeTimer = 0;
+
+    function naturalWidth() {
+      var body = document.body;
+      var doc = document.documentElement;
+      var tabBar = document.getElementById('tabs');
+      var w = Math.max(
+        BASE_100_WIDTH,
+        maxSeenWidth,
+        tabBar ? Math.ceil(tabBar.scrollWidth || 0) : 0,
+        body ? Math.ceil(body.clientWidth || 0) : 0,
+        doc ? Math.ceil(doc.clientWidth || 0) : 0
+      );
+      return Math.min(1920, w);
+    }
 
     function injectStyle() {
-      var oldV4 = document.getElementById('ua07-fixed-menu-layout-v4');
-      var oldV6 = document.getElementById('ua07-fixed-menu-layout-v6');
-      if (oldV4) oldV4.remove();
-      if (oldV6) oldV6.remove();
+      var old = document.getElementById('ua07-fixed-menu-layout-v4');
+      if (old) old.remove();
       if (document.getElementById(styleId)) return;
-
       var style = document.createElement('style');
       style.id = styleId;
       style.textContent = [
-        '/* UA07 v7 safe fix: keep the natural 100% desktop order without scaling or blocking open/hover logic. */',
+        '/* UA07 v6: lock menus to the real 100% layout reference. No 80% scale/downsize. */',
         'html,body{',
         '  overflow-x: auto !important;',
         '}',
         '#myBody{',
-        '  min-width: ' + BASE_100_WIDTH + 'px !important;',
-        '  max-width: none !important;',
         '  overflow-x: visible !important;',
-        '}',
-        'body > center{',
-        '  min-width: ' + BASE_100_WIDTH + 'px !important;',
         '  max-width: none !important;',
         '}',
         '#tabs.tab{',
-        '  display: flex !important;',
         '  flex-wrap: nowrap !important;',
-        '  align-items: center !important;',
         '  white-space: nowrap !important;',
         '  overflow-x: auto !important;',
         '  overflow-y: hidden !important;',
-        '  width: auto !important;',
-        '  max-width: none !important;',
+        '  max-width: 100% !important;',
         '}',
         '#tabs.tab .tablinks{',
         '  flex: 0 0 auto !important;',
         '  white-space: nowrap !important;',
         '}',
-        '.tabcontent{',
+        '.tabcontent.ua07-fixed-menu-canvas{',
+        '  width: var(--ua07-fixed-menu-width, 1366px) !important;',
+        '  min-width: var(--ua07-fixed-menu-width, 1366px) !important;',
         '  max-width: none !important;',
+        '  box-sizing: border-box !important;',
         '  transform: none !important;',
         '  zoom: 1 !important;',
+        '  transition: none !important;',
+        '  overflow: visible !important;',
+        '  contain: none !important;',
         '}',
-        '.tabcontent .dropdown{',
+        '.tabcontent.ua07-fixed-menu-canvas .toolsBar{',
+        '  width: var(--ua07-fixed-menu-width, 1366px) !important;',
+        '  min-width: var(--ua07-fixed-menu-width, 1366px) !important;',
+        '  max-width: none !important;',
+        '  box-sizing: border-box !important;',
+        '}',
+        '.tabcontent.ua07-fixed-menu-canvas .dropdown{',
+        '  float: left !important;',
         '  clear: none !important;',
+        '  flex: 0 0 auto !important;',
+        '  position: relative;',
         '}',
-        '.tabcontent .dropdown .dropbtn{',
+        '.tabcontent.ua07-fixed-menu-canvas .dropdown .dropbtn{',
         '  white-space: nowrap !important;',
         '}',
-        '.dropdown-content,.sub-dropdown-content{',
-        '  z-index: 2147482400 !important;',
+        '.tabcontent.ua07-fixed-menu-canvas .mobile-flex{',
+        '  max-width: none !important;',
         '}',
-        '@media (max-width: ' + (BASE_100_WIDTH - 1) + 'px){',
-        '  html,body{',
-        '    min-width: 0 !important;',
-        '  }',
-        '  #myBody,body > center{',
-        '    min-width: ' + BASE_100_WIDTH + 'px !important;',
+        '.tabcontent.ua07-fixed-menu-canvas .dropdown-content{',
+        '  z-index: 2147482500 !important;',
+        '}',
+        '@media (max-width: 1365px){',
+        '  .tabcontent.ua07-fixed-menu-canvas{',
+        '    width: var(--ua07-fixed-menu-width, 1366px) !important;',
+        '    min-width: var(--ua07-fixed-menu-width, 1366px) !important;',
+        '    transform: none !important;',
         '  }',
         '}'
       ].join('\n');
       (document.head || document.documentElement).appendChild(style);
     }
 
-    function cleanupInlineScale() {
-      var tabs = Array.prototype.slice.call(document.querySelectorAll('.tabcontent'));
-      tabs.forEach(function (tab) {
-        tab.classList.remove('ua07-fixed-menu-canvas');
-        tab.style.removeProperty('--ua07-fixed-menu-width');
-        tab.style.removeProperty('--ua07-fixed-menu-scale');
-        tab.style.removeProperty('min-width');
-        tab.style.removeProperty('width');
+    function targetTabs() {
+      var out = [];
+      tabIds.forEach(function (id) {
+        var tab = document.getElementById(id);
+        if (tab && out.indexOf(tab) === -1) out.push(tab);
+      });
+      return out;
+    }
+
+    function markTabs() {
+      var designWidth = naturalWidth();
+      targetTabs().forEach(function (tab) {
+        tab.classList.add('ua07-fixed-menu-canvas');
+        tab.style.setProperty('--ua07-fixed-menu-width', designWidth + 'px');
+        tab.style.setProperty('--ua07-fixed-menu-scale', '1');
         tab.style.removeProperty('min-height');
-        tab.style.removeProperty('transform');
-        tab.style.removeProperty('zoom');
-        if (tab.dataset) {
-          delete tab.dataset.ua07FixedMenuScale;
-          delete tab.dataset.ua07FixedMenuReference;
-        }
+        tab.dataset.ua07FixedMenuScale = '1';
+        tab.dataset.ua07FixedMenuReference = '100-percent';
       });
     }
 
-    function applySafe100Layout() {
+    function applyScale() {
       injectStyle();
-      cleanupInlineScale();
+      markTabs();
     }
 
-    applySafe100Layout();
-    setTimeout(applySafe100Layout, 0);
-    setTimeout(applySafe100Layout, 120);
-    setTimeout(applySafe100Layout, 450);
-    window.addEventListener('resize', function () {
-      clearTimeout(installFixedMenuLayoutV4.__resizeTimer);
-      installFixedMenuLayoutV4.__resizeTimer = setTimeout(applySafe100Layout, 120);
-    }, { passive: true });
+    function scheduleApply() {
+      clearTimeout(resizeTimer);
+      maxSeenWidth = Math.max(maxSeenWidth, Math.round(window.innerWidth || document.documentElement.clientWidth || BASE_100_WIDTH));
+      applyScale();
+      resizeTimer = setTimeout(applyScale, 120);
+    }
+
+    function wrapOpenCity() {
+      if (typeof window.openCity !== 'function' || window.openCity.__ua07FixedMenuV6) return;
+      var original = window.openCity;
+      var wrapped = function () {
+        var result = original.apply(this, arguments);
+        setTimeout(applyScale, 0);
+        setTimeout(applyScale, 120);
+        return result;
+      };
+      wrapped.__ua07FixedMenuV6 = true;
+      window.openCity = wrapped;
+    }
+
+    injectStyle();
+    applyScale();
+    wrapOpenCity();
+    setTimeout(function () { markTabs(); applyScale(); wrapOpenCity(); }, 80);
+    setTimeout(function () { markTabs(); applyScale(); wrapOpenCity(); }, 400);
+    window.addEventListener('resize', scheduleApply, { passive: true });
+    window.addEventListener('orientationchange', scheduleApply, { passive: true });
     document.addEventListener('visibilitychange', function () {
-      if (!document.hidden) setTimeout(applySafe100Layout, 80);
+      if (!document.hidden) setTimeout(applyScale, 80);
     });
   }
+
 
   function installSearchResultsThemeBlendV5() {
     var styleId = 'ua07-search-results-theme-blend-v5';
