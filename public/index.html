@@ -302,6 +302,7 @@
 
 <!-- MNDO_MATCH_BASE_TOP_LAYOUT_V1_END -->
 
+
 </body>
 
 </html>
@@ -19716,6 +19717,7 @@ button {border-radius:999px !important;}
                                                                         <font color=#ffffff size=4px>
 
                                                         
+
 </body>
 
                                                 </html>
@@ -21104,6 +21106,59 @@ button {border-radius:999px !important;}
 })();
 </script>
 <!-- MNDO_AHLY_ACTIVE_TAB_FIX_END -->
+
+
+<!-- MNDO_SEARCH_RESULTS_CENTER_POLISH_START -->
+<style id="mndoSearchResultsCenterPolishCss">
+  /*
+    Search results center polish — safe visual layer only.
+    Keeps search logic untouched; only centers the dropdown and its rows.
+  */
+  #searchResults.search-results,
+  #searchResults{
+    left: 50% !important;
+    right: auto !important;
+    width: min(440px, calc(100vw - 28px)) !important;
+    max-width: min(440px, calc(100vw - 28px)) !important;
+    min-width: min(340px, calc(100vw - 28px)) !important;
+    transform: translateX(-50%) !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
+  }
+
+  #searchResults.search-results a,
+  #searchResults a{
+    text-align: center !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+    line-height: 1.45 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  #searchResults.search-results a .fa,
+  #searchResults.search-results a i,
+  #searchResults a .fa,
+  #searchResults a i{
+    flex: 0 0 auto !important;
+    margin-inline: 6px !important;
+  }
+
+  @media (max-width: 520px){
+    #searchResults.search-results,
+    #searchResults{
+      width: calc(100vw - 22px) !important;
+      max-width: calc(100vw - 22px) !important;
+      min-width: 0 !important;
+    }
+  }
+</style>
+<!-- MNDO_SEARCH_RESULTS_CENTER_POLISH_END -->
 </body>
 
 </html>
