@@ -20200,7 +20200,7 @@ button {border-radius:999px !important;}
 <!-- MNDO_CLEAN_BASELINE_SCALE_LOCK_START -->
 <style id="mndoCleanBaselineScaleCss">
   /*
-    MNDO_CLEAN_BASELINE_SCALE_LOCK_V2
+    MNDO_CLEAN_BASELINE_SCALE_LOCK_V3
     Safe inline layer only: no new files, no link/SR logic changes.
     The fixed canvas is now based on the real 100% desktop/screen width,
     not on the current resized viewport. This prevents locking to an 80% layout.
@@ -20316,15 +20316,20 @@ button {border-radius:999px !important;}
   }
 
   function readFullScreenWidth(){
-    var widths = [];
+    var screenWidths = [];
     if (window.screen){
-      widths.push(num(window.screen.availWidth));
-      widths.push(num(window.screen.width));
+      screenWidths.push(num(window.screen.availWidth));
+      screenWidths.push(num(window.screen.width));
     }
-    if (window.outerWidth){
-      widths.push(num(window.outerWidth));
-    }
-    return Math.max.apply(Math, widths.concat([0]));
+
+    /*
+      Use screen width as the 100% reference. Do not mix in inner/outer viewport
+      widths, because browser zoom-out (80%) can report a bigger CSS viewport and
+      would make the menu freeze on the 80% arrangement. outerWidth is fallback only.
+    */
+    var screenMax = Math.max.apply(Math, screenWidths.concat([0]));
+    if (screenMax > 0) return screenMax;
+    return num(window.outerWidth);
   }
 
   function naturalTabsWidth(){
@@ -20355,21 +20360,25 @@ button {border-radius:999px !important;}
   }
 
   function chooseBaseline(){
-    var viewport = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
     var fullScreen = readFullScreenWidth();
     var tabWidth = naturalTabsWidth();
 
     /*
-      V2 fix:
-      Do NOT use the current viewport as the baseline, because a browser opened at
-      80% width would lock the 80% arrangement. Use full screen/desktop width as
-      the 100% reference, while keeping a safe desktop minimum and enough room for tabs.
+      V3 fix:
+      Do NOT use the current viewport as the baseline, because browser zoom-out or
+      an 80% layout can report a wider CSS viewport and lock the wrong arrangement.
+      Use the real screen/desktop width as the 100% reference, while keeping a safe
+      desktop minimum and enough room for tabs.
     */
     baselineWidth = Math.max(MIN_DESKTOP_BASELINE, fullScreen, tabWidth);
 
-    /* On unusual devices where viewport is genuinely wider than reported screen
-       (for example browser zoomed out), only expand; never shrink the 100% baseline. */
-    if (viewport > baselineWidth) baselineWidth = viewport;
+    /*
+      V3 precision fix:
+      Never expand the baseline from current viewport. Browser zoom-out (80%) makes
+      clientWidth bigger than the real 100% screen width, and that was locking the
+      menus to the 80% arrangement. The baseline must remain the true 100% screen
+      canvas only: full screen width + safe desktop minimum + natural tabs width.
+    */
 
     ROOT.style.setProperty('--mndo-clean-baseline-width', px(baselineWidth));
   }
