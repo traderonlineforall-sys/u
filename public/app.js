@@ -2120,7 +2120,7 @@
     el = document.createElement("div");
     el.id = "MNDO_UA07_LOGO3";
     el.innerHTML = `
-<img class="mndo-uwk07-logo-img" src="/uwk07-logo.png" alt="UWK07" draggable="false" />
+<img class="mndo-uwk07-logo-img" src="/uwk07-logo.webp" alt="UWK07" draggable="false" />
 
 <div id="UA07_SECRET_ENVELOPE_WRAP" aria-hidden="false">
   <button id="UA07_SECRET_ENVELOPE" type="button" title="Secret tool warning" aria-label="Secret tool warning">
