@@ -2120,7 +2120,7 @@
     el = document.createElement("div");
     el.id = "MNDO_UA07_LOGO3";
     el.innerHTML = `
-<img class="mndo-uwk07-logo-img" src="/uwk07-logo.png" alt="UWK07" draggable="false" />
+<img class="mndo-uwk07-logo-img" src="/uwk07-logo.webp" alt="UWK07" draggable="false" />
 
 <div id="UA07_SECRET_ENVELOPE_WRAP" aria-hidden="false">
   <button id="UA07_SECRET_ENVELOPE" type="button" title="Secret tool warning" aria-label="Secret tool warning">
@@ -4629,6 +4629,11 @@ function performBalanceConversion() {
       const isHq = mode === 'hq';
       if(isHq && hqReady && hqWorker) return hqWorker;
       if(!isHq && fastReady && fastWorker) return fastWorker;
+      if(!window.Tesseract || !window.Tesseract.createWorker){
+        if(typeof window.__SR_LOAD_TESSERACT_ON_DEMAND === 'function'){
+          await window.__SR_LOAD_TESSERACT_ON_DEMAND();
+        }
+      }
       if(!window.Tesseract || !window.Tesseract.createWorker){
         throw new Error('Tesseract.js not loaded');
       }

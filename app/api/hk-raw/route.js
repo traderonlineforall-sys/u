@@ -40,12 +40,16 @@ export async function GET(request) {
     const upstream = await fetch(target.toString(), {
       method: "GET",
       cache: "no-store",
-      redirect: "follow",
+      redirect: "manual",
       signal: controller.signal,
       headers: {
         Accept: "application/json,text/plain,*/*"
       }
     });
+
+    if (upstream.status >= 300 && upstream.status < 400) {
+      return noStore(NextResponse.json({ error: "Upstream redirect blocked." }, { status: 502 }));
+    }
 
     const rawText = await upstream.text();
     let payload = null;

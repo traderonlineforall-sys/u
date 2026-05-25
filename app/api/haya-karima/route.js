@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
+import { noStore } from '../../../lib/server/auth.js';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 function digitsOnly(value) {
-  return String(value || '').replace(/\D/g, '');
+  return String(value || '').replace(/\D/g, '').slice(0, 32);
 }
 
 export async function GET(request) {
@@ -13,7 +14,7 @@ export async function GET(request) {
   const landline = digitsOnly(searchParams.get('landline'));
 
   if (!areaCode || !landline) {
-    return NextResponse.json({ error: 'Missing area_code or landline' }, { status: 400 });
+    return noStore(NextResponse.json({ error: 'Missing area_code or landline' }, { status: 400 }));
   }
 
   const upstreamUrl = `https://10.19.44.2/ireport/api/haya_karima_api.php?area_code=${encodeURIComponent(areaCode)}&landline=${encodeURIComponent(landline)}`;
@@ -36,15 +37,15 @@ export async function GET(request) {
     try {
       payload = JSON.parse(text);
     } catch (parseError) {
-      return NextResponse.json({ error: 'Invalid upstream payload', raw: text.slice(0, 500) }, { status: 502 });
+      return noStore(NextResponse.json({ error: 'Invalid upstream payload', raw: text.slice(0, 500) }, { status: 502 }));
     }
 
-    return NextResponse.json(payload, { status: 200 });
+    return noStore(NextResponse.json(payload, { status: 200 }));
   } catch (error) {
     const message = error && error.name === 'AbortError'
       ? 'Upstream timeout'
       : (error && error.message) || 'Unable to reach upstream';
-    return NextResponse.json({ error: message }, { status: 502 });
+    return noStore(NextResponse.json({ error: message }, { status: 502 }));
   } finally {
     clearTimeout(timeout);
   }

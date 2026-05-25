@@ -30,7 +30,7 @@ html.ahly-premium-theme-live body {
       rgba(0, 0, 0, 0.00) 49%,
       rgba(0, 0, 0, 0.36) 82%,
       rgba(0, 0, 0, 0.88) 100%),
-    url("./ahly-premium-bg.png?v=ahlypremium1"),
+    url("./ahly-premium-bg.webp?v=ahlypremium1"),
     linear-gradient(135deg, #080001 0%, #280000 42%, #020000 100%) !important;
   background-position:
     center center,
@@ -401,7 +401,7 @@ html.ahly-premium-theme-live #UA07_UPDATE_MODAL .ua07-secret-card {
    visually covered only while html.ahly-premium-theme-live is active.
 */
 html.ahly-premium-theme-live #MNDO_UA07_LOGO3 {
-  background-image: url("./ahly-ua07-logo.png?v=ahlylogo1") !important;
+  background-image: url("./ahly-ua07-logo.webp?v=ahlylogo1") !important;
   background-repeat: no-repeat !important;
   background-position: center center !important;
   background-size: 100% 100% !important;
@@ -436,7 +436,7 @@ html.ahly-premium-theme-live #MNDO_UA07_LOGO3::before {
    original absolute position, dimensions, click/admin behavior, or any SR logic.
 */
 html.ahly-premium-theme-live #MNDO_UA07_LOGO3 {
-  background-image: url("./ahly-ua07-logo.png?v=ahlylogo2-clean") !important;
+  background-image: url("./ahly-ua07-logo.webp?v=ahlylogo2-clean") !important;
   background-repeat: no-repeat !important;
   background-position: center center !important;
   background-size: 100% 100% !important;
@@ -520,7 +520,7 @@ html.ahly-premium-theme-live #Mobile .toolsBar .toolsStyle::before {
   width: 31px !important;
   height: 31px !important;
   transform: translateY(-50%) rotate(-6deg) !important;
-  background: url("./ahly-eagle-mark.png?v=ultra2") center / contain no-repeat !important;
+  background: url("./ahly-eagle-mark.webp?v=ultra2") center / contain no-repeat !important;
   opacity: .18 !important;
   pointer-events: none !important;
   z-index: 0 !important;
@@ -870,7 +870,7 @@ html.ahly-premium-theme-live body {
     linear-gradient(180deg, rgba(0,0,0,.78) 0%, rgba(0,0,0,.38) 16%, rgba(0,0,0,.13) 38%, rgba(0,0,0,.34) 68%, rgba(0,0,0,.84) 100%),
     radial-gradient(78% 48% at 50% 41%, rgba(255,205,82,.105) 0%, rgba(176,0,0,.072) 32%, rgba(0,0,0,.08) 66%, rgba(0,0,0,.60) 100%),
     linear-gradient(90deg, rgba(0,0,0,.92) 0%, rgba(0,0,0,.24) 22%, rgba(0,0,0,0) 50%, rgba(0,0,0,.24) 78%, rgba(0,0,0,.92) 100%),
-    url("./ahly-premium-bg.png?v=ahly74royal1"),
+    url("./ahly-premium-bg.webp?v=ahly74royal1"),
     linear-gradient(135deg, #020203 0%, #120000 48%, #020203 100%) !important;
   background-position: center center, center center, center center, center 43%, center center !important;
   background-size: cover, cover, cover, cover, cover !important;
@@ -887,7 +887,7 @@ html.ahly-premium-theme-live {
 }
 
 html.ahly-premium-theme-live #MNDO_UA07_LOGO3 {
-  background-image: url("./ahly-ua07-logo.png?v=ua07clean74") !important;
+  background-image: url("./ahly-ua07-logo.webp?v=ua07clean74") !important;
   filter: drop-shadow(0 7px 16px rgba(0,0,0,.58)) drop-shadow(0 0 6px rgba(255,210,92,.055)) !important;
 }
 html.ahly-premium-theme-live #MNDO_UA07_LOGO3:hover {
@@ -1060,7 +1060,7 @@ html.ahly-premium-theme-live body {
     radial-gradient(58% 72% at 0% 31%, rgba(196,0,0,.32) 0%, rgba(114,0,0,.20) 26%, rgba(0,0,0,0) 61%),
     radial-gradient(58% 72% at 100% 31%, rgba(196,0,0,.30) 0%, rgba(114,0,0,.18) 28%, rgba(0,0,0,0) 61%),
     linear-gradient(90deg, rgba(0,0,0,.97) 0%, rgba(0,0,0,.38) 19%, rgba(0,0,0,.18) 50%, rgba(0,0,0,.38) 81%, rgba(0,0,0,.97) 100%),
-    url("./ahly-premium-bg.png?v=ahly74royal-calm-final"),
+    url("./ahly-premium-bg.webp?v=ahly74royal-calm-final"),
     linear-gradient(135deg, #020203 0%, #180000 48%, #020203 100%) !important;
   background-position: center center, center center, center center, center center, center center, center 43%, center center !important;
   background-size: cover, cover, cover, cover, cover, cover, cover !important;
@@ -1069,7 +1069,7 @@ html.ahly-premium-theme-live body {
 }
 
 html.ahly-premium-theme-live #MNDO_UA07_LOGO3 {
-  background-image: url("./ahly-ua07-logo.png?v=ua07clean-calm-final") !important;
+  background-image: url("./ahly-ua07-logo.webp?v=ua07clean-calm-final") !important;
   filter: drop-shadow(0 7px 15px rgba(0,0,0,.70)) drop-shadow(0 0 3px rgba(233,196,109,.045)) !important;
 }
 html.ahly-premium-theme-live #MNDO_UA07_LOGO3::before,
@@ -1322,7 +1322,7 @@ html.ahly-premium-theme-live body {
     radial-gradient(55% 70% at 0% 35%, rgba(205,0,0,.31) 0%, rgba(120,0,0,.20) 25%, rgba(0,0,0,0) 62%),
     radial-gradient(55% 70% at 100% 35%, rgba(205,0,0,.29) 0%, rgba(120,0,0,.18) 27%, rgba(0,0,0,0) 62%),
     linear-gradient(90deg, rgba(0,0,0,.985) 0%, rgba(0,0,0,.50) 22%, rgba(0,0,0,.18) 50%, rgba(0,0,0,.50) 78%, rgba(0,0,0,.985) 100%),
-    url("./ahly-premium-bg.png?v=ahly74-executive-final-balance"),
+    url("./ahly-premium-bg.webp?v=ahly74-executive-final-balance"),
     linear-gradient(135deg, #010102 0%, #130000 48%, #010102 100%) !important;
   background-position: center center, center center, center center, center center, center center, center 43%, center center !important;
   background-size: cover, cover, cover, cover, cover, cover, cover !important;
@@ -1332,7 +1332,7 @@ html.ahly-premium-theme-live body {
 
 /* UA07 logo clarity: keep exact box/position, replace only the rendered image and reduce halo. */
 html.ahly-premium-theme-live #MNDO_UA07_LOGO3 {
-  background-image: url("./ahly-ua07-logo.png?v=ua07-final-crisp-eagles") !important;
+  background-image: url("./ahly-ua07-logo.webp?v=ua07-final-crisp-eagles") !important;
   background-repeat: no-repeat !important;
   background-position: center center !important;
   background-size: 100% 100% !important;
