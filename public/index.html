@@ -21111,19 +21111,18 @@ button {border-radius:999px !important;}
 <!-- MNDO_SEARCH_RESULTS_CENTER_POLISH_START -->
 <style id="mndoSearchResultsCenterPolishCss">
   /*
-    Search results center polish — safe visual layer only.
-    Keeps search logic untouched; only centers the dropdown and its rows.
+    Search results input-center polish — safe visual layer only.
+    Keeps search logic untouched; centers the panel under the search input,
+    and centers the row text without changing the active theme colors.
   */
   #searchResults.search-results,
   #searchResults{
-    left: 50% !important;
     right: auto !important;
-    width: min(440px, calc(100vw - 28px)) !important;
-    max-width: min(440px, calc(100vw - 28px)) !important;
-    min-width: min(340px, calc(100vw - 28px)) !important;
-    transform: translateX(-50%) !important;
+    transform: none !important;
     text-align: center !important;
     box-sizing: border-box !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
   }
 
   #searchResults.search-results a,
@@ -21148,16 +21147,115 @@ button {border-radius:999px !important;}
     flex: 0 0 auto !important;
     margin-inline: 6px !important;
   }
-
-  @media (max-width: 520px){
-    #searchResults.search-results,
-    #searchResults{
-      width: calc(100vw - 22px) !important;
-      max-width: calc(100vw - 22px) !important;
-      min-width: 0 !important;
-    }
-  }
 </style>
+<script id="mndoSearchResultsInputCenterFixJs">
+(function(){
+  'use strict';
+  var raf = 0;
+  var timers = [];
+
+  function byId(id){ return document.getElementById(id); }
+
+  function important(el, prop, value){
+    if(!el) return;
+    el.style.setProperty(prop, String(value), 'important');
+  }
+
+  function getParts(){
+    var input = byId('searchInput');
+    var results = byId('searchResults');
+    if(!input || !results) return null;
+    var container = input.closest ? input.closest('.search-container') : null;
+    container = container || input.parentElement || results.parentElement;
+    if(!container) return null;
+    if(results.parentElement !== container){
+      try { container.appendChild(results); } catch(_) {}
+    }
+    return { input: input, results: results, container: container };
+  }
+
+  function alignNow(){
+    raf = 0;
+    var p = getParts();
+    if(!p) return;
+
+    var inputRect = p.input.getBoundingClientRect();
+    var containerRect = p.container.getBoundingClientRect();
+    var viewportW = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+    if(!inputRect.width || !containerRect.width) return;
+
+    /* Panel follows the real input, not the old 80%/page-left baseline. */
+    var safeGap = 8;
+    var width = Math.round(Math.min(Math.max(inputRect.width, 320), 460, Math.max(220, viewportW - (safeGap * 2))));
+    var left = Math.round((inputRect.left - containerRect.left) + ((inputRect.width - width) / 2));
+
+    var panelViewportLeft = containerRect.left + left;
+    if(panelViewportLeft < safeGap){
+      left += Math.round(safeGap - panelViewportLeft);
+      panelViewportLeft = safeGap;
+    }
+    var panelViewportRight = panelViewportLeft + width;
+    if(panelViewportRight > viewportW - safeGap){
+      left -= Math.round(panelViewportRight - (viewportW - safeGap));
+    }
+
+    important(p.container, 'position', 'relative');
+    important(p.container, 'overflow', 'visible');
+    important(p.results, 'position', 'absolute');
+    important(p.results, 'top', 'calc(100% + 6px)');
+    important(p.results, 'left', left + 'px');
+    important(p.results, 'right', 'auto');
+    important(p.results, 'width', width + 'px');
+    important(p.results, 'min-width', width + 'px');
+    important(p.results, 'max-width', width + 'px');
+    important(p.results, 'transform', 'none');
+    important(p.results, 'box-sizing', 'border-box');
+    important(p.results, 'text-align', 'center');
+    important(p.results, 'z-index', '2147483647');
+  }
+
+  function alignSoon(delay){
+    if(delay){ timers.push(setTimeout(scheduleAlign, delay)); return; }
+    scheduleAlign();
+  }
+
+  function scheduleAlign(){
+    if(raf) return;
+    raf = window.requestAnimationFrame ? window.requestAnimationFrame(alignNow) : setTimeout(alignNow, 0);
+  }
+
+  function alignBurst(){
+    timers.splice(0).forEach(function(t){ clearTimeout(t); });
+    alignSoon(0);
+    alignSoon(20);
+    alignSoon(90);
+    alignSoon(180);
+  }
+
+  function init(){
+    var p = getParts();
+    if(!p){ setTimeout(init, 120); return; }
+
+    ['input','keyup','keydown','focus','click','change'].forEach(function(evt){
+      p.input.addEventListener(evt, alignBurst, true);
+    });
+    window.addEventListener('resize', alignBurst, { passive: true });
+    window.addEventListener('orientationchange', function(){ setTimeout(alignBurst, 80); }, { passive: true });
+    document.addEventListener('click', function(e){
+      var parts = getParts();
+      if(parts && (e.target === parts.input || parts.results.contains(e.target))) alignBurst();
+    }, true);
+
+    if(window.MutationObserver){
+      new MutationObserver(alignBurst).observe(p.results, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class'] });
+    }
+    alignBurst();
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
 <!-- MNDO_SEARCH_RESULTS_CENTER_POLISH_END -->
 </body>
 
