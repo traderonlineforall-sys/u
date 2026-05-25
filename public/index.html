@@ -20001,6 +20001,177 @@ button {border-radius:999px !important;}
 	    <!-- Defer non-core visual helpers to keep first load lighter on weak devices -->
 	    <script src="./non-critical-loader.js?v=support-visible-20260426"></script>
 
+<!-- MNDO_SEARCH_THEME_RESULTS_BLEND_START -->
+<style id="mndoSearchThemeResultsBlendCss">
+  /*
+    Search results theme blend — safe visual layer only.
+    Keeps search logic/click behavior untouched; removes the hard white panel.
+  */
+  :root{
+    --mndo-search-panel-bg:
+      radial-gradient(120% 150% at 16% 0%, rgba(255,255,255,0.14), rgba(255,255,255,0) 45%),
+      linear-gradient(180deg, rgba(18,22,34,0.96), rgba(8,10,18,0.965));
+    --mndo-search-row-bg: rgba(255,255,255,0.055);
+    --mndo-search-row-hover: rgba(145,172,230,0.18);
+    --mndo-search-text: rgba(255,255,255,0.94);
+    --mndo-search-muted-border: rgba(255,255,255,0.14);
+    --mndo-search-accent: rgba(145,172,230,0.72);
+    --mndo-search-shadow: 0 20px 52px rgba(0,0,0,0.54), 0 0 26px rgba(90,120,255,0.10);
+  }
+
+  /* Default / no extra skin: dark glass so it follows the original dark page instead of white. */
+  html:not(.eid-theme-live):not(.ua07-legacy-theme-live):not(.ahly-premium-theme-live) #searchResults.search-results,
+  html:not(.eid-theme-live):not(.ua07-legacy-theme-live):not(.ahly-premium-theme-live) #searchResults{
+    background: var(--mndo-search-panel-bg) !important;
+    color: var(--mndo-search-text) !important;
+    border-color: var(--mndo-search-muted-border) !important;
+    box-shadow: var(--mndo-search-shadow) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(150%) !important;
+    backdrop-filter: blur(10px) saturate(150%) !important;
+  }
+
+  html:not(.eid-theme-live):not(.ua07-legacy-theme-live):not(.ahly-premium-theme-live) #searchResults.search-results a,
+  html:not(.eid-theme-live):not(.ua07-legacy-theme-live):not(.ahly-premium-theme-live) #searchResults a,
+  html:not(.eid-theme-live):not(.ua07-legacy-theme-live):not(.ahly-premium-theme-live) #searchResults.search-results a.highlight,
+  html:not(.eid-theme-live):not(.ua07-legacy-theme-live):not(.ahly-premium-theme-live) #searchResults a.highlight{
+    background: var(--mndo-search-row-bg) !important;
+    color: var(--mndo-search-text) !important;
+    -webkit-text-fill-color: var(--mndo-search-text) !important;
+    border-bottom-color: var(--mndo-search-muted-border) !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.45) !important;
+  }
+
+  html:not(.eid-theme-live):not(.ua07-legacy-theme-live):not(.ahly-premium-theme-live) #searchResults.search-results a:hover,
+  html:not(.eid-theme-live):not(.ua07-legacy-theme-live):not(.ahly-premium-theme-live) #searchResults a:hover,
+  html:not(.eid-theme-live):not(.ua07-legacy-theme-live):not(.ahly-premium-theme-live) #searchResults.search-results a:focus,
+  html:not(.eid-theme-live):not(.ua07-legacy-theme-live):not(.ahly-premium-theme-live) #searchResults a:focus{
+    background: var(--mndo-search-row-hover) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  html:not(.eid-theme-live):not(.ua07-legacy-theme-live):not(.ahly-premium-theme-live) #searchResults.search-results::-webkit-scrollbar-thumb,
+  html:not(.eid-theme-live):not(.ua07-legacy-theme-live):not(.ahly-premium-theme-live) #searchResults::-webkit-scrollbar-thumb{
+    background: var(--mndo-search-accent) !important;
+  }
+
+  /* Eid theme: same night/gold feel as the Eid background. */
+  html.eid-theme-live #searchResults.search-results,
+  html.eid-theme-live #searchResults{
+    background:
+      radial-gradient(120% 150% at 18% 0%, rgba(255,239,186,0.18), rgba(255,239,186,0) 46%),
+      radial-gradient(90% 120% at 50% 100%, rgba(255,165,118,0.10), rgba(255,165,118,0) 62%),
+      linear-gradient(180deg, rgba(7,11,20,0.955), rgba(5,8,14,0.965)) !important;
+    color: rgba(244,247,255,0.96) !important;
+    border-color: rgba(255,239,186,0.28) !important;
+    box-shadow: 0 20px 52px rgba(0,0,0,0.58), 0 0 28px rgba(243,211,122,0.14) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(155%) !important;
+    backdrop-filter: blur(10px) saturate(155%) !important;
+  }
+
+  html.eid-theme-live #searchResults.search-results a,
+  html.eid-theme-live #searchResults a,
+  html.eid-theme-live #searchResults.search-results a.highlight,
+  html.eid-theme-live #searchResults a.highlight{
+    background: rgba(255,239,186,0.070) !important;
+    color: rgba(244,247,255,0.97) !important;
+    -webkit-text-fill-color: rgba(244,247,255,0.97) !important;
+    border-bottom-color: rgba(255,239,186,0.16) !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.48) !important;
+  }
+
+  html.eid-theme-live #searchResults.search-results a:hover,
+  html.eid-theme-live #searchResults a:hover,
+  html.eid-theme-live #searchResults.search-results a:focus,
+  html.eid-theme-live #searchResults a:focus{
+    background: linear-gradient(90deg, rgba(243,211,122,0.24), rgba(255,165,118,0.15)) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  html.eid-theme-live #searchResults.search-results::-webkit-scrollbar-thumb,
+  html.eid-theme-live #searchResults::-webkit-scrollbar-thumb{
+    background: rgba(243,211,122,0.72) !important;
+  }
+
+  /* UA07 legacy theme: black/silver/red. */
+  html.ua07-legacy-theme-live #searchResults.search-results,
+  html.ua07-legacy-theme-live #searchResults{
+    background:
+      radial-gradient(130% 160% at 18% 0%, rgba(255,255,255,0.16), rgba(255,255,255,0) 42%),
+      linear-gradient(180deg, rgba(22,22,25,0.97), rgba(5,5,6,0.97) 58%, rgba(58,0,0,0.92) 100%) !important;
+    color: rgba(255,255,255,0.94) !important;
+    border-color: rgba(255,255,255,0.20) !important;
+    box-shadow: 0 20px 52px rgba(0,0,0,0.68), 0 0 28px rgba(170,0,0,0.16) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(150%) !important;
+    backdrop-filter: blur(10px) saturate(150%) !important;
+  }
+
+  html.ua07-legacy-theme-live #searchResults.search-results a,
+  html.ua07-legacy-theme-live #searchResults a,
+  html.ua07-legacy-theme-live #searchResults.search-results a.highlight,
+  html.ua07-legacy-theme-live #searchResults a.highlight{
+    background: rgba(255,255,255,0.060) !important;
+    color: rgba(255,255,255,0.94) !important;
+    -webkit-text-fill-color: rgba(255,255,255,0.94) !important;
+    border-bottom-color: rgba(255,255,255,0.13) !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.60) !important;
+  }
+
+  html.ua07-legacy-theme-live #searchResults.search-results a:hover,
+  html.ua07-legacy-theme-live #searchResults a:hover,
+  html.ua07-legacy-theme-live #searchResults.search-results a:focus,
+  html.ua07-legacy-theme-live #searchResults a:focus{
+    background: linear-gradient(90deg, rgba(155,0,0,0.52), rgba(255,255,255,0.08)) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  html.ua07-legacy-theme-live #searchResults.search-results::-webkit-scrollbar-thumb,
+  html.ua07-legacy-theme-live #searchResults::-webkit-scrollbar-thumb{
+    background: rgba(185,24,24,0.72) !important;
+  }
+
+  /* Ahly theme: deep red/gold, matching the active Ahly skin. */
+  html.ahly-premium-theme-live #searchResults.search-results,
+  html.ahly-premium-theme-live #searchResults{
+    background:
+      radial-gradient(130% 160% at 18% 0%, rgba(255,244,210,0.16), rgba(255,244,210,0) 42%),
+      linear-gradient(180deg, rgba(48,2,3,0.975), rgba(5,0,1,0.975) 58%, rgba(115,0,0,0.94) 100%) !important;
+    color: rgba(255,248,225,0.97) !important;
+    border-color: rgba(255,213,112,0.30) !important;
+    box-shadow: 0 22px 56px rgba(0,0,0,0.70), 0 0 30px rgba(215,0,0,0.20) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(155%) !important;
+    backdrop-filter: blur(10px) saturate(155%) !important;
+  }
+
+  html.ahly-premium-theme-live #searchResults.search-results a,
+  html.ahly-premium-theme-live #searchResults a,
+  html.ahly-premium-theme-live #searchResults.search-results a.highlight,
+  html.ahly-premium-theme-live #searchResults a.highlight{
+    background: rgba(255,213,112,0.065) !important;
+    color: rgba(255,248,225,0.97) !important;
+    -webkit-text-fill-color: rgba(255,248,225,0.97) !important;
+    border-bottom-color: rgba(255,213,112,0.15) !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.58) !important;
+  }
+
+  html.ahly-premium-theme-live #searchResults.search-results a:hover,
+  html.ahly-premium-theme-live #searchResults a:hover,
+  html.ahly-premium-theme-live #searchResults.search-results a:focus,
+  html.ahly-premium-theme-live #searchResults a:focus{
+    background: linear-gradient(90deg, rgba(160,0,0,0.58), rgba(255,213,112,0.14)) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+  }
+
+  html.ahly-premium-theme-live #searchResults.search-results::-webkit-scrollbar-thumb,
+  html.ahly-premium-theme-live #searchResults::-webkit-scrollbar-thumb{
+    background: rgba(255,213,112,0.72) !important;
+  }
+</style>
+<!-- MNDO_SEARCH_THEME_RESULTS_BLEND_END -->
+
 <!-- MNDO_CLEAN_BASELINE_SCALE_LOCK_START -->
 <style id="mndoCleanBaselineScaleCss">
   /*
