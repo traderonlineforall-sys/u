@@ -1339,50 +1339,79 @@
 
 
   function installFixedMenuLayoutV4() {
-    var styleId = 'ua07-fixed-menu-layout-v4';
+    var styleId = 'ua07-fixed-menu-layout-v6';
     var tabIds = [
       'SR Sales',
       'SR Technical',
       'Installation Follow OM',
+      'Installation OM',
       'Fixed Voice',
       'FTTH',
       'GSM',
+      'Option Pack',
       'CPE Config',
       'Calculate',
       'Call Back',
       'Mobile'
     ];
-    var designWidth = Math.max(1366, Math.min(1920, Math.round(window.innerWidth || document.documentElement.clientWidth || 1366)));
+    var BASE_100_WIDTH = 1366;
+    var maxSeenWidth = Math.max(BASE_100_WIDTH, Math.round(window.innerWidth || document.documentElement.clientWidth || BASE_100_WIDTH));
     var resizeTimer = 0;
 
+    function naturalWidth() {
+      var body = document.body;
+      var doc = document.documentElement;
+      var tabBar = document.getElementById('tabs');
+      var w = Math.max(
+        BASE_100_WIDTH,
+        maxSeenWidth,
+        tabBar ? Math.ceil(tabBar.scrollWidth || 0) : 0,
+        body ? Math.ceil(body.clientWidth || 0) : 0,
+        doc ? Math.ceil(doc.clientWidth || 0) : 0
+      );
+      return Math.min(1920, w);
+    }
+
     function injectStyle() {
+      var old = document.getElementById('ua07-fixed-menu-layout-v4');
+      if (old) old.remove();
       if (document.getElementById(styleId)) return;
       var style = document.createElement('style');
       style.id = styleId;
       style.textContent = [
-        '/* UA07 v4: freeze each tab menu canvas, then scale it down on smaller screens. */',
+        '/* UA07 v6: lock menus to the real 100% layout reference. No 80% scale/downsize. */',
+        'html,body{',
+        '  overflow-x: auto !important;',
+        '}',
+        '#myBody{',
+        '  overflow-x: visible !important;',
+        '  max-width: none !important;',
+        '}',
         '#tabs.tab{',
         '  flex-wrap: nowrap !important;',
         '  white-space: nowrap !important;',
         '  overflow-x: auto !important;',
         '  overflow-y: hidden !important;',
+        '  max-width: 100% !important;',
         '}',
         '#tabs.tab .tablinks{',
         '  flex: 0 0 auto !important;',
+        '  white-space: nowrap !important;',
         '}',
         '.tabcontent.ua07-fixed-menu-canvas{',
         '  width: var(--ua07-fixed-menu-width, 1366px) !important;',
-        '  max-width: none !important;',
         '  min-width: var(--ua07-fixed-menu-width, 1366px) !important;',
+        '  max-width: none !important;',
         '  box-sizing: border-box !important;',
-        '  transform: scale(var(--ua07-fixed-menu-scale, 1)) !important;',
-        '  transform-origin: top left !important;',
-        '  transition: transform .12s ease-out !important;',
+        '  transform: none !important;',
+        '  zoom: 1 !important;',
+        '  transition: none !important;',
         '  overflow: visible !important;',
-        '  contain: layout style;',
+        '  contain: none !important;',
         '}',
         '.tabcontent.ua07-fixed-menu-canvas .toolsBar{',
         '  width: var(--ua07-fixed-menu-width, 1366px) !important;',
+        '  min-width: var(--ua07-fixed-menu-width, 1366px) !important;',
         '  max-width: none !important;',
         '  box-sizing: border-box !important;',
         '}',
@@ -1390,6 +1419,7 @@
         '  float: left !important;',
         '  clear: none !important;',
         '  flex: 0 0 auto !important;',
+        '  position: relative;',
         '}',
         '.tabcontent.ua07-fixed-menu-canvas .dropdown .dropbtn{',
         '  white-space: nowrap !important;',
@@ -1397,55 +1427,55 @@
         '.tabcontent.ua07-fixed-menu-canvas .mobile-flex{',
         '  max-width: none !important;',
         '}',
-        'body{',
-        '  overflow-x: hidden !important;',
+        '.tabcontent.ua07-fixed-menu-canvas .dropdown-content{',
+        '  z-index: 2147482500 !important;',
+        '}',
+        '@media (max-width: 1365px){',
+        '  .tabcontent.ua07-fixed-menu-canvas{',
+        '    width: var(--ua07-fixed-menu-width, 1366px) !important;',
+        '    min-width: var(--ua07-fixed-menu-width, 1366px) !important;',
+        '    transform: none !important;',
+        '  }',
         '}'
       ].join('\n');
       (document.head || document.documentElement).appendChild(style);
     }
 
     function targetTabs() {
-      return tabIds.map(function (id) { return document.getElementById(id); }).filter(Boolean);
+      var out = [];
+      tabIds.forEach(function (id) {
+        var tab = document.getElementById(id);
+        if (tab && out.indexOf(tab) === -1) out.push(tab);
+      });
+      return out;
     }
 
     function markTabs() {
+      var designWidth = naturalWidth();
       targetTabs().forEach(function (tab) {
         tab.classList.add('ua07-fixed-menu-canvas');
         tab.style.setProperty('--ua07-fixed-menu-width', designWidth + 'px');
+        tab.style.setProperty('--ua07-fixed-menu-scale', '1');
+        tab.style.removeProperty('min-height');
+        tab.dataset.ua07FixedMenuScale = '1';
+        tab.dataset.ua07FixedMenuReference = '100-percent';
       });
     }
 
     function applyScale() {
       injectStyle();
       markTabs();
-
-      var viewport = Math.max(320, window.innerWidth || document.documentElement.clientWidth || designWidth);
-      var safeViewport = Math.max(320, viewport - 18);
-      var scale = Math.min(1, safeViewport / designWidth);
-      scale = Math.max(0.56, Math.round(scale * 10000) / 10000);
-
-      targetTabs().forEach(function (tab) {
-        tab.style.setProperty('--ua07-fixed-menu-width', designWidth + 'px');
-        tab.style.setProperty('--ua07-fixed-menu-scale', String(scale));
-        tab.dataset.ua07FixedMenuScale = String(scale);
-
-        // Reserve approximately the scaled vertical footprint for the active tab,
-        // without touching the original children or their click logic.
-        if (tab.style.display && tab.style.display !== 'none') {
-          var h = Math.max(tab.scrollHeight || 0, tab.offsetHeight || 0);
-          if (h > 0) tab.style.minHeight = Math.ceil(h * scale) + 'px';
-        }
-      });
     }
 
     function scheduleApply() {
       clearTimeout(resizeTimer);
+      maxSeenWidth = Math.max(maxSeenWidth, Math.round(window.innerWidth || document.documentElement.clientWidth || BASE_100_WIDTH));
       applyScale();
       resizeTimer = setTimeout(applyScale, 120);
     }
 
     function wrapOpenCity() {
-      if (typeof window.openCity !== 'function' || window.openCity.__ua07FixedMenuV4) return;
+      if (typeof window.openCity !== 'function' || window.openCity.__ua07FixedMenuV6) return;
       var original = window.openCity;
       var wrapped = function () {
         var result = original.apply(this, arguments);
@@ -1453,7 +1483,7 @@
         setTimeout(applyScale, 120);
         return result;
       };
-      wrapped.__ua07FixedMenuV4 = true;
+      wrapped.__ua07FixedMenuV6 = true;
       window.openCity = wrapped;
     }
 
@@ -1469,6 +1499,148 @@
     });
   }
 
+
+  function installSearchResultsThemeBlendV5() {
+    var styleId = 'ua07-search-results-theme-blend-v5';
+
+    function injectStyle() {
+      var style = document.getElementById(styleId);
+      if (!style) {
+        style = document.createElement('style');
+        style.id = styleId;
+        (document.head || document.documentElement).appendChild(style);
+      }
+
+      style.textContent = [
+        '/* UA07 v5: search results inherit the active theme instead of using a flat white panel. */',
+        ':root{',
+        '  --ua07-sr-panel-bg: linear-gradient(180deg, rgba(18,10,10,0.985), rgba(4,4,6,0.985));',
+        '  --ua07-sr-item-bg: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025));',
+        '  --ua07-sr-item-hover-bg: linear-gradient(90deg, rgba(138,24,24,0.82), rgba(41,12,12,0.92));',
+        '  --ua07-sr-text: rgba(255,244,214,0.97);',
+        '  --ua07-sr-text-hover: #ffffff;',
+        '  --ua07-sr-border: rgba(255,214,122,0.24);',
+        '  --ua07-sr-divider: rgba(255,214,122,0.16);',
+        '  --ua07-sr-scroll: rgba(255,214,122,0.58);',
+        '  --ua07-sr-shadow: 0 18px 46px rgba(0,0,0,0.66), 0 0 24px rgba(122,0,0,0.14);',
+        '}',
+        'html.ua07-legacy-theme-live{',
+        '  --ua07-sr-panel-bg: linear-gradient(180deg, rgba(18,18,22,0.985), rgba(5,5,8,0.985));',
+        '  --ua07-sr-item-bg: linear-gradient(180deg, rgba(255,255,255,0.052), rgba(255,255,255,0.022));',
+        '  --ua07-sr-item-hover-bg: linear-gradient(90deg, rgba(135,0,0,0.82), rgba(34,34,40,0.90));',
+        '  --ua07-sr-text: rgba(255,255,255,0.94);',
+        '  --ua07-sr-border: rgba(255,255,255,0.18);',
+        '  --ua07-sr-divider: rgba(255,255,255,0.12);',
+        '  --ua07-sr-scroll: rgba(255,255,255,0.38);',
+        '  --ua07-sr-shadow: 0 18px 44px rgba(0,0,0,0.62);',
+        '}',
+        'html.ahly-premium-theme-live{',
+        '  --ua07-sr-panel-bg: linear-gradient(180deg, rgba(48,0,2,0.986), rgba(7,0,1,0.986));',
+        '  --ua07-sr-item-bg: linear-gradient(180deg, rgba(255,238,197,0.075), rgba(255,255,255,0.025));',
+        '  --ua07-sr-item-hover-bg: linear-gradient(90deg, rgba(170,0,0,0.93), rgba(46,0,1,0.96));',
+        '  --ua07-sr-text: rgba(255,248,225,0.97);',
+        '  --ua07-sr-text-hover: #ffffff;',
+        '  --ua07-sr-border: rgba(255,213,112,0.30);',
+        '  --ua07-sr-divider: rgba(255,213,112,0.18);',
+        '  --ua07-sr-scroll: rgba(255,213,112,0.64);',
+        '  --ua07-sr-shadow: 0 20px 52px rgba(0,0,0,0.70), 0 0 28px rgba(180,0,0,0.18);',
+        '}',
+        'html.eid-theme-live, html.scl-theme-eid, html.ua07-search-theme-eid{',
+        '  --ua07-sr-panel-bg: linear-gradient(180deg, rgba(9,15,31,0.986), rgba(5,8,17,0.986));',
+        '  --ua07-sr-item-bg: linear-gradient(180deg, rgba(255,236,183,0.080), rgba(113,160,255,0.036));',
+        '  --ua07-sr-item-hover-bg: linear-gradient(90deg, rgba(205,150,48,0.34), rgba(22,34,67,0.94));',
+        '  --ua07-sr-text: rgba(248,246,232,0.97);',
+        '  --ua07-sr-text-hover: #fff7dc;',
+        '  --ua07-sr-border: rgba(243,211,122,0.30);',
+        '  --ua07-sr-divider: rgba(243,211,122,0.16);',
+        '  --ua07-sr-scroll: rgba(243,211,122,0.58);',
+        '  --ua07-sr-shadow: 0 20px 52px rgba(0,0,0,0.66), 0 0 24px rgba(243,211,122,0.10);',
+        '}',
+        'html.scl-theme-ramadan, html.ua07-search-theme-ramadan{',
+        '  --ua07-sr-panel-bg: linear-gradient(180deg, rgba(7,22,40,0.986), rgba(4,10,18,0.986));',
+        '  --ua07-sr-item-bg: linear-gradient(180deg, rgba(212,175,55,0.072), rgba(16,185,129,0.040));',
+        '  --ua07-sr-item-hover-bg: linear-gradient(90deg, rgba(16,185,129,0.28), rgba(212,175,55,0.20));',
+        '  --ua07-sr-text: rgba(255,255,255,0.94);',
+        '  --ua07-sr-text-hover: #fff7d6;',
+        '  --ua07-sr-border: rgba(212,175,55,0.30);',
+        '  --ua07-sr-divider: rgba(212,175,55,0.16);',
+        '  --ua07-sr-scroll: rgba(212,175,55,0.62);',
+        '  --ua07-sr-shadow: 0 20px 52px rgba(0,0,0,0.66), 0 0 24px rgba(16,185,129,0.09);',
+        '}',
+        '#searchResults.search-results,#searchResults{',
+        '  background: var(--ua07-sr-panel-bg) !important;',
+        '  color: var(--ua07-sr-text) !important;',
+        '  border-color: var(--ua07-sr-border) !important;',
+        '  box-shadow: var(--ua07-sr-shadow) !important;',
+        '  opacity: 1 !important;',
+        '  backdrop-filter: blur(14px) saturate(145%) !important;',
+        '  -webkit-backdrop-filter: blur(14px) saturate(145%) !important;',
+        '}',
+        '#searchResults.search-results a,#searchResults a,',
+        '#searchResults.search-results a.highlight,#searchResults a.highlight{',
+        '  background: var(--ua07-sr-item-bg) !important;',
+        '  color: var(--ua07-sr-text) !important;',
+        '  -webkit-text-fill-color: var(--ua07-sr-text) !important;',
+        '  border-bottom-color: var(--ua07-sr-divider) !important;',
+        '  text-shadow: 0 1px 1px rgba(0,0,0,0.55) !important;',
+        '  opacity: 1 !important;',
+        '}',
+        '#searchResults.search-results a *,#searchResults a *,',
+        '#searchResults.search-results .highlight,#searchResults .highlight{',
+        '  color: inherit !important;',
+        '  -webkit-text-fill-color: currentColor !important;',
+        '  background: transparent !important;',
+        '  opacity: 1 !important;',
+        '}',
+        '#searchResults.search-results a:hover,#searchResults a:hover,',
+        '#searchResults.search-results a:focus,#searchResults a:focus,',
+        '#searchResults.search-results a.highlight:hover,#searchResults a.highlight:hover,',
+        '#searchResults.search-results a.highlight:focus,#searchResults a.highlight:focus{',
+        '  background: var(--ua07-sr-item-hover-bg) !important;',
+        '  color: var(--ua07-sr-text-hover) !important;',
+        '  -webkit-text-fill-color: var(--ua07-sr-text-hover) !important;',
+        '}',
+        '#searchResults.search-results::-webkit-scrollbar-thumb,#searchResults::-webkit-scrollbar-thumb{',
+        '  background: var(--ua07-sr-scroll) !important;',
+        '}',
+        '#searchResults.search-results::-webkit-scrollbar-track,#searchResults::-webkit-scrollbar-track{',
+        '  background: rgba(0,0,0,0.18) !important;',
+        '}',
+        '#searchResults.search-results,#searchResults{',
+        '  scrollbar-color: var(--ua07-sr-scroll) rgba(0,0,0,0.18) !important;',
+        '}'
+      ].join('\n');
+    }
+
+    function refreshThemeHook() {
+      try {
+        var root = document.documentElement;
+        var hasRamadan = !!document.querySelector('link[href*="ramadan-theme.css"]:not([disabled])');
+        var hasEid = !!document.querySelector('link[href*="eid-theme.css"]:not([disabled])');
+        var hasAhly = root.classList.contains('ahly-premium-theme-live');
+        var hasLegacy = root.classList.contains('ua07-legacy-theme-live');
+
+        root.classList.toggle('ua07-search-theme-ramadan', !!(hasRamadan && !hasAhly && !hasLegacy && !root.classList.contains('eid-theme-live')));
+        root.classList.toggle('ua07-search-theme-eid', !!(hasEid && root.classList.contains('eid-theme-live')));
+      } catch (err) {}
+    }
+
+    injectStyle();
+    refreshThemeHook();
+
+    try {
+      var observer = new MutationObserver(function () {
+        injectStyle();
+        refreshThemeHook();
+      });
+      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+      observer.observe(document.head || document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled', 'href'] });
+    } catch (err) {}
+
+    setTimeout(function () { injectStyle(); refreshThemeHook(); }, 80);
+    setTimeout(function () { injectStyle(); refreshThemeHook(); }, 350);
+  }
+
   // Register our enhancements on DOM ready.  Keep this separate from
   // other initializers to avoid coupling behaviours.
   onReady(function () {
@@ -1481,6 +1653,7 @@
     installTopHeaderFastClickFix();
     installHeaderMicroUxV3();
     installFixedMenuLayoutV4();
+    installSearchResultsThemeBlendV5();
     removeResubscribeTooltip();
     stabilizeSalesConcessionCalculate();
   });
