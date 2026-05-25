@@ -21108,21 +21108,37 @@ button {border-radius:999px !important;}
 <!-- MNDO_AHLY_ACTIVE_TAB_FIX_END -->
 
 
-<!-- MNDO_SEARCH_RESULTS_CENTER_POLISH_START -->
-<style id="mndoSearchResultsCenterPolishCss">
+<!-- MNDO_SEARCH_RESULTS_STABLE_CENTER_START -->
+<style id="mndoSearchResultsStableCenterCss">
   /*
-    Search results input-center polish — safe visual layer only.
-    Keeps search logic untouched; centers the panel under the search input,
-    and centers the row text without changing the active theme colors.
+    Stable search results layer:
+    - keeps the results centered under the search box
+    - removes layout jitter by avoiding repeated transform/left rewrites
+    - keeps row text centered without changing the active theme colors
   */
+  .search-container{
+    position: relative !important;
+    overflow: visible !important;
+  }
+
   #searchResults.search-results,
   #searchResults{
+    position: absolute !important;
+    top: calc(100% + 6px) !important;
+    left: var(--mndo-search-panel-left, 50%) !important;
     right: auto !important;
-    transform: none !important;
-    text-align: center !important;
+    width: var(--mndo-search-panel-width, min(100%, 460px)) !important;
+    min-width: var(--mndo-search-panel-width, min(100%, 460px)) !important;
+    max-width: var(--mndo-search-panel-width, min(100%, 460px)) !important;
+    transform: var(--mndo-search-panel-transform, translate3d(-50%, 0, 0)) !important;
+    margin: 6px 0 0 0 !important;
     box-sizing: border-box !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
+    text-align: center !important;
+    z-index: 2147483647 !important;
+    contain: layout paint !important;
+    will-change: auto !important;
+    backface-visibility: hidden !important;
+    scrollbar-gutter: stable !important;
   }
 
   #searchResults.search-results a,
@@ -21138,6 +21154,16 @@ button {border-radius:999px !important;}
     line-height: 1.45 !important;
     white-space: normal !important;
     overflow-wrap: anywhere !important;
+    transform: none !important;
+    transition-property: background-color, color, border-color, box-shadow !important;
+    transition-duration: .12s !important;
+  }
+
+  #searchResults.search-results a:hover,
+  #searchResults.search-results a:focus,
+  #searchResults a:hover,
+  #searchResults a:focus{
+    transform: none !important;
   }
 
   #searchResults.search-results a .fa,
@@ -21148,18 +21174,25 @@ button {border-radius:999px !important;}
     margin-inline: 6px !important;
   }
 </style>
-<script id="mndoSearchResultsInputCenterFixJs">
+<script id="mndoSearchResultsStableCenterJs">
 (function(){
   'use strict';
+
   var raf = 0;
-  var timers = [];
+  var lastLeft = null;
+  var lastWidth = null;
 
   function byId(id){ return document.getElementById(id); }
 
-  function important(el, prop, value){
-    if(!el) return;
-    el.style.setProperty(prop, String(value), 'important');
+  function px(n){ return Math.round(n) + 'px'; }
+
+  function setVar(el, name, value){
+    if(el && el.style.getPropertyValue(name) !== value){
+      el.style.setProperty(name, value);
+    }
   }
+
+  function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
 
   function getParts(){
     var input = byId('searchInput');
@@ -21184,39 +21217,31 @@ button {border-radius:999px !important;}
     var viewportW = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
     if(!inputRect.width || !containerRect.width) return;
 
-    /* Panel follows the real input, not the old 80%/page-left baseline. */
+    /* Use one fixed pixel value per frame, rounded to whole pixels to stop sub-pixel shaking. */
     var safeGap = 8;
-    var width = Math.round(Math.min(Math.max(inputRect.width, 320), 460, Math.max(220, viewportW - (safeGap * 2))));
+    var width = Math.round(clamp(inputRect.width, Math.min(320, viewportW - safeGap * 2), Math.min(460, viewportW - safeGap * 2)));
     var left = Math.round((inputRect.left - containerRect.left) + ((inputRect.width - width) / 2));
 
-    var panelViewportLeft = containerRect.left + left;
+    var panelViewportLeft = Math.round(containerRect.left + left);
     if(panelViewportLeft < safeGap){
-      left += Math.round(safeGap - panelViewportLeft);
+      left += safeGap - panelViewportLeft;
       panelViewportLeft = safeGap;
     }
+
     var panelViewportRight = panelViewportLeft + width;
     if(panelViewportRight > viewportW - safeGap){
-      left -= Math.round(panelViewportRight - (viewportW - safeGap));
+      left -= panelViewportRight - (viewportW - safeGap);
     }
+    left = Math.round(left);
 
-    important(p.container, 'position', 'relative');
-    important(p.container, 'overflow', 'visible');
-    important(p.results, 'position', 'absolute');
-    important(p.results, 'top', 'calc(100% + 6px)');
-    important(p.results, 'left', left + 'px');
-    important(p.results, 'right', 'auto');
-    important(p.results, 'width', width + 'px');
-    important(p.results, 'min-width', width + 'px');
-    important(p.results, 'max-width', width + 'px');
-    important(p.results, 'transform', 'none');
-    important(p.results, 'box-sizing', 'border-box');
-    important(p.results, 'text-align', 'center');
-    important(p.results, 'z-index', '2147483647');
-  }
-
-  function alignSoon(delay){
-    if(delay){ timers.push(setTimeout(scheduleAlign, delay)); return; }
-    scheduleAlign();
+    /* Only write when values actually changed; no style MutationObserver loop. */
+    if(left !== lastLeft || width !== lastWidth){
+      lastLeft = left;
+      lastWidth = width;
+      setVar(p.results, '--mndo-search-panel-left', px(left));
+      setVar(p.results, '--mndo-search-panel-width', px(width));
+      setVar(p.results, '--mndo-search-panel-transform', 'none');
+    }
   }
 
   function scheduleAlign(){
@@ -21224,39 +21249,43 @@ button {border-radius:999px !important;}
     raf = window.requestAnimationFrame ? window.requestAnimationFrame(alignNow) : setTimeout(alignNow, 0);
   }
 
-  function alignBurst(){
-    timers.splice(0).forEach(function(t){ clearTimeout(t); });
-    alignSoon(0);
-    alignSoon(20);
-    alignSoon(90);
-    alignSoon(180);
-  }
-
   function init(){
     var p = getParts();
     if(!p){ setTimeout(init, 120); return; }
 
-    ['input','keyup','keydown','focus','click','change'].forEach(function(evt){
-      p.input.addEventListener(evt, alignBurst, true);
+    p.container.style.setProperty('position', 'relative', 'important');
+    p.container.style.setProperty('overflow', 'visible', 'important');
+
+    ['input','focus','click','change'].forEach(function(evt){
+      p.input.addEventListener(evt, scheduleAlign, false);
     });
-    window.addEventListener('resize', alignBurst, { passive: true });
-    window.addEventListener('orientationchange', function(){ setTimeout(alignBurst, 80); }, { passive: true });
-    document.addEventListener('click', function(e){
-      var parts = getParts();
-      if(parts && (e.target === parts.input || parts.results.contains(e.target))) alignBurst();
-    }, true);
+
+    window.addEventListener('resize', scheduleAlign, { passive: true });
+    window.addEventListener('orientationchange', function(){ setTimeout(scheduleAlign, 80); }, { passive: true });
+
+    if(window.ResizeObserver){
+      try{
+        var ro = new ResizeObserver(scheduleAlign);
+        ro.observe(p.input);
+        ro.observe(p.container);
+      }catch(_){}
+    }
 
     if(window.MutationObserver){
-      new MutationObserver(alignBurst).observe(p.results, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class'] });
+      try{
+        new MutationObserver(scheduleAlign).observe(p.results, { childList: true, subtree: true });
+      }catch(_){}
     }
-    alignBurst();
+
+    scheduleAlign();
+    setTimeout(scheduleAlign, 60);
   }
 
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
 </script>
-<!-- MNDO_SEARCH_RESULTS_CENTER_POLISH_END -->
+<!-- MNDO_SEARCH_RESULTS_STABLE_CENTER_END -->
 </body>
 
 </html>
