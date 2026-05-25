@@ -20442,12 +20442,12 @@ button {border-radius:999px !important;}
 <!-- MNDO_TAGS_CLICK_MODAL_LAYER_FIX_START -->
 <style id="mndoTagsClickModalLayerFixCss">
   /*
-    MNDO_DIALOG_REACTION_AHT_NATURAL_SCROLL_FIX_V4
+    MNDO_DIALOG_REACTION_AHT_TOP_PAGE_SCROLL_FIX_V5
     One-file safe layer only:
     - Suggestions close button is always on top and fully clickable.
     - Reaction emoji menu opens above Suggestions instead of behind the overlay.
     - Support/Suggestions stay above header/logo/buttons without forcing Admin open.
-    - AHT + Tags are kept in their normal page position, so they scroll with the page like any element.
+    - AHT + Tags stay at their original top-of-page position, and scroll naturally with the page.
     - No heavy global click/keydown recalculation loops.
   */
 
@@ -20487,7 +20487,7 @@ button {border-radius:999px !important;}
      so the page scrolls over it naturally instead of moving underneath it. */
   #MNDO_AHT_TAGS_STACK.mndo-aht-tags-page-lock{
     position: absolute !important;
-    top: var(--mndo-aht-tags-page-top, 64px) !important;
+    top: var(--mndo-aht-tags-page-top, 6px) !important;
     right: var(--mndo-aht-tags-right, 0px) !important;
     left: auto !important;
     bottom: auto !important;
@@ -20758,14 +20758,36 @@ button {border-radius:999px !important;}
     if(row){
       try{
         var r = row.getBoundingClientRect();
-        if(r && isFinite(r.top)) return clamp(Math.round(r.top + 2), 14, 120);
+        if(r && isFinite(r.top)) return clamp(Math.round(r.top + 2), 0, 120);
       }catch(e){}
     }
-    return 64;
+    return 6;
   }
 
   function pageScrollTop(){
     return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+  }
+
+  function topPageFallbackTop(wrap){
+    var mobile = null;
+    try{
+      var tabs = Array.prototype.slice.call(document.querySelectorAll('button.tablinks, .tablinks'));
+      for(var i=0;i<tabs.length;i++){
+        if(String(tabs[i].textContent || '').trim().toLowerCase() === 'mobile'){
+          mobile = tabs[i];
+          break;
+        }
+      }
+    }catch(e){}
+    if(mobile){
+      try{
+        var m = mobile.getBoundingClientRect();
+        var h = wrap && wrap.getBoundingClientRect ? wrap.getBoundingClientRect().height : 72;
+        var fromMobile = Math.round(m.top - h - 6);
+        if(isFinite(fromMobile)) return clamp(fromMobile, 0, 120);
+      }catch(e){}
+    }
+    return headerFallbackTop();
   }
 
   function captureAhtTagsPosition(){
@@ -20777,14 +20799,15 @@ button {border-radius:999px !important;}
     var top = r ? Math.round(r.top) : NaN;
     var right = r ? Math.round(window.innerWidth - r.right) : NaN;
 
-    /* Do not capture the broken "stuck at page top" state. */
-    if(!isFinite(top) || top < 8) top = headerFallbackTop();
+    /* Keep the original top-of-page location.
+       Older code had the stack fixed near the Mobile tab at the top of the viewport.
+       For natural scrolling, that same visual top must become a document/page top.
+       Do NOT add pageYOffset here; adding scroll moved AHT/Tags down the page. */
+    if(!isFinite(top) || top < 0 || top > 140) top = topPageFallbackTop(wrap);
+    top = clamp(top, 0, 120);
     if(!isFinite(right) || right < 0 || right > window.innerWidth - 40) right = 0;
 
-    /* Convert viewport top to document/page top once.
-       That keeps the controls in the page flow visually: they scroll away with the page,
-       instead of staying fixed while the content moves underneath them. */
-    lockedPageTop = Math.round(pageScrollTop() + top);
+    lockedPageTop = Math.round(top);
     lockedRight = right;
     lockedAhtTags = true;
     applyAhtTagsLock();
@@ -20801,7 +20824,7 @@ button {border-radius:999px !important;}
     }
     wrap.classList.remove('mndo-aht-tags-hard-lock');
     wrap.classList.add('mndo-aht-tags-page-lock');
-    wrap.style.setProperty('--mndo-aht-tags-page-top', px(lockedPageTop == null ? (pageScrollTop() + headerFallbackTop()) : lockedPageTop));
+    wrap.style.setProperty('--mndo-aht-tags-page-top', px(lockedPageTop == null ? topPageFallbackTop(wrap) : lockedPageTop));
     wrap.style.setProperty('--mndo-aht-tags-right', px(lockedRight == null ? 0 : lockedRight));
     return true;
   }
