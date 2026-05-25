@@ -1337,6 +1337,138 @@
     setTimeout(bindAll, 140);
   }
 
+
+  function installFixedMenuLayoutV4() {
+    var styleId = 'ua07-fixed-menu-layout-v4';
+    var tabIds = [
+      'SR Sales',
+      'SR Technical',
+      'Installation Follow OM',
+      'Fixed Voice',
+      'FTTH',
+      'GSM',
+      'CPE Config',
+      'Calculate',
+      'Call Back',
+      'Mobile'
+    ];
+    var designWidth = Math.max(1366, Math.min(1920, Math.round(window.innerWidth || document.documentElement.clientWidth || 1366)));
+    var resizeTimer = 0;
+
+    function injectStyle() {
+      if (document.getElementById(styleId)) return;
+      var style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = [
+        '/* UA07 v4: freeze each tab menu canvas, then scale it down on smaller screens. */',
+        '#tabs.tab{',
+        '  flex-wrap: nowrap !important;',
+        '  white-space: nowrap !important;',
+        '  overflow-x: auto !important;',
+        '  overflow-y: hidden !important;',
+        '}',
+        '#tabs.tab .tablinks{',
+        '  flex: 0 0 auto !important;',
+        '}',
+        '.tabcontent.ua07-fixed-menu-canvas{',
+        '  width: var(--ua07-fixed-menu-width, 1366px) !important;',
+        '  max-width: none !important;',
+        '  min-width: var(--ua07-fixed-menu-width, 1366px) !important;',
+        '  box-sizing: border-box !important;',
+        '  transform: scale(var(--ua07-fixed-menu-scale, 1)) !important;',
+        '  transform-origin: top left !important;',
+        '  transition: transform .12s ease-out !important;',
+        '  overflow: visible !important;',
+        '  contain: layout style;',
+        '}',
+        '.tabcontent.ua07-fixed-menu-canvas .toolsBar{',
+        '  width: var(--ua07-fixed-menu-width, 1366px) !important;',
+        '  max-width: none !important;',
+        '  box-sizing: border-box !important;',
+        '}',
+        '.tabcontent.ua07-fixed-menu-canvas .dropdown{',
+        '  float: left !important;',
+        '  clear: none !important;',
+        '  flex: 0 0 auto !important;',
+        '}',
+        '.tabcontent.ua07-fixed-menu-canvas .dropdown .dropbtn{',
+        '  white-space: nowrap !important;',
+        '}',
+        '.tabcontent.ua07-fixed-menu-canvas .mobile-flex{',
+        '  max-width: none !important;',
+        '}',
+        'body{',
+        '  overflow-x: hidden !important;',
+        '}'
+      ].join('\n');
+      (document.head || document.documentElement).appendChild(style);
+    }
+
+    function targetTabs() {
+      return tabIds.map(function (id) { return document.getElementById(id); }).filter(Boolean);
+    }
+
+    function markTabs() {
+      targetTabs().forEach(function (tab) {
+        tab.classList.add('ua07-fixed-menu-canvas');
+        tab.style.setProperty('--ua07-fixed-menu-width', designWidth + 'px');
+      });
+    }
+
+    function applyScale() {
+      injectStyle();
+      markTabs();
+
+      var viewport = Math.max(320, window.innerWidth || document.documentElement.clientWidth || designWidth);
+      var safeViewport = Math.max(320, viewport - 18);
+      var scale = Math.min(1, safeViewport / designWidth);
+      scale = Math.max(0.56, Math.round(scale * 10000) / 10000);
+
+      targetTabs().forEach(function (tab) {
+        tab.style.setProperty('--ua07-fixed-menu-width', designWidth + 'px');
+        tab.style.setProperty('--ua07-fixed-menu-scale', String(scale));
+        tab.dataset.ua07FixedMenuScale = String(scale);
+
+        // Reserve approximately the scaled vertical footprint for the active tab,
+        // without touching the original children or their click logic.
+        if (tab.style.display && tab.style.display !== 'none') {
+          var h = Math.max(tab.scrollHeight || 0, tab.offsetHeight || 0);
+          if (h > 0) tab.style.minHeight = Math.ceil(h * scale) + 'px';
+        }
+      });
+    }
+
+    function scheduleApply() {
+      clearTimeout(resizeTimer);
+      applyScale();
+      resizeTimer = setTimeout(applyScale, 120);
+    }
+
+    function wrapOpenCity() {
+      if (typeof window.openCity !== 'function' || window.openCity.__ua07FixedMenuV4) return;
+      var original = window.openCity;
+      var wrapped = function () {
+        var result = original.apply(this, arguments);
+        setTimeout(applyScale, 0);
+        setTimeout(applyScale, 120);
+        return result;
+      };
+      wrapped.__ua07FixedMenuV4 = true;
+      window.openCity = wrapped;
+    }
+
+    injectStyle();
+    applyScale();
+    wrapOpenCity();
+    setTimeout(function () { markTabs(); applyScale(); wrapOpenCity(); }, 80);
+    setTimeout(function () { markTabs(); applyScale(); wrapOpenCity(); }, 400);
+    window.addEventListener('resize', scheduleApply, { passive: true });
+    window.addEventListener('orientationchange', scheduleApply, { passive: true });
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) setTimeout(applyScale, 80);
+    });
+  }
+
   // Register our enhancements on DOM ready.  Keep this separate from
   // other initializers to avoid coupling behaviours.
   onReady(function () {
@@ -1348,6 +1480,7 @@
     installSearchResultsContrastFix();
     installTopHeaderFastClickFix();
     installHeaderMicroUxV3();
+    installFixedMenuLayoutV4();
     removeResubscribeTooltip();
     stabilizeSalesConcessionCalculate();
   });
