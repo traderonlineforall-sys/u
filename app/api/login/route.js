@@ -7,13 +7,14 @@ export const runtime = "nodejs";
 const MAX_LOGIN_BODY_BYTES = 4096;
 const LOGIN_WINDOW_MS = 10 * 60 * 1000;
 const LOGIN_MAX_FAILURES = 10;
+const LOGIN_FAILURE_CACHE_LIMIT = 512;
+const textEncoder = new TextEncoder();
 const loginFailures = globalThis.__srLoginFailures || new Map();
 globalThis.__srLoginFailures = loginFailures;
 
 function timingSafeEqual(a, b) {
-  const enc = new TextEncoder();
-  const aa = enc.encode(String(a || ""));
-  const bb = enc.encode(String(b || ""));
+  const aa = textEncoder.encode(String(a || ""));
+  const bb = textEncoder.encode(String(b || ""));
   const max = Math.max(aa.length, bb.length);
   let diff = aa.length ^ bb.length;
   for (let i = 0; i < max; i += 1) diff |= (aa[i] || 0) ^ (bb[i] || 0);
@@ -28,9 +29,14 @@ function clientIp(request) {
 }
 
 function cleanupFailures(now) {
-  if (loginFailures.size < 1000) return;
+  if (loginFailures.size < LOGIN_FAILURE_CACHE_LIMIT) return;
   for (const [key, record] of loginFailures) {
     if (!record || now - record.firstAt > LOGIN_WINDOW_MS) loginFailures.delete(key);
+  }
+  while (loginFailures.size > LOGIN_FAILURE_CACHE_LIMIT) {
+    const oldestKey = loginFailures.keys().next().value;
+    if (!oldestKey) break;
+    loginFailures.delete(oldestKey);
   }
 }
 
@@ -41,9 +47,13 @@ function failureKey(request, username) {
 function isLimited(request, username) {
   const now = Date.now();
   cleanupFailures(now);
-  const record = loginFailures.get(failureKey(request, username));
+  const key = failureKey(request, username);
+  const record = loginFailures.get(key);
   if (!record) return false;
-  if (now - record.firstAt > LOGIN_WINDOW_MS) return false;
+  if (now - record.firstAt > LOGIN_WINDOW_MS) {
+    loginFailures.delete(key);
+    return false;
+  }
   return record.count >= LOGIN_MAX_FAILURES;
 }
 

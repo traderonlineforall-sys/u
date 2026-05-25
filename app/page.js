@@ -4,7 +4,7 @@ export default function Home() {
   // Render the static tool while keeping the URL as "/"
   return (
     <iframe
-      src="/index.html?v=20260525-v9-hard-stable-cache-reset"
+      src="/index.html"
       title="SR Tool"
       style={{
         position: "fixed",

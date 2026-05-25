@@ -1016,6 +1016,327 @@
     }, { passive: true });
   }
 
+
+  function installSearchResultsContrastFix() {
+    var styleId = 'ua07-search-results-contrast-fix';
+
+    function apply() {
+      if (document.getElementById(styleId)) return;
+      var style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = [
+        '#searchResults.search-results,#searchResults{',
+        '  background: rgba(255,255,255,0.99) !important;',
+        '  color: #17181c !important;',
+        '  opacity: 1 !important;',
+        '  box-shadow: 0 14px 34px rgba(0,0,0,0.26) !important;',
+        '}',
+        '#searchResults.search-results a,#searchResults a{',
+        '  color: #1b1d22 !important;',
+        '  -webkit-text-fill-color: #1b1d22 !important;',
+        '  opacity: 1 !important;',
+        '  text-shadow: none !important;',
+        '  font-weight: 700 !important;',
+        '  font-size: 15px !important;',
+        '  letter-spacing: 0 !important;',
+        '  background: #ffffff !important;',
+        '}',
+        '#searchResults.search-results a *,#searchResults a *,',
+        '#searchResults.search-results a .highlight,#searchResults a .highlight,',
+        '#searchResults.search-results .highlight,#searchResults .highlight{',
+        '  color: #1b1d22 !important;',
+        '  -webkit-text-fill-color: #1b1d22 !important;',
+        '  opacity: 1 !important;',
+        '  text-shadow: none !important;',
+        '  font-weight: 800 !important;',
+        '  background: transparent !important;',
+        '}',
+        '#searchResults.search-results a:hover,#searchResults a:hover,',
+        '#searchResults.search-results a:focus,#searchResults a:focus{',
+        '  background: #eef3ff !important;',
+        '  color: #101114 !important;',
+        '  -webkit-text-fill-color: #101114 !important;',
+        '}',
+        '#searchResults.search-results a:hover *,#searchResults a:hover *,',
+        '#searchResults.search-results a:focus *,#searchResults a:focus *{',
+        '  color: #101114 !important;',
+        '  -webkit-text-fill-color: #101114 !important;',
+        '}',
+        '#searchResults.search-results::-webkit-scrollbar-thumb,#searchResults::-webkit-scrollbar-thumb{',
+        '  background: rgba(90,111,160,0.78) !important;',
+        '}',
+        '#searchResults.search-results:empty,#searchResults:empty{',
+        '  padding: 0 !important;',
+        '}'
+      ].join('\n');
+      (document.head || document.documentElement).appendChild(style);
+    }
+
+    apply();
+    setTimeout(apply, 0);
+    setTimeout(apply, 140);
+  }
+
+  function installTopHeaderFastClickFix() {
+    var styleId = 'ua07-top-header-fast-click-fix';
+    var controlIds = ['copyBtn', 'copyBtn1', 'mndoTTTop', 'mndoSRTop', 'mndoTTBottom', 'mndoSRBottom'];
+
+    function injectStyle() {
+      if (document.getElementById(styleId)) return;
+      var style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = [
+        '#copyBtn,#copyBtn1,#mndoTTTop,#mndoSRTop,#mndoTTBottom,#mndoSRBottom{',
+        '  pointer-events: auto !important;',
+        '  touch-action: manipulation !important;',
+        '  -webkit-tap-highlight-color: transparent !important;',
+        '  user-select: none !important;',
+        '  -webkit-user-select: none !important;',
+        '  cursor: pointer !important;',
+        '  z-index: 2147483605 !important;',
+        '}',
+        '#copyNotification,#copyNotification1{',
+        '  pointer-events: none !important;',
+        '  z-index: 2147483606 !important;',
+        '}'
+      ].join('\n');
+      (document.head || document.documentElement).appendChild(style);
+    }
+
+    function safeClipboardWrite(value) {
+      var text = String(value == null ? '' : value);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+      }
+      return new Promise(function (resolve, reject) {
+        try {
+          var area = document.createElement('textarea');
+          area.value = text;
+          area.setAttribute('readonly', 'readonly');
+          area.style.position = 'fixed';
+          area.style.top = '0';
+          area.style.left = '0';
+          area.style.width = '1px';
+          area.style.height = '1px';
+          area.style.opacity = '0';
+          document.body.appendChild(area);
+          area.focus();
+          area.select();
+          var ok = document.execCommand('copy');
+          document.body.removeChild(area);
+          ok ? resolve() : reject(new Error('copy'));
+        } catch (err) {
+          reject(err);
+        }
+      });
+    }
+
+    function showCopied(notification) {
+      if (!notification) return;
+      notification.style.display = 'inline-block';
+      notification.classList.remove('fade-out');
+      clearTimeout(notification.__ua07ShowTimer);
+      clearTimeout(notification.__ua07HideTimer);
+      notification.__ua07ShowTimer = setTimeout(function () {
+        notification.classList.add('fade-out');
+        notification.__ua07HideTimer = setTimeout(function () {
+          notification.style.display = 'none';
+          notification.classList.remove('fade-out');
+        }, 1000);
+      }, 900);
+    }
+
+    function bindCopyButton(buttonId, inputId, notificationId) {
+      var button = document.getElementById(buttonId);
+      var input = document.getElementById(inputId);
+      var notification = document.getElementById(notificationId);
+      if (!button || !input || button.dataset.ua07FastCopyBound === '1') return false;
+      button.dataset.ua07FastCopyBound = '1';
+
+      function run(event) {
+        if (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+        }
+
+        var value = String(input.value || '').trim();
+        if (!value) {
+          try { input.focus({ preventScroll: true }); } catch (err) { try { input.focus(); } catch (_) {} }
+          return false;
+        }
+
+        safeClipboardWrite(value).catch(function () {
+          try {
+            input.focus({ preventScroll: true });
+          } catch (err) {
+            try { input.focus(); } catch (_) {}
+          }
+          try { input.select(); } catch (_) {}
+          try { document.execCommand('copy'); } catch (_) {}
+        }).finally(function () {
+          showCopied(notification);
+        });
+        return false;
+      }
+
+      button.addEventListener('pointerdown', function (event) {
+        if (typeof event.button === 'number' && event.button !== 0) return;
+        button.__ua07FastTapAt = Date.now();
+        run(event);
+      }, true);
+
+      button.addEventListener('click', function (event) {
+        var delta = Date.now() - (button.__ua07FastTapAt || 0);
+        if (delta >= 0 && delta < 420) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+          return false;
+        }
+        return run(event);
+      }, true);
+
+      return true;
+    }
+
+    function bindFastProxy(buttonId) {
+      var button = document.getElementById(buttonId);
+      if (!button || button.dataset.ua07FastProxyBound === '1') return false;
+      button.dataset.ua07FastProxyBound = '1';
+
+      button.addEventListener('pointerdown', function (event) {
+        if (typeof event.button === 'number' && event.button !== 0) return;
+        if (button.disabled) return;
+        button.__ua07FastTapAt = Date.now();
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+        button.__ua07DispatchingFastClick = true;
+        try {
+          button.click();
+        } catch (err) {
+        } finally {
+          button.__ua07DispatchingFastClick = false;
+        }
+      }, true);
+
+      button.addEventListener('click', function (event) {
+        if (button.__ua07DispatchingFastClick) return;
+        var delta = Date.now() - (button.__ua07FastTapAt || 0);
+        if (delta >= 0 && delta < 420) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+          return false;
+        }
+      }, true);
+
+      return true;
+    }
+
+    function bindAll() {
+      injectStyle();
+      bindCopyButton('copyBtn', 'arabiccNumber', 'copyNotification1');
+      bindCopyButton('copyBtn1', 'arabicNumber', 'copyNotification');
+      bindFastProxy('mndoTTTop');
+      bindFastProxy('mndoSRTop');
+      bindFastProxy('mndoTTBottom');
+      bindFastProxy('mndoSRBottom');
+
+      controlIds.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        try { el.style.setProperty('pointer-events', 'auto', 'important'); } catch (err) {}
+        try { el.style.setProperty('touch-action', 'manipulation', 'important'); } catch (err) {}
+      });
+
+      return controlIds.some(function (id) { return !!document.getElementById(id); });
+    }
+
+    injectStyle();
+    bindAll();
+    var attempts = 0;
+    var wait = setInterval(function () {
+      attempts += 1;
+      bindAll();
+      if (attempts > 80 && bindAll()) clearInterval(wait);
+      if (attempts > 150) clearInterval(wait);
+    }, 120);
+  }
+
+
+  function installHeaderMicroUxV3() {
+    var styleId = 'ua07-header-micro-ux-v3';
+
+    function injectStyle() {
+      if (document.getElementById(styleId)) return;
+      var style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = [
+        '#searchResults.search-results,#searchResults{',
+        '  border-radius: 18px !important;',
+        '  overflow-x: hidden !important;',
+        '  overscroll-behavior: contain !important;',
+        '}',
+        '#searchResults.search-results a,#searchResults a{',
+        '  line-height: 1.42 !important;',
+        '  padding: 12px 16px !important;',
+        '  text-align: left !important;',
+        '  font-smoothing: antialiased;',
+        '  -webkit-font-smoothing: antialiased;',
+        '}',
+        '#searchResults.search-results a + a,#searchResults a + a{',
+        '  box-shadow: inset 0 1px 0 rgba(145,172,230,0.16) !important;',
+        '}',
+        '#searchResults.search-results a:hover,#searchResults a:hover,',
+        '#searchResults.search-results a:focus,#searchResults a:focus{',
+        '  padding-left: 20px !important;',
+        '}',
+        '#copyBtn,#copyBtn1,#mndoTTTop,#mndoSRTop,#mndoTTBottom,#mndoSRBottom{',
+        '  touch-action: manipulation !important;',
+        '  -webkit-tap-highlight-color: transparent !important;',
+        '  backface-visibility: hidden !important;',
+        '  transform: translateZ(0);',
+        '}',
+        '#copyBtn:focus-visible,#copyBtn1:focus-visible,#mndoTTTop:focus-visible,#mndoSRTop:focus-visible,#mndoTTBottom:focus-visible,#mndoSRBottom:focus-visible{',
+        '  outline: 2px solid rgba(255,215,120,0.88) !important;',
+        '  outline-offset: 2px !important;',
+        '}',
+        '#copyNotification,#copyNotification1{',
+        '  min-width: 74px !important;',
+        '  text-align: center !important;',
+        '  box-shadow: 0 6px 16px rgba(0,0,0,0.18) !important;',
+        '}'
+      ].join('\n');
+      (document.head || document.documentElement).appendChild(style);
+    }
+
+    function bindKeyboardProxy(id) {
+      var button = document.getElementById(id);
+      if (!button || button.dataset.ua07V3KeyProxyBound === '1') return false;
+      button.dataset.ua07V3KeyProxyBound = '1';
+      button.addEventListener('keydown', function (event) {
+        if (!event || (event.key !== 'Enter' && event.key !== ' ')) return;
+        event.preventDefault();
+        button.click();
+      }, true);
+      return true;
+    }
+
+    function bindAll() {
+      injectStyle();
+      ['copyBtn', 'copyBtn1', 'mndoTTTop', 'mndoSRTop', 'mndoTTBottom', 'mndoSRBottom'].forEach(function (id) {
+        bindKeyboardProxy(id);
+      });
+      return true;
+    }
+
+    bindAll();
+    setTimeout(bindAll, 0);
+    setTimeout(bindAll, 140);
+  }
+
   // Register our enhancements on DOM ready.  Keep this separate from
   // other initializers to avoid coupling behaviours.
   onReady(function () {
@@ -1024,6 +1345,9 @@
     installSuggestionsEnhancements();
     installEnvelopeEnhancements();
     installLandlineMirrorSync();
+    installSearchResultsContrastFix();
+    installTopHeaderFastClickFix();
+    installHeaderMicroUxV3();
     removeResubscribeTooltip();
     stabilizeSalesConcessionCalculate();
   });
