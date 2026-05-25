@@ -139,7 +139,7 @@
                                                                
 
                                                                                 <!-- The Tags button now opens an embedded Tags panel instead of navigating away -->
-                                                                                <a class="toolsStyle" id="bat2" href="#" class="RSR2">Tags</a>
+                                                                                <a class="toolsStyle RSR2" id="bat2" href="#">Tags</a>
 
 
 
@@ -20442,7 +20442,7 @@ button {border-radius:999px !important;}
 <!-- MNDO_TAGS_CLICK_MODAL_LAYER_FIX_START -->
 <style id="mndoTagsClickModalLayerFixCss">
   /*
-    MNDO_DIALOG_REACTION_AHT_TOP_PAGE_SCROLL_FIX_V5
+    MNDO_DIALOG_REACTION_AHT_TOP_PAGE_SCROLL_TAGS_HIT_FIX_V6
     One-file safe layer only:
     - Suggestions close button is always on top and fully clickable.
     - Reaction emoji menu opens above Suggestions instead of behind the overlay.
@@ -20647,6 +20647,62 @@ button {border-radius:999px !important;}
     transform: none !important;
     transition: background-color .12s ease, filter .12s ease !important;
   }
+
+  /* V6: Tags must be clickable/hoverable from the whole visible pill, not only a lower edge. */
+  #MNDO_AHT_TAGS_STACK.mndo-aht-tags-page-lock{
+    z-index: 2147482000 !important;
+    overflow: visible !important;
+  }
+  #MNDO_AHT_TAGS_STACK.mndo-aht-tags-page-lock #mndoQueryTimer{
+    position: relative !important;
+    z-index: 1 !important;
+    pointer-events: none !important;
+  }
+  #MNDO_AHT_TAGS_STACK.mndo-aht-tags-page-lock #bat2{
+    position: relative !important;
+    z-index: 3 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    min-width: 72px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 18px !important;
+    line-height: 36px !important;
+    overflow: visible !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+  }
+  #MNDO_AHT_TAGS_STACK.mndo-aht-tags-page-lock #bat2::before{
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  /* High z-index search/header wrappers must not steal hover/click from the Tags pill. */
+  .mndo-search-logo-row,
+  .mndo-search-hk-anchor,
+  .search-container{
+    pointer-events: none !important;
+  }
+  #searchInput,
+  .search-container .search-input,
+  #searchResults,
+  #searchResults *,
+  .search-container .search-icon,
+  .mndo-header-logo-slot,
+  .mndo-header-logo-slot *,
+  #MNDO_UA07_LOGO3,
+  #MNDO_UA07_LOGO3 *,
+  #UA07_SECRET_ENVELOPE_WRAP,
+  #UA07_SECRET_ENVELOPE,
+  #UA07_SECRET_ENVELOPE *{
+    pointer-events: auto !important;
+  }
 </style>
 <script id="mndoTagsClickModalLayerFixJs">
 (function(){
@@ -20734,6 +20790,35 @@ button {border-radius:999px !important;}
     menu.style.pointerEvents = 'auto';
     menu.style.visibility = 'visible';
     menu.style.opacity = '1';
+  }
+
+  function normalizeTagsHitTarget(){
+    var tags = byId('bat2');
+    var aht = byId('mndoQueryTimer');
+    var wrap = byId('MNDO_AHT_TAGS_STACK');
+    if(wrap){
+      wrap.style.zIndex = '2147482000';
+      wrap.style.overflow = 'visible';
+    }
+    if(aht){
+      aht.style.pointerEvents = 'none';
+      aht.style.position = 'relative';
+      aht.style.zIndex = '1';
+    }
+    if(tags){
+      tags.setAttribute('role', 'button');
+      tags.setAttribute('aria-label', 'Tags');
+      tags.style.position = 'relative';
+      tags.style.zIndex = '3';
+      tags.style.cursor = 'pointer';
+      tags.style.pointerEvents = 'auto';
+      tags.style.display = 'flex';
+      tags.style.alignItems = 'center';
+      tags.style.justifyContent = 'center';
+      tags.style.minHeight = '36px';
+      tags.style.height = '36px';
+      tags.style.lineHeight = '36px';
+    }
   }
 
   function getAhtTagsWrap(){
@@ -20826,11 +20911,24 @@ button {border-radius:999px !important;}
     wrap.classList.add('mndo-aht-tags-page-lock');
     wrap.style.setProperty('--mndo-aht-tags-page-top', px(lockedPageTop == null ? topPageFallbackTop(wrap) : lockedPageTop));
     wrap.style.setProperty('--mndo-aht-tags-right', px(lockedRight == null ? 0 : lockedRight));
+    normalizeTagsHitTarget();
     return true;
   }
 
   function init(){
     ['suggestionsOverlay','supportNameOverlay','supportChatOverlay','adminOverlay'].forEach(function(id){ watchDialog(byId(id)); });
+
+    document.addEventListener('pointerdown', function(e){
+      var tags = byId('bat2');
+      if(!tags || (e.target && e.target.closest && e.target.closest('#bat2'))) return;
+      var r = null;
+      try{ r = tags.getBoundingClientRect(); }catch(err){}
+      if(!r) return;
+      var x = e.clientX, y = e.clientY;
+      if(x >= r.left && x <= r.right && y >= r.top && y <= r.bottom){
+        normalizeTagsHitTarget();
+      }
+    }, true);
 
     document.addEventListener('click', function(e){
       var t = e.target;
@@ -20866,6 +20964,8 @@ button {border-radius:999px !important;}
 
     scheduleDialogSync();
     scheduleDialogSync(250);
+    normalizeTagsHitTarget();
+    setTimeout(normalizeTagsHitTarget, 120);
     setTimeout(applyAhtTagsLock, 180);
     setTimeout(applyAhtTagsLock, 700);
     setTimeout(applyAhtTagsLock, 1400);
@@ -20877,6 +20977,133 @@ button {border-radius:999px !important;}
 </script>
 <!-- MNDO_TAGS_CLICK_MODAL_LAYER_FIX_END -->
 
+
+
+<!-- MNDO_AHLY_ACTIVE_TAB_FIX_START -->
+<style id="mndoAhlyActiveTabFixCss">
+  /*
+    Ahly active-tab visual fix — one-file safe layer.
+    Makes the selected main menu clearly different in Ahly theme only,
+    without changing click logic or layout/scale behavior.
+  */
+  html.ahly-premium-theme-live #tabs .tablinks{
+    position: relative !important;
+  }
+
+  html.ahly-premium-theme-live #tabs .tablinks.active,
+  html.ahly-premium-theme-live #tabs .tablinks.mndo-ahly-current-tab,
+  html.ahly-premium-theme-live #tabs .tablinks[aria-current="page"]{
+    color: #fff7d6 !important;
+    -webkit-text-fill-color: #fff7d6 !important;
+    border-color: rgba(255, 217, 116, 0.88) !important;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0.035) 30%),
+      radial-gradient(120% 185% at 18% 0%, rgba(255,218,118,0.32), rgba(255,218,118,0) 48%),
+      radial-gradient(125% 190% at 92% 0%, rgba(255,0,0,0.32), rgba(255,0,0,0) 58%),
+      linear-gradient(180deg, rgba(187,0,0,0.98) 0%, rgba(103,0,0,0.98) 50%, rgba(18,18,22,0.98) 100%) !important;
+    text-shadow:
+      0 1px 2px rgba(0,0,0,0.96),
+      0 0 9px rgba(255,221,128,0.26) !important;
+    box-shadow:
+      0 0 0 2px rgba(255,218,118,0.24),
+      0 13px 28px rgba(0,0,0,0.62),
+      0 0 22px rgba(177,0,0,0.34),
+      inset 0 1px 0 rgba(255,255,255,0.22),
+      inset 0 -2px 0 rgba(255,219,113,0.52),
+      inset 0 0 0 1px rgba(255,240,180,0.08) !important;
+    filter: saturate(1.16) brightness(1.07) !important;
+    transform: translateY(-1px) !important;
+  }
+
+  html.ahly-premium-theme-live #tabs .tablinks.active:hover,
+  html.ahly-premium-theme-live #tabs .tablinks.mndo-ahly-current-tab:hover,
+  html.ahly-premium-theme-live #tabs .tablinks[aria-current="page"]:hover{
+    color: #fffbe8 !important;
+    -webkit-text-fill-color: #fffbe8 !important;
+    border-color: rgba(255, 230, 145, 0.96) !important;
+    box-shadow:
+      0 0 0 2px rgba(255,230,145,0.30),
+      0 15px 31px rgba(0,0,0,0.64),
+      0 0 26px rgba(210,0,0,0.42),
+      inset 0 1px 0 rgba(255,255,255,0.25),
+      inset 0 -2px 0 rgba(255,226,136,0.62) !important;
+  }
+
+  html.ahly-premium-theme-live #tabs .tablinks.active::after,
+  html.ahly-premium-theme-live #tabs .tablinks.mndo-ahly-current-tab::after,
+  html.ahly-premium-theme-live #tabs .tablinks[aria-current="page"]::after{
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 4px;
+    height: 3px;
+    border-radius: 999px;
+    pointer-events: none;
+    background: linear-gradient(90deg, rgba(255,218,118,0), rgba(255,232,150,0.95), rgba(255,218,118,0));
+    box-shadow: 0 0 9px rgba(255,218,118,0.55);
+  }
+</style>
+<script id="mndoAhlyActiveTabFixJs">
+(function(){
+  'use strict';
+
+  function getTabs(){
+    return document.getElementById('tabs');
+  }
+
+  function syncAhlyActiveTab(){
+    var tabs = getTabs();
+    if(!tabs) return;
+    var buttons = tabs.querySelectorAll('.tablinks');
+    var active = null;
+
+    Array.prototype.forEach.call(buttons, function(btn){
+      btn.classList.remove('mndo-ahly-current-tab');
+      btn.removeAttribute('aria-current');
+      if(!active && btn.classList.contains('active')) active = btn;
+    });
+
+    if(active){
+      active.classList.add('mndo-ahly-current-tab');
+      active.setAttribute('aria-current', 'page');
+    }
+  }
+
+  function scheduleSync(){
+    setTimeout(syncAhlyActiveTab, 0);
+    setTimeout(syncAhlyActiveTab, 80);
+  }
+
+  function wrapOpenCity(){
+    if(typeof window.openCity !== 'function' || window.openCity.__mndoAhlyActiveTabWrapped) return;
+    var original = window.openCity;
+    var wrapped = function(){
+      var result = original.apply(this, arguments);
+      scheduleSync();
+      return result;
+    };
+    try{
+      Object.keys(original).forEach(function(key){ wrapped[key] = original[key]; });
+    }catch(e){}
+    wrapped.__mndoAhlyActiveTabWrapped = true;
+    window.openCity = wrapped;
+  }
+
+  function init(){
+    wrapOpenCity();
+    document.addEventListener('click', function(e){
+      var target = e.target;
+      if(target && target.closest && target.closest('#tabs .tablinks')) scheduleSync();
+    }, true);
+    scheduleSync();
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
+<!-- MNDO_AHLY_ACTIVE_TAB_FIX_END -->
 </body>
 
 </html>
