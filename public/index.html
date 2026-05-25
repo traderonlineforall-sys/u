@@ -20004,10 +20004,10 @@ button {border-radius:999px !important;}
 <!-- MNDO_CLEAN_BASELINE_SCALE_LOCK_START -->
 <style id="mndoCleanBaselineScaleCss">
   /*
-    MNDO_CLEAN_BASELINE_SCALE_LOCK
+    MNDO_CLEAN_BASELINE_SCALE_LOCK_V2
     Safe inline layer only: no new files, no link/SR logic changes.
-    Freezes the 100% desktop layout width, then scales it down on smaller screens
-    instead of letting tab buttons/dropdown rows re-wrap into new positions.
+    The fixed canvas is now based on the real 100% desktop/screen width,
+    not on the current resized viewport. This prevents locking to an 80% layout.
   */
   :root{
     --mndo-clean-baseline-width: 1366px;
@@ -20039,7 +20039,7 @@ button {border-radius:999px !important;}
     min-width: max-content !important;
   }
 
-  /* Stop old injected :active/hover transform from making every click look like shrink/jump. */
+  /* Stop active/hover transforms from making each click visually shrink or jump. */
   html.mndo-clean-baseline-lock #tabs .tablinks:hover,
   html.mndo-clean-baseline-lock #tabs .tablinks:active,
   html.mndo-clean-baseline-lock #tabs .tablinks.active{
@@ -20101,12 +20101,14 @@ button {border-radius:999px !important;}
   'use strict';
 
   var ROOT = document.documentElement;
-  var DEFAULT_BASELINE = 1366;
+  var MIN_DESKTOP_BASELINE = 1366;
   var MIN_SCALE = 0.58;
-  var baselineWidth = DEFAULT_BASELINE;
+  var baselineWidth = MIN_DESKTOP_BASELINE;
   var scheduled = false;
 
   function px(n){ return Math.round(n) + 'px'; }
+
+  function num(n){ return (typeof n === 'number' && isFinite(n)) ? n : 0; }
 
   function getTabs(){
     return document.getElementById('tabs');
@@ -20117,23 +20119,62 @@ button {border-radius:999px !important;}
     return 'zoom' in el.style;
   }
 
-  function chooseBaseline(){
-    var tabs = getTabs();
-    var viewport = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
-    var tabWidth = 0;
-
-    if (tabs){
-      var oldWidth = tabs.style.width;
-      var oldMinWidth = tabs.style.minWidth;
-      tabs.style.width = 'max-content';
-      tabs.style.minWidth = 'max-content';
-      tabWidth = Math.ceil(tabs.scrollWidth || tabs.getBoundingClientRect().width || 0) + 24;
-      tabs.style.width = oldWidth;
-      tabs.style.minWidth = oldMinWidth;
+  function readFullScreenWidth(){
+    var widths = [];
+    if (window.screen){
+      widths.push(num(window.screen.availWidth));
+      widths.push(num(window.screen.width));
     }
+    if (window.outerWidth){
+      widths.push(num(window.outerWidth));
+    }
+    return Math.max.apply(Math, widths.concat([0]));
+  }
 
-    /* Use the original desktop 100% canvas when available; never baseline to a tiny phone width. */
-    baselineWidth = Math.max(DEFAULT_BASELINE, tabWidth, viewport >= 1000 ? viewport : 0);
+  function naturalTabsWidth(){
+    var tabs = getTabs();
+    if (!tabs) return 0;
+
+    var oldWidth = tabs.style.width;
+    var oldMinWidth = tabs.style.minWidth;
+    var oldMaxWidth = tabs.style.maxWidth;
+    var oldDisplay = tabs.style.display;
+    var oldFlexWrap = tabs.style.flexWrap;
+
+    tabs.style.display = 'inline-flex';
+    tabs.style.flexWrap = 'nowrap';
+    tabs.style.width = 'max-content';
+    tabs.style.minWidth = 'max-content';
+    tabs.style.maxWidth = 'none';
+
+    var width = Math.ceil(tabs.scrollWidth || tabs.getBoundingClientRect().width || 0) + 24;
+
+    tabs.style.width = oldWidth;
+    tabs.style.minWidth = oldMinWidth;
+    tabs.style.maxWidth = oldMaxWidth;
+    tabs.style.display = oldDisplay;
+    tabs.style.flexWrap = oldFlexWrap;
+
+    return width;
+  }
+
+  function chooseBaseline(){
+    var viewport = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+    var fullScreen = readFullScreenWidth();
+    var tabWidth = naturalTabsWidth();
+
+    /*
+      V2 fix:
+      Do NOT use the current viewport as the baseline, because a browser opened at
+      80% width would lock the 80% arrangement. Use full screen/desktop width as
+      the 100% reference, while keeping a safe desktop minimum and enough room for tabs.
+    */
+    baselineWidth = Math.max(MIN_DESKTOP_BASELINE, fullScreen, tabWidth);
+
+    /* On unusual devices where viewport is genuinely wider than reported screen
+       (for example browser zoomed out), only expand; never shrink the 100% baseline. */
+    if (viewport > baselineWidth) baselineWidth = viewport;
+
     ROOT.style.setProperty('--mndo-clean-baseline-width', px(baselineWidth));
   }
 
@@ -20187,11 +20228,16 @@ button {border-radius:999px !important;}
     window.requestAnimationFrame(applyScale);
   }
 
+  function scheduleRebaseline(){
+    chooseBaseline();
+    scheduleApply();
+  }
+
   function init(){
     chooseBaseline();
     applyScale();
     window.addEventListener('resize', scheduleApply, { passive: true });
-    window.addEventListener('orientationchange', function(){ setTimeout(scheduleApply, 80); }, { passive: true });
+    window.addEventListener('orientationchange', function(){ setTimeout(scheduleRebaseline, 80); }, { passive: true });
 
     /* Re-apply after tab changes so newly opened content uses the same fixed canvas. */
     if (typeof window.openCity === 'function' && !window.openCity.__mndoCleanBaselineWrapped){
@@ -20211,7 +20257,7 @@ button {border-radius:999px !important;}
     }, true);
 
     if (document.fonts && document.fonts.ready){
-      document.fonts.ready.then(function(){ chooseBaseline(); scheduleApply(); }).catch(function(){});
+      document.fonts.ready.then(function(){ scheduleRebaseline(); }).catch(function(){});
     }
   }
 
