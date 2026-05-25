@@ -6,7 +6,7 @@
   var NUMBER_INPUT_IDS = ['arabiccNumber', 'arabicNumber'];
   var keepUntil = 0;
   var restoreTimers = [];
-  var portalReady = false;
+  var layerReady = false;
   var rafPosition = 0;
 
   function byId(id) { return document.getElementById(id); }
@@ -31,22 +31,32 @@
       '#arabiccNumber:focus,#arabicNumber:focus{',
       '  outline:0 !important;',
       '}',
-      '/* Search results are portaled to body so tabs/dropdowns cannot cover them. */',
-      '#searchResults.sr-search-results-portal{',
-      '  position:fixed !important;',
+      '/* Keep search results exactly under the search box and above the rest of the page. */',
+      '.mndo-search-logo-row{position:relative !important; overflow:visible !important; z-index:2147483600 !important;}',
+      '.mndo-search-hk-anchor{position:relative !important; overflow:visible !important; z-index:2147483601 !important;}',
+      '.search-container{position:relative !important; overflow:visible !important; z-index:2147483602 !important;}',
+      '#searchResults.search-results,#searchResults{',
+      '  position:absolute !important;',
+      '  top:calc(100% + 6px) !important;',
+      '  left:0 !important;',
       '  right:auto !important;',
       '  margin:0 !important;',
+      '  width:100% !important;',
+      '  min-width:100% !important;',
+      '  max-width:100% !important;',
       '  z-index:2147483646 !important;',
       '  box-sizing:border-box !important;',
       '  overflow-y:auto !important;',
       '  overflow-x:hidden !important;',
+      '  max-height:min(500px,calc(100vh - 90px)) !important;',
       '  -webkit-overflow-scrolling:touch;',
-      '  isolation:isolate;',
       '}',
-      '#searchResults.sr-search-results-portal a{',
+      '#searchResults.search-results a,#searchResults a{',
       '  position:relative;',
       '  z-index:1;',
       '  pointer-events:auto !important;',
+      '  white-space:normal !important;',
+      '  word-break:break-word;',
       '}',
       '#searchInput{ pointer-events:auto !important; }'
     ].join('\n');
@@ -81,15 +91,16 @@
     el.style[name] = value;
   }
 
-  function ensurePortal() {
+  function ensureSearchLayer() {
     var p = parts();
-    if (!p.results || !document.body) return false;
-    if (p.results.parentNode !== document.body) {
-      document.body.appendChild(p.results);
+    if (!p.input || !p.results) return false;
+    var container = p.input.closest ? p.input.closest('.search-container') : null;
+    if (!container) container = p.input.parentNode;
+    if (!container) return false;
+    if (p.results.parentNode !== container) {
+      container.appendChild(p.results);
     }
-    p.results.classList.add('sr-search-results-portal');
-    portalReady = true;
-    positionResultsNow();
+    layerReady = true;
     return true;
   }
 
@@ -97,28 +108,22 @@
     rafPosition = 0;
     var p = parts();
     if (!p.input || !p.results) return;
+    if (!ensureSearchLayer()) return;
     var rect = p.input.getBoundingClientRect();
     if (!rect || rect.width <= 0 || rect.height <= 0) return;
 
-    var viewportW = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
     var viewportH = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
-    var width = Math.max(220, Math.min(Math.round(rect.width), viewportW - 16));
-    var left = Math.round(rect.left);
-    var top = Math.round(rect.bottom + 6);
+    var maxH = Math.max(140, Math.min(500, viewportH - Math.round(rect.bottom) - 12));
+    var container = p.input.closest ? p.input.closest('.search-container') : null;
+    var width = container ? Math.round(container.getBoundingClientRect().width) : Math.round(rect.width);
+    if (width < 220) width = Math.max(220, Math.round(rect.width));
 
-    if (left + width > viewportW - 8) left = Math.max(8, viewportW - width - 8);
-    if (left < 8) left = 8;
-
-    var maxH = Math.max(140, Math.min(500, viewportH - top - 12));
-    if (maxH < 180 && rect.top > 220) {
-      maxH = Math.min(500, Math.max(180, rect.top - 12));
-      top = Math.max(8, Math.round(rect.top - maxH - 6));
-    }
-
-    setStyle(p.results, 'position', 'fixed');
-    setStyle(p.results, 'left', left + 'px');
-    setStyle(p.results, 'top', top + 'px');
+    setStyle(p.results, 'position', 'absolute');
+    setStyle(p.results, 'left', '0px');
+    setStyle(p.results, 'top', 'calc(100% + 6px)');
     setStyle(p.results, 'width', width + 'px');
+    setStyle(p.results, 'minWidth', width + 'px');
+    setStyle(p.results, 'maxWidth', width + 'px');
     setStyle(p.results, 'right', 'auto');
     setStyle(p.results, 'marginTop', '0px');
     setStyle(p.results, 'zIndex', '2147483646');
@@ -134,7 +139,7 @@
   function showResults() {
     var p = parts();
     if (!hasText(p.input) || !hasResults(p.results)) return;
-    ensurePortal();
+    ensureSearchLayer();
     positionResults();
     setStyle(p.results, 'display', 'block');
   }
@@ -365,13 +370,13 @@
   function bindPositioning() {
     injectStyle();
     var p = parts();
-    if (p.results) ensurePortal();
+    if (p.results) ensureSearchLayer();
 
     ['input', 'focus', 'keyup', 'change'].forEach(function (name) {
       document.addEventListener(name, function (event) {
         if (!event || event.target !== byId(SEARCH_INPUT_ID)) return;
-        setTimeout(function () { ensurePortal(); showResults(); }, 0);
-        setTimeout(function () { ensurePortal(); showResults(); }, 80);
+        setTimeout(function () { ensureSearchLayer(); showResults(); }, 0);
+        setTimeout(function () { ensureSearchLayer(); showResults(); }, 80);
       }, true);
     });
 
@@ -405,7 +410,7 @@
       var results = byId(SEARCH_RESULTS_ID);
       if (results) {
         var mo = new MutationObserver(function () {
-          if (!portalReady) ensurePortal();
+          if (!layerReady) ensureSearchLayer();
           showResults();
           positionResults();
         });
@@ -413,8 +418,8 @@
       }
     } catch (_) {}
 
-    setTimeout(function () { ensurePortal(); positionResults(); }, 60);
-    setTimeout(function () { ensurePortal(); positionResults(); }, 400);
+    setTimeout(function () { ensureSearchLayer(); positionResults(); }, 60);
+    setTimeout(function () { ensureSearchLayer(); positionResults(); }, 400);
   }
 
   if (document.readyState === 'loading') {
