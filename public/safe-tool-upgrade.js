@@ -1265,78 +1265,6 @@
     }, 120);
   }
 
-
-  function installHeaderMicroUxV3() {
-    var styleId = 'ua07-header-micro-ux-v3';
-
-    function injectStyle() {
-      if (document.getElementById(styleId)) return;
-      var style = document.createElement('style');
-      style.id = styleId;
-      style.textContent = [
-        '#searchResults.search-results,#searchResults{',
-        '  border-radius: 18px !important;',
-        '  overflow-x: hidden !important;',
-        '  overscroll-behavior: contain !important;',
-        '}',
-        '#searchResults.search-results a,#searchResults a{',
-        '  line-height: 1.42 !important;',
-        '  padding: 12px 16px !important;',
-        '  text-align: left !important;',
-        '  font-smoothing: antialiased;',
-        '  -webkit-font-smoothing: antialiased;',
-        '}',
-        '#searchResults.search-results a + a,#searchResults a + a{',
-        '  box-shadow: inset 0 1px 0 rgba(145,172,230,0.16) !important;',
-        '}',
-        '#searchResults.search-results a:hover,#searchResults a:hover,',
-        '#searchResults.search-results a:focus,#searchResults a:focus{',
-        '  padding-left: 20px !important;',
-        '}',
-        '#copyBtn,#copyBtn1,#mndoTTTop,#mndoSRTop,#mndoTTBottom,#mndoSRBottom{',
-        '  touch-action: manipulation !important;',
-        '  -webkit-tap-highlight-color: transparent !important;',
-        '  backface-visibility: hidden !important;',
-        '  transform: translateZ(0);',
-        '}',
-        '#copyBtn:focus-visible,#copyBtn1:focus-visible,#mndoTTTop:focus-visible,#mndoSRTop:focus-visible,#mndoTTBottom:focus-visible,#mndoSRBottom:focus-visible{',
-        '  outline: 2px solid rgba(255,215,120,0.88) !important;',
-        '  outline-offset: 2px !important;',
-        '}',
-        '#copyNotification,#copyNotification1{',
-        '  min-width: 74px !important;',
-        '  text-align: center !important;',
-        '  box-shadow: 0 6px 16px rgba(0,0,0,0.18) !important;',
-        '}'
-      ].join('\n');
-      (document.head || document.documentElement).appendChild(style);
-    }
-
-    function bindKeyboardProxy(id) {
-      var button = document.getElementById(id);
-      if (!button || button.dataset.ua07V3KeyProxyBound === '1') return false;
-      button.dataset.ua07V3KeyProxyBound = '1';
-      button.addEventListener('keydown', function (event) {
-        if (!event || (event.key !== 'Enter' && event.key !== ' ')) return;
-        event.preventDefault();
-        button.click();
-      }, true);
-      return true;
-    }
-
-    function bindAll() {
-      injectStyle();
-      ['copyBtn', 'copyBtn1', 'mndoTTTop', 'mndoSRTop', 'mndoTTBottom', 'mndoSRBottom'].forEach(function (id) {
-        bindKeyboardProxy(id);
-      });
-      return true;
-    }
-
-    bindAll();
-    setTimeout(bindAll, 0);
-    setTimeout(bindAll, 140);
-  }
-
   // Register our enhancements on DOM ready.  Keep this separate from
   // other initializers to avoid coupling behaviours.
   onReady(function () {
@@ -1347,7 +1275,6 @@
     installLandlineMirrorSync();
     installSearchResultsContrastFix();
     installTopHeaderFastClickFix();
-    installHeaderMicroUxV3();
     removeResubscribeTooltip();
     stabilizeSalesConcessionCalculate();
   });

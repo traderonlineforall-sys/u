@@ -15,17 +15,6 @@ const PUBLIC_PATHS = new Set([
   "/api/logout",
 ]);
 
-let allowlistRaw = null;
-let allowlistCache = [];
-
-function getAllowlist() {
-  const raw = process.env.ALLOWLIST_IPS || "";
-  if (raw === allowlistRaw) return allowlistCache;
-  allowlistRaw = raw;
-  allowlistCache = raw.split(",").map((s) => s.trim()).filter(Boolean);
-  return allowlistCache;
-}
-
 function clientIp(request) {
   const cfIp = request.headers.get("cf-connecting-ip");
   const realIp = request.headers.get("x-real-ip");
@@ -55,7 +44,7 @@ export async function middleware(request) {
   const { pathname } = request.nextUrl;
 
   // Optional IP allowlist (comma-separated). If set, block everyone else early.
-  const allow = getAllowlist();
+  const allow = (process.env.ALLOWLIST_IPS || "").split(",").map(s => s.trim()).filter(Boolean);
   if (allow.length) {
     const ip = clientIp(request);
     if (!ip || !allow.includes(ip)) {
@@ -85,7 +74,7 @@ export async function middleware(request) {
 
   const url = request.nextUrl.clone();
   url.pathname = "/login";
-  url.searchParams.set("next", `${pathname}${request.nextUrl.search || ""}`);
+  url.searchParams.set("next", pathname);
 
   const res = NextResponse.redirect(url);
   res.headers.set("x-middleware-cache", "no-cache");
