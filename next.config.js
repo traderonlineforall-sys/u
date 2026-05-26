@@ -1,6 +1,9 @@
 /** @type {import("next").NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false,
+  compress: true,
+  productionBrowserSourceMaps: false,
   async rewrites() {
     return [
       // Serve the original static tool (public/index.html) on the root path

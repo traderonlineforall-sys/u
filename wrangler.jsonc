@@ -11,8 +11,10 @@
       "/",
       "/login",
       "/logout",
+      "/tags",
       "/index.html",
       "/Tags.html",
+      "/haya-karima-viewer.html",
       "/outage-generator.html",
       "/outage-generator.protected.html",
       "/api/*"
