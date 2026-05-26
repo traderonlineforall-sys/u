@@ -2041,3 +2041,181 @@ html.ahly-premium-theme-live .eid-toggle-btn {
     transform: none !important;
   }
 }
+
+/* =========================================================
+   Ahly Premium Theme - v7 readability dropdown + heavier hover
+   Goal: selected/open menus must be readable like the clear Zamalek-style
+   popups, but with Ahly noble red / black / champagne palette.
+   Visual only: no HTML, IDs, links, SR logic, or workflow changes.
+   ========================================================= */
+
+html.ahly-premium-theme-live {
+  --ahly-v7-ivory: #fff7df;
+  --ahly-v7-champagne: #e7d39a;
+  --ahly-v7-muted-gold: #c9b06a;
+  --ahly-v7-deep-red: rgba(105, 0, 0, .90);
+  --ahly-v7-hover-red: rgba(138, 0, 0, .66);
+  --ahly-v7-panel-top: rgba(13, 0, 1, .965);
+  --ahly-v7-panel-mid: rgba(35, 0, 1, .955);
+  --ahly-v7-panel-bottom: rgba(5, 0, 0, .975);
+  --ahly-v7-outline: rgba(231, 211, 154, .30);
+  --ahly-v7-outline-hot: rgba(255, 229, 164, .48);
+}
+
+/* Main top tabs: clearer, heavier, still elegant */
+html.ahly-premium-theme-live #tabs .tablinks {
+  position: relative !important;
+  color: var(--ahly-v7-champagne) !important;
+  -webkit-text-fill-color: var(--ahly-v7-champagne) !important;
+  text-shadow:
+    0 2px 3px rgba(0,0,0,.98),
+    0 0 7px rgba(231,211,154,.13) !important;
+  transition: background .18s ease, color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease !important;
+}
+
+html.ahly-premium-theme-live #tabs .tablinks:hover,
+html.ahly-premium-theme-live #tabs .tablinks:focus,
+html.ahly-premium-theme-live #tabs .tablinks.active,
+html.ahly-premium-theme-live #tabs .tablinks.mndo-ahly-current-tab,
+html.ahly-premium-theme-live #tabs .tablinks[aria-current="page"] {
+  color: var(--ahly-v7-ivory) !important;
+  -webkit-text-fill-color: var(--ahly-v7-ivory) !important;
+  background:
+    radial-gradient(140% 160% at 18% 0%, rgba(255,245,205,.16), rgba(255,245,205,0) 43%),
+    linear-gradient(180deg, rgba(114,0,0,.72) 0%, rgba(36,0,1,.82) 56%, rgba(9,0,0,.90) 100%) !important;
+  border-color: var(--ahly-v7-outline-hot) !important;
+  text-shadow:
+    0 2px 3px rgba(0,0,0,1),
+    0 0 11px rgba(255,235,178,.24) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,246,210,.14),
+    inset 0 -2px 0 rgba(231,211,154,.42),
+    0 9px 21px rgba(0,0,0,.36),
+    0 0 0 1px rgba(255,230,166,.075) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Main option buttons/dropdown triggers: stronger hover/readable active state */
+html.ahly-premium-theme-live .dropdown:hover .dropbtn,
+html.ahly-premium-theme-live .dropdown:focus-within .dropbtn,
+html.ahly-premium-theme-live .dropdown.open .dropbtn,
+html.ahly-premium-theme-live .dropdown.active .dropbtn,
+html.ahly-premium-theme-live #singlelink:hover,
+html.ahly-premium-theme-live #singlelink:focus,
+html.ahly-premium-theme-live .navbar a:hover,
+html.ahly-premium-theme-live .navbar a:focus,
+html.ahly-premium-theme-live #SR\ Sales .toolsBar .toolsStyle:hover,
+html.ahly-premium-theme-live #SR\ Technical .toolsBar .toolsStyle:hover,
+html.ahly-premium-theme-live #Mobile .toolsBar .toolsStyle:hover,
+html.ahly-premium-theme-live #SR\ Sales .toolsBar .toolsStyle:focus,
+html.ahly-premium-theme-live #SR\ Technical .toolsBar .toolsStyle:focus,
+html.ahly-premium-theme-live #Mobile .toolsBar .toolsStyle:focus {
+  color: var(--ahly-v7-ivory) !important;
+  -webkit-text-fill-color: var(--ahly-v7-ivory) !important;
+  background:
+    radial-gradient(125% 150% at 17% 0%, rgba(255,246,211,.13), rgba(255,246,211,0) 43%),
+    linear-gradient(90deg, rgba(120,0,0,.78) 0%, rgba(50,0,1,.74) 54%, rgba(6,0,0,.54) 100%) !important;
+  border-color: rgba(231,211,154,.36) !important;
+  text-shadow:
+    0 2px 3px rgba(0,0,0,1),
+    0 0 10px rgba(255,235,178,.22) !important;
+  box-shadow:
+    inset 3px 0 0 rgba(231,211,154,.58),
+    inset 0 1px 0 rgba(255,246,211,.11),
+    inset 0 -1px 0 rgba(231,211,154,.28),
+    0 8px 20px rgba(0,0,0,.33) !important;
+  filter: none !important;
+}
+
+/* Open dropdown panels: readable solid noble depth, not washed-out glass */
+html.ahly-premium-theme-live .dropdown-content,
+html.ahly-premium-theme-live .sub-dropdown-content,
+html.ahly-premium-theme-live .dropdown:hover .dropdown-content,
+html.ahly-premium-theme-live .dropdown:focus-within .dropdown-content,
+html.ahly-premium-theme-live .sub-dropdown:hover .sub-dropdown-content,
+html.ahly-premium-theme-live .sub-dropdown:focus-within .sub-dropdown-content {
+  color: var(--ahly-v7-champagne) !important;
+  -webkit-text-fill-color: var(--ahly-v7-champagne) !important;
+  background:
+    radial-gradient(120% 150% at 18% 0%, rgba(231,211,154,.105), rgba(231,211,154,0) 41%),
+    linear-gradient(180deg, var(--ahly-v7-panel-top) 0%, var(--ahly-v7-panel-mid) 53%, var(--ahly-v7-panel-bottom) 100%) !important;
+  background-color: rgba(10,0,1,.97) !important;
+  border: 1px solid var(--ahly-v7-outline) !important;
+  box-shadow:
+    0 20px 42px rgba(0,0,0,.62),
+    0 0 0 1px rgba(255,232,166,.055),
+    inset 0 1px 0 rgba(255,246,211,.095),
+    inset 0 -1px 0 rgba(120,0,0,.32) !important;
+  text-shadow: 0 2px 3px rgba(0,0,0,1) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  z-index: 999999 !important;
+  isolation: isolate !important;
+}
+
+/* Dropdown items: text readable before hover */
+html.ahly-premium-theme-live .dropdown-content a,
+html.ahly-premium-theme-live .sub-dropdown-content a,
+html.ahly-premium-theme-live .sub-dropdown > a,
+html.ahly-premium-theme-live .sub-dropdown,
+html.ahly-premium-theme-live .sub-dropdown[style] {
+  color: var(--ahly-v7-champagne) !important;
+  -webkit-text-fill-color: var(--ahly-v7-champagne) !important;
+  background: rgba(0,0,0,.08) !important;
+  background-color: rgba(0,0,0,.08) !important;
+  border-color: rgba(231,211,154,.10) !important;
+  text-shadow:
+    0 2px 3px rgba(0,0,0,1),
+    0 0 6px rgba(231,211,154,.10) !important;
+  box-shadow: inset 0 -1px 0 rgba(231,211,154,.075) !important;
+}
+
+/* Dropdown item hover: heavier, clearer, premium Ahly shade */
+html.ahly-premium-theme-live .sub-dropdown:hover,
+html.ahly-premium-theme-live .sub-dropdown:hover[style],
+html.ahly-premium-theme-live .dropdown-content a:hover,
+html.ahly-premium-theme-live .sub-dropdown-content a:hover,
+html.ahly-premium-theme-live .sub-dropdown:hover > a,
+html.ahly-premium-theme-live .dropdown-content a:focus,
+html.ahly-premium-theme-live .sub-dropdown-content a:focus,
+html.ahly-premium-theme-live .dropdown-content a:active,
+html.ahly-premium-theme-live .sub-dropdown-content a:active,
+html.ahly-premium-theme-live #searchResults.search-results a:hover,
+html.ahly-premium-theme-live #searchResults a:hover,
+html.ahly-premium-theme-live #searchResults.search-results a:focus,
+html.ahly-premium-theme-live #searchResults a:focus,
+html.ahly-premium-theme-live #searchResults.search-results a.highlight,
+html.ahly-premium-theme-live #searchResults a.highlight {
+  color: var(--ahly-v7-ivory) !important;
+  -webkit-text-fill-color: var(--ahly-v7-ivory) !important;
+  background:
+    radial-gradient(115% 150% at 12% 0%, rgba(255,245,205,.14), rgba(255,245,205,0) 42%),
+    linear-gradient(90deg, rgba(145,0,0,.88) 0%, rgba(76,0,1,.84) 52%, rgba(16,0,0,.78) 100%) !important;
+  border-color: rgba(255,230,166,.34) !important;
+  text-shadow:
+    0 2px 3px rgba(0,0,0,1),
+    0 0 12px rgba(255,235,178,.24) !important;
+  box-shadow:
+    inset 3px 0 0 rgba(255,225,150,.62),
+    inset 0 1px 0 rgba(255,246,211,.12),
+    inset 0 -1px 0 rgba(255,225,150,.24),
+    0 9px 18px rgba(0,0,0,.38) !important;
+}
+
+/* Search dropdown readability follows the same clear panel rule */
+html.ahly-premium-theme-live #searchResults.search-results,
+html.ahly-premium-theme-live #searchResults,
+html.ahly-premium-theme-live .search-results {
+  color: var(--ahly-v7-champagne) !important;
+  -webkit-text-fill-color: var(--ahly-v7-champagne) !important;
+  background:
+    radial-gradient(120% 150% at 18% 0%, rgba(231,211,154,.095), rgba(231,211,154,0) 41%),
+    linear-gradient(180deg, rgba(13,0,1,.965) 0%, rgba(34,0,1,.955) 56%, rgba(4,0,0,.975) 100%) !important;
+  background-color: rgba(10,0,1,.97) !important;
+  border-color: var(--ahly-v7-outline) !important;
+  box-shadow:
+    0 20px 42px rgba(0,0,0,.62),
+    inset 0 1px 0 rgba(255,246,211,.095) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
