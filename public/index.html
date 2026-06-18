@@ -18422,17 +18422,35 @@ https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeNam
     }
 
 }
-#outageNormalPanel /* Fix large blank gap: some blocks had inline `flex: 1 1 760px` which becomes height in column layout (flex-basis on main axis). */
-  .row > div[style*="flex:1 1"] {flex:0 0 auto !important;}
-#outageNormalPanel /* Compact: show main selects in one row on wider screens */
-  @media (min-width: 880px) {
-    .row.controls{flex-direction:row !important; align-items:flex-end !important;}
-#outageNormalPanel .row.controls > div {flex:1 1 0; min-width:150px;}
-#outageNormalPanel #modeWrap, #outageNormalPanel #typeWrap, #outageNormalPanel #majorReasonWrap {min-width:180px;}
-#outageNormalPanel /* reduce vertical spacing a bit */
-    .row.controls {margin-bottom:8px;}
+/* Fix large blank gap:
+   some blocks had inline flex: 1 1 760px
+   which becomes height in column layout (flex-basis on main axis)
+*/
+#outageNormalPanel .row > div[style*="flex:1 1"] {
+    flex: 0 0 auto !important;
+}
 
-  }
+/* Compact: show main selects in one row on wider screens */
+@media (min-width: 880px) {
+
+    #outageNormalPanel .row.controls {
+        flex-direction: row !important;
+        align-items: flex-end !important;
+        margin-bottom: 8px;
+    }
+
+    #outageNormalPanel .row.controls > div {
+        flex: 1 1 0;
+        min-width: 150px;
+    }
+
+    #outageNormalPanel #modeWrap,
+    #outageNormalPanel #typeWrap,
+    #outageNormalPanel #majorReasonWrap {
+        min-width: 180px;
+    }
+
+}
 #outageNormalPanel .select-wrap.type-majorMaint select {background:rgba(255,0,170,.16);}
 #outageNormalPanel .select-wrap.type-majorTheft select {background:rgba(255,0,170,.16);}
 #outageNormalPanel /* ===== Modern Pro UI Upgrade (override) ===== */
@@ -18689,19 +18707,36 @@ button {border-radius:999px !important;}
   font-weight:900 !important;
   letter-spacing:.2px !important;
 }
-#outageNormalPanel /* If the timer section is RTL, #outageNormalPanel keep pills readable */
-.timer-grid { direction:rtl; }
-#outageNormalPanel .timer-grid .pill { direction:rtl; }
-#outageNormalPanel /* =========================
+/* If the timer section is RTL, keep pills readable */
+#outageNormalPanel .timer-grid {
+    direction: rtl;
+}
+
+#outageNormalPanel .timer-grid .pill {
+    direction: rtl;
+}
+
+/* =========================
    v4 — Crop empty spaces (lux compact)
    هدفها: كل مربع على قد اللي فيه + صفوف متناسقة بدون فراغات
-   ========================= */
+========================= */
 
 /* لا تخلّي عناصر الصف تتمدّد 100% على الشاشات الواسعة */
 @media (min-width: 720px) {
-  .row > div, .row > button{width:auto !important;}
-#outageNormalPanel input, #outageNormalPanel select {width:auto !important;}
-#outageNormalPanel .select-wrap select {width:auto !important;}
+
+    .row > div,
+    .row > button {
+        width: auto !important;
+    }
+
+    #outageNormalPanel input,
+    #outageNormalPanel select {
+        width: auto !important;
+    }
+
+    #outageNormalPanel .select-wrap select {
+        width: auto !important;
+    }
 
 }
 #outageNormalPanel /* صف الكنترولز (رقم الشكوى + الوضع + نوع الاوتج) */
@@ -18920,13 +18955,28 @@ button {border-radius:999px !important;}
   min-width: 140px !important;
   flex: 0 0 auto !important;
 }
-#outageNormalPanel /* Mobile: stack nicely */
+/* Mobile: stack nicely */
 @media (max-width: 680px) {
-  .timer-grid{grid-template-columns: 1fr !important;}
-#outageNormalPanel .row.controls {grid-template-columns: 1fr !important;}
-#outageNormalPanel .timeRow {grid-template-columns: 1fr !important;}
-#outageNormalPanel .actions {flex-wrap:wrap !important;}
-#outageNormalPanel .actions button {min-width: 160px !important;}
+
+    #outageNormalPanel .timer-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    #outageNormalPanel .row.controls {
+        grid-template-columns: 1fr !important;
+    }
+
+    #outageNormalPanel .timeRow {
+        grid-template-columns: 1fr !important;
+    }
+
+    #outageNormalPanel .actions {
+        flex-wrap: wrap !important;
+    }
+
+    #outageNormalPanel .actions button {
+        min-width: 160px !important;
+    }
 
 }
 #outageNormalPanel /* أيقونات Generate/Reset داخل صف الوقت */
