@@ -13653,14 +13653,20 @@ https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeNam
 
 
 
-
-                                                <button style=";
-       background: #ccc;
-       box-shadow: 20px 8px 16px 0px rgba(0,0,0,0.2);
-       border-radius: 10%;
-       
-        "> <a href=" https://sp-wiki.te.eg:5443/SiteAssets/mini_tools/new_usage_tool.html" target="_blank 717"> Daily Usage Tool </a>
-                                                </button>
+<a href="https://sp-wiki.te.eg:5443/SiteAssets/mini_tools/new_usage_tool.html"
+   target="_blank"
+   style="
+       background:#ccc;
+       box-shadow:20px 8px 16px 0px rgba(0,0,0,0.2);
+       border-radius:10%;
+       padding:8px 12px;
+       text-decoration:none;
+       color:black;
+       display:inline-block;
+   ">
+    Daily Usage Tool
+</a> 
+</button>
 &nbsp; 
 <button style="background:#ccc;border-radius:10%;padding:2px 6px;font-size:10px;box-shadow:6px 3px 6px 0px rgba(0,0,0,0.2);"> <a href=" https://sp-wiki.te.eg:5443/SiteAssets/mini_tools/usage-calculator.html" target="_blank"> Usage Calculator </a></button>
 
@@ -18361,25 +18367,44 @@ https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeNam
 #outageNormalPanel input[type="datetime-local"] {min-width:unset;}
 #outageNormalPanel .timer-grid {justify-content:space-between;}
 #outageNormalPanel .pill {justify-content:space-between;}
-#outageNormalPanel /* keep buttons in one row on wide screens */
-  @media (min-width: 640px) {
+/* keep buttons in one row on wide screens */
+@media (min-width: 640px) {
     .actions{display:flex; gap:10px;}
 #outageNormalPanel .actions button {width:50%;}
 #outageNormalPanel .timeRow {display:flex; gap:10px;}
 #outageNormalPanel .timeRow input {width:50%;}
 
   }
-#outageNormalPanel /* Fix large blank gap: some blocks had inline `flex: 1 1 760px` which becomes height in column layout (flex-basis on main axis). */
-  .row > div[style*="flex:1 1"] {flex:0 0 auto !important;}
-#outageNormalPanel /* Compact: show main selects in one row on wider screens */
-  @media (min-width: 880px) {
-    .row.controls{flex-direction:row !important; align-items:flex-end !important;}
-#outageNormalPanel .row.controls > div {flex:1 1 0; min-width:150px;}
-#outageNormalPanel #modeWrap, #outageNormalPanel #typeWrap, #outageNormalPanel #majorReasonWrap {min-width:180px;}
-#outageNormalPanel /* reduce vertical spacing a bit */
-    .row.controls {margin-bottom:8px;}
+/* Fix large blank gap:
+   some blocks had inline flex: 1 1 760px
+   which becomes height in column layout
+   (flex-basis on main axis).
+*/
 
-  }
+#outageNormalPanel .row > div[style*="flex:1 1"] {
+    flex: 0 0 auto !important;
+}
+/* Compact: show main selects in one row on wider screens */
+@media (min-width: 880px) {
+
+    #outageNormalPanel .row.controls {
+        flex-direction: row !important;
+        align-items: flex-end !important;
+        margin-bottom: 8px;
+    }
+
+    #outageNormalPanel .row.controls > div {
+        flex: 1 1 0;
+        min-width: 150px;
+    }
+
+    #outageNormalPanel #modeWrap,
+    #outageNormalPanel #typeWrap,
+    #outageNormalPanel #majorReasonWrap {
+        min-width: 180px;
+    }
+
+}
 #outageNormalPanel .select-wrap.type-majorMaint select {background:rgba(255,0,170,.16);}
 #outageNormalPanel .select-wrap.type-majorTheft select {background:rgba(255,0,170,.16);}
 #outageNormalPanel /* ===== Modern Pro UI Upgrade (override) ===== */
@@ -18636,19 +18661,36 @@ button {border-radius:999px !important;}
   font-weight:900 !important;
   letter-spacing:.2px !important;
 }
-#outageNormalPanel /* If the timer section is RTL, #outageNormalPanel keep pills readable */
-.timer-grid { direction:rtl; }
-#outageNormalPanel .timer-grid .pill { direction:rtl; }
-#outageNormalPanel /* =========================
+/* If the timer section is RTL, keep pills readable */
+#outageNormalPanel .timer-grid {
+    direction: rtl;
+}
+
+#outageNormalPanel .timer-grid .pill {
+    direction: rtl;
+}
+
+/* =========================
    v4 — Crop empty spaces (lux compact)
    هدفها: كل مربع على قد اللي فيه + صفوف متناسقة بدون فراغات
-   ========================= */
+========================= */
 
 /* لا تخلّي عناصر الصف تتمدّد 100% على الشاشات الواسعة */
 @media (min-width: 720px) {
-  .row > div, .row > button{width:auto !important;}
-#outageNormalPanel input, #outageNormalPanel select {width:auto !important;}
-#outageNormalPanel .select-wrap select {width:auto !important;}
+
+    .row > div,
+    .row > button {
+        width: auto !important;
+    }
+
+    #outageNormalPanel input,
+    #outageNormalPanel select {
+        width: auto !important;
+    }
+
+    #outageNormalPanel .select-wrap select {
+        width: auto !important;
+    }
 
 }
 #outageNormalPanel /* صف الكنترولز (رقم الشكوى + الوضع + نوع الاوتج) */
@@ -18867,13 +18909,28 @@ button {border-radius:999px !important;}
   min-width: 140px !important;
   flex: 0 0 auto !important;
 }
-#outageNormalPanel /* Mobile: stack nicely */
+/* Mobile: stack nicely */
 @media (max-width: 680px) {
-  .timer-grid{grid-template-columns: 1fr !important;}
-#outageNormalPanel .row.controls {grid-template-columns: 1fr !important;}
-#outageNormalPanel .timeRow {grid-template-columns: 1fr !important;}
-#outageNormalPanel .actions {flex-wrap:wrap !important;}
-#outageNormalPanel .actions button {min-width: 160px !important;}
+
+    #outageNormalPanel .timer-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    #outageNormalPanel .row.controls {
+        grid-template-columns: 1fr !important;
+    }
+
+    #outageNormalPanel .timeRow {
+        grid-template-columns: 1fr !important;
+    }
+
+    #outageNormalPanel .actions {
+        flex-wrap: wrap !important;
+    }
+
+    #outageNormalPanel .actions button {
+        min-width: 160px !important;
+    }
 
 }
 #outageNormalPanel /* أيقونات Generate/Reset داخل صف الوقت */
@@ -19604,15 +19661,12 @@ button {border-radius:999px !important;}
                                                                 <table>
                                                                         <tbody>
                                                                                 <tr>
-                                                                                        <td id="reall"
-                                                                                                style="color: #ffffff">
-                                                                                                <label for="assia_speed"
-                                                                                                        style="font-type:bold;">Real
-                                                                                                        Time
-                                                                                                        Traffic
-                                                                                                        (kbps)</label>
-                                                                                                <input type="text"
-                                                                                                        id="assia_speed">
+                                                                                    <td id="reall" style="color:#ffffff;">
+    <label for="assia_speed" style="font-weight:bold;">
+        Real Time Traffic (kbps)
+    </label>
+    <input type="text" id="assia_speed">
+</td>
                                                                                         </td>
                                                                                 </tr>
                                                                         </tbody>
