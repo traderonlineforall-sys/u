@@ -13660,10 +13660,11 @@ https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeNam
 
 
 
-                                                <button style=";
-       background: #ccc;
-       box-shadow: 20px 8px 16px 0px rgba(0,0,0,0.2);
-       border-radius: 10%;
+                                                <button style="
+    background: #ccc;
+    box-shadow: 20px 8px 16px 0px rgba(0,0,0,0.2);
+    border-radius: 10%;
+">
        
         "> <a href=" https://sp-wiki.te.eg:5443/SiteAssets/mini_tools/new_usage_tool.html" target="_blank 717"> Daily Usage Tool </a>
                                                 </button>
@@ -14386,10 +14387,9 @@ https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeNam
                                                         </a>
 
 
-                                                        <a href="https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName=Solved+after+reconnect+%28RJ11%29&srTypeId=102034081&t=1758718949976&tabId=sr0.5371136253737626&topUrl=&custid=&serviceInfoChar107=2&serviceInfoChar111=1&BMEWebToken=null&serviceTitle=Solved after re-connect (RJ11)&serviceInfoChar282=Solved after re-connect (RJ11)&serviceInfoChar276=1&serviceInfoChar278=1&serviceInfoChar272=0&serviceContent=Solved after re-connect (RJ11)&subsNumber="
-                                                                onclick="openLink(event)" target="_blank 170000">Data 
+                                                        <a href="https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName=Solved+after+reconnect+%28RJ11%29&srTypeId=102034081&t=1758718949976&tabId=sr0.5371136253737626&topUrl=&custid=&serviceInfoChar107=2&serviceInfoChar111=1&&BMEWebToken=null&serviceTitle=Solved after re-connect (RJ11)&serviceInfoChar282=Solved after re-connect (RJ11)&serviceInfoChar276=1&serviceInfoChar278=1&serviceInfoChar272=0&serviceContent=Solved after re-connect (RJ11)&subsNumber="
+                                                                onclick="openLink(event)" target="_blank 760">Data
                                                                 Down Solved after re-connect (RJ11)
-                                                        </a>
 
 
                                                         <a href="https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeName=Not+Solved+after+reconnect+%28RJ11%29&srTypeId=102034082&t=1758718949996&tabId=sr0.4947685192261311&topUrl=&custid=&serviceInfoChar107=2&serviceInfoChar111=1&BMEWebToken=null&serviceTitle=Not Solved after re-connect (RJ11)&serviceInfoChar282=Not Solved after re-connect (RJ11)&serviceInfoChar276=1&serviceInfoChar278=1&serviceInfoChar272=0&serviceContent=Not Solved after re-connect (RJ11)&subsNumber="
@@ -18388,17 +18388,40 @@ https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeNam
 #outageNormalPanel .row > div, #outageNormalPanel .row > button {width:100%;}
 #outageNormalPanel input, #outageNormalPanel select {width:100%;}
 #outageNormalPanel input[type="text"] {min-width:unset;}
-#outageNormalPanel input[type="datetime-local"] {min-width:unset;}
-#outageNormalPanel .timer-grid {justify-content:space-between;}
-#outageNormalPanel .pill {justify-content:space-between;}
-#outageNormalPanel /* keep buttons in one row on wide screens */
-  @media (min-width: 640px) {
-    .actions{display:flex; gap:10px;}
-#outageNormalPanel .actions button {width:50%;}
-#outageNormalPanel .timeRow {display:flex; gap:10px;}
-#outageNormalPanel .timeRow input {width:50%;}
+#outageNormalPanel input[type="datetime-local"] {
+    min-width: unset;
+}
 
-  }
+#outageNormalPanel .timer-grid {
+    justify-content: space-between;
+}
+
+#outageNormalPanel .pill {
+    justify-content: space-between;
+}
+
+/* keep buttons in one row on wide screens */
+@media (min-width: 640px) {
+
+    #outageNormalPanel .actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    #outageNormalPanel .actions button {
+        width: 50%;
+    }
+
+    #outageNormalPanel .timeRow {
+        display: flex;
+        gap: 10px;
+    }
+
+    #outageNormalPanel .timeRow input {
+        width: 50%;
+    }
+
+}
 #outageNormalPanel /* Fix large blank gap: some blocks had inline `flex: 1 1 760px` which becomes height in column layout (flex-basis on main axis). */
   .row > div[style*="flex:1 1"] {flex:0 0 auto !important;}
 #outageNormalPanel /* Compact: show main selects in one row on wider screens */
