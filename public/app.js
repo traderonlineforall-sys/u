@@ -2598,6 +2598,7 @@ populateLandlinePackages();
 
 function populateLandlinePackages() {
 
+```
 const category =
     document.getElementById("landlineCategory").value;
 
@@ -2620,8 +2621,16 @@ LANDLINE_DATA[category].packages.forEach(pkg => {
     option.value =
         pkg.price || 0;
 
-    option.textContent =
-        pkg.name;
+    if (pkg.customPrice) {
+
+        option.textContent =
+            pkg.name + " - " + pkg.finalPrice + " EGP";
+
+    } else {
+
+        option.textContent =
+            pkg.name + " - " + pkg.price + " EGP";
+    }
 
     packageSelect.appendChild(option);
 });
@@ -2635,12 +2644,14 @@ LANDLINE_DATA[category].extras.forEach(extra => {
         extra.price;
 
     option.textContent =
-        extra.name;
+        extra.name + " - " + extra.price + " EGP";
 
     extraSelect.appendChild(option);
 });
+```
 
 }
+
                                 function calculatePrice() {
                                   if (
 document.getElementById("serviceType") &&
