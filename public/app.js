@@ -5076,10 +5076,3 @@ function handlePasteForOcr(e){
     setStatus('جاهز (اضغط داخل المربع ثم Ctrl+V)');
   });
 })();
-
-
-function switchCalculatorMode(){
- const t=document.getElementById('serviceType')?.value||'internet';
- const p=document.getElementById('products');
- if(p) p.style.display=t==='landline'?'none':'block';
-}
