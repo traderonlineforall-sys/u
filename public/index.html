@@ -3815,8 +3815,18 @@
 
                         <div id="divv">
                                 <button id="reset1" type="reset" onclick="resetForm()">Reset</button>
+                                        <select id="serviceType"
+        class="selectt"
+        onchange="switchCalculatorMode();calculatePrice()">
 
-                                <select id="products" class="selectt" onclick="calculatePrice()">
+    <option value="internet">Internet</option>
+    <option value="landline">Landline</option>
+
+</select>
+
+<select id="products"
+        class="selectt"
+        onclick="calculatePrice()">
                                         <option onclick="calculatePrice()" value="0">Select Package</option>
                                         <option onclick="calculatePrice()" value="150">Super 50 GB</option>
                                         <option onclick="calculatePrice()" value="260">Super 150 GB</option>
@@ -3860,9 +3870,36 @@
                                         <option onclick="calculatePrice()" value="1500">WE SPACE SA7EL 1 TB</option>
                                 </select>
 
-                                <hr>
+<select id="landlineCategory"
+        class="selectt"
+        style="display:none"
+        onchange="populateLandlinePackages();calculatePrice()">
 
-                                <div class="button-group">
+    <option value="residential">Residential</option>
+    <option value="business">Business</option>
+
+</select>
+
+<select id="landlineProducts"
+        class="selectt"
+        style="display:none"
+        onchange="calculatePrice()">
+
+    <option value="0">Select Landline Package</option>
+
+</select>
+
+<select id="landlineExtras"
+        class="selectt"
+        multiple
+        style="display:none"
+        onchange="calculatePrice()">
+
+</select>
+
+<hr>
+
+<div class="button-group">
                                         <button id="service1" class="service-btn" onclick="toggleButton(this)">CPE
                                                 5</button>
                                         <button id="service2" class="service-btn" onclick="toggleButton(this)">CPE

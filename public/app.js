@@ -2509,9 +2509,237 @@ function bindUpdateNotes(){
                                         document.getElementById("myGg").value = result.toString(); // بدون فواصل
                                 });
                         
+                               const LANDLINE_DATA = {
 
+residential: {
 
+packages: [
+
+  { name:"WE Ardy 40", price:40, tax:14 },
+  { name:"WE Ardy 50", price:50, tax:14 },
+  { name:"WE Ardy 80", price:80, tax:14 },
+
+  { name:"Kalamy 40", price:40, tax:14 },
+
+  { name:"WE Telephonet 90", price:90, tax:14 },
+  { name:"WE Telephonet 145", price:145, tax:14 },
+  { name:"WE Telephonet 230", price:230, tax:14 },
+
+  { name:"Ya Marhaba Annual", price:300, tax:14 }
+
+],
+
+extras: [
+
+  { name:"Ardy Extra 10", price:10, tax:14 },
+  { name:"Ardy Extra 20", price:20, tax:14 },
+
+  { name:"WE Mobile Extra 5", price:5, tax:23.12 },
+  { name:"Mobile Extra 15", price:15, tax:23.12 },
+  { name:"Mobile Extra 25", price:25, tax:23.12 }
+
+]
+
+},
+
+business: {
+
+packages: [
+
+  { name:"WE Ardy 60 Business", price:60, tax:14 },
+  { name:"WE Ardy 65 Business", price:65, tax:14 },
+
+  {
+    name:"WE Ardy 90 Business",
+    customPrice:true,
+    finalPrice:105.80
+  }
+
+],
+
+extras: [
+
+  { name:"Extra 100", price:100, tax:23.12 },
+  { name:"Extra 300", price:300, tax:23.12 },
+  { name:"Extra 600", price:600, tax:23.12 },
+  { name:"Extra 1000", price:1000, tax:23.12 },
+
+  { name:"Mobasher 35", price:35, tax:14 },
+  { name:"Mobasher 170", price:170, tax:14 }
+
+]
+
+}
+};
+
+function switchCalculatorMode() {
+
+const mode =
+    document.getElementById("serviceType").value;
+
+const isLandline =
+    mode === "landline";
+
+document.getElementById("products").style.display =
+    isLandline ? "none" : "";
+
+document.getElementById("landlineCategory").style.display =
+    isLandline ? "" : "none";
+
+document.getElementById("landlineProducts").style.display =
+    isLandline ? "" : "none";
+
+document.getElementById("landlineExtras").style.display =
+    isLandline ? "" : "none";
+
+populateLandlinePackages();
+
+}
+
+function populateLandlinePackages() {
+
+const category =
+    document.getElementById("landlineCategory").value;
+
+const packageSelect =
+    document.getElementById("landlineProducts");
+
+const extraSelect =
+    document.getElementById("landlineExtras");
+
+packageSelect.innerHTML =
+    '<option value="0">Select Landline Package</option>';
+
+extraSelect.innerHTML = '';
+
+LANDLINE_DATA[category].packages.forEach(pkg => {
+
+    const option =
+        document.createElement("option");
+
+    option.value =
+        pkg.price || 0;
+
+    option.textContent =
+        pkg.name;
+
+    packageSelect.appendChild(option);
+});
+
+LANDLINE_DATA[category].extras.forEach(extra => {
+
+    const option =
+        document.createElement("option");
+
+    option.value =
+        extra.price;
+
+    option.textContent =
+        extra.name;
+
+    extraSelect.appendChild(option);
+});
+
+}
                                 function calculatePrice() {
+                                  if (
+document.getElementById("serviceType") &&
+document.getElementById("serviceType").value === "landline"
+) {
+
+```
+let services = 0;
+
+if (document.getElementById("service1").classList.contains("active"))
+    services += 5;
+
+if (document.getElementById("service2").classList.contains("active"))
+    services += 10;
+
+if (document.getElementById("service3").classList.contains("active"))
+    services += 20;
+
+if (document.getElementById("service4").classList.contains("active"))
+    services += 50;
+
+const category =
+    document.getElementById("landlineCategory").value;
+
+const packageIndex =
+    document.getElementById("landlineProducts").selectedIndex - 1;
+
+let packagePrice = 0;
+let finalTaxedPrice = 0;
+
+if (packageIndex >= 0) {
+
+    const pkg =
+        LANDLINE_DATA[category].packages[packageIndex];
+
+    if (pkg.customPrice) {
+
+        finalTaxedPrice =
+            pkg.finalPrice;
+
+        packagePrice =
+            pkg.finalPrice;
+
+    } else {
+
+        packagePrice =
+            pkg.price;
+
+        finalTaxedPrice =
+            pkg.price * (1 + (pkg.tax / 100));
+    }
+}
+
+let extrasTotal = 0;
+
+const extrasSelect =
+    document.getElementById("landlineExtras");
+
+Array.from(extrasSelect.selectedOptions)
+    .forEach(option => {
+
+        const extra =
+            LANDLINE_DATA[category].extras.find(
+                x => x.name === option.text
+            );
+
+        if (extra) {
+
+            extrasTotal +=
+                extra.price *
+                (1 + (extra.tax / 100));
+        }
+    });
+
+let balanceVal =
+    parseFloat(
+        document.getElementById("balance").value
+    );
+
+if (isNaN(balanceVal))
+    balanceVal = 0;
+
+const total =
+    finalTaxedPrice +
+    extrasTotal +
+    services -
+    balanceVal;
+
+document.getElementById("priceWithoutTax").value =
+    (packagePrice + services).toFixed(2);
+
+document.getElementById("priceWithTax").value =
+    total.toFixed(2);
+
+return;
+```
+
+}
+
                                         // Parse selected package price as a number. Default to 0 if not a number
                                         var productValue = parseFloat(document.getElementById("products").value);
                                         if (isNaN(productValue)) productValue = 0;
