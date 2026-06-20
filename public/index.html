@@ -3862,35 +3862,7 @@
 
                                 <hr>
 
-                                
-<hr>
-<div id="landlineCalculator" style="margin-top:20px;padding:12px;border:1px solid #444;border-radius:10px;">
-<h3>Landline Calculator</h3>
-
-<select id="landlinePackage" class="selectt" onchange="calculateLandline()">
-<option value="0">Select Landline Package</option>
-<option value="45.6">WE Ardy 40</option>
-<option value="57">WE Ardy 50</option>
-<option value="91.2">WE Ardy 80</option>
-<option value="102.6">WE Telephonet 90</option>
-<option value="165.3">WE Telephonet 145</option>
-<option value="262.2">WE Telephonet 230</option>
-<option value="342">Ya Marhaba Annual</option>
-</select>
-
-<input id="landlineBalance" type="number" placeholder="Balance" oninput="calculateLandline()">
-
-<div class="button-group">
-<button type="button" id="lcpe5" onclick="toggleLandlineBtn(this,5)">CPE 5</button>
-<button type="button" id="lcpe10" onclick="toggleLandlineBtn(this,10)">CPE 10</button>
-<button type="button" id="lcpe20" onclick="toggleLandlineBtn(this,20)">CPE 20</button>
-<button type="button" id="lcpe50" onclick="toggleLandlineBtn(this,50)">CPE 50</button>
-</div>
-
-<input id="landlineResult" readonly placeholder="Final Price">
-</div>
-
-<div class="button-group">
+                                <div class="button-group">
                                         <button id="service1" class="service-btn" onclick="toggleButton(this)">CPE
                                                 5</button>
                                         <button id="service2" class="service-btn" onclick="toggleButton(this)">CPE
@@ -3900,6 +3872,36 @@
                                         <button id="service4" class="service-btn" onclick="toggleButton(this)">CPE
                                                 50</button>
                                 </div>
+<!-- LANDLINE CALCULATOR UI START -->
+<div id="landline-calculator" style="margin-top:25px;padding:15px;border:1px solid #444;border-radius:10px;">
+    <h3>Landline Calculator</h3>
+
+    <select id="landlineType" class="selectt">
+        <option value="residential">Residential</option>
+        <option value="business">Business</option>
+    </select>
+
+    <select id="landlinePackage" class="selectt">
+        <option value="">Select Landline Package</option>
+    </select>
+
+    <select id="landlineExtras" class="selectt" multiple>
+    </select>
+
+    <input id="landlineBalance" type="number" placeholder="Balance">
+
+    <div class="button-group">
+        <button type="button" id="landlineCpe5">CPE 5</button>
+        <button type="button" id="landlineCpe10">CPE 10</button>
+        <button type="button" id="landlineCpe20">CPE 20</button>
+        <button type="button" id="landlineCpe50">CPE 50</button>
+    </div>
+
+    <input id="landlineBeforeTax" readonly placeholder="Price Before Tax">
+    <input id="landlineAfterTax" readonly placeholder="Price After Tax">
+</div>
+<!-- LANDLINE CALCULATOR UI END -->
+
 
                                 <hr>
 

@@ -5076,27 +5076,3 @@ function handlePasteForOcr(e){
     setStatus('جاهز (اضغط داخل المربع ثم Ctrl+V)');
   });
 })();
-
-
-var landlineCpeValue = 0;
-
-function toggleLandlineBtn(btn,val){
-    btn.classList.toggle('active');
-    calculateLandline();
-}
-
-function calculateLandline(){
-    var pkg=parseFloat(document.getElementById('landlinePackage')?.value||0);
-    var bal=parseFloat(document.getElementById('landlineBalance')?.value||0);
-
-    var cpe=0;
-    if(document.getElementById('lcpe5')?.classList.contains('active')) cpe+=5;
-    if(document.getElementById('lcpe10')?.classList.contains('active')) cpe+=10;
-    if(document.getElementById('lcpe20')?.classList.contains('active')) cpe+=20;
-    if(document.getElementById('lcpe50')?.classList.contains('active')) cpe+=50;
-
-    var total=pkg+cpe-bal;
-
-    var out=document.getElementById('landlineResult');
-    if(out) out.value=total.toFixed(2);
-}
