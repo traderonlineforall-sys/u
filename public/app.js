@@ -5077,30 +5077,9 @@ function handlePasteForOcr(e){
   });
 })();
 
+
 function switchCalculatorMode(){
- var t=document.getElementById('serviceType')?.value||'internet';
- var lp=document.getElementById('landlineProducts');
- var p=document.getElementById('products');
- if(t==='landline'){ if(lp) lp.style.display='block'; if(p) p.style.display='none'; }
- else { if(lp) lp.style.display='none'; if(p) p.style.display='block'; }
-}
-const oldCalc=calculatePrice;
-calculatePrice=function(){
- try{
-  var t=document.getElementById('serviceType')?.value||'internet';
-  if(t==='landline'){
-    var base=parseFloat(document.getElementById('landlineProducts').value)||0;
-    var balance=parseFloat(document.getElementById('balance').value)||0;
-    var cpe=0;
-    if(document.getElementById('service1').classList.contains('active')) cpe+=5;
-    if(document.getElementById('service2').classList.contains('active')) cpe+=10;
-    if(document.getElementById('service3').classList.contains('active')) cpe+=20;
-    if(document.getElementById('service4').classList.contains('active')) cpe+=50;
-    var total=base+cpe-balance;
-    document.getElementById('priceWithoutTax').value=total.toFixed(2);
-    document.getElementById('priceWithTax').value=(total*1.14).toFixed(2);
-    return;
-  }
- }catch(e){}
- return oldCalc();
+ const t=document.getElementById('serviceType')?.value||'internet';
+ const p=document.getElementById('products');
+ if(p) p.style.display=t==='landline'?'none':'block';
 }
