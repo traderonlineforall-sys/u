@@ -2219,3 +2219,480 @@ html.ahly-premium-theme-live .search-results {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
+
+/* =========================================================
+   Ahly Premium Theme - v8 persistent secondary buttons visibility
+   Goal: the buttons under each main tab (IVR / we app / Devices tool / ...)
+   must be clearly visible before hover, while keeping the premium Ahly palette.
+   Visual only: no HTML, IDs, links, SR logic, or workflow changes.
+   ========================================================= */
+
+html.ahly-premium-theme-live {
+  --ahly-v8-text-base: #f0dfaa;
+  --ahly-v8-text-hot: #fff8dd;
+  --ahly-v8-line: rgba(231, 211, 154, .22);
+  --ahly-v8-line-hot: rgba(255, 230, 166, .52);
+  --ahly-v8-base-a: rgba(14, 0, 0, .46);
+  --ahly-v8-base-b: rgba(78, 0, 1, .24);
+  --ahly-v8-hover-a: rgba(146, 0, 0, .82);
+  --ahly-v8-hover-b: rgba(42, 0, 0, .88);
+}
+
+/* Secondary tool rows under every main tab: visible before hover */
+html.ahly-premium-theme-live .toolsBar {
+  position: relative !important;
+  padding: 6px 8px 7px !important;
+  margin: 4px 0 8px !important;
+  border-radius: 14px !important;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.38), rgba(80,0,0,.16) 45%, rgba(0,0,0,.26)) !important;
+  border-top: 1px solid rgba(231,211,154,.10) !important;
+  border-bottom: 1px solid rgba(231,211,154,.12) !important;
+  box-shadow: inset 0 1px 0 rgba(255,246,211,.045) !important;
+}
+
+html.ahly-premium-theme-live .toolsBar .toolsStyle,
+html.ahly-premium-theme-live .tabcontent .toolsBar .toolsStyle,
+html.ahly-premium-theme-live #SR\ Sales .toolsBar .toolsStyle,
+html.ahly-premium-theme-live #SR\ Technical .toolsBar .toolsStyle,
+html.ahly-premium-theme-live #Installation\ OM .toolsBar .toolsStyle,
+html.ahly-premium-theme-live #Fixed\ Voice .toolsBar .toolsStyle,
+html.ahly-premium-theme-live #FTTH .toolsBar .toolsStyle,
+html.ahly-premium-theme-live #Option\ Pack .toolsBar .toolsStyle,
+html.ahly-premium-theme-live #CPE\ Config .toolsBar .toolsStyle,
+html.ahly-premium-theme-live #Calculate .toolsBar .toolsStyle,
+html.ahly-premium-theme-live #Call\ Back .toolsBar .toolsStyle,
+html.ahly-premium-theme-live #Mobile .toolsBar .toolsStyle {
+  position: relative !important;
+  color: var(--ahly-v8-text-base) !important;
+  -webkit-text-fill-color: var(--ahly-v8-text-base) !important;
+  background:
+    radial-gradient(120% 160% at 15% 0%, rgba(255,246,211,.075), rgba(255,246,211,0) 42%),
+    linear-gradient(180deg, var(--ahly-v8-base-a) 0%, var(--ahly-v8-base-b) 100%) !important;
+  background-color: rgba(14,0,0,.42) !important;
+  border: 1px solid var(--ahly-v8-line) !important;
+  border-radius: 10px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,246,211,.070),
+    inset 0 -1px 0 rgba(120,0,0,.22),
+    0 6px 14px rgba(0,0,0,.18) !important;
+  text-shadow:
+    0 2px 3px rgba(0,0,0,1),
+    0 0 7px rgba(231,211,154,.12) !important;
+  opacity: 1 !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition: background .16s ease, color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease !important;
+}
+
+/* Keep tiny pseudo-glass layers from older versions invisible on the secondary row */
+html.ahly-premium-theme-live .toolsBar .toolsStyle::before,
+html.ahly-premium-theme-live .toolsBar .toolsStyle::after,
+html.ahly-premium-theme-live .tabcontent .toolsBar .toolsStyle::before,
+html.ahly-premium-theme-live .tabcontent .toolsBar .toolsStyle::after {
+  opacity: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+/* Secondary row hover: heavier and clearer, but still comfortable */
+html.ahly-premium-theme-live .toolsBar .toolsStyle:hover,
+html.ahly-premium-theme-live .toolsBar .toolsStyle:focus,
+html.ahly-premium-theme-live .tabcontent .toolsBar .toolsStyle:hover,
+html.ahly-premium-theme-live .tabcontent .toolsBar .toolsStyle:focus,
+html.ahly-premium-theme-live #SR\ Sales .toolsBar .toolsStyle:hover,
+html.ahly-premium-theme-live #SR\ Technical .toolsBar .toolsStyle:hover,
+html.ahly-premium-theme-live #Installation\ OM .toolsBar .toolsStyle:hover,
+html.ahly-premium-theme-live #Fixed\ Voice .toolsBar .toolsStyle:hover,
+html.ahly-premium-theme-live #FTTH .toolsBar .toolsStyle:hover,
+html.ahly-premium-theme-live #Option\ Pack .toolsBar .toolsStyle:hover,
+html.ahly-premium-theme-live #CPE\ Config .toolsBar .toolsStyle:hover,
+html.ahly-premium-theme-live #Calculate .toolsBar .toolsStyle:hover,
+html.ahly-premium-theme-live #Call\ Back .toolsBar .toolsStyle:hover,
+html.ahly-premium-theme-live #Mobile .toolsBar .toolsStyle:hover {
+  color: var(--ahly-v8-text-hot) !important;
+  -webkit-text-fill-color: var(--ahly-v8-text-hot) !important;
+  background:
+    radial-gradient(120% 150% at 16% 0%, rgba(255,246,211,.16), rgba(255,246,211,0) 43%),
+    linear-gradient(90deg, var(--ahly-v8-hover-a) 0%, rgba(80,0,1,.88) 54%, var(--ahly-v8-hover-b) 100%) !important;
+  border-color: var(--ahly-v8-line-hot) !important;
+  box-shadow:
+    inset 3px 0 0 rgba(255,225,150,.70),
+    inset 0 1px 0 rgba(255,246,211,.13),
+    inset 0 -1px 0 rgba(255,225,150,.28),
+    0 10px 22px rgba(0,0,0,.36),
+    0 0 0 1px rgba(255,230,166,.07) !important;
+  transform: translateY(-1px) !important;
+  text-shadow:
+    0 2px 3px rgba(0,0,0,1),
+    0 0 13px rgba(255,235,178,.26) !important;
+}
+
+/* The first visible SR options row and direct links/dropdowns: readable before hover too */
+html.ahly-premium-theme-live .tabcontent .dropdown .dropbtn,
+html.ahly-premium-theme-live .tabcontent .navbar a,
+html.ahly-premium-theme-live .tabcontent #singlelink,
+html.ahly-premium-theme-live .dropdown .dropbtn,
+html.ahly-premium-theme-live .navbar a,
+html.ahly-premium-theme-live #singlelink {
+  color: var(--ahly-v8-text-base) !important;
+  -webkit-text-fill-color: var(--ahly-v8-text-base) !important;
+  background:
+    linear-gradient(180deg, rgba(15,0,0,.32), rgba(70,0,1,.135)) !important;
+  background-color: rgba(12,0,0,.24) !important;
+  border-color: rgba(231,211,154,.135) !important;
+  border-radius: 9px !important;
+  box-shadow:
+    inset 0 -1px 0 rgba(231,211,154,.12),
+    0 3px 10px rgba(0,0,0,.12) !important;
+  text-shadow:
+    0 2px 3px rgba(0,0,0,1),
+    0 0 7px rgba(231,211,154,.11) !important;
+}
+
+html.ahly-premium-theme-live .dropdown:hover .dropbtn,
+html.ahly-premium-theme-live .dropdown:focus-within .dropbtn,
+html.ahly-premium-theme-live .navbar a:hover,
+html.ahly-premium-theme-live .navbar a:focus,
+html.ahly-premium-theme-live #singlelink:hover,
+html.ahly-premium-theme-live #singlelink:focus {
+  color: var(--ahly-v8-text-hot) !important;
+  -webkit-text-fill-color: var(--ahly-v8-text-hot) !important;
+  background:
+    radial-gradient(120% 150% at 15% 0%, rgba(255,246,211,.16), rgba(255,246,211,0) 42%),
+    linear-gradient(90deg, rgba(146,0,0,.86), rgba(72,0,1,.84) 55%, rgba(10,0,0,.76)) !important;
+  border-color: var(--ahly-v8-line-hot) !important;
+  box-shadow:
+    inset 3px 0 0 rgba(255,225,150,.64),
+    inset 0 1px 0 rgba(255,246,211,.12),
+    0 10px 22px rgba(0,0,0,.34) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Top main tabs hover/open state: slightly heavier to match the clearer secondary layer */
+html.ahly-premium-theme-live #tabs .tablinks:hover,
+html.ahly-premium-theme-live #tabs .tablinks:focus,
+html.ahly-premium-theme-live #tabs .tablinks.active,
+html.ahly-premium-theme-live #tabs .tablinks.mndo-ahly-current-tab,
+html.ahly-premium-theme-live #tabs .tablinks[aria-current="page"] {
+  color: #fff8dd !important;
+  -webkit-text-fill-color: #fff8dd !important;
+  background:
+    radial-gradient(140% 160% at 18% 0%, rgba(255,246,211,.20), rgba(255,246,211,0) 42%),
+    linear-gradient(180deg, rgba(135,0,0,.82) 0%, rgba(50,0,1,.88) 56%, rgba(8,0,0,.93) 100%) !important;
+  border-color: rgba(255,230,166,.55) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,246,211,.16),
+    inset 0 -2px 0 rgba(255,225,150,.55),
+    0 11px 25px rgba(0,0,0,.42),
+    0 0 0 1px rgba(255,230,166,.09) !important;
+}
+
+@media (max-width: 900px) {
+  html.ahly-premium-theme-live .toolsBar {
+    padding: 5px 6px !important;
+  }
+
+  html.ahly-premium-theme-live .toolsBar .toolsStyle {
+    border-radius: 9px !important;
+  }
+}
+
+
+/* =========================================================
+   Ahly Premium Theme - v9 same-logic visible buttons fix
+   Requested fix:
+   - no toolsBar/banner background
+   - main tabs and secondary tool buttons are visible in normal state
+   - hover is heavier/clearer but still premium and comfortable
+   - visual only: no IDs, URLs, SR logic, order, or HTML behavior changed
+   ========================================================= */
+
+html.ahly-premium-theme-live {
+  --ahly-v9-cream: #fff6dc;
+  --ahly-v9-champagne: #e8d49f;
+  --ahly-v9-champagne-soft: #d7bf86;
+  --ahly-v9-ink: rgba(7,0,0,.94);
+  --ahly-v9-red-1: rgba(112,0,0,.82);
+  --ahly-v9-red-2: rgba(44,0,1,.92);
+  --ahly-v9-border: rgba(232,205,139,.25);
+  --ahly-v9-border-hot: rgba(255,229,164,.55);
+}
+
+/* No banners/backplates behind the rows. Keep only the original row logic/spacing. */
+html.ahly-premium-theme-live #tabs,
+html.ahly-premium-theme-live #tabs.tab {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html.ahly-premium-theme-live .toolsBar,
+html.ahly-premium-theme-live .tabcontent .toolsBar {
+  text-align: left !important;
+  padding-left: 20px !important;
+  padding-right: 20px !important;
+  padding-top: 2px !important;
+  padding-bottom: 0 !important;
+  margin-top: -10px !important;
+  margin-bottom: 18px !important;
+  box-sizing: border-box !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Remove older eagle/glass pseudo-layers on these small links. */
+html.ahly-premium-theme-live .toolsBar .toolsStyle::before,
+html.ahly-premium-theme-live .toolsBar .toolsStyle::after,
+html.ahly-premium-theme-live .tabcontent .toolsBar .toolsStyle::before,
+html.ahly-premium-theme-live .tabcontent .toolsBar .toolsStyle::after,
+html.ahly-premium-theme-live .tabcontent .dropdown .dropbtn::before,
+html.ahly-premium-theme-live .tabcontent .dropdown .dropbtn::after,
+html.ahly-premium-theme-live .tabcontent .navbar a::before,
+html.ahly-premium-theme-live .tabcontent .navbar a::after,
+html.ahly-premium-theme-live .tabcontent #singlelink::before,
+html.ahly-premium-theme-live .tabcontent #singlelink::after {
+  content: none !important;
+  opacity: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+/* Main top tabs: individual visible buttons, no parent banner. */
+html.ahly-premium-theme-live #tabs .tablinks {
+  position: relative !important;
+  color: var(--ahly-v9-champagne) !important;
+  -webkit-text-fill-color: var(--ahly-v9-champagne) !important;
+  background:
+    radial-gradient(130% 160% at 20% 0%, rgba(255,246,211,.105), rgba(255,246,211,0) 42%),
+    linear-gradient(180deg, rgba(49,0,1,.78) 0%, rgba(8,0,0,.92) 60%, rgba(65,0,0,.58) 100%) !important;
+  background-color: rgba(12,0,0,.88) !important;
+  border: 1px solid var(--ahly-v9-border) !important;
+  border-radius: 14px !important;
+  text-shadow:
+    0 2px 3px rgba(0,0,0,.98),
+    0 0 7px rgba(232,205,139,.12) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,246,211,.105),
+    inset 0 -1px 0 rgba(232,205,139,.13),
+    0 9px 19px rgba(0,0,0,.28) !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition: background .16s ease, color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease !important;
+}
+
+html.ahly-premium-theme-live #tabs .tablinks:hover,
+html.ahly-premium-theme-live #tabs .tablinks:focus,
+html.ahly-premium-theme-live #tabs .tablinks.active,
+html.ahly-premium-theme-live #tabs .tablinks.mndo-ahly-current-tab,
+html.ahly-premium-theme-live #tabs .tablinks[aria-current="page"] {
+  color: var(--ahly-v9-cream) !important;
+  -webkit-text-fill-color: var(--ahly-v9-cream) !important;
+  background:
+    radial-gradient(135% 165% at 18% 0%, rgba(255,246,211,.18), rgba(255,246,211,0) 43%),
+    linear-gradient(180deg, rgba(142,0,0,.90) 0%, rgba(46,0,1,.95) 56%, rgba(10,0,0,.96) 100%) !important;
+  border-color: var(--ahly-v9-border-hot) !important;
+  text-shadow:
+    0 2px 3px rgba(0,0,0,1),
+    0 0 12px rgba(255,235,178,.24) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,246,211,.18),
+    inset 0 -2px 0 rgba(255,225,150,.48),
+    0 12px 26px rgba(0,0,0,.42),
+    0 0 0 1px rgba(255,230,166,.075) !important;
+  transform: translateY(-1px) !important;
+}
+
+html.ahly-premium-theme-live #tabs .tablinks.active::after,
+html.ahly-premium-theme-live #tabs .tablinks.mndo-ahly-current-tab::after,
+html.ahly-premium-theme-live #tabs .tablinks[aria-current="page"]::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 14px !important;
+  right: 14px !important;
+  bottom: 4px !important;
+  height: 2px !important;
+  border-radius: 999px !important;
+  pointer-events: none !important;
+  background: linear-gradient(90deg, rgba(232,205,139,0), rgba(255,230,166,.88), rgba(232,205,139,0)) !important;
+  box-shadow: 0 0 8px rgba(255,225,150,.34) !important;
+}
+
+/* Secondary tool buttons under SR tabs: visible in normal state, no banner behind them. */
+html.ahly-premium-theme-live .toolsBar .toolsStyle,
+html.ahly-premium-theme-live .tabcontent .toolsBar .toolsStyle {
+  display: inline-block !important;
+  position: relative !important;
+  isolation: auto !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+  margin: 2px 6px 8px 0 !important;
+  padding: 3px 8px !important;
+  border-radius: 7px !important;
+  text-decoration: none !important;
+  vertical-align: top !important;
+  color: var(--ahly-v9-champagne) !important;
+  -webkit-text-fill-color: var(--ahly-v9-champagne) !important;
+  background:
+    radial-gradient(120% 150% at 16% 0%, rgba(255,246,211,.075), rgba(255,246,211,0) 42%),
+    linear-gradient(180deg, rgba(35,0,1,.68) 0%, rgba(7,0,0,.86) 58%, rgba(63,0,0,.42) 100%) !important;
+  background-color: rgba(10,0,0,.72) !important;
+  border: 1px solid rgba(232,205,139,.18) !important;
+  text-shadow:
+    0 2px 3px rgba(0,0,0,.98),
+    0 0 6px rgba(232,205,139,.10) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,246,211,.075),
+    inset 0 -1px 0 rgba(232,205,139,.09),
+    0 5px 12px rgba(0,0,0,.20) !important;
+  opacity: 1 !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition: background .16s ease, color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease !important;
+}
+
+html.ahly-premium-theme-live .toolsBar .toolsStyle:hover,
+html.ahly-premium-theme-live .toolsBar .toolsStyle:focus,
+html.ahly-premium-theme-live .tabcontent .toolsBar .toolsStyle:hover,
+html.ahly-premium-theme-live .tabcontent .toolsBar .toolsStyle:focus {
+  color: var(--ahly-v9-cream) !important;
+  -webkit-text-fill-color: var(--ahly-v9-cream) !important;
+  background:
+    radial-gradient(125% 150% at 15% 0%, rgba(255,246,211,.16), rgba(255,246,211,0) 43%),
+    linear-gradient(90deg, rgba(142,0,0,.86) 0%, rgba(66,0,1,.90) 54%, rgba(10,0,0,.86) 100%) !important;
+  border-color: rgba(255,229,164,.45) !important;
+  text-shadow:
+    0 2px 3px rgba(0,0,0,1),
+    0 0 11px rgba(255,235,178,.22) !important;
+  box-shadow:
+    inset 2px 0 0 rgba(255,225,150,.60),
+    inset 0 1px 0 rgba(255,246,211,.14),
+    inset 0 -1px 0 rgba(255,225,150,.22),
+    0 8px 18px rgba(0,0,0,.34) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* SR option/dropdown buttons below the secondary links: visible like other themes. */
+html.ahly-premium-theme-live .tabcontent .dropdown .dropbtn,
+html.ahly-premium-theme-live .tabcontent .navbar a,
+html.ahly-premium-theme-live .tabcontent #singlelink,
+html.ahly-premium-theme-live .dropdown .dropbtn,
+html.ahly-premium-theme-live .navbar a,
+html.ahly-premium-theme-live #singlelink {
+  color: var(--ahly-v9-champagne) !important;
+  -webkit-text-fill-color: var(--ahly-v9-champagne) !important;
+  background:
+    radial-gradient(120% 150% at 16% 0%, rgba(255,246,211,.065), rgba(255,246,211,0) 42%),
+    linear-gradient(180deg, rgba(30,0,1,.54) 0%, rgba(6,0,0,.72) 62%, rgba(50,0,0,.30) 100%) !important;
+  background-color: rgba(8,0,0,.58) !important;
+  border-color: rgba(232,205,139,.14) !important;
+  border-radius: 7px !important;
+  text-shadow:
+    0 2px 3px rgba(0,0,0,.98),
+    0 0 6px rgba(232,205,139,.10) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,246,211,.060),
+    inset 0 -1px 0 rgba(232,205,139,.08),
+    0 4px 11px rgba(0,0,0,.16) !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html.ahly-premium-theme-live .dropdown:hover .dropbtn,
+html.ahly-premium-theme-live .dropdown:focus-within .dropbtn,
+html.ahly-premium-theme-live .dropdown.open .dropbtn,
+html.ahly-premium-theme-live .dropdown.active .dropbtn,
+html.ahly-premium-theme-live #singlelink:hover,
+html.ahly-premium-theme-live #singlelink:focus,
+html.ahly-premium-theme-live .navbar a:hover,
+html.ahly-premium-theme-live .navbar a:focus {
+  color: var(--ahly-v9-cream) !important;
+  -webkit-text-fill-color: var(--ahly-v9-cream) !important;
+  background:
+    radial-gradient(125% 150% at 15% 0%, rgba(255,246,211,.15), rgba(255,246,211,0) 43%),
+    linear-gradient(90deg, rgba(140,0,0,.82) 0%, rgba(57,0,1,.88) 56%, rgba(8,0,0,.82) 100%) !important;
+  border-color: rgba(255,229,164,.39) !important;
+  box-shadow:
+    inset 2px 0 0 rgba(255,225,150,.52),
+    inset 0 1px 0 rgba(255,246,211,.13),
+    inset 0 -1px 0 rgba(255,225,150,.20),
+    0 8px 18px rgba(0,0,0,.32) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Open menu readability: solid clear panel so text never disappears into the Ahly background. */
+html.ahly-premium-theme-live .dropdown-content,
+html.ahly-premium-theme-live .sub-dropdown-content,
+html.ahly-premium-theme-live .dropdown:hover .dropdown-content,
+html.ahly-premium-theme-live .dropdown:focus-within .dropdown-content,
+html.ahly-premium-theme-live .sub-dropdown:hover .sub-dropdown-content,
+html.ahly-premium-theme-live .sub-dropdown:focus-within .sub-dropdown-content {
+  color: var(--ahly-v9-champagne) !important;
+  -webkit-text-fill-color: var(--ahly-v9-champagne) !important;
+  background:
+    radial-gradient(115% 140% at 18% 0%, rgba(232,205,139,.095), rgba(232,205,139,0) 42%),
+    linear-gradient(180deg, rgba(13,0,1,.97) 0%, rgba(33,0,1,.965) 54%, rgba(4,0,0,.985) 100%) !important;
+  background-color: rgba(9,0,0,.975) !important;
+  border: 1px solid rgba(232,205,139,.28) !important;
+  box-shadow:
+    0 18px 42px rgba(0,0,0,.62),
+    inset 0 1px 0 rgba(255,246,211,.085) !important;
+  text-shadow: 0 2px 3px rgba(0,0,0,1) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  z-index: 999999 !important;
+}
+
+html.ahly-premium-theme-live .sub-dropdown,
+html.ahly-premium-theme-live .sub-dropdown[style],
+html.ahly-premium-theme-live .dropdown-content a,
+html.ahly-premium-theme-live .sub-dropdown-content a,
+html.ahly-premium-theme-live .sub-dropdown > a,
+html.ahly-premium-theme-live #searchResults.search-results a,
+html.ahly-premium-theme-live #searchResults a {
+  color: var(--ahly-v9-champagne) !important;
+  -webkit-text-fill-color: var(--ahly-v9-champagne) !important;
+  background: rgba(0,0,0,.12) !important;
+  background-color: rgba(0,0,0,.12) !important;
+  border-color: rgba(232,205,139,.10) !important;
+  text-shadow: 0 2px 3px rgba(0,0,0,1), 0 0 6px rgba(232,205,139,.09) !important;
+  box-shadow: inset 0 -1px 0 rgba(232,205,139,.07) !important;
+}
+
+html.ahly-premium-theme-live .sub-dropdown:hover,
+html.ahly-premium-theme-live .sub-dropdown:hover[style],
+html.ahly-premium-theme-live .dropdown-content a:hover,
+html.ahly-premium-theme-live .sub-dropdown-content a:hover,
+html.ahly-premium-theme-live .sub-dropdown:hover > a,
+html.ahly-premium-theme-live .dropdown-content a:focus,
+html.ahly-premium-theme-live .sub-dropdown-content a:focus,
+html.ahly-premium-theme-live #searchResults.search-results a:hover,
+html.ahly-premium-theme-live #searchResults a:hover,
+html.ahly-premium-theme-live #searchResults.search-results a:focus,
+html.ahly-premium-theme-live #searchResults a:focus,
+html.ahly-premium-theme-live #searchResults.search-results a.highlight,
+html.ahly-premium-theme-live #searchResults a.highlight {
+  color: var(--ahly-v9-cream) !important;
+  -webkit-text-fill-color: var(--ahly-v9-cream) !important;
+  background:
+    radial-gradient(115% 145% at 12% 0%, rgba(255,246,211,.14), rgba(255,246,211,0) 42%),
+    linear-gradient(90deg, rgba(145,0,0,.88) 0%, rgba(74,0,1,.86) 54%, rgba(12,0,0,.82) 100%) !important;
+  border-color: rgba(255,229,164,.34) !important;
+  box-shadow:
+    inset 2px 0 0 rgba(255,225,150,.58),
+    inset 0 1px 0 rgba(255,246,211,.11),
+    inset 0 -1px 0 rgba(255,225,150,.20),
+    0 7px 16px rgba(0,0,0,.30) !important;
+}

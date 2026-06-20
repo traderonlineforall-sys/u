@@ -12,7 +12,7 @@ const TOGGLE_BTN_ID = "EID_TOGGLE_BTN";
 const LEGACY_THEME_LINK_ID = "ua07LegacyThemeLink";
 const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy4";
 const AHLY_THEME_LINK_ID = "ahlyPremiumThemeLink";
-const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahly-noble-noglass-v7";
+const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahly-v9-logic-match-visible";
 const THEME_EID = "eid";
 const THEME_LEGACY = "legacy";
 const THEME_AHLY = "ahly";
