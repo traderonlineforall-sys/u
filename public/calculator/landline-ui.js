@@ -46,6 +46,9 @@
     var selected = Array.prototype.slice.call((byId('landlineExtras') || {}).selectedOptions || []);
     extrasSummary.textContent = selected.length ? selected.length + ' selected' : 'No extras selected';
   }
+  function zeroLandlineResult() {
+    return { baseAmount: 0, extrasAmount: 0, cpeAmount: 0, balanceDeduction: 0, taxAmount: 0, finalAmount: 0, taxableAmount: 0 };
+  }
   function renderLandlineResults(result) {
     var fields = {
       landlineBaseAmount: result.baseAmount,
@@ -64,6 +67,24 @@
       if (valueElement) valueElement.textContent = core.formatMoney(fields[id]);
     });
     updateExtrasSummary();
+  }
+  function clearLandlineSelections() {
+    var packageSelect = byId('landlinePackage');
+    var periodSelect = byId('landlinePeriod');
+    var extrasSelect = byId('landlineExtras');
+    var extrasList = byId('landlineExtrasList');
+    var balance = byId('balance');
+    if (packageSelect) packageSelect.value = '';
+    if (periodSelect) periodSelect.innerHTML = '';
+    if (extrasSelect) Array.prototype.slice.call(extrasSelect.options || []).forEach(function (option) { option.selected = false; });
+    if (extrasList) Array.prototype.slice.call(extrasList.querySelectorAll('input[type=\"checkbox\"]')).forEach(function (checkbox) { checkbox.checked = false; });
+    ['service1', 'service2', 'service3', 'service4'].forEach(function (id) {
+      var button = byId(id);
+      if (button) button.classList.remove('active');
+    });
+    if (balance) balance.value = '';
+    updateExtrasSummary();
+    renderLandlineResults(zeroLandlineResult());
   }
   function calculateLandlineFromDom() {
     var packageSelect = byId('landlinePackage');
@@ -84,6 +105,7 @@
     var packageSelect = byId('landlinePackage');
     if (!packageSelect) return;
     packageSelect.innerHTML = '';
+    packageSelect.appendChild(createOption('', 'Select Package'));
     (namespace.landlinePackages[category] || []).forEach(function (item) {
       packageSelect.appendChild(createOption(item.name, item.name));
     });
@@ -99,8 +121,9 @@
     var periodWrap = byId('landlinePeriodWrap');
     if (!periodSelect) return;
     periodSelect.innerHTML = '';
+    if (periods.length) periodSelect.appendChild(createOption('', 'Select Period'));
     periods.forEach(function (period) { periodSelect.appendChild(createOption(period, period.charAt(0).toUpperCase() + period.slice(1))); });
-    if (periodWrap) periodWrap.hidden = periods.length <= 1;
+    if (periodWrap) periodWrap.hidden = periods.length === 0;
     calculateLandlineFromDom();
   }
   function populateExtras() {
@@ -169,9 +192,13 @@
     if (resetButton && !resetButton.getAttribute('data-calculator-router-bound')) {
       resetButton.setAttribute('data-calculator-router-bound', 'true');
       resetButton.addEventListener('click', function () {
+        var wasLandline = getMode() === 'landline';
         setTimeout(function () {
-          var selector = byId('calculatorServiceType');
-          if (selector) selector.value = 'internet';
+          if (wasLandline) {
+            var selector = byId('calculatorServiceType');
+            if (selector) selector.value = 'landline';
+            clearLandlineSelections();
+          }
           applyMode();
         }, 0);
       });
@@ -239,7 +266,7 @@
       '<div class="landline-breakdown-item"><span class="landline-breakdown-label">Base Package</span><span class="landline-breakdown-value" id="landlineBaseAmountDisplay">0.00</span></div>',
       '<div class="landline-breakdown-item"><span class="landline-breakdown-label">Extras</span><span class="landline-breakdown-value" id="landlineExtrasAmountDisplay">0.00</span></div>',
       '<div class="landline-breakdown-item"><span class="landline-breakdown-label">CPE</span><span class="landline-breakdown-value" id="landlineCpeAmountDisplay">0.00</span></div>',
-      '<div class="landline-breakdown-item"><span class="landline-breakdown-label">Balance Used</span><span class="landline-breakdown-value" id="landlineBalanceDeductionDisplay">0.00</span></div>',
+      '<div class="landline-breakdown-item"><span class="landline-breakdown-label">Current Balance</span><span class="landline-breakdown-value" id="landlineBalanceDeductionDisplay">0.00</span></div>',
       '<div class="landline-breakdown-item"><span class="landline-breakdown-label">Tax</span><span class="landline-breakdown-value" id="landlineTaxAmountDisplay">0.00</span></div>',
       '<div class="landline-breakdown-item"><span class="landline-breakdown-label">Final Amount</span><span class="landline-breakdown-value" id="landlineFinalAmountDisplay">0.00</span></div>',
       '</div>',

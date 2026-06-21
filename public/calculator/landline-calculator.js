@@ -6,13 +6,13 @@
 
   function findPackage(category, packageName) {
     var packages = namespace.landlinePackages && namespace.landlinePackages[category];
-    if (!Array.isArray(packages)) return null;
-    return packages.find(function (item) { return item && item.name === packageName; }) || packages[0] || null;
+    if (!Array.isArray(packages) || !packageName) return null;
+    return packages.find(function (item) { return item && item.name === packageName; }) || null;
   }
 
   function getPeriodValue(packageConfig, period) {
-    if (!packageConfig || !packageConfig.periods) return null;
-    var selected = packageConfig.periods[period] == null ? packageConfig.periods[Object.keys(packageConfig.periods)[0]] : packageConfig.periods[period];
+    if (!packageConfig || !packageConfig.periods || !period || packageConfig.periods[period] == null) return null;
+    var selected = packageConfig.periods[period];
     if (selected && typeof selected === 'object') return selected;
     return { base: core.toSafeNumber(selected), final: null };
   }
@@ -42,18 +42,17 @@
     var cpeAmount = core.clampMoney(input.cpeAmount);
     var selectedExtras = Array.isArray(input.extras) ? input.extras : [];
 
-    if (!packageConfig || !periodValue) {
-      return { baseAmount: 0, extrasAmount: 0, cpeAmount: 0, balanceDeduction: 0, taxAmount: 0, finalAmount: 0, taxableAmount: 0 };
-    }
-
-    var baseAmount = core.clampMoney(periodValue.base);
+    var baseAmount = packageConfig && periodValue ? core.clampMoney(periodValue.base) : 0;
     var extrasAmount = selectedExtras.reduce(function (total, extra) {
       return total + core.clampMoney(extra && extra.price);
     }, 0);
     var subtotal = baseAmount + extrasAmount + cpeAmount;
     var balanceDeduction = Math.min(subtotal, balance);
 
-    var taxableItems = [{ amount: baseAmount, taxRate: packageConfig.tax || 0, fixedFinal: periodValue.final, name: packageConfig.name }];
+    var taxableItems = [];
+    if (packageConfig && periodValue) {
+      taxableItems.push({ amount: baseAmount, taxRate: packageConfig.tax || 0, fixedFinal: periodValue.final, name: packageConfig.name });
+    }
     selectedExtras.forEach(function (extra) {
       if (!extra) return;
       taxableItems.push({ amount: extra.price, taxRate: extra.tax || 0, name: extra.name });
