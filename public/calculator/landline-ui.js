@@ -30,6 +30,22 @@
       return source[parseInt(option.value, 10)];
     }).filter(Boolean);
   }
+  function syncExtrasFromCheckboxes() {
+    var extrasSelect = byId('landlineExtras');
+    var extrasList = byId('landlineExtrasList');
+    if (!extrasSelect || !extrasList) return;
+    Array.prototype.slice.call(extrasSelect.options || []).forEach(function (option) {
+      var checkbox = extrasList.querySelector('input[type=\"checkbox\"][value=\"' + option.value + '\"]');
+      option.selected = !!(checkbox && checkbox.checked);
+    });
+    namespace.router.dispatch();
+  }
+  function updateExtrasSummary() {
+    var extrasSummary = byId('landlineExtrasSummary');
+    if (!extrasSummary) return;
+    var selected = Array.prototype.slice.call((byId('landlineExtras') || {}).selectedOptions || []);
+    extrasSummary.textContent = selected.length ? selected.length + ' selected' : 'No extras selected';
+  }
   function renderLandlineResults(result) {
     var fields = {
       landlineBaseAmount: result.baseAmount,
@@ -44,7 +60,10 @@
     Object.keys(fields).forEach(function (id) {
       var element = byId(id);
       if (element) element.value = core.formatMoney(fields[id]);
+      var valueElement = byId(id + 'Display');
+      if (valueElement) valueElement.textContent = core.formatMoney(fields[id]);
     });
+    updateExtrasSummary();
   }
   function calculateLandlineFromDom() {
     var packageSelect = byId('landlinePackage');
@@ -87,14 +106,23 @@
   function populateExtras() {
     var category = byId('landlineCategory') && byId('landlineCategory').value === 'business' ? 'business' : 'residential';
     var extrasSelect = byId('landlineExtras');
+    var extrasList = byId('landlineExtrasList');
     var source = category === 'business' ? namespace.commercialExtras : namespace.landlineExtras;
     if (!extrasSelect) return;
     extrasSelect.innerHTML = '';
+    if (extrasList) extrasList.innerHTML = '';
     source.forEach(function (extra, index) {
       var label = extra.name + ' (' + core.formatMoney(extra.price) + ')';
       if (extra.freeMinutes) label += ' - ' + extra.freeMinutes + ' min';
       extrasSelect.appendChild(createOption(String(index), label));
+      if (extrasList) {
+        var item = document.createElement('label');
+        item.className = 'landline-extra-option';
+        item.innerHTML = '<input type=\"checkbox\" value=\"' + index + '\"> <span>' + label + '</span>';
+        extrasList.appendChild(item);
+      }
     });
+    updateExtrasSummary();
     calculateLandlineFromDom();
   }
   function tagInternetGroups() {
@@ -149,6 +177,31 @@
       });
     }
   }
+  function installLandlineStyles() {
+    if (byId('landlineCalculatorStyles')) return;
+    var style = document.createElement('style');
+    style.id = 'landlineCalculatorStyles';
+    style.textContent = [
+      '#landlineControls{display:flex;flex-direction:column;gap:10px;margin:12px 0;}',
+      '#landlineControls[hidden],#landlineResults[hidden]{display:none!important;}',
+      '.landline-field-label{display:block;color:#fff;font-weight:700;margin:2px 0 4px;}',
+      '.landline-extras-panel{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.24);border-radius:10px;padding:10px;text-align:left;}',
+      '.landline-extras-header{display:flex;align-items:center;justify-content:space-between;color:#fff;font-weight:700;margin-bottom:8px;}',
+      '#landlineExtrasSummary{font-size:12px;font-weight:600;opacity:.8;}',
+      '#landlineExtras{display:none;}',
+      '.landline-extras-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;max-height:190px;overflow:auto;padding-right:4px;}',
+      '.landline-extra-option{display:flex;align-items:flex-start;gap:8px;color:#fff;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.16);border-radius:8px;padding:8px 10px;font-size:14px;line-height:1.35;cursor:pointer;}',
+      '.landline-extra-option input{margin-top:2px;flex:0 0 auto;}',
+      '#landlineResults{margin:12px 0;padding:14px;border:1px solid rgba(255,255,255,.24);border-radius:12px;background:rgba(255,255,255,.08);color:#fff;}',
+      '.landline-results-title{font-weight:800;margin-bottom:10px;}',
+      '.landline-breakdown-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;}',
+      '.landline-breakdown-item{display:flex;justify-content:space-between;gap:10px;align-items:center;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:10px;}',
+      '.landline-breakdown-label{font-weight:700;opacity:.86;}',
+      '.landline-breakdown-value{font-weight:800;white-space:nowrap;}',
+      '.landline-hidden-input{display:none;}'
+    ].join('');
+    document.head.appendChild(style);
+  }
   function installUi() {
     var container = byId('divv');
     var products = byId('products');
@@ -156,6 +209,7 @@
     if (!container || !products || !balance || byId('calculatorServiceType')) return;
 
     tagInternetGroups();
+    installLandlineStyles();
 
     var modeWrap = document.createElement('div');
     modeWrap.className = 'calculator-service-type';
@@ -168,11 +222,10 @@
     landlineControls.hidden = true;
     landlineControls.setAttribute('data-calculator-group', 'landline');
     landlineControls.innerHTML = [
-      '<select id="landlineCategory" class="selectt"><option value="residential">Residential</option><option value="business">Business</option></select>',
-      '<select id="landlinePackage" class="selectt"></select>',
-      '<div id="landlinePeriodWrap"><select id="landlinePeriod" class="selectt"></select></div>',
-      '<label for="landlineExtras">Extras</label>',
-      '<select id="landlineExtras" class="selectt" multiple size="6"></select>'
+      '<label class="landline-field-label" for="landlineCategory">Customer Type</label><select id="landlineCategory" class="selectt"><option value="residential">Residential</option><option value="business">Business</option></select>',
+      '<label class="landline-field-label" for="landlinePackage">Base Package</label><select id="landlinePackage" class="selectt"></select>',
+      '<div id="landlinePeriodWrap"><label class="landline-field-label" for="landlinePeriod">Billing Period</label><select id="landlinePeriod" class="selectt"></select></div>',
+      '<div class="landline-extras-panel"><div class="landline-extras-header"><label for="landlineExtras">Extras</label><span id="landlineExtrasSummary">No extras selected</span></div><div id="landlineExtrasList" class="landline-extras-list" role="group" aria-label="Landline extras"></div><select id="landlineExtras" class="selectt" multiple size="6" aria-hidden="true" tabindex="-1"></select></div>'
     ].join('');
     products.parentNode.insertBefore(landlineControls, products.nextSibling);
 
@@ -181,12 +234,21 @@
     landlineResults.hidden = true;
     landlineResults.setAttribute('data-calculator-group', 'landline');
     landlineResults.innerHTML = [
-      '<input class="ino" type="text" id="landlineBaseAmount" readonly placeholder="Base Amount" value="0.00">',
-      '<input class="ino" type="text" id="landlineExtrasAmount" readonly placeholder="Extras Amount" value="0.00">',
-      '<input class="ino" type="text" id="landlineCpeAmount" readonly placeholder="CPE Amount" value="0.00">',
-      '<input class="ino" type="text" id="landlineBalanceDeduction" readonly placeholder="Balance Deduction" value="0.00">',
-      '<input class="ino" type="text" id="landlineTaxAmount" readonly placeholder="Tax Amount" value="0.00">',
-      '<input class="ino" type="text" id="landlineFinalAmount" readonly placeholder="Final Amount" value="0.00">'
+      '<div class="landline-results-title">Landline Breakdown</div>',
+      '<div class="landline-breakdown-grid">',
+      '<div class="landline-breakdown-item"><span class="landline-breakdown-label">Base Package</span><span class="landline-breakdown-value" id="landlineBaseAmountDisplay">0.00</span></div>',
+      '<div class="landline-breakdown-item"><span class="landline-breakdown-label">Extras</span><span class="landline-breakdown-value" id="landlineExtrasAmountDisplay">0.00</span></div>',
+      '<div class="landline-breakdown-item"><span class="landline-breakdown-label">CPE</span><span class="landline-breakdown-value" id="landlineCpeAmountDisplay">0.00</span></div>',
+      '<div class="landline-breakdown-item"><span class="landline-breakdown-label">Balance Used</span><span class="landline-breakdown-value" id="landlineBalanceDeductionDisplay">0.00</span></div>',
+      '<div class="landline-breakdown-item"><span class="landline-breakdown-label">Tax</span><span class="landline-breakdown-value" id="landlineTaxAmountDisplay">0.00</span></div>',
+      '<div class="landline-breakdown-item"><span class="landline-breakdown-label">Final Amount</span><span class="landline-breakdown-value" id="landlineFinalAmountDisplay">0.00</span></div>',
+      '</div>',
+      '<input class="landline-hidden-input" type="text" id="landlineBaseAmount" readonly value="0.00">',
+      '<input class="landline-hidden-input" type="text" id="landlineExtrasAmount" readonly value="0.00">',
+      '<input class="landline-hidden-input" type="text" id="landlineCpeAmount" readonly value="0.00">',
+      '<input class="landline-hidden-input" type="text" id="landlineBalanceDeduction" readonly value="0.00">',
+      '<input class="landline-hidden-input" type="text" id="landlineTaxAmount" readonly value="0.00">',
+      '<input class="landline-hidden-input" type="text" id="landlineFinalAmount" readonly value="0.00">'
     ].join('');
     balance.parentNode.insertBefore(landlineResults, balance.nextSibling);
 
@@ -195,6 +257,7 @@
     byId('landlinePackage').addEventListener('change', populatePeriods);
     byId('landlinePeriod').addEventListener('change', namespace.router.dispatch);
     byId('landlineExtras').addEventListener('change', namespace.router.dispatch);
+    byId('landlineExtrasList').addEventListener('change', syncExtrasFromCheckboxes);
     balance.addEventListener('input', function () { if (getMode() === 'landline') namespace.router.dispatch(); });
     bindRoutingEvents();
     populatePackages();
