@@ -9,7 +9,7 @@
       { name: 'WE Ardy 50', periods: { monthly: 50, quarterly: 150, yearly: 600 }, tax: 14 },
       { name: 'WE Ardy 80', periods: { monthly: 80, quarterly: 240, yearly: 960 }, tax: 14 },
       { name: 'Kalamy 40', periods: { monthly: 40, quarterly: 120 }, tax: 14 },
-      { name: 'Ya Marhaba Annual', periods: { yearly: 300 }, tax: 14 },
+      { name: 'Marhaba Annual', periods: { yearly: 300 }, tax: 14 },
       { name: 'WE Telephonet 90', periods: { monthly: 90 }, tax: 14 },
       { name: 'WE Telephonet 145', periods: { monthly: 145 }, tax: 14 },
       { name: 'WE Telephonet 230', periods: { monthly: 230 }, tax: 14 }
