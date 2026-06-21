@@ -64,6 +64,12 @@
     var taxableAmount = balancedItems.reduce(function (total, item) { return total + item.amount; }, 0);
     var finalAmount = balancedItems.reduce(function (total, item) {
       if (Number.isFinite(item.fixedFinal) && item.originalAmount > 0) {
+        // Business rule for fixed-final periods (WE Ardy 90 Business):
+        // the configured final price is authoritative when no balance is used.
+        // If balance is applied before tax, reduce that fixed final price in
+        // the same deterministic proportion as the remaining taxable base.
+        // Example: monthly base 90/final 105.80 with 45 balance => 45/90
+        // of the fixed final remains due, so final contribution is 52.90.
         return total + (item.amount / item.originalAmount) * item.fixedFinal;
       }
       return total + item.amount * (1 + core.toSafeNumber(item.taxRate) / 100);

@@ -3,9 +3,9 @@
 
   var namespace = window.SRCalculator = window.SRCalculator || {};
   var core = namespace.core;
-  var originalCalculatePrice = window.calculatePrice;
-  var originalToggleButton = window.toggleButton;
-  var originalResetForm = window.resetForm;
+  namespace.internet = namespace.internet || {};
+  namespace.landline = namespace.landline || {};
+  namespace.router = namespace.router || {};
 
   function byId(id) { return document.getElementById(id); }
   function createOption(value, text) {
@@ -18,8 +18,8 @@
     var selector = byId('calculatorServiceType');
     return selector && selector.value === 'landline' ? 'landline' : 'internet';
   }
-  function internetCalculate() {
-    if (typeof originalCalculatePrice === 'function') originalCalculatePrice.apply(window, arguments);
+  function runInternetCalculate() {
+    if (typeof window.calculatePrice === 'function') window.calculatePrice();
   }
   function currentExtras() {
     var extrasSelect = byId('landlineExtras');
@@ -58,6 +58,7 @@
       balance: byId('balance') && byId('balance').value
     });
     renderLandlineResults(result);
+    return result;
   }
   function populatePackages() {
     var category = byId('landlineCategory') && byId('landlineCategory').value === 'business' ? 'business' : 'residential';
@@ -96,18 +97,57 @@
     });
     calculateLandlineFromDom();
   }
-  function setGroup(ids, hidden) {
-    ids.forEach(function (id) {
+  function tagInternetGroups() {
+    ['products'].forEach(function (id) {
       var element = byId(id);
-      if (element) element.hidden = hidden;
+      if (element && !element.getAttribute('data-calculator-group')) {
+        element.setAttribute('data-calculator-group', 'internet');
+      }
+    });
+    [
+      'discount1', 'discount2', 'extra30', 'extra50', 'extra100',
+      'gigaTank400', 'gigaTank2000', 'gameOn400', 'op10', 'op20', 'op30', 'add1', 'add2'
+    ].forEach(function (id) {
+      var element = byId(id);
+      var group = element && element.closest ? element.closest('.button-group') : element;
+      if (group && !group.getAttribute('data-calculator-group')) {
+        group.setAttribute('data-calculator-group', 'internet');
+      }
+    });
+  }
+  function setGroup(groupName, hidden) {
+    Array.prototype.slice.call(document.querySelectorAll('[data-calculator-group="' + groupName + '"]')).forEach(function (element) {
+      element.hidden = hidden;
     });
   }
   function applyMode() {
     var isLandline = getMode() === 'landline';
-    setGroup(['products', 'discount1', 'discount2', 'extra30', 'extra50', 'extra100', 'gigaTank400', 'gigaTank2000', 'gameOn400', 'op10', 'op20', 'op30', 'add1', 'add2'], isLandline);
-    setGroup(['landlineControls', 'landlineResults'], !isLandline);
-    if (isLandline) calculateLandlineFromDom();
-    else internetCalculate();
+    setGroup('internet', isLandline);
+    setGroup('landline', !isLandline);
+    namespace.router.dispatch();
+  }
+  function bindRoutingEvents() {
+    var cpeButtons = ['service1', 'service2', 'service3', 'service4'];
+    cpeButtons.forEach(function (id) {
+      var button = byId(id);
+      if (button && !button.getAttribute('data-calculator-router-bound')) {
+        button.setAttribute('data-calculator-router-bound', 'true');
+        button.addEventListener('click', function () {
+          if (getMode() === 'landline') setTimeout(namespace.router.dispatch, 0);
+        });
+      }
+    });
+    var resetButton = byId('reset1');
+    if (resetButton && !resetButton.getAttribute('data-calculator-router-bound')) {
+      resetButton.setAttribute('data-calculator-router-bound', 'true');
+      resetButton.addEventListener('click', function () {
+        setTimeout(function () {
+          var selector = byId('calculatorServiceType');
+          if (selector) selector.value = 'internet';
+          applyMode();
+        }, 0);
+      });
+    }
   }
   function installUi() {
     var container = byId('divv');
@@ -115,14 +155,18 @@
     var balance = byId('balance');
     if (!container || !products || !balance || byId('calculatorServiceType')) return;
 
+    tagInternetGroups();
+
     var modeWrap = document.createElement('div');
     modeWrap.className = 'calculator-service-type';
+    modeWrap.setAttribute('data-calculator-shared', 'service-type');
     modeWrap.innerHTML = '<label for="calculatorServiceType">Service Type</label><select id="calculatorServiceType" class="selectt"><option value="internet">Internet</option><option value="landline">Landline</option></select>';
     container.insertBefore(modeWrap, products);
 
     var landlineControls = document.createElement('div');
     landlineControls.id = 'landlineControls';
     landlineControls.hidden = true;
+    landlineControls.setAttribute('data-calculator-group', 'landline');
     landlineControls.innerHTML = [
       '<select id="landlineCategory" class="selectt"><option value="residential">Residential</option><option value="business">Business</option></select>',
       '<select id="landlinePackage" class="selectt"></select>',
@@ -135,6 +179,7 @@
     var landlineResults = document.createElement('div');
     landlineResults.id = 'landlineResults';
     landlineResults.hidden = true;
+    landlineResults.setAttribute('data-calculator-group', 'landline');
     landlineResults.innerHTML = [
       '<input class="ino" type="text" id="landlineBaseAmount" readonly placeholder="Base Amount" value="0.00">',
       '<input class="ino" type="text" id="landlineExtrasAmount" readonly placeholder="Extras Amount" value="0.00">',
@@ -148,26 +193,22 @@
     byId('calculatorServiceType').addEventListener('change', applyMode);
     byId('landlineCategory').addEventListener('change', populatePackages);
     byId('landlinePackage').addEventListener('change', populatePeriods);
-    byId('landlinePeriod').addEventListener('change', calculateLandlineFromDom);
-    byId('landlineExtras').addEventListener('change', calculateLandlineFromDom);
-    balance.addEventListener('input', function () { if (getMode() === 'landline') calculateLandlineFromDom(); });
+    byId('landlinePeriod').addEventListener('change', namespace.router.dispatch);
+    byId('landlineExtras').addEventListener('change', namespace.router.dispatch);
+    balance.addEventListener('input', function () { if (getMode() === 'landline') namespace.router.dispatch(); });
+    bindRoutingEvents();
     populatePackages();
     applyMode();
   }
 
-  window.calculatePrice = function () {
-    if (getMode() === 'landline') return calculateLandlineFromDom();
-    return internetCalculate.apply(window, arguments);
+  namespace.internet.calculate = runInternetCalculate;
+  namespace.landline.calculate = calculateLandlineFromDom;
+  namespace.router.getMode = getMode;
+  namespace.router.dispatch = function () {
+    if (getMode() === 'landline') return namespace.landline.calculate();
+    return namespace.internet.calculate();
   };
-  window.toggleButton = function (button) {
-    if (typeof originalToggleButton === 'function') originalToggleButton.apply(window, arguments);
-    if (getMode() === 'landline') calculateLandlineFromDom();
-  };
-  window.resetForm = function () {
-    if (typeof originalResetForm === 'function') originalResetForm.apply(window, arguments);
-    if (byId('calculatorServiceType')) byId('calculatorServiceType').value = 'internet';
-    applyMode();
-  };
+  namespace.router.applyMode = applyMode;
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installUi);
   else installUi();
