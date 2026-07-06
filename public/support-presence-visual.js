@@ -105,6 +105,60 @@ function getNameToIdMap() {
   return map;
 }
 
+let sortingSupportUsers = false;
+
+function sortSupportUsersListByPresence() {
+  const list = document.querySelector("#supportUsersList");
+  if (!list || sortingSupportUsers) return;
+
+  const rows = Array.from(list.querySelectorAll(".support-user"));
+  if (rows.length < 2) return;
+
+  const originalOrder = rows.map((row) => row.getAttribute("data-user-id") || getCleanText(row.querySelector(".support-user-name")) || "").join("\n");
+
+  const normalizedName = (row) => getCleanText(row.querySelector(".support-user-name")).toLocaleLowerCase("ar-EG");
+  const lastSeenValue = (row) => {
+    const value = row.getAttribute("data-last-seen") || row.getAttribute("data-last-message-at") || row.getAttribute("data-created-at") || "";
+    const time = Date.parse(value);
+    return Number.isFinite(time) ? time : 0;
+  };
+
+  const sorted = rows.slice().sort((a, b) => {
+    const aId = String(a.getAttribute("data-user-id") || "").trim();
+    const bId = String(b.getAttribute("data-user-id") || "").trim();
+
+    const aMe = aId === USER_ID;
+    const bMe = bId === USER_ID;
+    if (aMe !== bMe) return aMe ? -1 : 1;
+
+    const aOnline = !!aId && onlineIds.has(aId);
+    const bOnline = !!bId && onlineIds.has(bId);
+    if (aOnline !== bOnline) return aOnline ? -1 : 1;
+
+    const aUnread = !!a.querySelector(".support-user-unread:not(:empty)");
+    const bUnread = !!b.querySelector(".support-user-unread:not(:empty)");
+    if (aUnread !== bUnread) return aUnread ? -1 : 1;
+
+    const aSeen = lastSeenValue(a);
+    const bSeen = lastSeenValue(b);
+    if (aSeen !== bSeen) return bSeen - aSeen;
+
+    return normalizedName(a).localeCompare(normalizedName(b), "ar", { sensitivity: "base", numeric: true });
+  });
+
+  const newOrder = sorted.map((row) => row.getAttribute("data-user-id") || getCleanText(row.querySelector(".support-user-name")) || "").join("\n");
+  if (newOrder === originalOrder) return;
+
+  sortingSupportUsers = true;
+  try {
+    const frag = document.createDocumentFragment();
+    sorted.forEach((row) => frag.appendChild(row));
+    list.appendChild(frag);
+  } finally {
+    sortingSupportUsers = false;
+  }
+}
+
 function applySupportVisualState() {
   scheduled = false;
   const schemeMap = buildSchemeMap();
@@ -133,6 +187,8 @@ function applySupportVisualState() {
     row.classList.toggle("is-offline", !isOnline);
     ensurePresenceBadge(row.querySelector(".support-msg-name"), isOnline);
   });
+
+  sortSupportUsersListByPresence();
 }
 
 function scheduleApply() {
