@@ -1,0 +1,468 @@
+name: Apply Step 4.3.3 Device Visible Diagnosis
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/apply-step433-device-visible-diagnosis.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply-step433:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply Step 4.3.3 visible diagnosis files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git pull --rebase origin "${GITHUB_REF_NAME}" || true
+
+          mkdir -p app/api/device-confidence-learn app/api/device-confidence-me public
+
+          cat > app/api/device-confidence-learn/route.js <<'EOF_ROUTE'
+          import { NextResponse } from "next/server";
+          import { enforceSameOrigin, requireUserSession, noStore } from "../../../lib/server/auth.js";
+          import { getServiceSupabase } from "../../../lib/server/admin.js";
+          import { buildDeviceConfidence, recordDeviceNickname } from "../../../lib/server/device-confidence.js";
+          import { cleanNickname, normalizeUserId, getNicknameProfile } from "../../../lib/server/nickname.js";
+
+          export const runtime = "nodejs";
+
+          const MAX_BODY_BYTES = 20000;
+
+          function j(body, init){
+            return noStore(NextResponse.json(body, init));
+          }
+
+          export async function POST(req){
+            const same = enforceSameOrigin(req);
+            if(!same.ok) return j({ ok:false, learned:false, stage:"same_origin", error:same.error }, { status:same.status || 403 });
+
+            const sess = await requireUserSession(req);
+            if(!sess.ok) return j({ ok:false, learned:false, stage:"session", error:sess.error }, { status:sess.status || 401 });
+
+            const contentLength = Number(req.headers.get("content-length") || 0);
+            if(Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES){
+              return j({ ok:false, learned:false, stage:"body_size", error:"Request body too large" }, { status:413 });
+            }
+
+            let body = {};
+            try{ body = await req.json(); }catch{}
+
+            const payload = sess.payload || {};
+            const userId = normalizeUserId(payload.uid || "");
+            let displayName = cleanNickname(payload.name || "");
+
+            if(!userId){
+              return j({ ok:false, learned:false, stage:"identity", error:"Missing authenticated user identity." }, { status:400 });
+            }
+
+            const supabase = getServiceSupabase();
+
+            if(!displayName){
+              const profile = await getNicknameProfile(supabase, userId);
+              if(profile?.ok && !profile.reset_required) displayName = cleanNickname(profile.display_name || "");
+              if(profile?.ok && profile.reset_required){
+                return j({ ok:true, learned:false, stage:"profile", reason:"nickname_reset_required", user_id:userId });
+              }
+            }
+
+            if(!displayName){
+              return j({ ok:true, learned:false, stage:"profile", reason:"missing_nickname", user_id:userId });
+            }
+
+            const fp = buildDeviceConfidence(req, body.device_fingerprint || {}, process.env.DEVICE_FINGERPRINT_SECRET || process.env.SESSION_SECRET || "");
+            if(!fp?.ok){
+              return j({ ok:true, learned:false, stage:"fingerprint", reason:"fingerprint_unavailable", error:fp?.error || "missing_fingerprint" });
+            }
+
+            const saved = await recordDeviceNickname(supabase, userId, displayName, fp, 100);
+            if(!saved?.ok){
+              return j({ ok:false, learned:false, stage:"supabase_save", error:saved?.error || "Could not learn device." }, { status:500 });
+            }
+            if(saved.missing_table){
+              return j({ ok:true, learned:false, stage:"supabase_save", reason:"missing_table", missing_table:true, user_id:userId, display_name:displayName });
+            }
+
+            return j({
+              ok:true,
+              learned:true,
+              stage:"saved",
+              action: saved.inserted ? "inserted" : saved.updated ? "updated" : "saved",
+              user_id:userId,
+              display_name:displayName,
+              signal_summary: fp.signal_summary || {},
+              device_hash_short: String(fp.device_hash || "").slice(0, 12)
+            });
+          }
+          EOF_ROUTE
+
+          python3 - <<'PY_DEDENT_ROUTE'
+          from pathlib import Path
+          p = Path('app/api/device-confidence-learn/route.js')
+          lines = p.read_text().splitlines()
+          if lines and lines[0].startswith('          '):
+              lines = [line[10:] if line.startswith('          ') else line for line in lines]
+          p.write_text('\n'.join(lines) + '\n')
+          PY_DEDENT_ROUTE
+
+          cat > app/api/device-confidence-me/route.js <<'EOF_ME'
+          import { NextResponse } from "next/server";
+          import { requireUserSession, noStore } from "../../../lib/server/auth.js";
+          import { getServiceSupabase } from "../../../lib/server/admin.js";
+          import { cleanNickname, normalizeUserId, getNicknameProfile, isMissingTableOrColumn } from "../../../lib/server/nickname.js";
+
+          export const runtime = "nodejs";
+
+          function j(body, init){
+            return noStore(NextResponse.json(body, init));
+          }
+
+          export async function GET(req){
+            const sess = await requireUserSession(req);
+            if(!sess.ok) return j({ ok:false, authenticated:false, stage:"session", error:sess.error }, { status:sess.status || 401 });
+
+            const payload = sess.payload || {};
+            const userId = normalizeUserId(payload.uid || "");
+            const sessionName = cleanNickname(payload.name || "");
+            const supabase = getServiceSupabase();
+
+            let profile = null;
+            if(userId){
+              const p = await getNicknameProfile(supabase, userId);
+              if(p?.ok) profile = { display_name:p.display_name || "", reset_required:!!p.reset_required, exists:!!p.exists };
+              else profile = { error:p?.error || "could_not_read_profile" };
+            }
+
+            let devices_available = true;
+            let devices = [];
+            try{
+              const res = await supabase
+                .from("support_user_devices")
+                .select("device_hash, display_name, confidence_score, first_seen_at, last_seen_at, match_count, revoked_at, signal_summary")
+                .eq("user_id", userId || "__missing__")
+                .order("last_seen_at", { ascending:false })
+                .limit(20);
+              if(res.error) throw res.error;
+              devices = Array.isArray(res.data) ? res.data : [];
+            }catch(err){
+              if(isMissingTableOrColumn(err)) devices_available = false;
+              else return j({ ok:false, authenticated:true, stage:"devices_read", error:String(err?.message || err || "Could not read device table."), user_id:userId, session_name:sessionName, profile }, { status:500 });
+            }
+
+            const active = devices.filter((d)=>!d.revoked_at);
+            const best = active[0] || null;
+            return j({
+              ok:true,
+              authenticated:true,
+              user_id:userId,
+              session_name:sessionName,
+              profile,
+              devices_available,
+              active_devices:active.length,
+              total_devices:devices.length,
+              best_device: best ? {
+                display_name: cleanNickname(best.display_name || ""),
+                confidence_score: Number(best.confidence_score || 0),
+                first_seen_at: best.first_seen_at || "",
+                last_seen_at: best.last_seen_at || "",
+                match_count: Number(best.match_count || 0),
+                device_hash_short: String(best.device_hash || "").slice(0, 12),
+                signal_summary: best.signal_summary || {}
+              } : null
+            });
+          }
+          EOF_ME
+
+          python3 - <<'PY_DEDENT_ME'
+          from pathlib import Path
+          p = Path('app/api/device-confidence-me/route.js')
+          lines = p.read_text().splitlines()
+          if lines and lines[0].startswith('          '):
+              lines = [line[10:] if line.startswith('          ') else line for line in lines]
+          p.write_text('\n'.join(lines) + '\n')
+          PY_DEDENT_ME
+
+          cat > public/device-confidence-learn.js <<'EOF_LEARN'
+          (function(){
+            "use strict";
+            if(window.__srDeviceConfidenceLearnV433) return;
+            window.__srDeviceConfidenceLearnV433 = true;
+
+            var LEARN_KEY = "sr_device_confidence_learned_v433";
+            var TRY_KEY = "sr_device_confidence_last_try_v433";
+            var LEARN_EVERY_MS = 1000 * 60 * 60 * 24 * 30;
+            var RETRY_AFTER_MS = 1000 * 60 * 2;
+
+            function localGet(k){ try { return localStorage.getItem(k) || ""; } catch(e) { return ""; } }
+            function localSet(k, v){ try { localStorage.setItem(k, v); } catch(e) {} }
+            function now(){ return Date.now(); }
+            function recently(key, ms){ var t = Number(localGet(key) || 0); return t && (now() - t) < ms; }
+            function shouldSkipPage(){ var p = String(location.pathname || ""); return p === "/login" || p === "/logout" || p.indexOf("/api/") === 0; }
+            function fallbackHash(s){ s=String(s||""); var h=2166136261; for(var i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0).toString(16).padStart(8,"0"); }
+            function hashText(input){
+              var s=String(input||"");
+              if(window.crypto && crypto.subtle && window.TextEncoder){
+                return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)).then(function(buf){
+                  return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,"0"); }).join("");
+                }).catch(function(){ return fallbackHash(s); });
+              }
+              return Promise.resolve(fallbackHash(s));
+            }
+            function canvasHash(){
+              try{
+                var c=document.createElement("canvas"); c.width=300; c.height=90;
+                var x=c.getContext("2d"); if(!x) return Promise.resolve("");
+                x.textBaseline="top"; x.font="16px Arial"; x.fillStyle="#102030"; x.fillText("SR Tool عقرب الصحراء 0123456789",6,8);
+                x.font="18px serif"; x.strokeText("device-confidence",16,44);
+                x.globalCompositeOperation="multiply"; x.fillStyle="rgb(255,0,255)"; x.beginPath(); x.arc(190,46,24,0,Math.PI*2); x.fill();
+                return hashText(c.toDataURL());
+              }catch(e){ return Promise.resolve(""); }
+            }
+            function fontsHash(){
+              try{
+                var c=document.createElement("canvas"); var x=c.getContext("2d"); if(!x) return Promise.resolve("");
+                var fonts=["Arial","Tahoma","Times New Roman","Courier New","Verdana","Georgia","Segoe UI","Roboto","Open Sans","Calibri","Cambria","Noto Sans Arabic"];
+                var txt="SR Tool عقرب الصحراء 0123456789";
+                var widths=fonts.map(function(f){ x.font="16px "+f+", monospace"; return f+":"+(Math.round(x.measureText(txt).width*100)/100); }).join("|");
+                return hashText(widths);
+              }catch(e){ return Promise.resolve(""); }
+            }
+            function webglInfo(){
+              try{
+                var c=document.createElement("canvas"); var gl=c.getContext("webgl") || c.getContext("experimental-webgl"); if(!gl) return Promise.resolve({});
+                var dbg=gl.getExtension("WEBGL_debug_renderer_info");
+                var vendor=dbg ? gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR);
+                var renderer=dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+                var ext=(gl.getSupportedExtensions && gl.getSupportedExtensions()) || [];
+                var params=[gl.getParameter(gl.VERSION),gl.getParameter(gl.SHADING_LANGUAGE_VERSION),gl.getParameter(gl.MAX_TEXTURE_SIZE),gl.getParameter(gl.MAX_RENDERBUFFER_SIZE),gl.getParameter(gl.MAX_VERTEX_ATTRIBS),gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS)].join("|");
+                return Promise.all([hashText(ext.sort().join("|")), hashText(params)]).then(function(h){
+                  return { vendor:String(vendor||""), renderer:String(renderer||""), version:String(gl.getParameter(gl.VERSION)||""), shadingLanguageVersion:String(gl.getParameter(gl.SHADING_LANGUAGE_VERSION)||""), maxTextureSize:String(gl.getParameter(gl.MAX_TEXTURE_SIZE)||""), extensionsHash:h[0], paramsHash:h[1] };
+                });
+              }catch(e){ return Promise.resolve({}); }
+            }
+            function collect(){
+              var nav=navigator || {}; var scr=screen || {}; var tz="";
+              try{ tz=Intl.DateTimeFormat().resolvedOptions().timeZone || ""; }catch(e){}
+              var plugins=""; try{ plugins=Array.from(nav.plugins||[]).map(function(p){ return p.name+":"+p.filename+":"+p.description; }).slice(0,40).join("|"); }catch(e){}
+              var colorScheme=""; try{ colorScheme=matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; }catch(e){}
+              var reducedMotion=""; try{ reducedMotion=matchMedia("(prefers-reduced-motion: reduce)").matches ? "reduce" : "no-preference"; }catch(e){}
+              return Promise.all([canvasHash(), fontsHash(), webglInfo(), hashText(plugins)]).then(function(a){
+                return { userAgent:nav.userAgent||"", language:nav.language||"", languages:Array.isArray(nav.languages)?nav.languages.slice(0,12):[], platform:nav.platform||"", vendor:nav.vendor||"", hardwareConcurrency:nav.hardwareConcurrency||"", deviceMemory:nav.deviceMemory||"", maxTouchPoints:nav.maxTouchPoints||"", cookieEnabled:nav.cookieEnabled, doNotTrack:nav.doNotTrack||window.doNotTrack||"", timezone:tz, timezoneOffset:new Date().getTimezoneOffset(), colorScheme:colorScheme, reducedMotion:reducedMotion, screen:{ width:scr.width||"", height:scr.height||"", availWidth:scr.availWidth||"", availHeight:scr.availHeight||"", colorDepth:scr.colorDepth||"", pixelDepth:scr.pixelDepth||"", devicePixelRatio:window.devicePixelRatio||"", orientation:(scr.orientation && scr.orientation.type)||"" }, webgl:a[2]||{}, canvasHash:a[0]||"", fontsHash:a[1]||"", pluginsHash:a[3]||"" };
+              });
+            }
+            function learnNow(opts){
+              opts = opts || {};
+              return collect().then(function(device_fingerprint){
+                return fetch("/api/device-confidence-learn", { method:"POST", credentials:"same-origin", headers:{"content-type":"application/json"}, body:JSON.stringify({ device_fingerprint:device_fingerprint, manual:!!opts.manual }) });
+              }).then(function(res){ return res.json().catch(function(){ return {}; }).then(function(data){ return { status:res.status, ok:res.ok, data:data }; }); })
+              .then(function(out){
+                if(out.ok && out.data && out.data.learned) localSet(LEARN_KEY, String(now()));
+                try{ window.dispatchEvent(new CustomEvent("sr-device-confidence-result", { detail: out })); }catch(e){}
+                return out;
+              });
+            }
+            function autoLearn(){
+              if(shouldSkipPage()) return;
+              if(recently(LEARN_KEY, LEARN_EVERY_MS)) return;
+              if(recently(TRY_KEY, RETRY_AFTER_MS)) return;
+              localSet(TRY_KEY, String(now()));
+              learnNow({ manual:false }).catch(function(){});
+            }
+            window.SR_DEVICE_CONFIDENCE = window.SR_DEVICE_CONFIDENCE || {};
+            window.SR_DEVICE_CONFIDENCE.collect = collect;
+            window.SR_DEVICE_CONFIDENCE.learnNow = learnNow;
+            if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ setTimeout(autoLearn, 1800); });
+            else setTimeout(autoLearn, 1800);
+          })();
+          EOF_LEARN
+
+          python3 - <<'PY_DEDENT_LEARN'
+          from pathlib import Path
+          p = Path('public/device-confidence-learn.js')
+          lines = p.read_text().splitlines()
+          if lines and lines[0].startswith('          '):
+              lines = [line[10:] if line.startswith('          ') else line for line in lines]
+          p.write_text('\n'.join(lines) + '\n')
+          PY_DEDENT_LEARN
+
+          cat > public/device-confidence-test.html <<'EOF_HTML'
+          <!doctype html>
+          <html lang="ar" dir="rtl">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>اختبار تثبيت الكنية على الجهاز</title>
+            <style>
+              body{font-family:Tahoma,Arial,sans-serif;background:#0f172a;color:#e5e7eb;margin:0;padding:24px;line-height:1.7}
+              .card{max-width:900px;margin:auto;background:#111827;border:1px solid #334155;border-radius:18px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.28)}
+              h1{margin-top:0;font-size:24px}.muted{color:#94a3b8}.ok{color:#86efac}.bad{color:#fca5a5}.warn{color:#fde68a}
+              button{border:0;border-radius:12px;padding:12px 16px;margin:6px;cursor:pointer;background:#2563eb;color:white;font-weight:700}
+              button.secondary{background:#334155} pre{white-space:pre-wrap;direction:ltr;text-align:left;background:#020617;border:1px solid #334155;padding:14px;border-radius:12px;overflow:auto;max-height:460px}
+              code{background:#020617;padding:2px 6px;border-radius:6px}.row{display:flex;gap:8px;flex-wrap:wrap}.pill{display:inline-block;padding:4px 9px;border-radius:999px;background:#1f2937;margin:3px}
+            </style>
+          </head>
+          <body>
+            <div class="card">
+              <h1>اختبار تثبيت الكنية على هذا الجهاز</h1>
+              <p class="muted">افتح هذه الصفحة بعد تسجيل الدخول. لا تحتاج Developer Tools.</p>
+              <div class="row">
+                <button id="statusBtn">1) فحص الحالة الحالية</button>
+                <button id="learnBtn">2) تعلّم هذا الجهاز الآن</button>
+                <button id="againBtn" class="secondary">3) فحص بعد التعلم</button>
+              </div>
+              <p id="summary" class="warn">اضغط فحص الحالة الحالية.</p>
+              <div>
+                <span class="pill">بعد نجاح التعلم لازم يظهر Active devices = 1</span>
+                <span class="pill">بعدها فقط جرّب Clear Cookies</span>
+              </div>
+              <pre id="out">جاهز...</pre>
+            </div>
+            <script src="./device-confidence-learn.js?v=step433"></script>
+            <script>
+              const out = document.getElementById('out');
+              const summary = document.getElementById('summary');
+              function show(obj){ out.textContent = JSON.stringify(obj, null, 2); }
+              function msg(text, cls){ summary.className = cls || ''; summary.textContent = text; }
+              async function status(){
+                msg('جاري فحص الحالة...', 'warn');
+                const r = await fetch('/api/device-confidence-me', { credentials:'same-origin' });
+                const data = await r.json().catch(()=>({}));
+                show({ status:r.status, ok:r.ok, data });
+                if(!r.ok) return msg('فشل الفحص: ' + (data.error || r.status), 'bad');
+                if(!data.devices_available) return msg('جدول الأجهزة غير موجود. شغّل SQL Step 4.3 أولًا.', 'bad');
+                if(Number(data.active_devices || 0) > 0) return msg('تمام: الجهاز متعلم. Active devices = ' + data.active_devices, 'ok');
+                return msg('لسه الجهاز غير متعلم. اضغط تعلّم هذا الجهاز الآن.', 'warn');
+              }
+              async function learn(){
+                msg('جاري تعلم الجهاز...', 'warn');
+                if(!window.SR_DEVICE_CONFIDENCE || !window.SR_DEVICE_CONFIDENCE.learnNow){
+                  show({ error:'device-confidence-learn.js not loaded' });
+                  return msg('سكريبت التعلم لم يتحمل.', 'bad');
+                }
+                const result = await window.SR_DEVICE_CONFIDENCE.learnNow({ manual:true }).catch(e=>({ ok:false, error:String(e && e.message || e) }));
+                show(result);
+                if(result && result.ok && result.data && result.data.learned){
+                  msg('تم تعلم الجهاز بنجاح. افتح الأدمن أو اضغط فحص بعد التعلم.', 'ok');
+                }else{
+                  const d = result && result.data || {};
+                  msg('لم يتم التعلم: ' + (d.reason || d.error || result.error || 'unknown'), 'bad');
+                }
+              }
+              document.getElementById('statusBtn').onclick = status;
+              document.getElementById('learnBtn').onclick = learn;
+              document.getElementById('againBtn').onclick = status;
+              setTimeout(status, 500);
+            </script>
+          </body>
+          </html>
+          EOF_HTML
+
+          python3 - <<'PY_DEDENT_HTML'
+          from pathlib import Path
+          p = Path('public/device-confidence-test.html')
+          lines = p.read_text().splitlines()
+          if lines and lines[0].startswith('          '):
+              lines = [line[10:] if line.startswith('          ') else line for line in lines]
+          p.write_text('\n'.join(lines) + '\n')
+          PY_DEDENT_HTML
+
+          python3 - <<'PY_HOOK'
+          from pathlib import Path
+          # 1) Make sure HTML pages load the learner.
+          tag = '<script src="./device-confidence-learn.js?v=step433" defer></script>'
+          for name in ['public/index.html', 'public/Tags.html']:
+              p = Path(name)
+              if not p.exists():
+                  continue
+              s = p.read_text(errors='ignore')
+              if 'device-confidence-learn.js' not in s:
+                  low = s.lower()
+                  idx = low.rfind('</body>')
+                  if idx >= 0:
+                      s = s[:idx] + tag + '\n' + s[idx:]
+                  else:
+                      s += '\n' + tag + '\n'
+                  p.write_text(s)
+          # 2) Also hook via app.js because it is definitely loaded by the tool page.
+          p = Path('public/app.js')
+          if p.exists():
+              s = p.read_text(errors='ignore')
+              marker = 'sr-device-confidence-appjs-loader-v433'
+              if marker not in s:
+                  loader = """
+;/* sr-device-confidence-appjs-loader-v433 */
+(function(){
+  try{
+    if(window.__srDeviceConfidenceAppLoaderV433) return;
+    window.__srDeviceConfidenceAppLoaderV433 = true;
+    if(document.querySelector('script[src*="device-confidence-learn.js"]')) return;
+    var s=document.createElement('script');
+    s.src='./device-confidence-learn.js?v=step433';
+    s.defer=true;
+    (document.head||document.documentElement).appendChild(s);
+  }catch(e){}
+})();
+"""
+                  p.write_text(s + '\n' + loader + '\n')
+          PY_HOOK
+
+          cat > SECURITY_UPGRADE_STEP433_AR.md <<'EOF_DOC'
+          # Step 4.3.3 - Visible Device Learning Diagnosis
+
+          هذه الخطوة لا تحتاج Developer Tools.
+
+          تضيف صفحة اختبار مرئية:
+
+          `/device-confidence-test.html`
+
+          منها تستطيع:
+
+          1. فحص هل الجهاز متعلم أم لا.
+          2. إجبار التول على تعلم هذا الجهاز الآن.
+          3. رؤية رسالة واضحة لو جدول Supabase ناقص أو الجلسة منتهية أو الكنية غير محفوظة.
+
+          كما تضيف تحميلًا أقوى لسكريبت التعلم من `app.js` لأن `app.js` يتم تحميله داخل صفحة الأداة الأساسية.
+
+          ## الاختبار
+
+          1. بعد deploy افتح التول وسجل دخولك بالكنية الصحيحة.
+          2. افتح `/device-confidence-test.html` على نفس الدومين.
+          3. اضغط `تعلّم هذا الجهاز الآن`.
+          4. اضغط `فحص بعد التعلم`.
+          5. لازم يظهر `Active devices = 1`.
+          6. بعدها افتح الأدمن وتأكد أن Device confidence لم يعد `not learned yet`.
+          7. بعد ذلك فقط جرّب Clear Cookies.
+          EOF_DOC
+
+          python3 - <<'PY_DEDENT_DOC'
+          from pathlib import Path
+          p = Path('SECURITY_UPGRADE_STEP433_AR.md')
+          lines = p.read_text().splitlines()
+          if lines and lines[0].startswith('          '):
+              lines = [line[10:] if line.startswith('          ') else line for line in lines]
+          p.write_text('\n'.join(lines) + '\n')
+          PY_DEDENT_DOC
+
+          node --check app/api/device-confidence-learn/route.js
+          node --check app/api/device-confidence-me/route.js
+          node --check public/device-confidence-learn.js
+
+          git status --short
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/api/device-confidence-learn/route.js app/api/device-confidence-me/route.js public/device-confidence-learn.js public/device-confidence-test.html public/index.html public/Tags.html public/app.js SECURITY_UPGRADE_STEP433_AR.md
+          git commit -m "Step 4.3.3 visible device confidence diagnosis"
+          git pull --rebase origin "${GITHUB_REF_NAME}" || true
+          git push
