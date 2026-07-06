@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - '.github/workflows/apply-step542-exact-device-autorecovery.yml'
+      - '.github/workflows/apply-step542-exact-device-autorecovery-corrected.yml'
 
 permissions:
   contents: write
@@ -29,101 +30,111 @@ jobs:
           p = Path('lib/server/device-confidence.js')
           txt = p.read_text(encoding='utf-8')
 
-          old = '''    let candidates = Array.isArray(exact.data) ? exact.data : [];
-
-    if(candidates.length === 0){
-      let fuzzy = await queryFuzzyDevices(supabase, component, enhanced, bonus);'''
-          new = '''    let candidates = Array.isArray(exact.data) ? exact.data : [];
-    let usedFuzzyCandidates = false;
-
-    if(candidates.length === 0){
-      usedFuzzyCandidates = true;
-      let fuzzy = await queryFuzzyDevices(supabase, component, enhanced, bonus);'''
+          old = "\n".join([
+              "    let candidates = Array.isArray(exact.data) ? exact.data : [];",
+              "",
+              "    if(candidates.length === 0){",
+              "      let fuzzy = await queryFuzzyDevices(supabase, component, enhanced, bonus);",
+          ])
+          new = "\n".join([
+              "    let candidates = Array.isArray(exact.data) ? exact.data : [];",
+              "    let usedFuzzyCandidates = false;",
+              "",
+              "    if(candidates.length === 0){",
+              "      usedFuzzyCandidates = true;",
+              "      let fuzzy = await queryFuzzyDevices(supabase, component, enhanced, bonus);",
+          ])
           if old not in txt:
-            raise SystemExit('Could not find candidates/fuzzy block in device-confidence.js')
-          txt = txt.replace(old, new, 1)
+              if "let usedFuzzyCandidates = false" not in txt:
+                  raise SystemExit('Could not find candidates/fuzzy block in device-confidence.js')
+          else:
+              txt = txt.replace(old, new, 1)
 
-          old = '''    const best = scored[0];
-    if(!best || best.score < threshold){
-      return {
-        ok:true,
-        matched:false,
-        reason:"low_confidence",
-        best_score: best?.score || 0,
-        threshold,
-        enhanced,
-        bonus,
-        suggestions,
-      };
-    }
-
-    const secondDifferentUser = scored.find((x)=>x.user_id !== best.user_id);'''
-          new = '''    const best = scored[0];
-
-    // Step 5.4.2: automatic nickname recovery is allowed only when the current
-    // device hash exactly matches a learned device. Fuzzy matches are useful for
-    // suggestions, but they must never silently assign somebody else's nickname.
-    // This prevents two similar PCs on the same network from becoming the same user.
-    if(usedFuzzyCandidates){
-      return {
-        ok:true,
-        matched:false,
-        reason:"fuzzy_match_requires_confirmation",
-        best_score: best?.score || 0,
-        threshold,
-        enhanced,
-        bonus,
-        suggestions,
-      };
-    }
-
-    if(!best || best.score < threshold){
-      return {
-        ok:true,
-        matched:false,
-        reason:"low_confidence",
-        best_score: best?.score || 0,
-        threshold,
-        enhanced,
-        bonus,
-        suggestions,
-      };
-    }
-
-    const secondDifferentUser = scored.find((x)=>x.user_id !== best.user_id);'''
+          old = "\n".join([
+              "    const best = scored[0];",
+              "    if(!best || best.score < threshold){",
+              "      return {",
+              "        ok:true,",
+              "        matched:false,",
+              "        reason:\"low_confidence\",",
+              "        best_score: best?.score || 0,",
+              "        threshold,",
+              "        enhanced,",
+              "        bonus,",
+              "        suggestions,",
+              "      };",
+              "    }",
+              "",
+              "    const secondDifferentUser = scored.find((x)=>x.user_id !== best.user_id);",
+          ])
+          new = "\n".join([
+              "    const best = scored[0];",
+              "",
+              "    // Step 5.4.2: automatic nickname recovery is allowed only when the current",
+              "    // device hash exactly matches a learned device. Fuzzy matches are useful for",
+              "    // suggestions, but they must never silently assign somebody else's nickname.",
+              "    // This prevents two similar PCs on the same network from becoming the same user.",
+              "    if(usedFuzzyCandidates){",
+              "      return {",
+              "        ok:true,",
+              "        matched:false,",
+              "        reason:\"fuzzy_match_requires_confirmation\",",
+              "        best_score: best?.score || 0,",
+              "        threshold,",
+              "        enhanced,",
+              "        bonus,",
+              "        suggestions,",
+              "      };",
+              "    }",
+              "",
+              "    if(!best || best.score < threshold){",
+              "      return {",
+              "        ok:true,",
+              "        matched:false,",
+              "        reason:\"low_confidence\",",
+              "        best_score: best?.score || 0,",
+              "        threshold,",
+              "        enhanced,",
+              "        bonus,",
+              "        suggestions,",
+              "      };",
+              "    }",
+              "",
+              "    const secondDifferentUser = scored.find((x)=>x.user_id !== best.user_id);",
+          ])
           if old not in txt:
-            raise SystemExit('Could not find best/threshold block in device-confidence.js')
-          txt = txt.replace(old, new, 1)
+              if "fuzzy_match_requires_confirmation" not in txt:
+                  raise SystemExit('Could not find best/threshold block in device-confidence.js')
+          else:
+              txt = txt.replace(old, new, 1)
+
           p.write_text(txt, encoding='utf-8')
 
-          Path('SECURITY_UPGRADE_STEP542_AR.md').write_text('''# Step 5.4.2 - Exact Device Auto Recovery Guard
-
-## المشكلة
-
-حصلت حالة إن جهاز مختلف دخل تلقائيًا بنفس كنية مستخدم آخر بسبب تشابه بصمة الجهاز أو الشبكة.
-
-## الحل
-
-الاسترجاع التلقائي للكنية أصبح مسموحًا فقط لو **Device Hash الحالي مطابق تمامًا لجهاز متعلم سابقًا**.
-
-- نفس الجهاز بعد Clear Cookies: يرجع كنيته تلقائيًا.
-- جهاز آخر مشابه: لا يأخذ الكنية تلقائيًا.
-- التشابه العالي يستخدم للمقترحات فقط، وليس للدخول الصامت.
-
-## القواعد بعد التحديث
-
-- Auto recovery يحتاج تطابق Device Hash كامل + thresholds الحالية.
-- Fuzzy match لا يدخل تلقائيًا حتى لو النسبة عالية.
-- المقترحات تظل مفيدة، لكن لا يتم فرض كنية بدون اختيار/ثقة.
-
-## مهم
-
-لو جهاز كان أخذ كنية غلط قبل التحديث، يجب عمل Logout أو Clear Cookies لهذا الجهاز مرة واحدة بعد نشر التحديث، لأن الجلسة القديمة تكون محفوظة بالفعل.
-
-لا يوجد SQL جديد.
-لا يوجد API جديد.
-لا يوجد زيادة استهلاك مستمرة.
-''', encoding='utf-8')
+          doc = "\n".join([
+              "# Step 5.4.2 - Exact Device Auto Recovery Guard",
+              "",
+              "## المشكلة",
+              "",
+              "حصلت حالة إن جهاز مختلف دخل تلقائيًا بنفس كنية مستخدم آخر بسبب تشابه بصمة الجهاز أو الشبكة.",
+              "",
+              "## الحل",
+              "",
+              "الاسترجاع التلقائي للكنية أصبح مسموحًا فقط لو **Device Hash الحالي مطابق تمامًا لجهاز متعلم سابقًا**.",
+              "",
+              "- نفس الجهاز بعد Clear Cookies: يرجع كنيته تلقائيًا.",
+              "- جهاز آخر مشابه: لا يأخذ الكنية تلقائيًا.",
+              "- التشابه العالي يستخدم للمقترحات فقط، وليس للدخول الصامت.",
+              "",
+              "## مهم",
+              "",
+              "لو جهاز كان أخذ كنية غلط قبل التحديث، يجب عمل Logout أو Clear Cookies لهذا الجهاز مرة واحدة بعد نشر التحديث، لأن الجلسة القديمة تكون محفوظة بالفعل.",
+              "",
+              "لا يوجد SQL جديد.",
+              "لا يوجد API جديد.",
+              "لا يوجد زيادة استهلاك مستمرة.",
+              "",
+          ])
+          Path('SECURITY_UPGRADE_STEP542_AR.md').write_text(doc, encoding='utf-8')
 
           Path('.cloudflare-deploy-trigger').write_text('step542-exact-device-autorecovery ' + datetime.now(timezone.utc).isoformat() + '\n', encoding='utf-8')
           PY
