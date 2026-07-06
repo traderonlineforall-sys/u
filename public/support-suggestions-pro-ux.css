@@ -1,0 +1,225 @@
+/* Step 5 - Support & Suggestions Professional UX layer
+   Front-end only. No database/API calls. Safe to remove. */
+
+:root{
+  --srux-bg: rgba(10,14,24,.84);
+  --srux-bg-2: rgba(255,255,255,.075);
+  --srux-border: rgba(255,255,255,.16);
+  --srux-text: rgba(255,255,255,.93);
+  --srux-muted: rgba(255,255,255,.62);
+  --srux-good: #51d88a;
+  --srux-warn: #ffd166;
+  --srux-bad: #ff6b6b;
+  --srux-accent: #7aa7ff;
+}
+
+.srux-toolbar{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:10px 0;
+  padding:8px;
+  border:1px solid var(--srux-border);
+  border-radius:14px;
+  background:linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.045));
+  backdrop-filter: blur(10px);
+}
+
+.srux-toolbar.srux-compact{
+  margin:8px 0 10px;
+  padding:7px;
+}
+
+.srux-search{
+  flex:1;
+  min-width:0;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:12px;
+  padding:9px 11px;
+  outline:none;
+  color:var(--srux-text);
+  background:rgba(0,0,0,.18);
+  font:inherit;
+}
+
+.srux-search::placeholder{ color:rgba(255,255,255,.48); }
+.srux-search:focus{
+  border-color:rgba(122,167,255,.72);
+  box-shadow:0 0 0 3px rgba(122,167,255,.18);
+}
+
+.srux-select,
+.srux-pill{
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:999px;
+  padding:8px 10px;
+  color:var(--srux-text);
+  background:rgba(0,0,0,.18);
+  font:inherit;
+  white-space:nowrap;
+}
+
+.srux-select{ max-width:150px; }
+
+.srux-pill{
+  font-size:12px;
+  color:var(--srux-muted);
+  user-select:none;
+}
+
+.srux-mini-stats{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin:0 0 8px;
+  font-size:12px;
+  color:var(--srux-muted);
+}
+
+.srux-mini-stats strong{ color:var(--srux-text); font-weight:800; }
+.srux-online-dot{
+  width:8px;height:8px;border-radius:999px;display:inline-block;margin-inline-end:5px;
+  background:var(--srux-good);box-shadow:0 0 10px rgba(81,216,138,.75);
+}
+
+.srux-char-counter{
+  display:inline-flex;
+  align-items:center;
+  justify-content:flex-end;
+  min-width:58px;
+  font-size:11px;
+  color:var(--srux-muted);
+  padding-inline:4px;
+}
+.srux-char-counter.is-warn{ color:var(--srux-warn); }
+.srux-char-counter.is-max{ color:var(--srux-bad); font-weight:800; }
+
+.srux-hidden-by-filter{ display:none !important; }
+
+.srux-empty-filter,
+.srux-empty-state{
+  display:block;
+  padding:18px 14px;
+  margin:8px 0;
+  border:1px dashed rgba(255,255,255,.18);
+  border-radius:16px;
+  color:var(--srux-muted);
+  text-align:center;
+  background:rgba(255,255,255,.04);
+}
+
+.srux-toast-root{
+  position:fixed;
+  z-index:2147483000;
+  right:16px;
+  bottom:16px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  pointer-events:none;
+}
+
+.srux-toast{
+  pointer-events:auto;
+  max-width:min(360px, calc(100vw - 32px));
+  padding:12px 14px;
+  border-radius:16px;
+  color:var(--srux-text);
+  border:1px solid rgba(255,255,255,.18);
+  background:linear-gradient(180deg, rgba(16,22,36,.96), rgba(8,12,22,.95));
+  box-shadow:0 18px 50px rgba(0,0,0,.38);
+  transform:translateY(10px);
+  opacity:0;
+  transition:opacity .18s ease, transform .18s ease;
+  font-size:13px;
+  line-height:1.45;
+}
+.srux-toast.is-show{ opacity:1; transform:translateY(0); }
+.srux-toast[data-type="success"]{ border-color:rgba(81,216,138,.45); }
+.srux-toast[data-type="error"]{ border-color:rgba(255,107,107,.55); }
+.srux-toast[data-type="warn"]{ border-color:rgba(255,209,102,.55); }
+
+#supportUsersList .support-user{
+  transition:transform .16s ease, background .16s ease, border-color .16s ease, opacity .16s ease;
+}
+#supportUsersList .support-user:hover{ transform:translateY(-1px); }
+#supportUsersList .support-user.is-online{
+  border-color:rgba(81,216,138,.38) !important;
+  background:linear-gradient(90deg, rgba(81,216,138,.12), rgba(255,255,255,.045)) !important;
+}
+#supportUsersList .support-user.me{
+  position:relative;
+  box-shadow:inset 0 0 0 1px rgba(122,167,255,.34);
+}
+
+.support-presence-badge{
+  margin-inline-start:auto !important;
+  font-size:10px !important;
+  letter-spacing:.02em;
+  padding:3px 7px !important;
+  border-radius:999px !important;
+  border:1px solid rgba(255,255,255,.14) !important;
+  color:rgba(255,255,255,.72) !important;
+  background:rgba(255,255,255,.07) !important;
+}
+.support-presence-badge.is-online{
+  color:#062414 !important;
+  background:linear-gradient(180deg, #73efaa, #43d580) !important;
+  border-color:rgba(81,216,138,.65) !important;
+  font-weight:900;
+}
+
+#supportMessagesList .support-msg{
+  animation:srux-msg-in .18s ease both;
+}
+@keyframes srux-msg-in{
+  from{ opacity:.0; transform:translateY(6px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+
+#supportMessageInput,
+#suggestionInput,
+.sug-reply-input{
+  resize:none;
+  min-height:44px;
+  max-height:160px;
+  overflow:auto;
+}
+
+.suggestions-modal .srux-toolbar{
+  position:sticky;
+  top:0;
+  z-index:3;
+}
+
+.suggestion-item{
+  transition:transform .16s ease, opacity .16s ease, background .16s ease, border-color .16s ease;
+}
+.suggestion-item:hover{ transform:translateY(-1px); }
+.suggestion-item.srux-own-suggestion{
+  box-shadow:inset 0 0 0 1px rgba(122,167,255,.28);
+}
+.suggestion-item.srux-top-replies{
+  border-color:rgba(255,209,102,.35) !important;
+}
+
+.srux-suggestion-meta-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  margin-inline-start:6px;
+  padding:2px 7px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.07);
+  color:var(--srux-muted);
+  font-size:11px;
+}
+
+@media (max-width: 720px){
+  .srux-toolbar{ flex-wrap:wrap; }
+  .srux-search{ flex-basis:100%; }
+  .srux-select{ flex:1; max-width:none; }
+  .srux-toast-root{ right:10px; bottom:10px; }
+}
