@@ -311,49 +311,59 @@ async function refreshSupport(){
       .join("");
   }
 
-  // --- Optional: user profiles (names) ---
+  // --- Optional: user profiles (names + Step 4.3 device-confidence summary) ---
   let userProfilesHtml = `<div class="admin-empty">User names table not configured (optional).</div>`;
   try {
-    let resUsers = await supabase
-      .from("support_users")
-      .select("user_id, display_name, nickname_reset_required")
-      .order("display_name", { ascending: true })
-      .limit(500);
-    if(resUsers.error && /nickname_reset_required|column .*does not exist|schema cache/i.test(String(resUsers.error.message || ""))){
-      resUsers = await supabase
-        .from("support_users")
-        .select("user_id, display_name")
-        .order("display_name", { ascending: true })
-        .limit(500);
-    }
-    if (!resUsers.error && Array.isArray(resUsers.data)) {
-      if (resUsers.data.length === 0) {
-        userProfilesHtml = `<div class="admin-empty">No saved user names yet.</div>`;
-      } else {
-        userProfilesHtml = resUsers.data
-          .map((u) => {
-            const col = colorForUserId(u.user_id || "");
-            const reset = !!u.nickname_reset_required;
-            const nameLabel = reset ? "Needs new nickname" : (u.display_name || "User");
-            return `
-              <div class="admin-row">
-                <div class="admin-row-main">
-                  <div class="admin-row-meta">
-                    <span class="admin-color-dot" style="--u:${escapeHtml(col)}"></span>
-                    <b>${escapeHtml(nameLabel)}</b> • ${escapeHtml(u.user_id || "")}
-                    ${reset ? '<span style="margin-inline-start:8px;opacity:.8;">reset pending</span>' : ''}
-                  </div>
+    const deviceData = await apiAdmin("/api/admin-device-profiles", {});
+    const rows = Array.isArray(deviceData?.rows) ? deviceData.rows : [];
+    if (rows.length === 0) {
+      userProfilesHtml = `<div class="admin-empty">No saved user names yet.</div>`;
+    } else {
+      userProfilesHtml = rows
+        .map((u) => {
+          const col = colorForUserId(u.user_id || "");
+          const reset = !!u.nickname_reset_required;
+          const nameLabel = reset ? "Needs new nickname" : (u.display_name || "User");
+          const dev = u.device || {};
+          const summary = dev.summary || {};
+          const conf = Number(dev.best_confidence || 0);
+          const confLabel = conf ? `${conf}%` : "not learned yet";
+          const activeDevices = Number(dev.active || 0);
+          const lastSeen = dev.last_seen_at ? fmtTime(dev.last_seen_at) : "not seen yet";
+          const details = [
+            summary.platform || "",
+            summary.screen ? `screen ${summary.screen}` : "",
+            summary.timezone || "",
+            summary.graphics || "",
+          ].filter(Boolean).join(" • ");
+          return `
+            <div class="admin-row">
+              <div class="admin-row-main">
+                <div class="admin-row-meta">
+                  <span class="admin-color-dot" style="--u:${escapeHtml(col)}"></span>
+                  <b>${escapeHtml(nameLabel)}</b> • ${escapeHtml(u.user_id || "")}
+                  ${reset ? '<span style="margin-inline-start:8px;opacity:.8;">reset pending</span>' : ''}
                 </div>
-                <div class="admin-row-actions">
-                  <button class="admin-action" type="button" data-action="delete-username" data-user-id="${escapeHtml(u.user_id || "")}">Reset nickname</button>
+                <div class="admin-row-text" style="opacity:.82;font-size:12px;line-height:1.55;">
+                  Device confidence: <b>${escapeHtml(confLabel)}</b> • Active devices: ${escapeHtml(String(activeDevices))} • Last seen: ${escapeHtml(lastSeen)}
+                  ${dev.device_short ? ` • Signature: ${escapeHtml(dev.device_short)}` : ""}
+                  ${details ? `<br>${escapeHtml(details)}` : ""}
                 </div>
               </div>
-            `;
-          })
-          .join("");
-      }
+              <div class="admin-row-actions">
+                <button class="admin-action" type="button" data-action="delete-username" data-user-id="${escapeHtml(u.user_id || "")}">Reset nickname</button>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
     }
-  } catch {}
+    if(deviceData && deviceData.devices_available === false){
+      userProfilesHtml += `<div class="admin-empty" style="margin-top:8px;">Device confidence SQL is not installed yet.</div>`;
+    }
+  } catch (e) {
+    userProfilesHtml = `<div class="admin-empty">Could not load user names/device confidence: ${escapeHtml(e?.message || String(e || ""))}</div>`;
+  }
 
   tabSupport.innerHTML = `
     <div style="margin:6px 0 12px; font-weight:800;">Public Support</div>

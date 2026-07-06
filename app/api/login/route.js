@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { getCookieName, signSession } from "../../../lib/session.js";
 import { enforceSameOrigin, noStore } from "../../../lib/server/auth.js";
 import { getServiceSupabase } from "../../../lib/server/admin.js";
-import { ensureNicknameForUser, normalizeUserId, cleanNickname } from "../../../lib/server/nickname.js";
+import { ensureNicknameForUser, getNicknameProfile, normalizeUserId, cleanNickname } from "../../../lib/server/nickname.js";
+import { buildDeviceConfidence, findDeviceNicknameMatch, recordDeviceNickname, touchDeviceNickname } from "../../../lib/server/device-confidence.js";
 
 export const runtime = "nodejs";
 
-const MAX_LOGIN_BODY_BYTES = 4096;
+const MAX_LOGIN_BODY_BYTES = 16384;
 const LOGIN_WINDOW_MS = 10 * 60 * 1000;
 const LOGIN_MAX_FAILURES = 10;
 const LOGIN_FAILURE_CACHE_LIMIT = 512;
@@ -106,8 +107,9 @@ export async function POST(request) {
 
   const username = (body.username || "").toString();
   const password = (body.password || "").toString();
-  const user_id = normalizeUserId(body.user_id);
+  const incoming_user_id = normalizeUserId(body.user_id);
   const requestedNickname = cleanNickname(body.nickname || body.display_name || "");
+  const deviceFingerprint = buildDeviceConfidence(request, body.device_fingerprint || {}, SESSION_SECRET);
 
   if (isLimited(request, username)) {
     await new Promise((r)=>setTimeout(r, 500));
@@ -125,14 +127,54 @@ export async function POST(request) {
 
   clearFailures(request, username);
 
-  if (!user_id) {
+  if (!incoming_user_id) {
     return noStore(NextResponse.json({ error: "Missing browser identity. Refresh the login page and try again." }, { status: 400 }));
   }
 
-  let nicknameResult;
+  let finalUserId = incoming_user_id;
+  let displayName = "";
+  let recoveredByDevice = false;
+  let deviceConfidence = 0;
+
   try {
     const supabase = getServiceSupabase();
-    nicknameResult = await ensureNicknameForUser(supabase, user_id, requestedNickname);
+
+    // Step 4.3: always try device-confidence recovery first. This prevents a user
+    // on the same confident device from changing nickname simply by clearing cookies.
+    const match = await findDeviceNicknameMatch(supabase, deviceFingerprint);
+    if(!match.ok){
+      return noStore(NextResponse.json({ error: match.error || "Could not verify device nickname." }, { status: 500 }));
+    }
+
+    if(match.matched){
+      finalUserId = match.user_id;
+      displayName = match.display_name;
+      recoveredByDevice = true;
+      deviceConfidence = Number(match.confidence_score || 0);
+      await touchDeviceNickname(supabase, match.device_hash);
+    } else {
+      if(body.nickname_from_storage){
+        const profile = await getNicknameProfile(supabase, finalUserId);
+        if(profile?.ok && profile.reset_required){
+          return noStore(NextResponse.json({
+            error: "الأدمن طلب إعادة اختيار الكنية. اكتب كنية خيالية جديدة.",
+            nickname_required: true,
+            user_id: finalUserId,
+          }, { status: 409 }));
+        }
+      }
+      const nicknameResult = await ensureNicknameForUser(supabase, finalUserId, requestedNickname);
+      if (!nicknameResult?.ok) {
+        return noStore(NextResponse.json({
+          error: nicknameResult?.error || "Nickname is required.",
+          nickname_required: !!nicknameResult?.nickname_required,
+          device_confidence: { matched:false, reason: match.reason || "nickname_required", best_score: match.best_score || 0, ambiguous: !!match.ambiguous },
+          user_id: finalUserId,
+        }, { status: nicknameResult?.status || 409 }));
+      }
+      displayName = nicknameResult.display_name || "";
+      await recordDeviceNickname(supabase, finalUserId, displayName, deviceFingerprint, 100);
+    }
   } catch (err) {
     return noStore(NextResponse.json(
       { error: String(err?.message || err || "Could not verify nickname.") },
@@ -140,19 +182,16 @@ export async function POST(request) {
     ));
   }
 
-  if (!nicknameResult?.ok) {
-    return noStore(NextResponse.json({
-      error: nicknameResult?.error || "Nickname is required.",
-      nickname_required: !!nicknameResult?.nickname_required,
-      user_id,
-    }, { status: nicknameResult?.status || 409 }));
-  }
-
-  const displayName = nicknameResult.display_name || "";
   const expMs = Date.now() + 12 * 60 * 60 * 1000; // 12 hours
-  const token = await signSession({ u: username, uid: user_id, name: displayName, exp: expMs }, SESSION_SECRET);
+  const token = await signSession({ u: username, uid: finalUserId, name: displayName, exp: expMs }, SESSION_SECRET);
 
-  const res = noStore(NextResponse.json({ ok: true, user_id, display_name: displayName }));
+  const res = noStore(NextResponse.json({
+    ok: true,
+    user_id: finalUserId,
+    display_name: displayName,
+    recovered_by_device: recoveredByDevice,
+    device_confidence_score: deviceConfidence,
+  }));
 
   res.cookies.set({
     name: getCookieName(),
