@@ -200,14 +200,19 @@ export default function LoginPage() {
   const [err, setErr] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [agreeHint, setAgreeHint] = useState("");
+  const [nicknamePromptReason, setNicknamePromptReason] = useState("");
 
   useEffect(() => {
     const uid = getStableUserId();
     const nick = getStoredNickname();
+    const forcedNickname = new URLSearchParams(window.location.search).has("nickname");
     setUserId(uid);
     setStoredNicknameState(nick);
     setNickname(nick || "");
-    setNicknameRequired(!nick || new URLSearchParams(window.location.search).has("nickname"));
+    // لا نعرض خانة الكنية افتراضيًا.
+    // لو الجهاز متعلّم، السيرفر سيستعيد الكنية تلقائيًا حتى بعد Clear Cookies.
+    // لو السيرفر احتاج كنية فعلًا، سيرجع nickname_required ونظهر الخانة وقتها فقط.
+    setNicknameRequired(forcedNickname);
   }, []);
 
   const nickErr = useMemo(() => (nicknameRequired && cleanNickname(nickname)) ? nicknameError(nickname) : "", [nickname, nicknameRequired]);
@@ -251,6 +256,9 @@ export default function LoginPage() {
       if (!res.ok) {
         if (data?.nickname_required) {
           setNicknameRequired(true);
+          setNicknamePromptReason(data?.device_confidence?.best_score
+            ? `لم أجد ثقة كافية لاستعادة كنيتك تلقائيًا. اكتب كنية خيالية جديدة. أقرب تطابق: ${data.device_confidence.best_score}%`
+            : "هذه أول مرة لهذا الجهاز أو قام الأدمن بطلب إعادة اختيار الكنية. اكتب كنية خيالية فقط.");
           setNickname("");
           setStoredNicknameState("");
           try { localStorage.removeItem(NAME_KEY); } catch {}
@@ -322,14 +330,18 @@ export default function LoginPage() {
                   placeholder="مثال: عقرب الصحراء"
                 />
               </label>
-              <div style={styles.nicknameHint}>لو استخدمت التول من هذا الجهاز قبل كده، سجّل دخول وسيحاول التول استعادة كنيتك تلقائيًا. لو أول مرة، اكتب كنية خيالية فقط ولا تكتب اسمك الحقيقي.</div>
+              <div style={styles.nicknameHint}>{nicknamePromptReason || "اكتب كنية خيالية فقط ولا تكتب اسمك الحقيقي. لن تظهر هذه الخانة مرة أخرى إلا إذا كان الجهاز جديدًا أو قام الأدمن بعمل Reset nickname."}</div>
               {nickErr ? <div style={styles.nickError}>{nickErr}</div> : null}
             </div>
           ) : storedNickname ? (
             <div style={styles.nicknameSaved} dir="rtl">
               كنيتك الحالية داخل التول: <b>{storedNickname}</b>
             </div>
-          ) : null}
+          ) : (
+            <div style={styles.nicknameRecovering} dir="rtl">
+              سيتم استعادة كنيتك تلقائيًا من الجهاز إن كانت مسجلة. لن نطلب كنية جديدة إلا عند الحاجة.
+            </div>
+          )}
 
           {err ? <div style={styles.error}>{err}</div> : null}
 
@@ -435,6 +447,14 @@ const styles = {
     background: "rgba(34,197,94,0.12)",
     border: "1px solid rgba(34,197,94,0.22)",
     fontSize: 13,
+  },
+  nicknameRecovering: {
+    padding: "10px 12px",
+    borderRadius: 12,
+    background: "rgba(59,130,246,0.10)",
+    border: "1px solid rgba(59,130,246,0.22)",
+    fontSize: 13,
+    lineHeight: 1.5,
   },
   required: { color: "#fca5a5" },
   nickError: { fontSize: 12, color: "#fecaca" },
