@@ -1,29 +1,21 @@
 (function(){
   "use strict";
 
-  var LEARN_KEY = "sr_device_confidence_learned_v2";
-  var ID_KEY = "sr_tool_user_id";
-  var NAME_KEY = "sr_tool_user_name";
-  var LEARN_EVERY_MS = 1000 * 60 * 60 * 24 * 30; // one lightweight refresh per device/month
+  var LEARN_KEY = "sr_device_confidence_learned_v4";
+  var TRY_KEY = "sr_device_confidence_last_try_v4";
+  var LEARN_EVERY_MS = 1000 * 60 * 60 * 24 * 30; // successful learn refresh: monthly
+  var RETRY_AFTER_MS = 1000 * 60 * 10; // failed/unauthenticated retry: at most once per 10 minutes
 
   function localGet(k){ try { return localStorage.getItem(k) || ""; } catch { return ""; } }
   function localSet(k, v){ try { localStorage.setItem(k, v); } catch {} }
-  function cookieGet(name){
-    try{
-      var prefix = name + "=";
-      var parts = String(document.cookie || "").split(/;\s*/);
-      for(var i=0;i<parts.length;i++){
-        if(parts[i].indexOf(prefix) === 0) return decodeURIComponent(parts[i].slice(prefix.length));
-      }
-    }catch{}
-    return "";
-  }
-  function cleanName(v){
-    return String(v || "").replace(/\u0000/g, "").replace(/[\r\n\t]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 40);
-  }
+  function now(){ return Date.now(); }
   function shouldSkipPage(){
     var p = String(location.pathname || "");
     return p === "/login" || p === "/logout" || p.indexOf("/api/") === 0;
+  }
+  function recently(key, ms){
+    var t = Number(localGet(key) || 0);
+    return t && (now() - t) < ms;
   }
   function hashText(input){
     var s = String(input || "");
@@ -147,29 +139,29 @@
   }
   function maybeLearn(){
     if(shouldSkipPage()) return;
-    var uid = localGet(ID_KEY) || cookieGet(ID_KEY);
-    var name = cleanName(localGet(NAME_KEY) || cookieGet(NAME_KEY));
-    if(!uid || !name) return;
-
-    var now = Date.now();
-    var prior = "";
-    try { prior = JSON.parse(localGet(LEARN_KEY) || "{}"); } catch { prior = {}; }
-    var sig = uid + "|" + name;
-    if(prior && prior.sig === sig && Number(prior.ts || 0) && (now - Number(prior.ts || 0)) < LEARN_EVERY_MS) return;
+    if(recently(LEARN_KEY, LEARN_EVERY_MS)) return;
+    if(recently(TRY_KEY, RETRY_AFTER_MS)) return;
+    localSet(TRY_KEY, String(now()));
 
     collectDeviceFingerprint().then(function(device_fingerprint){
       return fetch("/api/device-confidence-learn", {
         method:"POST",
+        credentials:"same-origin",
         headers:{ "content-type":"application/json" },
         body:JSON.stringify({ device_fingerprint:device_fingerprint })
       });
     }).then(function(res){
-      if(res && res.ok) localSet(LEARN_KEY, JSON.stringify({ sig:sig, ts:now }));
+      return res ? res.json().catch(function(){ return {}; }).then(function(data){ return {res:res, data:data}; }) : {res:null, data:{}};
+    }).then(function(out){
+      if(out && out.res && out.res.ok && out.data && out.data.learned){
+        localSet(LEARN_KEY, String(now()));
+        try { window.dispatchEvent(new CustomEvent("sr-device-confidence-learned", { detail: out.data })); } catch {}
+      }
     }).catch(function(){
-      // Silent by design: this is a best-effort learning pass and must never block the tool.
+      // Silent by design: this must never block the tool.
     });
   }
 
-  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ setTimeout(maybeLearn, 900); });
-  else setTimeout(maybeLearn, 900);
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ setTimeout(maybeLearn, 1200); });
+  else setTimeout(maybeLearn, 1200);
 })();

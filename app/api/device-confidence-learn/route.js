@@ -14,31 +14,31 @@ function j(body, init){
 
 export async function POST(req){
   const same = enforceSameOrigin(req);
-  if(!same.ok) return j({ ok:false, error:same.error }, { status:same.status || 403 });
+  if(!same.ok) return j({ ok:false, learned:false, error:same.error }, { status:same.status || 403 });
 
   const sess = await requireUserSession(req);
-  if(!sess.ok) return j({ ok:false, error:sess.error }, { status:sess.status || 401 });
+  if(!sess.ok) return j({ ok:false, learned:false, error:sess.error }, { status:sess.status || 401 });
 
   const contentLength = Number(req.headers.get("content-length") || 0);
   if(Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES){
-    return j({ ok:false, error:"Request body too large" }, { status:413 });
+    return j({ ok:false, learned:false, error:"Request body too large" }, { status:413 });
   }
 
   let body = {};
   try{ body = await req.json(); }catch{}
 
   const payload = sess.payload || {};
-  let userId = normalizeUserId(payload.uid || body.user_id || "");
-  let displayName = cleanNickname(payload.name || body.display_name || "");
+  const userId = normalizeUserId(payload.uid || "");
+  let displayName = cleanNickname(payload.name || "");
 
   if(!userId){
-    return j({ ok:false, error:"Missing authenticated user identity." }, { status:400 });
+    return j({ ok:false, learned:false, error:"Missing authenticated user identity." }, { status:400 });
   }
 
   const supabase = getServiceSupabase();
 
-  // If the signed session did not include a nickname for any reason, fall back to
-  // the server-side profile. Do not trust a browser-supplied nickname as primary.
+  // Use the signed session as source of truth. If the token does not carry
+  // the display name for any legacy reason, read the server profile.
   if(!displayName){
     const profile = await getNicknameProfile(supabase, userId);
     if(profile?.ok && !profile.reset_required) displayName = cleanNickname(profile.display_name || "");
@@ -55,7 +55,7 @@ export async function POST(req){
 
   const saved = await recordDeviceNickname(supabase, userId, displayName, fp, 100);
   if(!saved?.ok){
-    return j({ ok:false, error:saved?.error || "Could not learn device." }, { status:500 });
+    return j({ ok:false, learned:false, error:saved?.error || "Could not learn device." }, { status:500 });
   }
 
   return j({ ok:true, learned:true, missing_table:!!saved.missing_table, user_id:userId, display_name:displayName });
