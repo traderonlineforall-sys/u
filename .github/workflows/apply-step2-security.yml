@@ -16,6 +16,8 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
           persist-credentials: true
 
       - name: Apply Step 2 changed files
@@ -364,4 +366,5 @@ jobs:
             public/support-chat.js
 
           git commit -m "Apply Step 2 security upgrade"
-          git push
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
