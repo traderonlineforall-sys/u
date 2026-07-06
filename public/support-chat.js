@@ -135,10 +135,14 @@ async function upsertProfileName(name) {
   const safe = String(name || "").trim().slice(0, 60);
   if (!safe) return;
   try {
-    const res = await supabase
-      .from("support_users")
-      .upsert({ user_id: USER_ID, display_name: safe }, { onConflict: "user_id" });
-    if (res.error) throw res.error;
+    const res = await fetch("/api/support-profile", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ user_id: USER_ID, display_name: safe }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data?.error) throw new Error(data?.error || "support profile update failed");
   } catch (e) {
     // If the table is not properly configured, don't break the chat.
     console.warn("support_users upsert failed", e);
@@ -855,10 +859,21 @@ async function sendMessage() {
     room_id: activeRoom.room_id,
   };
 
-  const { data: insertedRows, error } = await supabase
-    .from("support_messages")
-    .insert(payload)
-    .select("*");
+  let insertedRows = [];
+  let error = null;
+  try {
+    const res = await fetch("/api/support-message", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ payload }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data?.ok) throw new Error(data?.error || "Message insert failed.");
+    insertedRows = Array.isArray(data?.data) ? data.data : [];
+  } catch (err) {
+    error = err;
+  }
 
   sendBtn.disabled = false;
 
