@@ -70,7 +70,7 @@ export async function middleware(request) {
 
   const cookieName = getCookieName();
   const token = request.cookies.get(cookieName)?.value || "";
-  const secret = process.env.SESSION_SECRET || process.env.BASIC_AUTH_PASS || "";
+  const secret = process.env.SESSION_SECRET || "";
 
   if (!secret) {
     return applySecurityHeaders(

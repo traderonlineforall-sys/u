@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { enforceSameOrigin, requireUserSession, noStore } from "../../../lib/server/auth.js";
-import { requireAdminPassword, getServiceSupabase } from "../../../lib/server/admin.js";
+import { requireAdminAccess, getServiceSupabase } from "../../../lib/server/admin.js";
 
 function j(body, init){
   return noStore(NextResponse.json(body, init));
@@ -14,8 +14,8 @@ export async function POST(req){
   const sess = await requireUserSession(req);
   if(!sess.ok) return j({ error: sess.error }, { status: sess.status || 401 });
   const body = await req.json().catch(()=> ({}));
-  const chk = requireAdminPassword(body);
-  if(!chk.ok) return j({ error: chk.error }, { status: 401 });
+  const chk = await requireAdminAccess(req, body);
+  if(!chk.ok) return j({ error: chk.error }, { status: chk.status || 401 });
 
   const table = String(body?.table || "");
   const id = body?.id;

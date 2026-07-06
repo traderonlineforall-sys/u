@@ -25,7 +25,6 @@
   }
   function tab(){ return document.getElementById('adminTabSuggestions'); }
   function status(){ return document.getElementById('adminStatus'); }
-  function pass(){ return String(document.getElementById('adminPasswordInput')?.value || '').trim(); }
   function setStatus(text, type){
     var s = status();
     if (!s) return;
@@ -56,12 +55,11 @@
     return map;
   }
   async function api(path, body){
-    var p = pass();
-    if (!p) throw new Error('Admin password is not available. Reopen the admin panel and login again.');
     var res = await fetch(path, {
       method: 'POST',
+      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(Object.assign({}, body || {}, { admin_password: p }))
+      body: JSON.stringify(body || {})
     });
     var data = await res.json().catch(function(){ return {}; });
     if (!res.ok) throw new Error(data?.error || 'Request failed');

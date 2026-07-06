@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { enforceSameOrigin, noStore } from "../../../lib/server/auth.js";
+import { enforceSameOrigin, requireUserSession, noStore } from "../../../lib/server/auth.js";
 
 const EDGE_TRUSTED_CLIENT_TOKEN = "6A5AA1D4EAFF4E9FB37E23D68491D6F4";
 const EDGE_TTS_ENDPOINT = "https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1";
@@ -405,6 +405,9 @@ async function synthesizeArabicRobust(text, preferredVoiceId, allowGoogleFallbac
 }
 
 export async function GET(req) {
+  const sess = await requireUserSession(req);
+  if(!sess.ok) return textResponse(sess.error, sess.status || 401);
+
   const url = new URL(req.url);
   const rawText = url.searchParams.get("text") || "";
 
@@ -436,6 +439,8 @@ export async function GET(req) {
 export async function POST(req) {
   const sameOrigin = enforceSameOrigin(req);
   if (!sameOrigin.ok) return textResponse(sameOrigin.error, sameOrigin.status);
+  const sess = await requireUserSession(req);
+  if(!sess.ok) return textResponse(sess.error, sess.status || 401);
 
   const body = await req.json().catch(() => ({}));
   const text = normalizeArabicText(body?.text || "");
