@@ -335,6 +335,8 @@ async function refreshSupport(){
             summary.screen ? `screen ${summary.screen}` : "",
             summary.timezone || "",
             summary.graphics || "",
+            summary.network ? `net ${summary.network}` : "",
+            summary.media_devices ? `media ${summary.media_devices}` : "",
           ].filter(Boolean).join(" • ");
           return `
             <div class="admin-row">

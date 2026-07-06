@@ -95,7 +95,7 @@ async function getCanvasHash(){
     ctx.fillRect(5, 5, 95, 33);
     ctx.fillStyle = "#069";
     ctx.font = "16px Arial";
-    ctx.fillText("SR Tool بصمة الجهاز 4.4", 12, 14);
+    ctx.fillText("SR Tool بصمة الجهاز 4.7", 12, 14);
     ctx.fillStyle = "rgba(102, 204, 0, 0.7)";
     ctx.font = "18px Times New Roman";
     ctx.fillText("عقرب الصحراء", 16, 48);
@@ -240,6 +240,101 @@ function getIntlInfo(){
   }catch{ return {}; }
 }
 
+async function getKeyboardInfo(){
+  try{
+    const kb = navigator.keyboard;
+    if(!kb || typeof kb.getLayoutMap !== "function") return { layoutAvailable:false, layoutHash:"" };
+    const map = await kb.getLayoutMap();
+    const keys = ["KeyA","KeyQ","KeyZ","KeyM","Digit1","Digit2","Minus","Equal","BracketLeft","BracketRight","Semicolon","Quote","Backslash","Comma","Period","Slash","Backquote","IntlBackslash"];
+    const pairs = keys.map((k)=>`${k}:${map.get(k) || ""}`).join("|");
+    return { layoutAvailable:true, layoutHash: await sha256Hex(pairs) };
+  }catch{ return { layoutAvailable:false, layoutHash:"" }; }
+}
+
+function getNetworkInfo(){
+  try{
+    const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection || {};
+    return {
+      effectiveType: c.effectiveType || "",
+      type: c.type || "",
+      downlinkBucket: bucketNumber(c.downlink || 0, 0.5),
+      rttBucket: bucketNumber(c.rtt || 0, 50),
+      saveData: !!c.saveData,
+    };
+  }catch{ return {}; }
+}
+
+async function getBatteryInfo(){
+  try{
+    if(typeof navigator.getBattery !== "function") return { supported:false };
+    const b = await navigator.getBattery();
+    return {
+      supported:true,
+      charging: !!b.charging,
+      levelBucket: bucketNumber((b.level || 0) * 100, 10),
+      chargingTimeBucket: Number.isFinite(b.chargingTime) ? bucketNumber(b.chargingTime, 600) : "",
+      dischargingTimeBucket: Number.isFinite(b.dischargingTime) ? bucketNumber(b.dischargingTime, 600) : "",
+    };
+  }catch{ return { supported:false }; }
+}
+
+async function getMediaDevicesInfo(){
+  try{
+    if(!navigator.mediaDevices || typeof navigator.mediaDevices.enumerateDevices !== "function") return { supported:false };
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const kinds = devices.map((d)=>`${d.kind}:${d.deviceId ? "id" : "noid"}:${d.groupId ? "grp" : "nogrp"}`).sort().join("|");
+    return {
+      supported:true,
+      audioInputs: devices.filter((d)=>d.kind === "audioinput").length,
+      audioOutputs: devices.filter((d)=>d.kind === "audiooutput").length,
+      videoInputs: devices.filter((d)=>d.kind === "videoinput").length,
+      kindsHash: await sha256Hex(kinds),
+    };
+  }catch{ return { supported:false }; }
+}
+
+async function getCapabilitiesInfo(){
+  try{
+    const flags = {
+      serviceWorker: !!navigator.serviceWorker,
+      webAssembly: typeof WebAssembly !== "undefined",
+      indexedDB: !!window.indexedDB,
+      localStorage: (()=>{ try{ localStorage.setItem("sr_cap_test","1"); localStorage.removeItem("sr_cap_test"); return true; }catch{ return false; } })(),
+      sessionStorage: (()=>{ try{ sessionStorage.setItem("sr_cap_test","1"); sessionStorage.removeItem("sr_cap_test"); return true; }catch{ return false; } })(),
+      notificationPermission: (typeof Notification !== "undefined" && Notification.permission) ? Notification.permission : "",
+      pdfViewerEnabled: !!navigator.pdfViewerEnabled,
+      installedPwa: (()=>{ try{ return matchMedia("(display-mode: standalone)").matches; }catch{ return false; } })(),
+      standalone: !!navigator.standalone,
+      bluetooth: !!navigator.bluetooth,
+      usb: !!navigator.usb,
+      hid: !!navigator.hid,
+      serial: !!navigator.serial,
+      clipboard: !!navigator.clipboard,
+      credentials: !!navigator.credentials,
+      locks: !!navigator.locks,
+      share: !!navigator.share,
+      wakeLock: !!navigator.wakeLock,
+      fileSystemAccess: !!window.showOpenFilePicker,
+      speechSynthesis: !!window.speechSynthesis,
+      speechRecognition: !!(window.SpeechRecognition || window.webkitSpeechRecognition),
+      gamepads: (()=>{ try{ return (navigator.getGamepads && Array.from(navigator.getGamepads() || []).filter(Boolean).length) || 0; }catch{ return 0; } })(),
+    };
+    const apiFlagsHash = await sha256Hex(Object.keys(flags).sort().map((k)=>`${k}:${flags[k]}`).join("|"));
+    return {
+      serviceWorker: flags.serviceWorker,
+      webAssembly: flags.webAssembly,
+      indexedDB: flags.indexedDB,
+      localStorage: flags.localStorage,
+      sessionStorage: flags.sessionStorage,
+      notificationPermission: flags.notificationPermission,
+      pdfViewerEnabled: flags.pdfViewerEnabled,
+      installedPwa: flags.installedPwa,
+      standalone: flags.standalone,
+      apiFlagsHash,
+    };
+  }catch{ return {}; }
+}
+
 async function collectDeviceFingerprint(){
   const nav = navigator || {};
   const scr = screen || {};
@@ -250,7 +345,7 @@ async function collectDeviceFingerprint(){
   const colorScheme = (()=>{ try { return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; } catch { return ""; } })();
   const reducedMotion = (()=>{ try { return matchMedia("(prefers-reduced-motion: reduce)").matches ? "reduce" : "no-preference"; } catch { return ""; } })();
   const vv = window.visualViewport || {};
-  const [canvasHash, audioHash, fontsHash, webgl, pluginsHash, clientHints, storage] = await Promise.all([
+  const [canvasHash, audioHash, fontsHash, webgl, pluginsHash, clientHints, storage, keyboard, capabilities, network, battery, mediaDevices] = await Promise.all([
     getCanvasHash(),
     getAudioHash(),
     getFontsHash(),
@@ -258,6 +353,11 @@ async function collectDeviceFingerprint(){
     sha256Hex(plugins),
     getClientHints(),
     getStorageInfo(),
+    getKeyboardInfo(),
+    getCapabilitiesInfo(),
+    Promise.resolve(getNetworkInfo()),
+    getBatteryInfo(),
+    getMediaDevicesInfo(),
   ]);
   return {
     userAgent: nav.userAgent || "",
@@ -301,6 +401,11 @@ async function collectDeviceFingerprint(){
     clientHints,
     mediaFeatures: getMediaFeatures(),
     storage,
+    keyboard,
+    capabilities,
+    network,
+    battery,
+    mediaDevices,
     canvasHash,
     audioHash,
     fontsHash,

@@ -213,7 +213,7 @@ export async function POST(request) {
           }, { status: nicknameResult?.status || 409 }));
         }
         displayName = nicknameResult.display_name || "";
-        await recordDeviceNickname(supabase, finalUserId, displayName, deviceFingerprint, 100);
+        await recordDeviceNickname(supabase, finalUserId, displayName, deviceFingerprint, 110);
       }
     }
   } catch (err) {

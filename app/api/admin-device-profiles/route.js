@@ -22,6 +22,11 @@ function fmtSummary(summary){
     touch: clean(s.touch, 20),
     graphics: clean(s.graphics, 150),
     ip_bucket: clean(s.ip_bucket, 32),
+    keyboard: clean(s.keyboard, 32),
+    capabilities: clean(s.capabilities, 32),
+    network: clean(s.network, 80),
+    battery: clean(s.battery, 80),
+    media_devices: clean(s.media_devices, 80),
   };
 }
 
