@@ -1,0 +1,75 @@
+name: Apply Step 5.4 Strict Nickname Safety Tuned
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/apply-step54-strict-nickname-safety.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-step54:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply strict nickname recovery safety
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          from datetime import datetime, timezone
+
+          def replace_exact(path, replacements):
+              p = Path(path)
+              txt = p.read_text(encoding='utf-8')
+              for old, new in replacements:
+                  if old not in txt:
+                      raise SystemExit(f'Missing expected text in {path}: {old[:120]!r}')
+                  txt = txt.replace(old, new, 1)
+              p.write_text(txt, encoding='utf-8')
+
+          # Tighten automatic nickname recovery after a real-world false positive.
+          # Suggestions still appear from 60%, but automatic takeover of a nickname now requires
+          # a much stronger match and a wider gap from any other candidate.
+          replace_exact('lib/server/device-confidence.js', [
+              ('export const DEVICE_AUTO_RECOVERY_THRESHOLD = 80;', 'export const DEVICE_AUTO_RECOVERY_THRESHOLD = 100;'),
+              ('export const DEVICE_AMBIGUITY_GAP = 10;', 'export const DEVICE_AMBIGUITY_GAP = 18;'),
+              ('export const DEVICE_MANUAL_RECOVERY_THRESHOLD = 72;', 'export const DEVICE_MANUAL_RECOVERY_THRESHOLD = 90;'),
+              ('export const DEVICE_MANUAL_AMBIGUITY_GAP = 8;', 'export const DEVICE_MANUAL_AMBIGUITY_GAP = 15;'),
+              ('export const DEVICE_MANUAL_STRONG_OVERRIDE_THRESHOLD = 86;', 'export const DEVICE_MANUAL_STRONG_OVERRIDE_THRESHOLD = 102;'),
+              ('// Auto recovery is now allowed at 80% when there is a clear gap from any other user.',
+               '// Auto recovery is now strict after Step 5.4: only very high-confidence matches can restore a nickname automatically.'),
+          ])
+
+          # The login route had explicit manual-recovery values. Tighten those too.
+          replace_exact('app/api/login/route.js', [
+              ('verifyDeviceNicknameChoice(supabase, deviceFingerprint, selectedRecoveryUserId, { minScore: 72, suggestionThreshold: 60, gap: 8, maxSuggestions: 8 })',
+               'verifyDeviceNicknameChoice(supabase, deviceFingerprint, selectedRecoveryUserId, { minScore: 90, suggestionThreshold: 60, gap: 15, strongOverride: 102, maxSuggestions: 8 })'),
+          ])
+
+          Path('SECURITY_UPGRADE_STEP54_AR.md').write_text('''# Step 5.4 - Strict Nickname Recovery Safety\n\nالغرض من التحديث ده منع حالة إن جهاز مختلف يدخل تلقائيًا بنفس كنية مستخدم آخر بسبب تشابه بصمة الجهاز أو الشبكة.\n\n## التغيير\n\n- الاسترجاع التلقائي للكنية بقى يحتاج تطابق قوي جدًا: **100% أو أعلى** من أصل 110%.\n- لازم يكون فيه فرق واضح عن أقرب مستخدم آخر: **18% على الأقل**.\n- المقترحات من 60% ما زالت تظهر لمساعدة المستخدم، لكنها لا تعطي حق أخذ الكنية.\n- اختيار كنية من المقترحات يحتاج الآن **90% أو أعلى** وفارق أمان **15%**.\n- لو التطابق ضعيف أو متقارب مع مستخدم آخر، النظام يطلب كنية جديدة بدل ما يخاطر بإعطاء اسم غلط.\n\n## النتيجة المتوقعة\n\n- نفس الجهاز المتعلم جيدًا يرجع كنيته تلقائيًا غالبًا.\n- جهاز صديق أو جهاز مشابه لن يأخذ نفس الكنية تلقائيًا.\n- لو النظام غير واثق، تظهر خانة الكنية أو تظهر مقترحات فقط.\n\n## ملاحظات\n\nلا يوجد SQL جديد.\nلا يوجد API جديد.\nلا يوجد زيادة استهلاك مستمرة في Cloudflare.\n''', encoding='utf-8')
+
+          Path('.cloudflare-deploy-trigger').write_text('step54-strict-nickname-safety ' + datetime.now(timezone.utc).isoformat() + '\n', encoding='utf-8')
+          PY
+
+      - name: Commit and push changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "sr-security-bot"
+          git config user.email "sr-security-bot@users.noreply.github.com"
+          git add lib/server/device-confidence.js app/api/login/route.js SECURITY_UPGRADE_STEP54_AR.md .cloudflare-deploy-trigger
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "Step 5.4 strict nickname recovery safety"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin HEAD:"${GITHUB_REF_NAME}"
