@@ -63,6 +63,7 @@ function nicknameError(value){
 }
 
 
+
 async function sha256Hex(value){
   try{
     const bytes = new TextEncoder().encode(String(value || ""));
@@ -76,24 +77,58 @@ async function sha256Hex(value){
   }
 }
 
+function bucketNumber(value, bucket){
+  const n = Number(value || 0);
+  if(!Number.isFinite(n) || n <= 0) return "";
+  const b = Number(bucket || 1);
+  return String(Math.round(n / b) * b);
+}
+
 async function getCanvasHash(){
   try{
     const c = document.createElement("canvas");
-    c.width = 280; c.height = 90;
+    c.width = 320; c.height = 110;
     const ctx = c.getContext("2d");
     if(!ctx) return "";
     ctx.textBaseline = "top";
     ctx.fillStyle = "#f60";
-    ctx.fillRect(5, 5, 90, 30);
+    ctx.fillRect(5, 5, 95, 33);
     ctx.fillStyle = "#069";
     ctx.font = "16px Arial";
-    ctx.fillText("SR Tool بصمة الجهاز 4.3", 12, 14);
+    ctx.fillText("SR Tool بصمة الجهاز 4.4", 12, 14);
     ctx.fillStyle = "rgba(102, 204, 0, 0.7)";
     ctx.font = "18px Times New Roman";
-    ctx.fillText("عقرب الصحراء", 16, 44);
+    ctx.fillText("عقرب الصحراء", 16, 48);
     ctx.globalCompositeOperation = "multiply";
-    ctx.fillStyle = "rgb(255,0,255)"; ctx.beginPath(); ctx.arc(180, 45, 24, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "rgb(255,0,255)"; ctx.beginPath(); ctx.arc(205, 55, 28, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(20,40,90,0.8)"; ctx.strokeRect(245, 18, 45, 55);
     return await sha256Hex(c.toDataURL());
+  }catch{ return ""; }
+}
+
+async function getAudioHash(){
+  try{
+    const Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if(!Ctx) return "";
+    const ctx = new Ctx(1, 44100, 44100);
+    const osc = ctx.createOscillator();
+    const comp = ctx.createDynamicsCompressor();
+    const gain = ctx.createGain();
+    osc.type = "triangle";
+    osc.frequency.value = 10000;
+    comp.threshold.value = -50;
+    comp.knee.value = 40;
+    comp.ratio.value = 12;
+    comp.attack.value = 0;
+    comp.release.value = 0.25;
+    gain.gain.value = 0.05;
+    osc.connect(comp); comp.connect(gain); gain.connect(ctx.destination);
+    osc.start(0);
+    const buffer = await ctx.startRendering();
+    const data = buffer.getChannelData(0);
+    let sample = "";
+    for(let i=4500; i<5000 && i<data.length; i+=7) sample += Math.abs(data[i]).toFixed(7) + ",";
+    return await sha256Hex(sample);
   }catch{ return ""; }
 }
 
@@ -102,7 +137,7 @@ async function getFontsHash(){
     const c = document.createElement("canvas");
     const ctx = c.getContext("2d");
     if(!ctx) return "";
-    const fonts = ["Arial","Tahoma","Times New Roman","Courier New","Verdana","Georgia","Segoe UI","Roboto","Open Sans","Calibri","Cambria","Noto Sans Arabic"];
+    const fonts = ["Arial","Tahoma","Times New Roman","Courier New","Verdana","Georgia","Segoe UI","Roboto","Open Sans","Calibri","Cambria","Noto Sans Arabic","Trebuchet MS","Impact","Lucida Console"];
     const txt = "SR Tool عقرب الصحراء 0123456789";
     const widths = fonts.map((font)=>{
       ctx.font = `16px ${font}, monospace`;
@@ -135,9 +170,73 @@ async function getWebglInfo(){
       version: String(gl.getParameter(gl.VERSION) || ""),
       shadingLanguageVersion: String(gl.getParameter(gl.SHADING_LANGUAGE_VERSION) || ""),
       maxTextureSize: String(gl.getParameter(gl.MAX_TEXTURE_SIZE) || ""),
+      maxRenderbufferSize: String(gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) || ""),
+      maxVertexAttribs: String(gl.getParameter(gl.MAX_VERTEX_ATTRIBS) || ""),
+      maxCombinedTextureImageUnits: String(gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS) || ""),
       extensionsHash: await sha256Hex(ext.sort().join("|")),
       paramsHash: await sha256Hex(params),
     };
+  }catch{ return {}; }
+}
+
+async function getClientHints(){
+  try{
+    const ua = navigator.userAgentData;
+    if(!ua) return {};
+    const base = {
+      brands: Array.isArray(ua.brands) ? ua.brands.map((b)=>`${b.brand}:${b.version}`) : [],
+      mobile: !!ua.mobile,
+      platform: ua.platform || "",
+    };
+    if(typeof ua.getHighEntropyValues === "function"){
+      const high = await ua.getHighEntropyValues(["architecture","bitness","model","platformVersion","uaFullVersion","fullVersionList","wow64"]);
+      return {
+        ...base,
+        architecture: high.architecture || "",
+        bitness: high.bitness || "",
+        model: high.model || "",
+        platformVersion: high.platformVersion || "",
+        uaFullVersion: high.uaFullVersion || "",
+        fullVersionList: Array.isArray(high.fullVersionList) ? high.fullVersionList.map((b)=>`${b.brand}:${b.version}`) : [],
+        wow64: !!high.wow64,
+      };
+    }
+    return base;
+  }catch{ return {}; }
+}
+
+function getMediaFeatures(){
+  const q = (query, yes="yes", no="no")=>{ try { return matchMedia(query).matches ? yes : no; } catch { return ""; } };
+  return {
+    pointer: q("(pointer: fine)", "fine", q("(pointer: coarse)", "coarse", "none")),
+    anyPointer: q("(any-pointer: fine)", "fine", q("(any-pointer: coarse)", "coarse", "none")),
+    hover: q("(hover: hover)", "hover", "none"),
+    anyHover: q("(any-hover: hover)", "hover", "none"),
+    colorGamut: q("(color-gamut: rec2020)", "rec2020", q("(color-gamut: p3)", "p3", q("(color-gamut: srgb)", "srgb", ""))),
+    contrast: q("(prefers-contrast: more)", "more", q("(prefers-contrast: less)", "less", "no-preference")),
+    forcedColors: q("(forced-colors: active)", "active", "none"),
+    monochrome: q("(monochrome)", "yes", "no"),
+    update: q("(update: fast)", "fast", q("(update: slow)", "slow", "none")),
+    dynamicRange: q("(dynamic-range: high)", "high", "standard"),
+  };
+}
+
+async function getStorageInfo(){
+  try{
+    const est = navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : {};
+    const persisted = navigator.storage && navigator.storage.persisted ? await navigator.storage.persisted() : false;
+    return {
+      quotaBucket: bucketNumber(est.quota || 0, 1024 * 1024 * 128),
+      usageBucket: bucketNumber(est.usage || 0, 1024 * 1024 * 16),
+      persisted: !!persisted,
+    };
+  }catch{ return {}; }
+}
+
+function getIntlInfo(){
+  try{
+    const ro = Intl.DateTimeFormat().resolvedOptions() || {};
+    return { locale: ro.locale || "", calendar: ro.calendar || "", numberingSystem: ro.numberingSystem || "", hourCycle: ro.hourCycle || "" };
   }catch{ return {}; }
 }
 
@@ -146,15 +245,19 @@ async function collectDeviceFingerprint(){
   const scr = screen || {};
   const tz = (()=>{ try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch { return ""; } })();
   const plugins = (()=>{
-    try { return Array.from(nav.plugins || []).map((p)=>`${p.name}:${p.filename}:${p.description}`).slice(0, 40).join("|"); } catch { return ""; }
+    try { return Array.from(nav.plugins || []).map((p)=>`${p.name}:${p.filename}:${p.description}`).slice(0, 50).join("|"); } catch { return ""; }
   })();
   const colorScheme = (()=>{ try { return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; } catch { return ""; } })();
   const reducedMotion = (()=>{ try { return matchMedia("(prefers-reduced-motion: reduce)").matches ? "reduce" : "no-preference"; } catch { return ""; } })();
-  const [canvasHash, fontsHash, webgl, pluginsHash] = await Promise.all([
+  const vv = window.visualViewport || {};
+  const [canvasHash, audioHash, fontsHash, webgl, pluginsHash, clientHints, storage] = await Promise.all([
     getCanvasHash(),
+    getAudioHash(),
     getFontsHash(),
     getWebglInfo(),
     sha256Hex(plugins),
+    getClientHints(),
+    getStorageInfo(),
   ]);
   return {
     userAgent: nav.userAgent || "",
@@ -166,11 +269,13 @@ async function collectDeviceFingerprint(){
     deviceMemory: nav.deviceMemory || "",
     maxTouchPoints: nav.maxTouchPoints || "",
     cookieEnabled: nav.cookieEnabled,
+    webdriver: !!nav.webdriver,
     doNotTrack: nav.doNotTrack || window.doNotTrack || "",
     timezone: tz,
     timezoneOffset: new Date().getTimezoneOffset(),
     colorScheme,
     reducedMotion,
+    intl: getIntlInfo(),
     screen: {
       width: scr.width || "",
       height: scr.height || "",
@@ -181,12 +286,28 @@ async function collectDeviceFingerprint(){
       devicePixelRatio: window.devicePixelRatio || "",
       orientation: scr.orientation?.type || "",
     },
+    viewport: {
+      innerWidth: window.innerWidth || "",
+      innerHeight: window.innerHeight || "",
+      outerWidth: window.outerWidth || "",
+      outerHeight: window.outerHeight || "",
+      clientWidth: document.documentElement?.clientWidth || "",
+      clientHeight: document.documentElement?.clientHeight || "",
+      visualWidth: vv.width || "",
+      visualHeight: vv.height || "",
+      visualScale: vv.scale || "",
+    },
     webgl,
+    clientHints,
+    mediaFeatures: getMediaFeatures(),
+    storage,
     canvasHash,
+    audioHash,
     fontsHash,
     pluginsHash,
   };
 }
+
 
 
 export default function LoginPage() {
