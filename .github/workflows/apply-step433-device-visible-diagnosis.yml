@@ -398,19 +398,19 @@ jobs:
               marker = 'sr-device-confidence-appjs-loader-v433'
               if marker not in s:
                   loader = """
-;/* sr-device-confidence-appjs-loader-v433 */
-(function(){
-  try{
-    if(window.__srDeviceConfidenceAppLoaderV433) return;
-    window.__srDeviceConfidenceAppLoaderV433 = true;
-    if(document.querySelector('script[src*="device-confidence-learn.js"]')) return;
-    var s=document.createElement('script');
-    s.src='./device-confidence-learn.js?v=step433';
-    s.defer=true;
-    (document.head||document.documentElement).appendChild(s);
-  }catch(e){}
-})();
-"""
+          ;/* sr-device-confidence-appjs-loader-v433 */
+          (function(){
+            try{
+              if(window.__srDeviceConfidenceAppLoaderV433) return;
+              window.__srDeviceConfidenceAppLoaderV433 = true;
+              if(document.querySelector('script[src*="device-confidence-learn.js"]')) return;
+              var s=document.createElement('script');
+              s.src='./device-confidence-learn.js?v=step433';
+              s.defer=true;
+              (document.head||document.documentElement).appendChild(s);
+            }catch(e){}
+          })();
+          """
                   p.write_text(s + '\n' + loader + '\n')
           PY_HOOK
 
