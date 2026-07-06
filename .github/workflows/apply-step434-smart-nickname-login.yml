@@ -1,0 +1,164 @@
+name: Apply Step 4.3.4 Smart Nickname Login UX
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/apply-step434-smart-nickname-login.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-step434:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply Step 4.3.4 changed files
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > step434-files.tar.gz.b64 <<'B64'
+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
+B64
+          base64 -d step434-files.tar.gz.b64 > step434-files.tar.gz
+          tar -xzf step434-files.tar.gz
+          rm -f step434-files.tar.gz step434-files.tar.gz.b64
+          echo "Step 4.3.4 files applied"
+
+      - name: Commit changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git status --short
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git add app/login/page.js SECURITY_UPGRADE_STEP434_AR.md
+          git commit -m "Apply Step 4.3.4 smart nickname login UX"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
