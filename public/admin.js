@@ -215,6 +215,7 @@ tabSuggestions.querySelectorAll("button[data-action='delete-suggestion']").forEa
       await apiAdmin("/api/admin-delete", { table: "suggestions", id: Number(id) });
       setAdminStatus("Deleted ✅");
       await refreshSuggestions();
+      window.dispatchEvent(new CustomEvent("sr:suggestions-changed"));
     }catch(err){
       console.error(err);
       setAdminStatus(`Could not delete. Please contact ${ADMIN_NAME}.`, "error");
@@ -243,6 +244,7 @@ tabSuggestions.querySelectorAll("button[data-action='delete-block-suggestion']")
       await apiAdmin("/api/admin-delete", { table: "suggestions", id: Number(id) });
       setAdminStatus(`Deleted + Blocked until ${fmtTime(out.expires_at)} ✅`);
       await refreshSuggestions();
+      window.dispatchEvent(new CustomEvent("sr:suggestions-changed"));
       await refreshBlocks();
     }catch(err){
       console.error(err);

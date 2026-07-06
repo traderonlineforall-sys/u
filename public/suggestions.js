@@ -482,13 +482,14 @@ function init() {
 
   // Initial load
   loadSuggestions();
+  window.addEventListener("sr:suggestions-changed", () => loadSuggestions());
 
-  // Realtime updates (INSERT only)
+  // Realtime updates (INSERT/UPDATE/DELETE)
   supabase
     .channel("suggestions-public")
     .on(
       "postgres_changes",
-      { event: "INSERT", schema: "public", table: "suggestions" },
+      { event: "*", schema: "public", table: "suggestions" },
       () => loadSuggestions()
     )
     .subscribe((status) => {
@@ -504,7 +505,7 @@ function init() {
       .channel("suggestion-replies")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "suggestion_replies" },
+        { event: "*", schema: "public", table: "suggestion_replies" },
         () => loadSuggestions()
       )
       .subscribe(()=>{});
