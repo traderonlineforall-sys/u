@@ -1,0 +1,41 @@
+name: Apply Step 4.3.1 Device Auto Learn
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/apply-step431-device-autolearn.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply-step431:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply Step 4.3.1 files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git pull --rebase origin "${GITHUB_REF_NAME}" || true
+          cat > /tmp/sr-step431-files.tar.gz.b64 <<'B64'
+          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
+          B64
+          base64 -d /tmp/sr-step431-files.tar.gz.b64 > /tmp/sr-step431-files.tar.gz
+          tar -xzf /tmp/sr-step431-files.tar.gz -C .
+          git status --short
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/api/device-confidence-learn/route.js public/device-confidence-learn.js app/layout.js SECURITY_UPGRADE_STEP431_AR.md
+          git commit -m "Step 4.3.1 device confidence auto learn"
+          git pull --rebase origin "${GITHUB_REF_NAME}" || true
+          git push
