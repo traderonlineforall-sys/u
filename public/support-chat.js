@@ -1,7 +1,7 @@
 
 import { supabase } from "./supabase-client.js";
 import { ADMIN_NAME } from "./supabase-config.js";
-import { getStableUserId, getStoredUserName, setStoredUserName } from "./stable-user-identity.js";
+import { getStableUserId, getStoredUserName, setStoredUserName, clearStoredUserName, requireNicknameLogin } from "./stable-user-identity.js";
 import { playSoftNotification, unlockSound } from "./notification-sound.js";
 // Fixed Functions base for Cloudflare/Next.js.
 // No Vercel/Netlify probing and no startup ping, to keep requests lower and behavior deterministic.
@@ -117,13 +117,24 @@ async function fetchProfileName() {
   const ok = await detectProfileTable();
   if (!ok) return null;
   try {
-    const res = await supabase
+    let res = await supabase
       .from("support_users")
-      .select("display_name")
+      .select("display_name,nickname_reset_required")
       .eq("user_id", USER_ID)
       .limit(1);
+
+    if (res.error && /nickname_reset_required|column .*does not exist|schema cache/i.test(String(res.error.message || ""))) {
+      res = await supabase
+        .from("support_users")
+        .select("display_name")
+        .eq("user_id", USER_ID)
+        .limit(1);
+    }
+
     if (res.error) return null;
-    return res.data && res.data[0] ? (res.data[0].display_name || null) : null;
+    const row = res.data && res.data[0] ? res.data[0] : null;
+    if(!row || row.nickname_reset_required) return null;
+    return row.display_name || null;
   } catch {
     return null;
   }
@@ -147,6 +158,27 @@ async function upsertProfileName(name) {
     // If the table is not properly configured, don't break the chat.
     console.warn("support_users upsert failed", e);
   }
+}
+
+
+async function ensureNicknameReady() {
+  const localName = getUserName();
+  const okProfiles = await detectProfileTable();
+  if (okProfiles) {
+    const dbName = await fetchProfileName();
+    if (dbName) {
+      setUserName(dbName);
+      return true;
+    }
+    clearStoredUserName();
+    return false;
+  }
+  return !!localName;
+}
+
+function redirectToNicknameLogin() {
+  try { requireNicknameLogin(); }
+  catch { location.href = "/login?nickname=1"; }
 }
 
 // ---------- Helpers ----------
@@ -517,17 +549,27 @@ async function loadUsers() {
   const profileOk = await detectProfileTable();
   if (profileOk) {
     try {
-      const res = await supabase
+      let res = await supabase
         .from("support_users")
-        .select("user_id, display_name")
+        .select("user_id, display_name, nickname_reset_required")
         .order("display_name", { ascending: true })
         .limit(500);
+
+      if (res.error && /nickname_reset_required|column .*does not exist|schema cache/i.test(String(res.error.message || ""))) {
+        res = await supabase
+          .from("support_users")
+          .select("user_id, display_name")
+          .order("display_name", { ascending: true })
+          .limit(500);
+      }
 
       if (!res.error && Array.isArray(res.data)) {
         const map = new Map();
         for (const r of res.data) {
-          if (!r || !r.user_id) continue;
-          map.set(String(r.user_id), String(r.display_name || "User"));
+          if (!r || !r.user_id || r.nickname_reset_required) continue;
+          const dn = String(r.display_name || "").trim();
+          if(!dn) continue;
+          map.set(String(r.user_id), dn);
         }
         // Ensure current user appears
         map.set(USER_ID, getUserName() || map.get(USER_ID) || "Me");
@@ -819,6 +861,10 @@ async function refreshRoom() {
 // ---------- Sending ----------
 async function sendMessage() {
   const name = getUserName();
+  if (!name) {
+    redirectToNicknameLogin();
+    return;
+  }
   const text = (msgInput.value || "").trim();
   if (!text && !selectedFile) return;
 
@@ -869,6 +915,10 @@ async function sendMessage() {
       body: JSON.stringify({ payload }),
     });
     const data = await res.json().catch(() => ({}));
+    if (data?.nickname_required) {
+      redirectToNicknameLogin();
+      return;
+    }
     if (!res.ok || !data?.ok) throw new Error(data?.error || "Message insert failed.");
     insertedRows = Array.isArray(data?.data) ? data.data : [];
   } catch (err) {
@@ -910,29 +960,20 @@ async function sendMessage() {
 async function openSupport() {
   try { unlockSound(); } catch {}
 
-  // If the optional `support_users` table exists, use it as the source of truth
-  // for whether this user currently has a name (admin can delete names).
-  const okProfiles = await detectProfileTable();
-  if (okProfiles) {
-    const dbName = await fetchProfileName();
-    if (dbName) {
-      setUserName(dbName);
-    } else {
-      // Admin may have removed the name (or first time) → force choosing again.
-      try { localStorage.removeItem("sr_tool_user_name"); } catch {}
-    }
-  }
-
-  // If no name, ask first
-  const name = getUserName();
-  if (!name) {
-    nameInput.value = "";
-    show(nameOverlay);
-    setTimeout(() => nameInput.focus(), 50);
+  const ready = await ensureNicknameReady();
+  if (!ready) {
+    redirectToNicknameLogin();
     return;
   }
 
-  // Keep profile updated (best-effort; does not block UI)
+  const name = getUserName();
+  if (!name) {
+    redirectToNicknameLogin();
+    return;
+  }
+
+  // Keep profile synchronized best-effort; the server will not allow casual renames
+  // unless the admin reset the nickname first.
   upsertProfileName(name).catch(()=>{});
 
   show(chatOverlay);
@@ -954,15 +995,8 @@ try {
 supportBtn?.addEventListener("click", openSupport);
 
 nameConfirmBtn?.addEventListener("click", async () => {
-  const name = (nameInput.value || "").trim();
-  if (!name) return;
-  setUserName(name);
-  // Save to DB profile if enabled (admin can delete these rows later)
-  try { await upsertProfileName(name); } catch {}
-  hide(nameOverlay);
-  show(chatOverlay);
-  setRoomPublic();
-  refreshRoom();
+  // Step 4 centralizes nickname collection on the login screen.
+  redirectToNicknameLogin();
 });
 
 nameCloseBtn?.addEventListener("click", closeAll);

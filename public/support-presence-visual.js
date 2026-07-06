@@ -9,7 +9,7 @@ import { getStableUserId, getStoredUserName } from "./stable-user-identity.js";
  */
 
 const USER_ID = getStableUserId();
-const USER_NAME = getStoredUserName() || "User";
+function currentUserName(){ return getStoredUserName() || "User"; }
 const CHANNEL_NAME = "sr_support_online_presence_v1";
 const SCHEME_COUNT = 12;
 const onlineIds = new Set([USER_ID]);
@@ -189,7 +189,7 @@ function startPresence() {
         if (status === "SUBSCRIBED") {
           channel.track({
             user_id: USER_ID,
-            name: USER_NAME,
+            name: currentUserName(),
             online_at: new Date().toISOString()
           }).catch(() => {});
           syncPresenceState();
@@ -199,6 +199,12 @@ function startPresence() {
     scheduleApply();
   }
 }
+
+window.addEventListener("sr:nickname-updated", () => {
+  try {
+    channel?.track?.({ user_id: USER_ID, name: currentUserName(), online_at: new Date().toISOString() });
+  } catch {}
+});
 
 window.addEventListener("beforeunload", () => {
   try { channel?.untrack?.(); } catch {}

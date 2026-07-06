@@ -314,11 +314,18 @@ async function refreshSupport(){
   // --- Optional: user profiles (names) ---
   let userProfilesHtml = `<div class="admin-empty">User names table not configured (optional).</div>`;
   try {
-    const resUsers = await supabase
+    let resUsers = await supabase
       .from("support_users")
-      .select("user_id, display_name")
+      .select("user_id, display_name, nickname_reset_required")
       .order("display_name", { ascending: true })
       .limit(500);
+    if(resUsers.error && /nickname_reset_required|column .*does not exist|schema cache/i.test(String(resUsers.error.message || ""))){
+      resUsers = await supabase
+        .from("support_users")
+        .select("user_id, display_name")
+        .order("display_name", { ascending: true })
+        .limit(500);
+    }
     if (!resUsers.error && Array.isArray(resUsers.data)) {
       if (resUsers.data.length === 0) {
         userProfilesHtml = `<div class="admin-empty">No saved user names yet.</div>`;
@@ -326,16 +333,19 @@ async function refreshSupport(){
         userProfilesHtml = resUsers.data
           .map((u) => {
             const col = colorForUserId(u.user_id || "");
+            const reset = !!u.nickname_reset_required;
+            const nameLabel = reset ? "Needs new nickname" : (u.display_name || "User");
             return `
               <div class="admin-row">
                 <div class="admin-row-main">
                   <div class="admin-row-meta">
                     <span class="admin-color-dot" style="--u:${escapeHtml(col)}"></span>
-                    <b>${escapeHtml(u.display_name || "User")}</b> • ${escapeHtml(u.user_id || "")}
+                    <b>${escapeHtml(nameLabel)}</b> • ${escapeHtml(u.user_id || "")}
+                    ${reset ? '<span style="margin-inline-start:8px;opacity:.8;">reset pending</span>' : ''}
                   </div>
                 </div>
                 <div class="admin-row-actions">
-                  <button class="admin-action" type="button" data-action="delete-username" data-user-id="${escapeHtml(u.user_id || "")}">Delete name</button>
+                  <button class="admin-action" type="button" data-action="delete-username" data-user-id="${escapeHtml(u.user_id || "")}">Reset nickname</button>
                 </div>
               </div>
             `;
@@ -407,13 +417,13 @@ async function refreshSupport(){
       const ok = confirm(`Delete name for user_id\n${uid}\n\nThis forces the user to choose a new name next time.`);
       if (!ok) return;
       try {
-        setAdminStatus("Deleting name…");
+        setAdminStatus("Resetting nickname…");
         await apiAdmin("/api/admin-delete-support-user", { user_id: uid });
-        setAdminStatus("Deleted name ✅");
+        setAdminStatus("Nickname reset ✅");
         await refreshSupport();
       } catch (err) {
         console.error(err);
-        setAdminStatus(`Could not delete name. Please contact ${ADMIN_NAME}.`, "error");
+        setAdminStatus(`Could not reset nickname. Please contact ${ADMIN_NAME}.`, "error");
       }
     });
   });

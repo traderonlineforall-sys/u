@@ -155,16 +155,22 @@ async function startPresence() {
     setTitle(pill, state);
   });
 
+  async function trackCurrentName(){
+    try {
+      await channel.track({
+        online_at: new Date().toISOString(),
+        display_name: getStablePresenceLabel(),
+        alias: aliasForUserId(USER_ID),
+        user_id: USER_ID
+      });
+    } catch {}
+  }
+
+  window.addEventListener("sr:nickname-updated", trackCurrentName);
+
   channel.subscribe(async (status) => {
     if (status === "SUBSCRIBED") {
-      try {
-        await channel.track({
-          online_at: new Date().toISOString(),
-          display_name: getStablePresenceLabel(),
-          alias: aliasForUserId(USER_ID),
-          user_id: USER_ID
-        });
-      } catch {}
+      await trackCurrentName();
     }
   });
 }

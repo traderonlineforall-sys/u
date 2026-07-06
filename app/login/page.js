@@ -1,16 +1,90 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+const ID_KEY = "sr_tool_user_id";
+const NAME_KEY = "sr_tool_user_name";
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 5;
+
+function safeLocalGet(key){ try { return localStorage.getItem(key) || ""; } catch { return ""; } }
+function safeLocalSet(key, value){ try { localStorage.setItem(key, value); } catch {} }
+function safeSessionSet(key, value){ try { sessionStorage.setItem(key, value); } catch {} }
+function safeCookieGet(name){
+  try {
+    const prefix = `${name}=`;
+    for (const part of String(document.cookie || "").split(/;\s*/)) {
+      if (part.startsWith(prefix)) return decodeURIComponent(part.slice(prefix.length));
+    }
+  } catch {}
+  return "";
+}
+function safeCookieSet(name, value){
+  try { document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${COOKIE_MAX_AGE}; samesite=lax`; } catch {}
+}
+function normalizeId(value){
+  const s = String(value || "").trim();
+  return /^[a-zA-Z0-9_.:-]{12,}$/.test(s) ? s : "";
+}
+function createUserId(){
+  try { if (crypto?.randomUUID) return `uid_${crypto.randomUUID()}`; } catch {}
+  return `uid_${Date.now().toString(16)}_${Math.random().toString(16).slice(2)}`;
+}
+function getStableUserId(){
+  let id = normalizeId(safeLocalGet(ID_KEY)) || normalizeId(safeCookieGet(ID_KEY));
+  if(!id) id = createUserId();
+  safeLocalSet(ID_KEY, id);
+  safeSessionSet(ID_KEY, id);
+  safeCookieSet(ID_KEY, id);
+  return id;
+}
+function cleanNickname(value){
+  return String(value || "")
+    .replace(/\u0000/g, "")
+    .replace(/[\r\n\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 40);
+}
+function getStoredNickname(){ return cleanNickname(safeLocalGet(NAME_KEY) || safeCookieGet(NAME_KEY)); }
+function setStoredNickname(name){
+  const v = cleanNickname(name);
+  if(!v) return;
+  safeLocalSet(NAME_KEY, v);
+  safeSessionSet(NAME_KEY, v);
+  safeCookieSet(NAME_KEY, v);
+}
+function nicknameError(value){
+  const v = cleanNickname(value);
+  if(v.length < 2) return "اكتب كنية خيالية من حرفين على الأقل.";
+  if(/[<>\\{}[\]`]/.test(v)) return "الكنية تحتوي على رموز غير مسموحة.";
+  if(/@/.test(v) || /https?:\/\//i.test(v)) return "لا تكتب بريد إلكتروني أو رابط. اكتب كنية خيالية فقط.";
+  if(/\+?\d[\d\s().-]{7,}/.test(v)) return "لا تكتب رقم تليفون. اكتب كنية خيالية فقط.";
+  return "";
+}
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [storedNickname, setStoredNicknameState] = useState("");
+  const [userId, setUserId] = useState("");
+  const [nicknameRequired, setNicknameRequired] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [agreeHint, setAgreeHint] = useState("");
 
-  const canSubmit = useMemo(() => username.trim() && password, [username, password]);
+  useEffect(() => {
+    const uid = getStableUserId();
+    const nick = getStoredNickname();
+    setUserId(uid);
+    setStoredNicknameState(nick);
+    setNickname(nick || "");
+    setNicknameRequired(!nick || new URLSearchParams(window.location.search).has("nickname"));
+  }, []);
+
+  const nickErr = useMemo(() => nicknameRequired ? nicknameError(nickname) : "", [nickname, nicknameRequired]);
+  const canSubmit = useMemo(() => username.trim() && password && (!nicknameRequired || !nickErr), [username, password, nicknameRequired, nickErr]);
   const canProceed = useMemo(() => canSubmit && agreed, [canSubmit, agreed]);
 
   async function onSubmit(e) {
@@ -22,21 +96,41 @@ export default function LoginPage() {
       setAgreeHint("يرجى وضع علامة ✓ للموافقة قبل تسجيل الدخول.");
       return;
     }
+    if (nicknameRequired && nickErr) {
+      setErr(nickErr);
+      return;
+    }
+
+    const uid = userId || getStableUserId();
+    const chosenNickname = cleanNickname(nicknameRequired ? nickname : (storedNickname || nickname));
 
     setBusy(true);
     try {
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, user_id: uid, nickname: chosenNickname }),
       });
 
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
+        if (data?.nickname_required) {
+          setNicknameRequired(true);
+          setNickname("");
+          setStoredNicknameState("");
+          try { localStorage.removeItem(NAME_KEY); } catch {}
+          try { document.cookie = `${NAME_KEY}=; path=/; max-age=0; samesite=lax`; } catch {}
+        }
         throw new Error(data?.error || "Login failed");
       }
 
-      // After cookie is set, go to the tool
+      if (data?.user_id) {
+        safeLocalSet(ID_KEY, data.user_id);
+        safeSessionSet(ID_KEY, data.user_id);
+        safeCookieSet(ID_KEY, data.user_id);
+      }
+      if (data?.display_name) setStoredNickname(data.display_name);
+
       window.location.replace("/");
     } catch (e2) {
       setErr(e2?.message || "Login failed");
@@ -80,6 +174,28 @@ export default function LoginPage() {
             />
           </label>
 
+          {nicknameRequired ? (
+            <div style={styles.nicknameBox} dir="rtl">
+              <label style={styles.nicknameLabel}>
+                كنيتك داخل التول <span style={styles.required}>*</span>
+                <input
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  autoComplete="off"
+                  maxLength={40}
+                  style={{ ...styles.input, ...styles.nicknameInput }}
+                  placeholder="مثال: عقرب الصحراء"
+                />
+              </label>
+              <div style={styles.nicknameHint}>اكتب كنية خيالية فقط. لا تكتب اسمك الحقيقي أو رقم تليفونك.</div>
+              {nickErr ? <div style={styles.nickError}>{nickErr}</div> : null}
+            </div>
+          ) : storedNickname ? (
+            <div style={styles.nicknameSaved} dir="rtl">
+              كنيتك الحالية داخل التول: <b>{storedNickname}</b>
+            </div>
+          ) : null}
+
           {err ? <div style={styles.error}>{err}</div> : null}
 
           <button type="submit"
@@ -99,7 +215,7 @@ export default function LoginPage() {
             {busy ? "Signing in…" : "Sign in"}
           </button>
 
-          <div style={styles.consentBox}>
+          <div style={styles.consentBox} dir="rtl">
             <label style={styles.consentLabel}>
               <input
                 type="checkbox"
@@ -116,8 +232,7 @@ export default function LoginPage() {
             </label>
             {agreeHint ? <div style={styles.agreeHint}>{agreeHint}</div> : null}
           </div>
-
-</form>
+        </form>
       </div>
 
       <div style={styles.footer}>
@@ -140,7 +255,7 @@ const styles = {
   },
   card: {
     width: "100%",
-    maxWidth: 440,
+    maxWidth: 460,
     background: "rgba(255,255,255,0.06)",
     border: "1px solid rgba(255,255,255,0.12)",
     borderRadius: 18,
@@ -168,6 +283,26 @@ const styles = {
     padding: "0 12px",
     outline: "none",
   },
+  nicknameBox: {
+    display: "grid",
+    gap: 8,
+    padding: 12,
+    borderRadius: 14,
+    border: "1px solid rgba(34,197,94,0.35)",
+    background: "linear-gradient(135deg, rgba(34,197,94,0.13), rgba(59,130,246,0.09))",
+  },
+  nicknameLabel: { display: "grid", gap: 7, fontSize: 13, fontWeight: 800 },
+  nicknameInput: { textAlign: "right", fontWeight: 700, letterSpacing: 0 },
+  nicknameHint: { fontSize: 12, lineHeight: 1.5, opacity: 0.86 },
+  nicknameSaved: {
+    padding: "10px 12px",
+    borderRadius: 12,
+    background: "rgba(34,197,94,0.12)",
+    border: "1px solid rgba(34,197,94,0.22)",
+    fontSize: 13,
+  },
+  required: { color: "#fca5a5" },
+  nickError: { fontSize: 12, color: "#fecaca" },
   btn: {
     height: 44,
     borderRadius: 12,
@@ -178,6 +313,7 @@ const styles = {
     cursor: "pointer",
     marginTop: 6,
   },
+  btnDisabled: { opacity: 0.45, cursor: "not-allowed" },
   btnBusy: { opacity: 0.75, cursor: "not-allowed" },
   error: {
     padding: "10px 12px",
@@ -186,6 +322,16 @@ const styles = {
     border: "1px solid rgba(239,68,68,0.35)",
     fontSize: 13,
   },
+  consentBox: {
+    padding: "10px 12px",
+    borderRadius: 12,
+    background: "rgba(255,255,255,0.055)",
+    border: "1px solid rgba(255,255,255,0.1)",
+  },
+  consentLabel: { display: "flex", gap: 10, alignItems: "flex-start", cursor: "pointer" },
+  checkbox: { marginTop: 2, width: 16, height: 16, accentColor: "#22c55e" },
+  consentText: { fontSize: 13, lineHeight: 1.45 },
+  agreeHint: { marginTop: 8, fontSize: 12, color: "#fde68a" },
   hint: { fontSize: 12, opacity: 0.8, marginTop: 8, lineHeight: 1.4 },
   footer: { marginTop: 18, fontSize: 12, opacity: 0.7, textAlign: "center" },
 };

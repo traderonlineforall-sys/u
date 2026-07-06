@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCookieName, signSession } from "../../../lib/session.js";
 import { enforceSameOrigin, noStore } from "../../../lib/server/auth.js";
+import { getServiceSupabase } from "../../../lib/server/admin.js";
+import { ensureNicknameForUser, normalizeUserId, cleanNickname } from "../../../lib/server/nickname.js";
 
 export const runtime = "nodejs";
 
@@ -104,6 +106,8 @@ export async function POST(request) {
 
   const username = (body.username || "").toString();
   const password = (body.password || "").toString();
+  const user_id = normalizeUserId(body.user_id);
+  const requestedNickname = cleanNickname(body.nickname || body.display_name || "");
 
   if (isLimited(request, username)) {
     await new Promise((r)=>setTimeout(r, 500));
@@ -121,10 +125,34 @@ export async function POST(request) {
 
   clearFailures(request, username);
 
-  const expMs = Date.now() + 12 * 60 * 60 * 1000; // 12 hours
-  const token = await signSession({ u: username, exp: expMs }, SESSION_SECRET);
+  if (!user_id) {
+    return noStore(NextResponse.json({ error: "Missing browser identity. Refresh the login page and try again." }, { status: 400 }));
+  }
 
-  const res = noStore(NextResponse.json({ ok: true }));
+  let nicknameResult;
+  try {
+    const supabase = getServiceSupabase();
+    nicknameResult = await ensureNicknameForUser(supabase, user_id, requestedNickname);
+  } catch (err) {
+    return noStore(NextResponse.json(
+      { error: String(err?.message || err || "Could not verify nickname.") },
+      { status: 500 }
+    ));
+  }
+
+  if (!nicknameResult?.ok) {
+    return noStore(NextResponse.json({
+      error: nicknameResult?.error || "Nickname is required.",
+      nickname_required: !!nicknameResult?.nickname_required,
+      user_id,
+    }, { status: nicknameResult?.status || 409 }));
+  }
+
+  const displayName = nicknameResult.display_name || "";
+  const expMs = Date.now() + 12 * 60 * 60 * 1000; // 12 hours
+  const token = await signSession({ u: username, uid: user_id, name: displayName, exp: expMs }, SESSION_SECRET);
+
+  const res = noStore(NextResponse.json({ ok: true, user_id, display_name: displayName }));
 
   res.cookies.set({
     name: getCookieName(),

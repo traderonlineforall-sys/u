@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { enforceSameOrigin, requireUserSession, noStore } from "../../../lib/server/auth.js";
 import { getServiceSupabase } from "../../../lib/server/admin.js";
+import { requireActiveNickname, cleanNickname } from "../../../lib/server/nickname.js";
 
 function j(body, init){
   return noStore(NextResponse.json(body, init));
@@ -77,7 +78,7 @@ export async function POST(req){
   const payload = body?.payload && typeof body.payload === "object" ? body.payload : body;
   const sender_id = normalizeUserId(payload?.sender_id || payload?.user_id);
   const user_id = normalizeUserId(payload?.user_id || payload?.sender_id);
-  const sender_name = cleanText(payload?.sender_name || "Anonymous", 60) || "Anonymous";
+  const requested_sender_name = cleanNickname(payload?.sender_name || payload?.display_name || "");
   const message = cleanText(payload?.message, 5000);
   const room_type = normalizeRoomType(payload?.room_type);
   const room_id = normalizeRoomId(payload?.room_id, room_type, sender_id);
@@ -89,12 +90,21 @@ export async function POST(req){
 
   try {
     const supabase = getServiceSupabase();
+    const nick = await requireActiveNickname(supabase, sender_id, requested_sender_name);
+    if(!nick.ok){
+      return j({
+        error: nick.error || "Nickname is required.",
+        nickname_required: !!nick.nickname_required,
+        user_id: sender_id,
+      }, { status: nick.status || 409 });
+    }
+
     const blocked = await currentBlockForUser(supabase, sender_id);
     if(blocked){
       return j({ error: "You are blocked.", blocked_until: blocked.expires_at || null }, { status: 403 });
     }
 
-    const insertPayload = { sender_id, user_id, sender_name, message, room_type, room_id };
+    const insertPayload = { sender_id, user_id, sender_name: nick.display_name, message, room_type, room_id };
     const { data, error } = await supabase
       .from("support_messages")
       .insert(insertPayload)
