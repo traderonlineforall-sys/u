@@ -1,0 +1,183 @@
+name: Apply Step 5 Support Suggestions UX
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/apply-step5-support-suggestions-ux.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply-step5:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply Step 5 UX files
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/step5-files.tar.gz.b64 <<'B64DATA'
+          H4sIAAAAAAAAA+087ZLbRnL+vU8xghQXaZMQyV1yV1xrdTp92K7Sh+OVKrlyXBZIDElYIEADoHb3
+          1ltl2ZJPUfInrxBXTrLuzori812UJ+H+vSdJd88MMAOAXOqkOHVVhEu75KCnp6e/u2fWk2nP9/pn
+          4+lkEkZJPZ4OhzxOvDCI65MorE/37X4cv/V6TwOezsYG/YYn97vZ2mw332q2W63W5mZ7vdl+q9Hc
+          bGxuvsUar7nuUs80TpyIsbeiMEwWwZ30/m/0OfsO2034hLVZne0KJWBvw6dUDdhHUTjgcQyfHZ/d
+          /kfmOwc8WmOMXY3CIKnzwGVh4B/Y7EbIXCdxek7Mz1786EPWd3w/ttmuM+AsCVnEx+E9brN3zq6t
+          dZGbh4CkXo+j6X69N+yyaNhzKs1GrblRa23U7K2N6rYOUG9JkFa7XVP/7MZm2wALI5dHZYDNjg6X
+          8P2kDOrcug41nibcLQPrtHSwYRgC1Ol2093acrTxPScKYHwwcJudjk6k49Jwp9fpacNOv88DoOr0
+          puNsDgbba0dra7agNgz9nhMhv1wvnoAAugOf7+Ncx/eGQd1L+Dju4nQe4ejQmXS3JgQwdqKhF3Sb
+          jck+a+DAxHFdLxiq95JjTXgdh77nsntOVDG4Wc3A6pHjetO429yQk53+3WEUTgO363sBd6L6ECGA
+          jkpzq+HyYa1MZFvtaun4RrtaVVjdKJzUB56foDR7/jSq4A6qRaaIL/1wPHH6pFFyw1u4X4aT9E1v
+          4tcURQwU90c4CdnZbRK/vKC+57nJqNsoZc9czcpxqGUufA4QNJtiLJwmyK1uEAYcv/dDP4y6Gt9R
+          O6s5/tK6jRr+Zze36O0AzK/rBSMeeUlhV90u6Emfj0IfqDqUaxSJ3wBU7MicOQj70/gw25I2t9lq
+          1ZqdTTF3syU3DjNHjhvudRsM/1uHvRahiWiNSJ/3k5r8NvF8/3BJbrdLuH3u3DmT3Sh9Jfs3w17G
+          9kZgZvUY9AxFtxc5k8J+DkH79qX6NNu4Pksh1B4RbT32fs1THSkQSH6HaJjGsEmBW6pLig8U1atD
+          7Eri5f3C5xDsvMEBSBRGYHe0mXqPJ3ucB+WOAwUqR16B8hIqWZxAvBgezpOHQL/HveEo6W41Gpla
+          QnQBc6m7ImII7iJJIwkLH8vUQbHEE9N7fti/uy12VZdjELu67YIr00hD117dzmk4+VJSmK1mrdXs
+          1JrrW2ANbX3f/ZGDhjNFzuvykQu/mpgQGmk1/VO7KJbmiQolDUQyoLsh/GGRZtuLKX6ViAuHNaeR
+          nwUWUDIJYl65iCWWkee6PKj3DqTTP0w5hmrPTnljzEycINHm8PEkUfA1YwwVjutsF8LXHESTPMSG
+          oepbKkRqbsh14hEv9UNbZV6/c6IAUNnrJHZN4HlHlIuLZthz4qSu0qdJGHuYpXUH3j4n/fg1iNaF
+          YNZqbmxubK1Dfo2jEbFckdcLkyQcp1/zvoPUzfUicDqIGjYzHafeIY2ooYfU1/k92EWcd05E5WER
+          zJkmoeC4cpOgz5X1DiCtYb7YhzDfuLcHueg6uJhq1RBZSxPZknzPXP0SkWUrHxQW5jRg9xDe1juQ
+          NHZUPrNVa7Zw1D6nUhndc5DOtVPnIaPNulg2iZwgHoTRuEuffFDgX6mcB1IGcNReciByEgIQYpfj
+          DIiPGYfEu5YhygZzXmJdMIsckfShTXujnTkCkh7acjwK9w7TxZvb5VQ2NG9AUz/BMqCeHEz4eSue
+          Qlobx9anhyXphO4/IftbgIZHURiVI0HhNRub9M9uL8SCrms+klbjHCBppUjWTsuq+DZE4fiaFyfM
+          VnUyBuZDUxY64ztKGpk2GaPa+vp4Js6OktzRSVR0R1BVgb8sFU29iQrETkSCwhZhtjzv0wUFCqv7
+          48Umc06zGB1JszW/BjCwn0z6mBueMOKwde8ez5mfF8Q8YSJBbZYmqOupn5XYJxGPeYAJkuMOeVZb
+          qOwBGwcJubQcPzRbQ2s3X/o8QYeIqRd6NbvR4mPdzWH2vFmYVZLglEIs9nAbecnNKwsgtZ8v47Iq
+          PC+0OUw09UysfrrRaW00N5bXKeWGT2+u84HjwIeNdbe91SiQvFCNO+08vJ6dnMO4qbmA6+DDnCHP
+          6d84HuI+nMAbO6R8ItjHmF9l7hfj7Qix/eIuPxhEzphDMpwBUlEQhePM0dqNOZ62I60Z/E64rF8u
+          buLDYDKF0ut01uuTI7CvYT3iE/8AyIIRpAzEh4qsalVMP2XM2Eizp/00jHRkdoAuaeCD2YmAL6wq
+          6yyOQ9fxWaG5kdowgPXvHlCsCyci6Km8Zj2PjbLnZVxxwbm+mneWWm0su5zvzc+SVc1eoHVbD1/V
+          W7VEOV2OG7hGcvT4nDreCHfr7bz1qqI2wz3mEET7I2/yysUMJo1Gnm26z45ZuLeE91tQ4i/j51ql
+          5X3eZZ2QqefrKmDLL8bc9RxWydJXttnCHA25YqqzyKKxS9ClVgFZrdF2EhA9J/YggW00/s4EEe0E
+          2ZfS8mUyRA1SqwdUlk99B5XjyybE0dqc/u/kxP7/56/b/j+h/78Oidt6rv/f2Ww1V/3/n+N5s/1/
+          KLcih13yw6k78J2IQ/j4YgqIYmr7VwbTgGrKChmMBekbdoW8fmJtr5ExBhBdL7PzzA370zFXOQqO
+          UkkPb3AiY1Jdd0XDkllWTQ4rshe8gXkw7kLqMPUT+Zqs6Br867KA77HrzqRSFW/CHuSY4OTjXXRX
+          eBwwcPyYw7sjolltiZ2pgNFCTgtqAmReroI58mQaBTRiAxeig12y6jBCSBnHs+mO78/DcDGKnAMb
+          c4RKEdlFMa+aR9j3uRNU4gzLLnA6GFZi9uWXwJaqjQHC6fPK2X+K3z0L6ZTFYBBgxpU8KgjkPNJR
+          Kdx2El4LoWzn1xDiEkTJigWZ2pX3LVFAaTh4EE8jfgv5/DHsQWgAZcNqw2cqVt6lWeSIGfMGlVP4
+          XU5iKY/sfsRBL674HLWlYrnePTVHANl934njG5BzAbiVR68gL9u90D2wnckEtPnSyPNdYrTEdEQ/
+          NWnisLk7wlkZi/wKanCoNnE9LxiEliRaqDGkfPBC8E+Ca3uEt1W50LY2CdJGmERI32VW14KfAKlD
+          BOEesgNYYcPHSoayQnZjp/ptD3lSAXxV1ALImN9lkE032A5iMJfOT4zFxBpBkuqrxaUwChLWCeT+
+          CeLi/jxRWSkAVvJAhi3ZS79QmYnNKRT2fC6JzikApYwibdAljDYoJUs+6qLK4q9iil6pVNn5nZQs
+          zPttyFEqlmyLWFU5Gwi65Y15OE3kFKWjxlRx+KnNVqpXmA7TJDBUyK1WQymh0qrzwBzRDWEXWLsF
+          wuuy9fWGgDO1EkU4jW/BtEoQutxQROSN9Aj47oJi7gXbZKuwcWXdmWIlthf0/anL44okp6r0R9FX
+          CkstGA2UvpdCqs6RBqyGtnWLzMRv7n7PSfqjXWLBDdihzgK0NfyK28TfqWah1v0DzuOu4HTTMq1i
+          PjTCbqc+DQSfpIZOkzS1NCwD1QEgTd2RMoIpJyERbEPAt98WE04B3bh86iyZogZfb6eDwmfhWK2g
+          KSnyI9BHiNILUQn/eCQZhOFzmpAh3ZSxs4J7rNoylNIKNXbI+miGaB1QNU1hJJ72kohz+Q3PFZw+
+          FBHg1Rw55iSgsT3I0OP8wFVxVPyJlXb7rE/ZUYlN8GDkBH0u9ALUTHLpE0srh8VLC0KiqpwvjZxE
+          G3VcqIPz3y9OE6lu1qc2FINXnP6oQqEZJZvXxjMiaJdQCF4GUIXvR+DIkc2QRjma3qoh1F312dBI
+          nFiuvAvAM+0VqjeMSrQynR8nBz63RdGPc7HKT4PpPKjrTjKysd3f7DRq8puzX9nYqGlT+lHo+x/Q
+          lCpGJ2uyLxFL/frEotYEsh00JBhy/DQBpaQPEKCmE539/B7tIF0AmHsFjyJQ7XgAqsnv1WizJe4c
+          h2uszLGKUHdJHHpViKAa1miamGgQZUQfDI7LeeUyWgCel1E/fVEIrPHECazUzYizuWJ41Y/uDMzT
+          iSuy7TKv5PMgix2C3HuOP+Uqr4T3Q+x3GXO8sYc6cGM67imOYSpyUdlvxQL2iZkW5SbwVaQoGSKx
+          DTO8C8QX2J0zhzD76Cz8wpGjOxAVJYkwXkCSBeYkHA59EZgpFNXYqVMCKfhT3OqOWuQdZm+11eh7
+          YnA5xLCX+XirhnoLdk1AV2l7glHiqxRuGislEKATn7S18eDY8QIKoqKuxwsyYcwhmCphyknYaYqS
+          X3KwGF6Ru6jJdQNg9a7X84GLikoRDtLV89j0/EoiM5JogbdghKlNC8WTU8SXynwnfktatenFC61O
+          6ciNZieO5dudZW5blWXV9JXmnpXPMN0B1DGlVEA61240GgvmmBQCfLOVwhMhRZKrmqsTFJuIsaAk
+          LHO9mCz6b4m+VcVIEqUekY+h8kw7d4ktI41JvMTnZWB1egP8zpCBXV82JvteLCvAwmGPXgIaGE6J
+          FfETTs+8aApO6MDPyR1i8I01A8j6CvGJpSRB2Z6rXKeB0gQqutnsDkwWI5F2aXsX3c+dfmbfUEEP
+          QHJgRpbIy+LUgubujJodha2BOE/cGN6gK6u7SBmYfrfO0qd4AUjhg1vXr8GUO++JWOe5560iUYyw
+          izey82kxeTQsv2H2gItA3gyj4WBgMe3u2nlLYGITHgLIX776LcyIPKfuOz3u595aO3cUmeXSv7AE
+          02GD1XlYJKcvLPBhFW4ETVVJGy0rjFzUVIGU3okgEIoQmi7LGHhS/0CuKpLbSpaUn6gRV/AaTEEh
+          6HLMiSpBUEVdFyhNoKLm6HdycsAiHZRnBzgBW9k5GDO4WzdCKVdIByB9ZsnIi5lQGzudida/hFRp
+          AS0Ymb5QxBpdV0xPCN4evYTwwiecSJuOURx3wlxEYQvOVCoR6UhUGrPTM1IQoJFNSU8bJo6v8BVf
+          K4dWrv+pMxWe5dD0b4ZVYw65Qz8NG85u41k7752VQHS1b+fMoXh5BONiRO4+hTOhaScasJC1BL5j
+          NN+IdyrSYegt5qWB0ENRLefDUB3fWthc3QPjLSujdWndEoU3AJ8kIEg9rZviM2Sc1s3BgD5rtTku
+          XCVUKkRCroqDR+wvX/07UzzDJY/UnsuqwhJ/cKhlEvkwrqvEF7BoiRPafk39xj7HPS+GBBF31dhe
+          WlKyryE8IHFmrjxkd+TUF6rczRpEX2iN3r2SxLv0XiHm4dSN0CRE39OdvHueNXUx5J1nuadN7Uq4
+          mTkuTzNZzNtT5kEh2EBNomuKpEiabyxzTfOTufTcpjShA8OiTixtAqo/7mozROElLEc7BcQp1vx0
+          LYXUszUBRyfw5wsYcVhP6wRRSyVy+d391TmPHt4KSJdKjubnQ2kMLyRG6UpvPDnS+DsvQ9JArJ2M
+          RnHUXEok6FueRITNYccTw3LcgD2ckHZSdnM+PXTbucH3APy9s+L1ghnyFoO1cz1ELyW+LTFvjF54
+          5/qBTllxGoQa2pHODox3JcyggsrkBt7ot3YajG48yKglEaVZ6KLkpEdFd48PvWBu1pnXmL8u8zRP
+          RZdOPtPFb+8Xk89yKlFlSmlMm3UnE4kKdZ6ZxFFzSanPqxGaZcnkj8DvljiUDzyQbt6ZjLzg5FNG
+          BCp1J4TSgFqqNBT4ipnYFer1JSHkv4FLqcPuyBsk74px2Bq13gvZ1i55ebbnQcjh93h0EAa5DIuR
+          n14ig0bKFlUeqRTebPWRQ/uzVyCaB/k/L0NA3z/G7g55m0rfiVwjfNMdyiyiqjte4m4ltlhwgh6B
+          e0lQAi4ypDL4yMFsi9AZWTKaH+DSTgmjlEwyzYbRP8ZFJ04U8w9hF7INC6j1OweXxZ0D6nKpHpc8
+          0BNNYtuLr4J1JLwSYJYdQFbUKKY9EXAYoTM1uYnXw4h1qryhz1lOil9r4OL3DT9E/SV4Y7TeCVeV
+          lY9rTXB3X0m07BQW07aUvEtIjEnekjkVUkhQwG+xJZlJvsdaZbcGcF06mBTAse/19QPccreLRxIq
+          5mbVIWGy8Vel4tR6xDhTVWGsnhtyKJ2UHX+nyL8vv2zgJAnQKwco9J3nk00hfzHN6VqlrfLirUw8
+          e65nW3iFWW9658ts63VX0jP3yBlqrvqyvI51FYbJo6nDMkGNYVpEEc43DwPwjaob6S6F9hKhSwxn
+          7ER3b+4FWgQosZv+NMKThxt0q/o8+0R5Y7yWtJuEgJnjQdOHkKOhsD6T3v8z6gfIO14LwLHeXQ42
+          K5lvLIc68Pp3BWaC/FT1hn4J9QV3gqo9diYVStSUiy76sfltEJHhmaWXaoLQzIVdkD304KdOES5I
+          mHQmZwU4dTbSiegj5xThOfOoIX69AC+Jeng8tl7NY6ULOPkbztYC31uWH5pdk2K9/GqVrvLKZR6Y
+          BJZ2VfJXtYEPNFHFvkWBTMDMNYjMGssDjXFdS+8GmYXBgrbOcrpnNHZIdq/Z2VmkVW+utUMnlUZr
+          J1f2ZbIm0KqYkcsV75w5lAvhMbQeoY9EiXhncTspnz4v11IyMoEle0olNkJrYnOJ5xrf43h4rXA6
+          p/81jEaogsUSS37OXXzNmrLw3qouhsz9Pe9rFRTz6gSB+aQSQN7UjNkI0nh2AAE0naKoN24W6jl+
+          mrlo3FmKOeluS6EvCpdS4JF2HiyOg9PbhHOLDlIAxJe6xtwVqW19WDt0V+Pz+8/zT7FO8r/zK/ui
+          vpbk3HhZW10/SzU6TR/zl7rLbr7mYfDSWzTlmY9EeUP2D+N0I9xIvfFK4NQv3qDBixNimrkk07Bl
+          qyy+mnpYoECT5HbW/hC/yu/lSTqzu3niJvTJt/OWuIlHJof3LMhl4Qe6myduL5ADTa/o4f/VIXDD
+          vZK+URx19d4xVtFgg3Q2rohfBoN+IUE01F8RhcrW5s029Q8LV6V1mlCUehm6KUeze2dqQo110usf
+          pa+bHf3aL+jWZTB2xxV2IYoiP3RQRcDVXi7Z1+Wb16WjuwZwtCmkHMUfgqmTaKWIhBejbW2vHVXx
+          5//3n66snjfw7F65dPvjD2/96rPbH73/8cXLVz7bvXXlo/ZnFz+2x+6bWmPx33811jeandzff200
+          1tdXf//1czynX/XPv25P8A+x+dra7NnsD7Pnx49nv2PHj2ZPZr8//s3se3Z8//jr2Z/Z8YPjh7MX
+          s6ezl2z25PjB7Pns5fFDgDNHnwDsMxh4ApiezJ7Za2unT9MbQPX8+L5c48fjx8ffignPZr+n+d8z
+          +PEc0MH4fwEJT2ABGHsy+3H27Pg3hPkb/c/QgEAFv/v31/SvgPJ/AP/j2QsGxDyZvZSYAMdTRHz8
+          rUnZ7D9mf4Lf93F0ba2OdPwBOACznsx+OH4gkPwWtimRfDf74+wHGPoJOfNYY4aNk1/SvOdMXCE4
+          e4uudqS4csAaL/4bNvkISJbz5LUD0biN7RKyytlNSF8Ayx7PnpaCMFxSvfsO5Y1Ivzt+JEeOv5n9
+          DsiACcBN+PcvsyfpawPR8WNjvzD4Ath/H/XkAUD9SEx7QIpUQoUclqsgJvozIxaEiTfw+o7QVJKp
+          2ios9QykQIuhQn0DPx/i25fw5Z/F2LeznwDfT2LGT6gHsMT3iB5veNbpDjwSePxVeoGcmEvJp0gT
+          Y9zutyCP+6aIiOxLu7sMuA9yB335XqB6SLr3BIbS3T4D4Kf4W9MyQ5PBDgScsrfsLy+FuXVRExGW
+          Ad5HYCPPGf4PGPEDwBPDzLeT0MdbvcUXYB3a4OxPSPoCu7oqE57YIP0HIBX2OHsBhD9FmStNhl2C
+          1B8DuU2bkRXBngw1b9lI9Yvjf1NKJ/X4JXkA4O1DYUcf0VUhe23dRqajHj4nSUiLQNrBRtCo78OK
+          X7Pjb1AZNBvMmElffyQZfG2vbWgEAFaSDdoy6SgAfo9S+yPpbqbN+EJqtL3Wzm+tYHadOZtcbKyb
+          2izxR6ziFJ2dZfrhOH41jr3ttS2Y+R3I8r5hlpqxvpCmC1szmCmsTPFSk/EL8PaPZi/X1lCgiBww
+          oLfQ3s3+lRHt/ymWRc1/QKbwLWnryX933o/jpeA+j4GMR8ZaIKs/A6fSsEEOWHx9CmoMOvQQPkvU
+          9P+VsEfJ2LdXKe3qWT2rZ/WsntWzelbP6lk9q2f1rJ7Vs3pWz+pZPatn9aye1bN6Vs/qWT2rZ/Ws
+          ntWzev4Gn/8FU0zIuAB4AAA=
+          B64DATA
+          base64 -d /tmp/step5-files.tar.gz.b64 > /tmp/step5-files.tar.gz
+          tar -xzf /tmp/step5-files.tar.gz -C .
+
+      - name: Wire Step 5 assets into index
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const path = 'public/index.html';
+          let html = fs.readFileSync(path, 'utf8');
+
+          const cssTag = '    <link rel="stylesheet" href="support-suggestions-pro-ux.css?v=step5">';
+          if (!html.includes('support-suggestions-pro-ux.css')) {
+            const marker = '    <link rel="stylesheet" href="safe-tool-upgrade.css">';
+            if (html.includes(marker)) {
+              html = html.replace(marker, marker + '\n' + cssTag);
+            } else {
+              html = html.replace('</head>', cssTag + '\n</head>');
+            }
+          }
+
+          const jsTag = '<script src="./support-suggestions-pro-ux.js?v=step5" defer></script>';
+          if (!html.includes('support-suggestions-pro-ux.js')) {
+            const marker = '<script type="module" src="./admin-message-client.js"></script>';
+            if (html.includes(marker)) {
+              html = html.replace(marker, marker + '\n' + jsTag);
+            } else {
+              html = html.replace('</body>', jsTag + '\n</body>');
+            }
+          }
+
+          fs.writeFileSync(path, html);
+          NODE
+
+      - name: Commit Step 5 changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/support-suggestions-pro-ux.css public/support-suggestions-pro-ux.js public/index.html SECURITY_UPGRADE_STEP5_AR.md
+          if git diff --cached --quiet; then
+            echo "No Step 5 changes to commit."
+            exit 0
+          fi
+          git commit -m "Step 5 support and suggestions UX upgrade"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
