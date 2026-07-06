@@ -3,7 +3,7 @@ import { getCookieName, signSession } from "../../../lib/session.js";
 import { enforceSameOrigin, noStore } from "../../../lib/server/auth.js";
 import { getServiceSupabase } from "../../../lib/server/admin.js";
 import { ensureNicknameForUser, getNicknameProfile, normalizeUserId, cleanNickname } from "../../../lib/server/nickname.js";
-import { buildDeviceConfidence, findDeviceNicknameMatch, recordDeviceNickname, touchDeviceNickname } from "../../../lib/server/device-confidence.js";
+import { buildDeviceConfidence, findDeviceNicknameMatch, verifyDeviceNicknameChoice, recordDeviceNickname, touchDeviceNickname } from "../../../lib/server/device-confidence.js";
 
 export const runtime = "nodejs";
 
@@ -109,6 +109,7 @@ export async function POST(request) {
   const password = (body.password || "").toString();
   const incoming_user_id = normalizeUserId(body.user_id);
   const requestedNickname = cleanNickname(body.nickname || body.display_name || "");
+  const selectedRecoveryUserId = normalizeUserId(body.recovery_user_id || body.selected_recovery_user_id || "");
   const deviceFingerprint = buildDeviceConfidence(request, body.device_fingerprint || {}, SESSION_SECRET);
 
   if (isLimited(request, username)) {
@@ -153,27 +154,67 @@ export async function POST(request) {
       deviceConfidence = Number(match.confidence_score || 0);
       await touchDeviceNickname(supabase, match.device_hash);
     } else {
-      if(body.nickname_from_storage){
-        const profile = await getNicknameProfile(supabase, finalUserId);
-        if(profile?.ok && profile.reset_required){
+      if(selectedRecoveryUserId){
+        const choice = await verifyDeviceNicknameChoice(supabase, deviceFingerprint, selectedRecoveryUserId, { minScore: 72, suggestionThreshold: 60, gap: 8, maxSuggestions: 8 });
+        if(!choice.ok){
+          return noStore(NextResponse.json({ error: choice.error || "Could not verify selected nickname." }, { status: 500 }));
+        }
+        if(choice.matched){
+          finalUserId = choice.user_id;
+          displayName = choice.display_name;
+          recoveredByDevice = true;
+          deviceConfidence = Number(choice.confidence_score || 0);
+          await touchDeviceNickname(supabase, choice.device_hash);
+        } else {
+          const reason = choice.reason || match.reason || "choice_not_confident";
+          const msg = reason === "choice_score_too_low"
+            ? `التطابق مع الكنية المختارة ${Math.round(Number(choice.selected_score || 0))}% فقط، وده أقل من حد التأكيد الآمن. اكتب كنية جديدة أو اطلب من الأدمن عمل Reset nickname لو دي كنيتك.`
+            : reason === "choice_ambiguous"
+              ? "الجهاز قريب من أكثر من كنية، لذلك لا يمكن تأكيد الاختيار بأمان. اكتب كنية جديدة أو اطلب من الأدمن المساعدة."
+              : reason === "choice_not_top_candidate"
+                ? "الكنية المختارة ليست أقرب تطابق لهذا الجهاز، لذلك تم رفض الاختيار لحماية أسماء المستخدمين."
+                : "لم أستطع تأكيد الكنية المختارة لهذا الجهاز. اكتب كنية جديدة أو اختر مقترحًا أقوى إن ظهر.";
           return noStore(NextResponse.json({
-            error: "الأدمن طلب إعادة اختيار الكنية. اكتب كنية خيالية جديدة.",
+            error: msg,
             nickname_required: true,
+            recovery_rejected: true,
+            nickname_suggestions: choice.suggestions || match.suggestions || [],
+            device_confidence: {
+              matched:false,
+              reason,
+              best_score: match.best_score || choice.best_score || 0,
+              selected_score: choice.selected_score || 0,
+              manual_threshold: choice.manual_threshold || 72,
+              ambiguous: !!(choice.ambiguous || match.ambiguous),
+            },
             user_id: finalUserId,
           }, { status: 409 }));
         }
+      } else {
+        if(body.nickname_from_storage){
+          const profile = await getNicknameProfile(supabase, finalUserId);
+          if(profile?.ok && profile.reset_required){
+            return noStore(NextResponse.json({
+              error: "الأدمن طلب إعادة اختيار الكنية. اكتب كنية خيالية جديدة.",
+              nickname_required: true,
+              user_id: finalUserId,
+            }, { status: 409 }));
+          }
+        }
+        const nicknameResult = await ensureNicknameForUser(supabase, finalUserId, requestedNickname);
+        if (!nicknameResult?.ok) {
+          return noStore(NextResponse.json({
+            error: nicknameResult?.error || "Nickname is required.",
+            nickname_required: !!nicknameResult?.nickname_required,
+            nickname_taken: !!nicknameResult?.nickname_taken,
+            nickname_suggestions: match.suggestions || [],
+            device_confidence: { matched:false, reason: match.reason || "nickname_required", best_score: match.best_score || 0, ambiguous: !!match.ambiguous, threshold: match.threshold || undefined },
+            user_id: finalUserId,
+          }, { status: nicknameResult?.status || 409 }));
+        }
+        displayName = nicknameResult.display_name || "";
+        await recordDeviceNickname(supabase, finalUserId, displayName, deviceFingerprint, 100);
       }
-      const nicknameResult = await ensureNicknameForUser(supabase, finalUserId, requestedNickname);
-      if (!nicknameResult?.ok) {
-        return noStore(NextResponse.json({
-          error: nicknameResult?.error || "Nickname is required.",
-          nickname_required: !!nicknameResult?.nickname_required,
-          device_confidence: { matched:false, reason: match.reason || "nickname_required", best_score: match.best_score || 0, ambiguous: !!match.ambiguous },
-          user_id: finalUserId,
-        }, { status: nicknameResult?.status || 409 }));
-      }
-      displayName = nicknameResult.display_name || "";
-      await recordDeviceNickname(supabase, finalUserId, displayName, deviceFingerprint, 100);
     }
   } catch (err) {
     return noStore(NextResponse.json(

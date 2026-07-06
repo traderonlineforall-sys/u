@@ -322,6 +322,8 @@ export default function LoginPage() {
   const [agreed, setAgreed] = useState(false);
   const [agreeHint, setAgreeHint] = useState("");
   const [nicknamePromptReason, setNicknamePromptReason] = useState("");
+  const [nicknameSuggestions, setNicknameSuggestions] = useState([]);
+  const [selectedRecoveryUserId, setSelectedRecoveryUserId] = useState("");
 
   useEffect(() => {
     const uid = getStableUserId();
@@ -337,7 +339,8 @@ export default function LoginPage() {
   }, []);
 
   const nickErr = useMemo(() => (nicknameRequired && cleanNickname(nickname)) ? nicknameError(nickname) : "", [nickname, nicknameRequired]);
-  const canSubmit = useMemo(() => username.trim() && password && (!nicknameRequired || !nickErr), [username, password, nicknameRequired, nickErr]);
+  const hasNicknameChoice = selectedRecoveryUserId || cleanNickname(nickname);
+  const canSubmit = useMemo(() => username.trim() && password && (!nicknameRequired || (!!hasNicknameChoice && !nickErr)), [username, password, nicknameRequired, hasNicknameChoice, nickErr]);
   const canProceed = useMemo(() => canSubmit && agreed, [canSubmit, agreed]);
 
   async function onSubmit(e) {
@@ -349,13 +352,13 @@ export default function LoginPage() {
       setAgreeHint("يرجى وضع علامة ✓ للموافقة قبل تسجيل الدخول.");
       return;
     }
-    if (nicknameRequired && cleanNickname(nickname) && nickErr) {
+    if (nicknameRequired && !selectedRecoveryUserId && cleanNickname(nickname) && nickErr) {
       setErr(nickErr);
       return;
     }
 
     const uid = userId || getStableUserId();
-    const chosenNickname = cleanNickname(nicknameRequired ? nickname : (storedNickname || nickname));
+    const chosenNickname = selectedRecoveryUserId ? "" : cleanNickname(nicknameRequired ? nickname : (storedNickname || nickname));
 
     setBusy(true);
     try {
@@ -368,6 +371,7 @@ export default function LoginPage() {
           password,
           user_id: uid,
           nickname: chosenNickname,
+          recovery_user_id: selectedRecoveryUserId || "",
           nickname_from_storage: !!(!nicknameRequired && storedNickname),
           device_fingerprint,
         }),
@@ -376,11 +380,18 @@ export default function LoginPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         if (data?.nickname_required) {
+          const suggestions = Array.isArray(data?.nickname_suggestions) ? data.nickname_suggestions.slice(0, 3) : [];
           setNicknameRequired(true);
-          setNicknamePromptReason(data?.device_confidence?.best_score
-            ? `لم أجد ثقة كافية لاستعادة كنيتك تلقائيًا. اكتب كنية خيالية جديدة. أقرب تطابق: ${data.device_confidence.best_score}%`
-            : "هذه أول مرة لهذا الجهاز أو قام الأدمن بطلب إعادة اختيار الكنية. اكتب كنية خيالية فقط.");
-          setNickname("");
+          setNicknameSuggestions(suggestions);
+          setSelectedRecoveryUserId("");
+          setNicknamePromptReason(data?.nickname_taken
+            ? "الكنية دي مستخدمة بالفعل. اختار كنية مختلفة."
+            : suggestions.length
+              ? "الجهاز قريب من كنية محفوظة. اختار كنيتك من المقترحات لو التطابق آمن، أو اكتب كنية جديدة."
+              : data?.device_confidence?.best_score
+                ? `لم أجد ثقة كافية لاستعادة كنيتك تلقائيًا. اكتب كنية خيالية جديدة. أقرب تطابق: ${data.device_confidence.best_score}%`
+                : "هذه أول مرة لهذا الجهاز أو قام الأدمن بطلب إعادة اختيار الكنية. اكتب كنية خيالية فقط.");
+          if(!data?.nickname_taken) setNickname("");
           setStoredNicknameState("");
           try { localStorage.removeItem(NAME_KEY); } catch {}
           try { document.cookie = `${NAME_KEY}=; path=/; max-age=0; samesite=lax`; } catch {}
@@ -444,7 +455,10 @@ export default function LoginPage() {
                 كنيتك داخل التول <span style={styles.required}>*</span>
                 <input
                   value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
+                  onChange={(e) => {
+                    setNickname(e.target.value);
+                    setSelectedRecoveryUserId("");
+                  }}
                   autoComplete="off"
                   maxLength={40}
                   style={{ ...styles.input, ...styles.nicknameInput }}
@@ -452,6 +466,31 @@ export default function LoginPage() {
                 />
               </label>
               <div style={styles.nicknameHint}>{nicknamePromptReason || "اكتب كنية خيالية فقط ولا تكتب اسمك الحقيقي. لن تظهر هذه الخانة مرة أخرى إلا إذا كان الجهاز جديدًا أو قام الأدمن بعمل Reset nickname."}</div>
+              {nicknameSuggestions.length ? (
+                <div style={styles.suggestionsBox}>
+                  <div style={styles.suggestionsTitle}>هل دي كنيتك؟</div>
+                  {nicknameSuggestions.map((item) => (
+                    <button
+                      key={item.user_id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedRecoveryUserId(item.user_id);
+                        setNickname("");
+                        setErr("");
+                      }}
+                      style={{
+                        ...styles.suggestionBtn,
+                        ...(selectedRecoveryUserId === item.user_id ? styles.suggestionBtnActive : null),
+                      }}
+                    >
+                      <span>{item.display_name}</span>
+                      <small>{Math.round(Number(item.score || 0))}% تطابق{Number(item.score || 0) < 72 ? " - للتذكير فقط" : ""}</small>
+                    </button>
+                  ))}
+                  <div style={styles.suggestionsHint}>للحماية، اختيار المقترح لا يتم قبوله إلا لو كان التطابق آمنًا وغير ملتبس. لو كنيتك مش ضمن المقترحات أو الاختيار اترفض، اكتب كنية جديدة.</div>
+                </div>
+              ) : null}
+              {selectedRecoveryUserId ? <div style={styles.nicknameHint}>تم اختيار كنية من المقترحات. اضغط Sign in للمتابعة.</div> : null}
               {nickErr ? <div style={styles.nickError}>{nickErr}</div> : null}
             </div>
           ) : storedNickname ? (
@@ -577,6 +616,27 @@ const styles = {
     fontSize: 13,
     lineHeight: 1.5,
   },
+  suggestionsBox: { display: "grid", gap: 8, marginTop: 4 },
+  suggestionsTitle: { fontSize: 12, fontWeight: 800, opacity: 0.9 },
+  suggestionBtn: {
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    borderRadius: 12,
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(255,255,255,0.08)",
+    color: "white",
+    padding: "10px 12px",
+    cursor: "pointer",
+    fontWeight: 800,
+  },
+  suggestionBtnActive: {
+    border: "1px solid rgba(34,197,94,0.6)",
+    background: "rgba(34,197,94,0.20)",
+  },
+  suggestionsHint: { fontSize: 12, lineHeight: 1.5, opacity: 0.78 },
   required: { color: "#fca5a5" },
   nickError: { fontSize: 12, color: "#fecaca" },
   btn: {
