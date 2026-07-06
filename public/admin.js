@@ -18,7 +18,7 @@ const tabSupport = document.getElementById("adminTabSupport");
 const tabBlocks = document.getElementById("adminTabBlocks");
 const tabAnnouncements = document.getElementById("adminTabAnnouncements");
 
-let adminPassword = "";
+let adminPassword = ""; // kept only during the admin-login request; never sent after login
 
 const URGENT_ARABIC_TTS_VOICES = [
   ["ar-EG-SalmaNeural", "Salma — Egyptian Arabic — Female"],
@@ -85,12 +85,36 @@ function colorForUserId(userId = "") {
 async function apiAdmin(path, body){
   const res = await fetch(path, {
     method: "POST",
+    credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...body, admin_password: adminPassword }),
+    body: JSON.stringify(body || {}),
   });
   const data = await res.json().catch(()=> ({}));
   if(!res.ok) throw new Error(data?.error || "Request failed");
   return data;
+}
+
+async function apiAdminLogin(password){
+  const res = await fetch("/api/admin-login", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ admin_password: password }),
+  });
+  const data = await res.json().catch(()=> ({}));
+  if(!res.ok) throw new Error(data?.error || "Admin login failed");
+  return data;
+}
+
+async function apiAdminLogout(){
+  try {
+    await fetch("/api/admin-logout", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+  } catch {}
 }
 
 function openAdmin(){
@@ -106,6 +130,9 @@ function openAdmin(){
 }
 
 function closeAdmin(){
+  adminPassword = "";
+  try { passInput.value = ""; } catch {}
+  apiAdminLogout();
   hide(overlay);
 }
 
@@ -125,6 +152,9 @@ loginBtn?.addEventListener("click", async ()=>{
   // quick auth check by calling list blocks endpoint (light)
   try{
     setAuthStatus("Checking…");
+    await apiAdminLogin(p);
+    adminPassword = "";
+    try { passInput.value = ""; } catch {}
     await apiAdmin("/api/admin-ping", {});
     setAuthStatus("");
     authBox.style.display = "none";

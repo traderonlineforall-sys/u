@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "../../../lib/server/admin.js";
-import { enforceSameOrigin, noStore } from "../../../lib/server/auth.js";
+import { enforceSameOrigin, requireUserSession, noStore } from "../../../lib/server/auth.js";
 
 const TABLE = "suggestion_item_reactions";
 const ALLOWED_TYPES = new Set(["suggestion", "reply"]);
@@ -88,6 +88,8 @@ async function listReactions(supabase, targets, userId){
 export async function POST(req){
   const sameOrigin = enforceSameOrigin(req);
   if (!sameOrigin.ok) return j({ error: sameOrigin.error }, { status: sameOrigin.status });
+  const sess = await requireUserSession(req);
+  if(!sess.ok) return j({ error: sess.error }, { status: sess.status || 401 });
   const body = await req.json().catch(() => ({}));
   const action = String(body?.action || "list").trim();
   const userId = normalizeUserId(body?.user_id);

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { noStore } from '../../../lib/server/auth.js';
+import { requireUserSession, noStore } from '../../../lib/server/auth.js';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -9,6 +9,9 @@ function digitsOnly(value) {
 }
 
 export async function GET(request) {
+  const sess = await requireUserSession(request);
+  if(!sess.ok) return noStore(NextResponse.json({ error: sess.error }, { status: sess.status || 401 }));
+
   const { searchParams } = new URL(request.url);
   const areaCode = digitsOnly(searchParams.get('area_code'));
   const landline = digitsOnly(searchParams.get('landline'));

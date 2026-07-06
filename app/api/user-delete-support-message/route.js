@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { enforceSameOrigin, noStore } from "../../../lib/server/auth.js";
+import { enforceSameOrigin, requireUserSession, noStore } from "../../../lib/server/auth.js";
 import { getServiceSupabase } from "../../../lib/server/admin.js";
 
 function j(body, init){
@@ -9,6 +9,8 @@ function j(body, init){
 export async function POST(req){
   const same = enforceSameOrigin(req);
   if(!same.ok) return j({ error: same.error }, { status: same.status || 403 });
+  const sess = await requireUserSession(req);
+  if(!sess.ok) return j({ error: sess.error }, { status: sess.status || 401 });
 
   const body = await req.json().catch(()=> ({}));
   const id = Number(body?.id);
