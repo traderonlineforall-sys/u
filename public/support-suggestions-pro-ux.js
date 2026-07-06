@@ -1,5 +1,5 @@
-/* Step 5 - Support & Suggestions Professional UX layer
-   Front-end only. No extra Cloudflare requests. */
+/* Step 5.1 - Lightweight Support & Suggestions UX layer
+   Front-end only. No sort/reorder, no API calls, no polling. */
 (function(){
   "use strict";
 
@@ -7,9 +7,9 @@
   const state = {
     supportSearch: "",
     suggestionSearch: "",
-    suggestionSort: "default",
     toastLast: new Map(),
-    observersStarted: false
+    observersStarted: false,
+    applyTimer: 0
   };
 
   function $(sel, root = D){ return root.querySelector(sel); }
@@ -69,7 +69,13 @@
         last = text;
       }
     };
-    new MutationObserver(show).observe(node, { childList:true, subtree:true, characterData:true, attributes:true, attributeFilter:["data-type"] });
+    new MutationObserver(show).observe(node, {
+      childList:true,
+      subtree:true,
+      characterData:true,
+      attributes:true,
+      attributeFilter:["data-type"]
+    });
   }
 
   function enhanceStatuses(){
@@ -190,14 +196,9 @@
     if(!$("#sruxSuggestionsToolbar")){
       const bar = D.createElement("div");
       bar.id = "sruxSuggestionsToolbar";
-      bar.className = "srux-toolbar";
+      bar.className = "srux-toolbar srux-toolbar-light";
       bar.innerHTML = `
         <input id="sruxSuggestionsSearch" class="srux-search" type="search" autocomplete="off" placeholder="Search suggestions…" aria-label="Search suggestions">
-        <select id="sruxSuggestionsSort" class="srux-select" aria-label="Sort suggestions">
-          <option value="default">Newest</option>
-          <option value="replies">Most replies</option>
-          <option value="mine">My suggestions</option>
-        </select>
         <span id="sruxSuggestionsCount" class="srux-pill">0 items</span>
       `;
       list.insertAdjacentElement("beforebegin", bar);
@@ -205,10 +206,9 @@
         state.suggestionSearch = lower(e.target.value);
         applySuggestionsUx();
       });
-      $("#sruxSuggestionsSort")?.addEventListener("change", (e) => {
-        state.suggestionSort = e.target.value || "default";
-        applySuggestionsUx();
-      });
+    } else {
+      // Remove the old heavy sort dropdown if it exists from an older cached run.
+      $("#sruxSuggestionsSort")?.remove();
     }
 
     if(form && !$("#sruxSuggestionHint")){
@@ -237,28 +237,6 @@
     return Number.isFinite(n) ? n : 0;
   }
 
-  function rememberSuggestionOrder(cards){
-    cards.forEach((card, idx) => {
-      if(!card.dataset.sruxOrder) card.dataset.sruxOrder = String(idx);
-    });
-  }
-
-  function sortSuggestionCards(cards){
-    const list = $("#suggestionsList");
-    if(!list || cards.length < 2) return;
-    const sorted = cards.slice();
-    if(state.suggestionSort === "replies"){
-      sorted.sort((a,b) => getReplyCount(b) - getReplyCount(a) || Number(a.dataset.sruxOrder||0) - Number(b.dataset.sruxOrder||0));
-    } else if(state.suggestionSort === "mine"){
-      sorted.sort((a,b) => Number(b.classList.contains("srux-own-suggestion")) - Number(a.classList.contains("srux-own-suggestion")) || Number(a.dataset.sruxOrder||0) - Number(b.dataset.sruxOrder||0));
-    } else {
-      sorted.sort((a,b) => Number(a.dataset.sruxOrder||0) - Number(b.dataset.sruxOrder||0));
-    }
-    const frag = D.createDocumentFragment();
-    sorted.forEach((card) => frag.appendChild(card));
-    list.appendChild(frag);
-  }
-
   function markOwnSuggestions(cards){
     const currentNames = [
       localStorage.getItem("sr_display_name"),
@@ -270,7 +248,7 @@
       const name = lower($(".suggestion-name", card)?.textContent);
       const own = !!name && currentNames.includes(name);
       card.classList.toggle("srux-own-suggestion", own);
-      if(getReplyCount(card) >= 3) card.classList.add("srux-top-replies");
+      card.classList.toggle("srux-top-replies", getReplyCount(card) >= 3);
     });
   }
 
@@ -279,9 +257,7 @@
     const list = $("#suggestionsList");
     if(!list) return;
     const cards = $all(".suggestion-item", list);
-    rememberSuggestionOrder(cards);
     markOwnSuggestions(cards);
-    sortSuggestionCards(cards);
 
     const q = state.suggestionSearch;
     let visible = 0;
@@ -319,19 +295,38 @@
     applyEmptyStates();
   }
 
+  function scheduleApply(){
+    clearTimeout(state.applyTimer);
+    state.applyTimer = setTimeout(() => requestAnimationFrame(applyAll), 120);
+  }
+
+  function observeIfExists(selector, options){
+    const el = $(selector);
+    if(!el || el.dataset.sruxObserved === "1") return false;
+    el.dataset.sruxObserved = "1";
+    new MutationObserver(scheduleApply).observe(el, options);
+    return true;
+  }
+
   function startObservers(){
     if(state.observersStarted) return;
     state.observersStarted = true;
-    let pending = false;
-    const schedule = () => {
-      if(pending) return;
-      pending = true;
-      requestAnimationFrame(() => { pending = false; applyAll(); });
-    };
-    new MutationObserver(schedule).observe(D.body, { childList:true, subtree:true, attributes:true, attributeFilter:["class", "style", "data-reply-count"] });
-    window.addEventListener("sr:suggestions-rendered", schedule);
-    window.addEventListener("sr:support-users-updated", schedule);
-    window.addEventListener("sr:nickname-updated", schedule);
+
+    const rootObserver = new MutationObserver(() => {
+      observeIfExists("#suggestionsList", { childList:true, subtree:false });
+      observeIfExists("#supportUsersList", { childList:true, subtree:true, attributes:true, attributeFilter:["class"] });
+      observeIfExists("#supportMessagesList", { childList:true, subtree:false });
+      scheduleApply();
+    });
+    rootObserver.observe(D.body, { childList:true, subtree:true });
+
+    observeIfExists("#suggestionsList", { childList:true, subtree:false });
+    observeIfExists("#supportUsersList", { childList:true, subtree:true, attributes:true, attributeFilter:["class"] });
+    observeIfExists("#supportMessagesList", { childList:true, subtree:false });
+
+    window.addEventListener("sr:suggestions-rendered", scheduleApply);
+    window.addEventListener("sr:support-users-updated", scheduleApply);
+    window.addEventListener("sr:nickname-updated", scheduleApply);
   }
 
   function init(){
