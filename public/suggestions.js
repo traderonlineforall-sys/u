@@ -265,7 +265,14 @@ async function addSuggestion() {
     user_id: USER_ID,
   };
 
-  const { error } = await supabase.from("suggestions").insert(payload);
+  const apiRes = await fetch("/api/public-suggestion", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const apiData = await apiRes.json().catch(() => ({}));
+  const error = apiRes.ok && apiData?.ok ? null : new Error(apiData?.error || "Could not add suggestion.");
 
   elBtn.disabled = false;
   elInput.disabled = false;
@@ -386,8 +393,14 @@ async function renderRepliesPanel(suggestionId, box, btn){
         user_id: USER_ID,
         name: SESSION_ALIAS,
       };
-      const { error } = await supabase.from("suggestion_replies").insert(payload);
-      if(error) throw error;
+      const apiRes = await fetch("/api/public-suggestion-reply", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const apiData = await apiRes.json().catch(() => ({}));
+      if(!apiRes.ok || !apiData?.ok) throw new Error(apiData?.error || "Could not post reply.");
       input.value = "";
       await renderRepliesPanel(suggestionId, box, btn);
     }catch(e){
