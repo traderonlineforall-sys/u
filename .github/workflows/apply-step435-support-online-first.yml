@@ -1,0 +1,99 @@
+name: Apply Step 4.3.5 Support Online First
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/apply-step435-support-online-first.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply-step435:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply Step 4.3.5 changed files
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/step435-files.tar.gz.b64 <<'B64DATA'
+          H4sIAAAAAAAAA+1a63LbxhX2bz7FGp5mwESETOo2lUJ7ZElONLUkV7Qy03FcDUgsSTggwOIihXX4
+          wzc5dfIOnTTTylFiO6qbpumTgG+Tc/YCLEhIctxcmgQ7I5Hc3XP7zm0XpDF97gcfF2EszM2xVxjj
+          r+x9da5Wq80vVGcWZmF+YaFWO0fmfnjVzp2LgtD0CTnne1542r6z1n+mw5juR03Hbv2QYfCd/V+t
+          1mCq8P+PMBL/B1G/7/lhpe/TgLotWtmzg8h0jNvB/ywDHTw/O3uC/2vV6ty4/+dn5mbPkYvfg31n
+          jl+5/+0eep3cIeB/s2kGlAxJ2/d6RDOm5VSl5djUDSEUtKVSQtChYSM0mw7dCai/bk3xCc+nFk5s
+          mr0MK7azEsFKxbaAmR0OOL/S9Osl8jpp8PAjPOqIjELyBumbDg1DSqjbNWHGN9j2lteniwlVq2uG
+          ZHVrg3iuMzDIpkca28QyQ3OKuB7pUtOiPnvbo24UMA4VshwEdscNCN2j/gAF26AiEXlAUNXpHg0C
+          s0OJSdr2+xRsDELfczvOgAS0b/pmSK1Ev6DVpT0qeVtWQLZcx3bp9Fa7ja+kaVodGgBj2+2g5hzu
+          bWo6oQ1gXRcmI4fpUqnluUFIdhpr27vrq6Q+DrdeXiq1I7cV2p5LWpHvA6YSd718h/g0jHx30id6
+          mXzwAdHwo7ZEhkLMytvLm5tr13Y3lzfWQJYW+LsCh12PGbErHbK7VwWncarGyttrG2u7K1s7mzeA
+          qlqTC5xmHSCoE5fukwYN9ZvClFugOACGLnNd6uCOyHH4nNcEtcAbmUnE1YocQLpO2qYTUIiZxPKu
+          GXRv0PdDfc90Ioqqa2Vyp0QIUnbhc606P1+dma/NV5dglquHajVCH9wgyBARrWzAVE+HF++at0/9
+          FfAOokxI2/OJjgxtILy4BC9vksBwqNsJu/jpDbCdSyUg8491WATr/BXPosuhbjMehGmzYYZdw+5F
+          jt6dItX5hYWF+epv2foQ/oTPuuTSpUsgpzRUDAVHrjjUdJmxLnDmAgWJsAbnLxshbFnx3BAiQlrm
+          075jtqg+/W7wxnRnimgkMTcrpuU5Dm2F7/BkwCj5HR0EOhfG0XsPJsCUm7cUQCl1FVcDT1iyvFbU
+          w7Lxpwjyq0GRr+cvO46uXRDBhfyDazZwMGT7wbQD3QDyNbPV1XXf2y+T+iWBLhdnW6kDYd0AbJZD
+          +NiMQqprmPay0GjlrG+XFC4uVqh6FljkllFX1zKaVZBIK2f4AB7ABnQCSbjM1+w20XHltdfIeYTH
+          gEjFibIMFMJQM0zLYtNLYhLRNfpR0FVmMTaGLw3qBq9ZY7j2gs5ZsH5XQIBlFg+0mTHJGI0zeVaz
+          +UmzlWnFbhHnuC0bsM3IdqwGK70bZj8vUE8K6TR8TdYIWIHBEGZ80lXwuzUR3NPThFdj4vnQW0hz
+          wEoRyKT9gIRdaAcIhGwqGDsBMaFlhGTfDrteFBKL9qlrYS8AM6B8IxvGDBoAxyMAlHUdeliT+Sqp
+          dWYZOkzyqVnmKrEqlYak12ZMJPCykjIXJ7QYY+Q3mUK+lGzvRKZvsYrHpva7NliiIxzMr5xbGZ3N
+          d76Z4aN4XIoVJNDTZ/KlEsEJC2oaAiRxkBFQpvOUzH6hg4gXphqGlpjmdTWNHskmG0HUDSKfyu57
+          BZu0DgeNrgcnBjvgPZwbg/F9ni+VBc80TMC3WHDrhG8w+Oc1h2K6LklqPptSi07FjgZAy5fHM24x
+          wNMOuZRmc3JIZ4RaOeHPPkvoJdekaLR8CkcWoZOuBX3T1QR2bK/RcgCjTV4HtBOE8f3CStuFyA6X
+          rdvQXRJrdc1shxRDWpvijFNXcDlqi6onKJPLROPvNLIIb/m5iQlU1MO6Bj2603Gg2NtBhR82QNL5
+          84m7ziIRnIFGIRlrtwjDDW/dGi8rPbM/Xih++a0Ogwt0gVxn9RlBYMmInyBNLO5g9l8kG+xgkLLC
+          A0zBgoYCRd5hDrc1xuC6MpCZmXGCg0jWTwA+B3UlRRgpQJWjVCYvuSCACXVd9n1zYOBtRkf6HEeP
+          uTWRhwzEWREqZC1HhOfbHds1nS3WSepMpAHwpRHxMp5/JefKkLnt2a6uvcuqQaKX6/k907H/TC1R
+          ERJ9XkkWO1e34LKUnq4106+svaUpzRayNWzACeEdcZzPTQp51j8BFuRRwWMGB+a0XeJ+VzHDU/fy
+          umkl2zRNzS52e6uTVdiCVR/sYgqKzBHpsBn1mtDa7eCq7drAGInKUPAY8SLvsUMFfIxOdu5g0RA4
+          NibA+IlABcVcV0qF+YqFoqkyaX4nJqoqG4gHU6hel1fYjBi2oZm3AVMG6c/DAmwrJ717A9tDpQpY
+          VbPCRO+oQ/1HkVCikusnO6fAZNZGhaCZR9BMCJgyYjtTSJ4GpFJJ38pTbMeFsLG4YqdnSMR2Lrpe
+          qC/SXj8clLWsygqr5quyYsYIRswY/j41RqzlG9PgV7xMfsJBNKNl7p6mKp7tYMLxXSKaU1a4FCFX
+          LGWLEEg0HFZEVrweHpb0sfVmGS63pg+d/Q7cNNzADu09OxzAaQIftsC0C/3Ct1uLJPShhgyTvpVW
+          PbovCzHPwZ+wFIsrVaIRAJdpFplmkt9k0UxkFPqDTLlo+2Zn8mi4Kj5ehVV2khPOE0hMHFWQi2H2
+          8SKzAtcDiy0IGtYn1TXczPEmbTTBkRqdejzAc6N6MgOOzkBsfYc9LISLWChPBzkPi5KKKi+JWHrG
+          bo3pLlec+vhxKXMGLJ5qZJDEBJEIorL8MokHq8wsPy/CtDBNvXtK5uO3Qdk6Qe9gEoVm1MRnyVwM
+          pLRy20uwDJQib+fUeNtSZJx+rchcKk4jyL1UIEneDfMlfTIm/ufwFEiJZplM2UDInp5+MYFmY+uc
+          iDLopEkd+v+MttSB+cF21q0se3GWBXgZy7SePjdJCrP65ESt1rJR+RQUDcJl1+6ZyBFaEfb9/Ko/
+          JnzfDFtdsWsVrmqpePnNgipd/bYBb/NRyARuiWld74mZQEkS5SlbD5+xKXvk8y6U1zPCQZ+yjq21
+          sPuxSyiGobpiyoALtJScjGO4lCykuqfPxuRD0tQeQ7zRkzLR9KzBlMxyqQ0/Ak3xDhw1Q59SdSrV
+          LXf2qu2E1F8kNzUWnhCHWhAOHKrdSvSZMCMTJwO3JWNIbeBpArWg/Pjc+nQSn+6J+0I571gTICt8
+          6Mu/Xbps9FUZlw3+9dedIcdwq3kbssFg17VAZ7RKdQTkfJuqzidETiKXm7fGNg8yW/P6Ott12cAC
+          v8tL3ngXlwGEpSNrdtKyJL7ydUhaGPdg1Zmgh6Yfjj1PURBMvpGTX/waYkpXvx+cSiwE+9p2ZxGO
+          2hJlfA/ldjH53nIoozS5IXKOgoPhwVlXErNDO90DjOC4jvGhkeHUZKCUz6TFI/Sr0kLQ7dEziCFb
+          ghakAdVZzETBmN9ZvWMLPM0bO1caK9vrV9ZWM2megAEBYLbe09UV9jAbYySBciqzigV7cfJ73+wm
+          8dWtCXZhgVtlWQZNZL2xJeKxrOwflg0WR7rOzRkqEUny8jVdHmbiMolHXlomixk70O/brgVdCSJ7
+          DaHHikRdqLpa4C+6dus9tLAS9S188AIe0hOMJwL2MscPkvvOJGonIvUy6EwmGIvjE1VvUqgHNHId
+          z8zROdU3cqXG5aUJ7hg9SeXGG/mgwYsahhJyBtVEHCXbJlVZ3doQD9ivAckYhGSyU4p7XrZAMOMx
+          OzyW28mVeUgoHGkYq1xGE2yGpZ/6dy7FyB/GdGNtZWd7/cYfdneuv7W9vLq227ixdn12Zm53edvo
+          Wd+HjNN//3WxVr04M/b7r9mZ2kLx+68fY1yAowntk1ljxpgjleQHVdep13eo+AUTuWr7QVgqjR7F
+          X8aHJD4cPYiP4qfx89Hj+HMC/57GL0YHBOaO4yP4+ITEn8LMw/gw/oTAy3H8JP6Gkz2Pvxk9JKO7
+          o3vx10apdOECYduQ7ejx6C6sPoj/WipVkOt/QN4xI4M9L4D7M5D4kPN5yqYfg6DRh/DxcPSRoRKN
+          7o8eSMqj+CvcCgoKa0D2E1z+L2w/ztnFb1bID9Q9jJ/B3tEB6PZCER1/Fn+siHuI5n8zOgAFHxGw
+          9wXQ/SOVAev34uPRh/En8WdZ8aNHTA7gEz8n8Zegwn1kCzgiioArvvwNLAcmB/G/gO3XJP47SBvd
+          BzUOCNP8MH46+gj+f0zizxEgQYZqHqIfONDyM7joEYPsPnj0AQM+/jeCj2ACol/D5BPYeETiL5iL
+          n4PS6JjRX8iK40VW2zF9gGcyDI64ax+rmN6Nn0piRoAgHcZfJcADKF/AH5PxhE3xIABbDgGUIxYe
+          z9E8yebkX86NsSQsbJ6M7iF1BoNnCC+8HpdKEnqkRICPF0ulqoGf76JxeeFrlGrKBg4DRqEIgy8g
+          JA7jf06rAHAPgi5pHAHFvfjIKM0YmDifgj+fowMOTg5bEW1AeIAJloIKjDDcHsafGaXZcXby14eY
+          lwCFIH4BfnowQSzjAREE+sbvryUxwB2LFQAjHG1+BpHyIVL91CWsGMUoRjGKUYxiFKMYxShGMYpR
+          jGIUoxjFKEYxilGMYhSjGMUoRjGKUYxf/fgW9B3y7ABQAAA=
+          B64DATA
+          base64 -d /tmp/step435-files.tar.gz.b64 > /tmp/step435-files.tar.gz
+          tar -xzf /tmp/step435-files.tar.gz -C .
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/support-presence-visual.js SECURITY_UPGRADE_STEP435_AR.md
+          if git diff --cached --quiet; then
+            echo "No Step 4.3.5 changes to commit."
+            exit 0
+          fi
+          git commit -m "Step 4.3.5 support online users first"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
