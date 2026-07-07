@@ -268,8 +268,8 @@ async function refreshSupport(){
   }
 
   const rows = Array.isArray(data) ? data : [];
-  const publicMsgs = rows.filter((r) => r && r.room_type === "public");
-  const privateMsgs = rows.filter((r) => r && r.room_type !== "public");
+  const publicMsgs = rows.filter((r) => r && String(r.room_type || "public") === "public");
+  const privateMsgs = rows.filter((r) => r && String(r.room_type || "public") !== "public");
 
   function renderBulkBar(groupKey, title) {
     return `
@@ -296,7 +296,7 @@ async function refreshSupport(){
         </label>
         <div class="admin-row-main">
           <div class="admin-row-meta">
-            ${escapeHtml(fmtTime(r.created_at))} • ${escapeHtml(r.room_id)} •
+            ${escapeHtml(fmtTime(r.created_at))} • ${escapeHtml(r.room_id || "public")} •
             <b>${escapeHtml(r.sender_name || "User")}</b> (${escapeHtml(r.sender_id || "")})
           </div>
           <div class="admin-row-text">${escapeHtml(r.message || "")}</div>

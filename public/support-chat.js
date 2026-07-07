@@ -183,7 +183,7 @@ function redirectToNicknameLogin() {
 
 // ---------- Helpers ----------
 function escapeHtml(s = "") {
-  return s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+  return String(s == null ? "" : s).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
 // Convert URLs in plain text to safe clickable links.
@@ -197,6 +197,41 @@ function linkifyText(raw = "") {
     }
     return escapeHtml(p);
   }).join("");
+}
+
+
+function isMissingColumnError(error){
+  const msg = String(error?.message || "") + " " + String(error?.details || "");
+  const code = String(error?.code || "");
+  return code === "42P01" || code === "42703" || /Could not find|does not exist|column .* does not exist|schema cache/i.test(msg);
+}
+
+function normalizeSupportRow(row){
+  const r = row && typeof row === "object" ? { ...row } : {};
+  const userId = String(r.user_id || r.sender_id || "");
+  const senderId = String(r.sender_id || r.user_id || userId || "");
+  return {
+    ...r,
+    user_id: userId || senderId,
+    sender_id: senderId || userId,
+    sender_name: String(r.sender_name || r.name || r.display_name || "User"),
+    message: String(r.message || r.text || ""),
+    room_type: String(r.room_type || "public"),
+    room_id: String(r.room_id || "public"),
+    created_at: r.created_at || new Date().toISOString(),
+  };
+}
+
+async function fetchSupportMessagesApi(params){
+  const qs = new URLSearchParams(params || {});
+  const res = await fetch((await resolveFnBase()) + "/support-messages?" + qs.toString(), {
+    method: "GET",
+    credentials: "same-origin",
+    headers: { "accept": "application/json" },
+  });
+  const data = await res.json().catch(() => ({}));
+  if(!res.ok || !data?.ok) throw new Error(data?.error || "Could not load support messages.");
+  return Array.isArray(data.rows) ? data.rows.map(normalizeSupportRow) : [];
 }
 
 function renderMessageHtml(m) {
@@ -455,20 +490,23 @@ function computeUnread(recentRows){
   const dmByOther = new Map();
   let publicCount = 0;
 
-  for(const r of (recentRows||[])){
+  for(const raw of (recentRows||[])){
+    const r = normalizeSupportRow(raw);
     const ts = Date.parse(r.created_at || "") || 0;
-    if(r.room_type === "public" && r.room_id === "public"){
-      if(r.sender_id && r.sender_id !== USER_ID && ts > publicSeenTs) publicCount += 1;
+    const roomType = String(r.room_type || "public");
+    const roomId = String(r.room_id || "public");
+    const fromId = String(r.sender_id || r.user_id || "");
+    if(roomType === "public" && roomId === "public"){
+      if(fromId && fromId !== USER_ID && ts > publicSeenTs) publicCount += 1;
     }
-    if(r.room_type === "dm" && typeof r.room_id === "string" && r.room_id.includes(USER_ID)){
+    if(roomType === "dm" && roomId.includes(USER_ID)){
       // count only messages from the other side
-      if(!r.sender_id || r.sender_id === USER_ID) continue;
-      const key = lsDmSeenKey(r.room_id);
+      if(!fromId || fromId === USER_ID) continue;
+      const key = lsDmSeenKey(roomId);
       const seen = getSeen(key);
       const seenTs = seen ? Date.parse(seen) : 0;
       if(ts > seenTs){
-        const otherId = r.sender_id;
-        dmByOther.set(otherId, (dmByOther.get(otherId) || 0) + 1);
+        dmByOther.set(fromId, (dmByOther.get(fromId) || 0) + 1);
       }
     }
   }
@@ -534,16 +572,31 @@ async function loadUsers() {
   // This is separate from the user list source.
   let recentRows = [];
   try {
-    const res = await supabase
-      .from("support_messages")
-      .select("sender_id, sender_name, room_type, room_id, created_at")
-      .order("created_at", { ascending: false })
-      .limit(500);
-    if (!res.error && Array.isArray(res.data)) {
-      recentRows = res.data;
-      recentCache = res.data;
-    }
-  } catch {}
+    recentRows = await fetchSupportMessagesApi({ mode: "recent", limit: "500" });
+    recentCache = recentRows;
+  } catch (apiErr) {
+    try {
+      const selects = [
+        "sender_id, sender_name, user_id, room_type, room_id, created_at",
+        "sender_id, sender_name, user_id, created_at",
+        "user_id, sender_name, created_at",
+        "user_id, name, created_at",
+      ];
+      for (const columns of selects) {
+        const res = await supabase
+          .from("support_messages")
+          .select(columns)
+          .order("created_at", { ascending: false })
+          .limit(500);
+        if (!res.error && Array.isArray(res.data)) {
+          recentRows = res.data.map(normalizeSupportRow);
+          recentCache = recentRows;
+          break;
+        }
+        if (!isMissingColumnError(res.error)) break;
+      }
+    } catch {}
+  }
 
   // Preferred source: `support_users` profiles (allows admin to delete names)
   const profileOk = await detectProfileTable();
@@ -648,60 +701,76 @@ async function loadUsers() {
 }
 
 function isPublicRoomRow(m) {
-  return String(m?.room_type || "public") === "public";
+  const r = normalizeSupportRow(m);
+  return String(r.room_type || "public") === "public";
 }
 
 function isRowInActiveRoom(m) {
   if (!m) return false;
-  if (activeRoom.type === "public") return isPublicRoomRow(m);
-  return String(m.room_type || "") === activeRoom.type && String(m.room_id || "") === String(activeRoom.room_id || "");
+  const r = normalizeSupportRow(m);
+  if (activeRoom.type === "public") return isPublicRoomRow(r);
+  return String(r.room_type || "") === activeRoom.type && String(r.room_id || "") === String(activeRoom.room_id || "");
 }
 
 function renderSupportMessageRow(m) {
-  const mine = m.sender_id === USER_ID;
-  const bundle = colorBundleForUserId(m.sender_id || m.sender_name || "");
-  const safeId = m.id == null ? "" : escapeHtml(String(m.id));
+  const row = normalizeSupportRow(m);
+  const senderId = String(row.sender_id || row.user_id || "");
+  const mine = senderId === USER_ID;
+  const bundle = colorBundleForUserId(senderId || row.sender_name || "");
+  const safeId = row.id == null ? "" : escapeHtml(String(row.id));
   return `
       <div class="support-msg ${mine ? "mine" : ""}" style="--u:${escapeHtml(bundle.accent)};--ubg:${escapeHtml(bundle.bg)};--uborder:${escapeHtml(bundle.border)}">
         <div class="support-msg-meta">
           <span class="support-msg-dot" aria-hidden="true"></span>
-          <span class="support-msg-name">${escapeHtml(m.sender_name || "User")}</span>
-          <span class="support-msg-time">${escapeHtml(fmtTime(m.created_at))}</span>
+          <span class="support-msg-name">${escapeHtml(row.sender_name || "User")}</span>
+          <span class="support-msg-time">${escapeHtml(fmtTime(row.created_at))}</span>
           ${mine && safeId && !String(safeId).startsWith("local-") ? `<button class="support-del-btn" data-id="${safeId}" title="Delete">🗑️</button>` : ""}
         </div>
-        ${renderMessageHtml(m)}
+        ${renderMessageHtml(row)}
       </div>
     `;
 }
 
 function appendSupportMessage(m) {
   if (!messagesList || !m) return;
+  messagesList.querySelectorAll(".srux-empty-state").forEach((e) => e.remove());
   messagesList.insertAdjacentHTML("beforeend", renderSupportMessageRow(m));
   bindDeleteButtons();
   messagesList.scrollTop = messagesList.scrollHeight;
 }
 
 async function loadMessages() {
-  let query = supabase
-    .from("support_messages")
-    .select("*")
-    .order("created_at", { ascending: true })
-    .limit(300);
+  let rows = [];
+  try {
+    rows = await fetchSupportMessagesApi({
+      room_type: activeRoom.type,
+      room_id: activeRoom.room_id,
+      limit: "300",
+    });
+  } catch (apiErr) {
+    let query = supabase
+      .from("support_messages")
+      .select("*")
+      .order("created_at", { ascending: true })
+      .limit(300);
 
-  if (activeRoom.type !== "public") {
-    query = query.eq("room_type", activeRoom.type).eq("room_id", activeRoom.room_id);
+    if (activeRoom.type !== "public") {
+      query = query.eq("room_type", activeRoom.type).eq("room_id", activeRoom.room_id);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error(error);
+      setStatus(`Could not load messages. Please contact ${ADMIN_NAME}.`, "error");
+      return;
+    }
+    rows = (data || []).map(normalizeSupportRow);
   }
 
-  const { data, error } = await query;
-
-  if (error) {
-    console.error(error);
-    setStatus(`Could not load messages. Please contact ${ADMIN_NAME}.`, "error");
-    return;
-  }
-
-  const rows = (data || []).filter((m) => activeRoom.type === "public" ? isPublicRoomRow(m) : true);
-  messagesList.innerHTML = rows.map(renderSupportMessageRow).join("");
+  const visibleRows = rows.filter((m) => activeRoom.type === "public" ? isPublicRoomRow(m) : isRowInActiveRoom(m));
+  messagesList.innerHTML = visibleRows.map(renderSupportMessageRow).join("");
+  markActiveRoomSeenFromRows(visibleRows);
 
   // scroll to bottom
   bindDeleteButtons();
@@ -810,7 +879,7 @@ function subscribeRoom() {
     .on("postgres_changes", { event: "*", schema: "public", table: "support_messages" }, (payload) => {
       const rowNew = payload?.new || {};
       const rowOld = payload?.old || {};
-      const row = Object.keys(rowNew).length ? rowNew : rowOld;
+      const row = normalizeSupportRow(Object.keys(rowNew).length ? rowNew : rowOld);
       if (isRowInActiveRoom(row)) {
         loadMessages();
       }
@@ -825,7 +894,7 @@ function subscribeBackground(){
   bgSub = supabase
     .channel("support_unread")
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "support_messages" }, (payload)=>{
-      const row = payload?.new || {};
+      const row = normalizeSupportRow(payload?.new || {});
       // Gentle notification sound for incoming messages (not your own).
       try {
         const fromId = row?.sender_id || row?.user_id || "";
