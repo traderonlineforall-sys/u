@@ -155,7 +155,7 @@ export async function POST(request) {
       await touchDeviceNickname(supabase, match.device_hash);
     } else {
       if(selectedRecoveryUserId){
-        const choice = await verifyDeviceNicknameChoice(supabase, deviceFingerprint, selectedRecoveryUserId, { minScore: 72, suggestionThreshold: 60, gap: 8, maxSuggestions: 8 });
+        const choice = await verifyDeviceNicknameChoice(supabase, deviceFingerprint, selectedRecoveryUserId, { minScore: 90, suggestionThreshold: 60, gap: 15, maxSuggestions: 8 });
         if(!choice.ok){
           return noStore(NextResponse.json({ error: choice.error || "Could not verify selected nickname." }, { status: 500 }));
         }
@@ -184,7 +184,7 @@ export async function POST(request) {
               reason,
               best_score: match.best_score || choice.best_score || 0,
               selected_score: choice.selected_score || 0,
-              manual_threshold: choice.manual_threshold || 72,
+              manual_threshold: choice.manual_threshold || 90,
               ambiguous: !!(choice.ambiguous || match.ambiguous),
             },
             user_id: finalUserId,

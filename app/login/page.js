@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 const ID_KEY = "sr_tool_user_id";
 const NAME_KEY = "sr_tool_user_name";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 5;
+const DEVICE_SECRET_KEY = "sr_tool_device_instance_secret_v1";
 
 function safeLocalGet(key){ try { return localStorage.getItem(key) || ""; } catch { return ""; } }
 function safeLocalSet(key, value){ try { localStorage.setItem(key, value); } catch {} }
@@ -28,6 +29,26 @@ function normalizeId(value){
 function createUserId(){
   try { if (crypto?.randomUUID) return `uid_${crypto.randomUUID()}`; } catch {}
   return `uid_${Date.now().toString(16)}_${Math.random().toString(16).slice(2)}`;
+}
+function createDeviceSecret(){
+  try {
+    const a = crypto?.randomUUID ? crypto.randomUUID() : Math.random().toString(16).slice(2);
+    const bytes = new Uint8Array(16);
+    crypto?.getRandomValues?.(bytes);
+    const b = Array.from(bytes).map((x)=>x.toString(16).padStart(2,"0")).join("");
+    return `dev_${a}_${b}_${Date.now().toString(16)}`;
+  } catch {
+    return `dev_${Date.now().toString(16)}_${Math.random().toString(16).slice(2)}_${Math.random().toString(16).slice(2)}`;
+  }
+}
+function getStableDeviceSecret(){
+  let v = "";
+  try { v = localStorage.getItem(DEVICE_SECRET_KEY) || ""; } catch {}
+  if(!/^dev_[a-zA-Z0-9_.:-]{20,}$/.test(String(v || ""))){
+    v = createDeviceSecret();
+    try { localStorage.setItem(DEVICE_SECRET_KEY, v); } catch {}
+  }
+  return v;
 }
 function getStableUserId(){
   let id = normalizeId(safeLocalGet(ID_KEY)) || normalizeId(safeCookieGet(ID_KEY));
@@ -345,6 +366,7 @@ async function collectDeviceFingerprint(){
   const colorScheme = (()=>{ try { return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; } catch { return ""; } })();
   const reducedMotion = (()=>{ try { return matchMedia("(prefers-reduced-motion: reduce)").matches ? "reduce" : "no-preference"; } catch { return ""; } })();
   const vv = window.visualViewport || {};
+  const deviceInstanceHash = await sha256Hex(getStableDeviceSecret());
   const [canvasHash, audioHash, fontsHash, webgl, pluginsHash, clientHints, storage, keyboard, capabilities, network, battery, mediaDevices] = await Promise.all([
     getCanvasHash(),
     getAudioHash(),
@@ -410,6 +432,7 @@ async function collectDeviceFingerprint(){
     audioHash,
     fontsHash,
     pluginsHash,
+    deviceInstanceHash,
   };
 }
 
@@ -589,7 +612,7 @@ export default function LoginPage() {
                       }}
                     >
                       <span>{item.display_name}</span>
-                      <small>{Math.round(Number(item.score || 0))}% تطابق{Number(item.score || 0) < 72 ? " - للتذكير فقط" : ""}</small>
+                      <small>{Math.round(Number(item.score || 0))}% تطابق{Number(item.score || 0) < 90 ? " - للتذكير فقط" : ""}</small>
                     </button>
                   ))}
                   <div style={styles.suggestionsHint}>للحماية، اختيار المقترح لا يتم قبوله إلا لو كان التطابق آمنًا وغير ملتبس. لو كنيتك مش ضمن المقترحات أو الاختيار اترفض، اكتب كنية جديدة.</div>
