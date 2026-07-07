@@ -1,0 +1,734 @@
+name: Apply Step 5.9 Support Chat Visible Fix
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/apply-step59-support-chat-visible.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: step59-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apply-step59:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Sync latest branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "${{ github.ref_name }}"
+          git reset --hard "origin/${{ github.ref_name }}"
+
+      - name: Write Step 5.9 patch script
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/apply_step59.py <<'PY'
+          from pathlib import Path
+          from datetime import datetime, timezone
+          
+          ROOT = Path('.')
+          
+          route = ROOT/'app/api/support-message/route.js'
+          route.write_text(r'''import { NextResponse } from "next/server";
+          import { enforceSameOrigin, requireUserSession, noStore } from "../../../lib/server/auth.js";
+          import { getServiceSupabase } from "../../../lib/server/admin.js";
+          import { requireActiveNickname, cleanNickname } from "../../../lib/server/nickname.js";
+          
+          function j(body, init){
+            return noStore(NextResponse.json(body, init));
+          }
+          
+          function normalizeUserId(value){
+            const s = String(value || "").trim().slice(0, 160);
+            return /^[a-zA-Z0-9_.:\-]{8,160}$/.test(s) ? s : "";
+          }
+          
+          function cleanText(value, max){
+            return String(value || "").replace(/\u0000/g, "").trim().slice(0, max);
+          }
+          
+          function normalizeRoomType(value){
+            const s = String(value || "public").trim().toLowerCase();
+            return s === "dm" ? "dm" : "public";
+          }
+          
+          function normalizeRoomId(value, roomType, senderId){
+            const s = String(value || "").trim().slice(0, 360);
+            if(roomType === "public") return "public";
+            if(!/^[a-zA-Z0-9_.:\-]+__[a-zA-Z0-9_.:\-]+$/.test(s)) return "";
+            if(senderId && !s.split("__").includes(senderId)) return "";
+            return s;
+          }
+          
+          function isMissingTableOrColumn(error){
+            const msg = String(error?.message || "");
+            const details = String(error?.details || "");
+            const code = String(error?.code || "");
+            return code === "42P01" || code === "42703" || /Could not find|does not exist|column .* does not exist|schema cache/i.test(msg + " " + details);
+          }
+          
+          function normalizeInsertedRow(row, fallback){
+            const r = row && typeof row === "object" ? { ...row } : {};
+            r.sender_id = String(r.sender_id || r.user_id || fallback.sender_id || "");
+            r.user_id = String(r.user_id || r.sender_id || fallback.user_id || "");
+            r.sender_name = String(r.sender_name || r.name || fallback.sender_name || "User");
+            r.message = String(r.message || fallback.message || "");
+            r.room_type = String(r.room_type || fallback.room_type || "public");
+            r.room_id = String(r.room_id || fallback.room_id || "public");
+            r.created_at = r.created_at || new Date().toISOString();
+            return r;
+          }
+          
+          async function currentBlockForUser(supabase, userId){
+            if(!userId) return null;
+            const now = new Date().toISOString();
+            try {
+              let res = await supabase
+                .from("blocks")
+                .select("expires_at,reason")
+                .eq("user_id", userId)
+                .gt("expires_at", now)
+                .order("expires_at", { ascending: false })
+                .limit(1);
+          
+              if(res.error && isMissingTableOrColumn(res.error)){
+                res = await supabase
+                  .from("blocks")
+                  .select("blocked_until,reason")
+                  .eq("user_id", userId)
+                  .gt("blocked_until", now)
+                  .order("blocked_until", { ascending: false })
+                  .limit(1);
+                if(!res.error && res.data && res.data[0]){
+                  return { expires_at: res.data[0].blocked_until, reason: res.data[0].reason || "" };
+                }
+              }
+          
+              if(res.error) return null;
+              return res.data && res.data[0] ? res.data[0] : null;
+            } catch {
+              return null;
+            }
+          }
+          
+          async function insertSupportMessage(supabase, basePayload){
+            // New schema first, then safe legacy fallbacks. This fixes old Supabase projects
+            // that do not have room_type/room_id or sender_id yet.
+            const attempts = [
+              {
+                label: "full",
+                payload: {
+                  sender_id: basePayload.sender_id,
+                  user_id: basePayload.user_id,
+                  sender_name: basePayload.sender_name,
+                  message: basePayload.message,
+                  room_type: basePayload.room_type,
+                  room_id: basePayload.room_id,
+                },
+              },
+              {
+                label: "no-room-columns",
+                payload: {
+                  sender_id: basePayload.sender_id,
+                  user_id: basePayload.user_id,
+                  sender_name: basePayload.sender_name,
+                  message: basePayload.message,
+                },
+              },
+              {
+                label: "legacy-user-id",
+                payload: {
+                  user_id: basePayload.user_id,
+                  sender_name: basePayload.sender_name,
+                  message: basePayload.message,
+                },
+              },
+              {
+                label: "legacy-name",
+                payload: {
+                  user_id: basePayload.user_id,
+                  name: basePayload.sender_name,
+                  message: basePayload.message,
+                },
+              },
+            ];
+          
+            let lastError = null;
+            for(const attempt of attempts){
+              const { data, error } = await supabase
+                .from("support_messages")
+                .insert(attempt.payload)
+                .select("*");
+          
+              if(!error){
+                const rows = Array.isArray(data) ? data.map((row) => normalizeInsertedRow(row, basePayload)) : [];
+                return { data: rows, error: null, used: attempt.label };
+              }
+          
+              lastError = error;
+              if(!isMissingTableOrColumn(error)) break;
+            }
+          
+            return { data: [], error: lastError || new Error("Message insert failed.") };
+          }
+          
+          export async function POST(req){
+            const same = enforceSameOrigin(req);
+            if(!same.ok) return j({ error: same.error }, { status: same.status || 403 });
+          
+            const sess = await requireUserSession(req);
+            if(!sess.ok) return j({ error: sess.error }, { status: sess.status || 401 });
+          
+            const body = await req.json().catch(() => ({}));
+            const payload = body?.payload && typeof body.payload === "object" ? body.payload : body;
+            const sender_id = normalizeUserId(payload?.sender_id || payload?.user_id);
+            const user_id = normalizeUserId(payload?.user_id || payload?.sender_id);
+            const requested_sender_name = cleanNickname(payload?.sender_name || payload?.display_name || "");
+            const message = cleanText(payload?.message, 5000);
+            const room_type = normalizeRoomType(payload?.room_type);
+            const room_id = normalizeRoomId(payload?.room_id, room_type, sender_id);
+          
+            if(!sender_id || !user_id) return j({ error: "Missing sender id." }, { status: 400 });
+            if(sender_id !== user_id) return j({ error: "Sender mismatch." }, { status: 400 });
+            if(!message) return j({ error: "Missing message." }, { status: 400 });
+            if(!room_id) return j({ error: "Invalid room." }, { status: 400 });
+          
+            try {
+              const supabase = getServiceSupabase();
+              const nick = await requireActiveNickname(supabase, sender_id, requested_sender_name);
+              if(!nick.ok){
+                return j({
+                  error: nick.error || "Nickname is required.",
+                  nickname_required: !!nick.nickname_required,
+                  user_id: sender_id,
+                }, { status: nick.status || 409 });
+              }
+          
+              const blocked = await currentBlockForUser(supabase, sender_id);
+              if(blocked){
+                return j({ error: "You are blocked.", blocked_until: blocked.expires_at || null }, { status: 403 });
+              }
+          
+              const basePayload = { sender_id, user_id, sender_name: nick.display_name, message, room_type, room_id };
+              const { data, error, used } = await insertSupportMessage(supabase, basePayload);
+              if(error) return j({ error: error.message || "Message insert failed." }, { status: 500 });
+              return j({ ok: true, data, compatibility_mode: used !== "full", used_schema: used });
+            } catch (err) {
+              return j({ error: String(err?.message || err || "Message insert failed.") }, { status: 500 });
+            }
+          }
+          ''', encoding='utf-8')
+          
+          read_route = ROOT/'app/api/support-messages/route.js'
+          read_route.parent.mkdir(parents=True, exist_ok=True)
+          read_route.write_text(r'''import { NextResponse } from "next/server";
+          import { requireUserSession, noStore } from "../../../lib/server/auth.js";
+          import { getServiceSupabase } from "../../../lib/server/admin.js";
+          
+          function j(body, init){
+            return noStore(NextResponse.json(body, init));
+          }
+          
+          function clampLimit(value, fallback = 300){
+            const n = Number(value);
+            if(!Number.isFinite(n)) return fallback;
+            return Math.max(1, Math.min(500, Math.floor(n)));
+          }
+          
+          function normalizeRoomType(value){
+            const s = String(value || "public").trim().toLowerCase();
+            return s === "dm" ? "dm" : "public";
+          }
+          
+          function normalizeText(value, fallback = ""){
+            return String(value == null ? fallback : value);
+          }
+          
+          function isMissingTableOrColumn(error){
+            const msg = String(error?.message || "");
+            const details = String(error?.details || "");
+            const code = String(error?.code || "");
+            return code === "42P01" || code === "42703" || /Could not find|does not exist|column .* does not exist|schema cache/i.test(msg + " " + details);
+          }
+          
+          function normalizeRow(row){
+            const r = row && typeof row === "object" ? { ...row } : {};
+            const userId = normalizeText(r.user_id || r.sender_id || "");
+            const senderId = normalizeText(r.sender_id || r.user_id || userId);
+            const senderName = normalizeText(r.sender_name || r.name || r.display_name || "User");
+            return {
+              ...r,
+              user_id: userId || senderId,
+              sender_id: senderId || userId,
+              sender_name: senderName || "User",
+              message: normalizeText(r.message || r.text || ""),
+              room_type: normalizeText(r.room_type || "public"),
+              room_id: normalizeText(r.room_id || "public"),
+              created_at: r.created_at || new Date().toISOString(),
+            };
+          }
+          
+          async function selectRows(supabase, { roomType, roomId, limit, recentOnly }){
+            const trySelects = [
+              "*",
+              "id,user_id,sender_id,sender_name,message,room_type,room_id,created_at",
+              "id,user_id,sender_name,message,created_at",
+              "id,user_id,name,message,created_at",
+            ];
+          
+            let lastError = null;
+            for(const columns of trySelects){
+              try{
+                let query = supabase
+                  .from("support_messages")
+                  .select(columns)
+                  .order("created_at", { ascending: !recentOnly })
+                  .limit(limit);
+          
+                if(!recentOnly && roomType === "dm"){
+                  query = query.eq("room_type", "dm").eq("room_id", roomId);
+                }
+          
+                const { data, error } = await query;
+                if(!error){
+                  let rows = (Array.isArray(data) ? data : []).map(normalizeRow);
+                  if(!recentOnly && roomType === "public"){
+                    rows = rows.filter((r) => String(r.room_type || "public") === "public");
+                  }
+                  if(!recentOnly && roomType === "dm"){
+                    rows = rows.filter((r) => String(r.room_type || "") === "dm" && String(r.room_id || "") === String(roomId || ""));
+                  }
+                  return { rows, error: null };
+                }
+                lastError = error;
+                if(!isMissingTableOrColumn(error)) break;
+              }catch(err){
+                lastError = err;
+                if(!isMissingTableOrColumn(err)) break;
+              }
+            }
+            return { rows: [], error: lastError };
+          }
+          
+          export async function GET(req){
+            const sess = await requireUserSession(req);
+            if(!sess.ok) return j({ error: sess.error }, { status: sess.status || 401 });
+          
+            const url = new URL(req.url);
+            const mode = String(url.searchParams.get("mode") || "messages");
+            const limit = clampLimit(url.searchParams.get("limit"), mode === "recent" ? 500 : 300);
+            const roomType = normalizeRoomType(url.searchParams.get("room_type"));
+            const roomId = String(url.searchParams.get("room_id") || (roomType === "public" ? "public" : "")).trim();
+          
+            if(mode !== "recent" && roomType === "dm" && !roomId){
+              return j({ error: "Missing room id." }, { status: 400 });
+            }
+          
+            try{
+              const supabase = getServiceSupabase();
+              const { rows, error } = await selectRows(supabase, {
+                roomType,
+                roomId,
+                limit,
+                recentOnly: mode === "recent",
+              });
+              if(error) return j({ error: error.message || "Could not load support messages." }, { status: 500 });
+              return j({ ok: true, rows });
+            }catch(err){
+              return j({ error: String(err?.message || err || "Could not load support messages.") }, { status: 500 });
+            }
+          }
+          ''', encoding='utf-8')
+          
+          support = ROOT/'public/support-chat.js'
+          text = support.read_text(encoding='utf-8')
+          text = text.replace('function escapeHtml(s = "") {\n  return s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");\n}', 'function escapeHtml(s = "") {\n  return String(s == null ? "" : s).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");\n}')
+          # Insert helpers before renderMessageHtml
+          needle = 'function renderMessageHtml(m) {'
+          helpers = r'''
+          function isMissingColumnError(error){
+            const msg = String(error?.message || "") + " " + String(error?.details || "");
+            const code = String(error?.code || "");
+            return code === "42P01" || code === "42703" || /Could not find|does not exist|column .* does not exist|schema cache/i.test(msg);
+          }
+          
+          function normalizeSupportRow(row){
+            const r = row && typeof row === "object" ? { ...row } : {};
+            const userId = String(r.user_id || r.sender_id || "");
+            const senderId = String(r.sender_id || r.user_id || userId || "");
+            return {
+              ...r,
+              user_id: userId || senderId,
+              sender_id: senderId || userId,
+              sender_name: String(r.sender_name || r.name || r.display_name || "User"),
+              message: String(r.message || r.text || ""),
+              room_type: String(r.room_type || "public"),
+              room_id: String(r.room_id || "public"),
+              created_at: r.created_at || new Date().toISOString(),
+            };
+          }
+          
+          async function fetchSupportMessagesApi(params){
+            const qs = new URLSearchParams(params || {});
+            const res = await fetch((await resolveFnBase()) + "/support-messages?" + qs.toString(), {
+              method: "GET",
+              credentials: "same-origin",
+              headers: { "accept": "application/json" },
+            });
+            const data = await res.json().catch(() => ({}));
+            if(!res.ok || !data?.ok) throw new Error(data?.error || "Could not load support messages.");
+            return Array.isArray(data.rows) ? data.rows.map(normalizeSupportRow) : [];
+          }
+          
+          '''
+          if helpers.strip() not in text:
+              text = text.replace(needle, helpers + needle)
+          
+          # replace computeUnread block manually
+          old = r'''  for(const r of (recentRows||[])){
+              const ts = Date.parse(r.created_at || "") || 0;
+              if(r.room_type === "public" && r.room_id === "public"){
+                if(r.sender_id && r.sender_id !== USER_ID && ts > publicSeenTs) publicCount += 1;
+              }
+              if(r.room_type === "dm" && typeof r.room_id === "string" && r.room_id.includes(USER_ID)){
+                // count only messages from the other side
+                if(!r.sender_id || r.sender_id === USER_ID) continue;
+                const key = lsDmSeenKey(r.room_id);
+                const seen = getSeen(key);
+                const seenTs = seen ? Date.parse(seen) : 0;
+                if(ts > seenTs){
+                  const otherId = r.sender_id;
+                  dmByOther.set(otherId, (dmByOther.get(otherId) || 0) + 1);
+                }
+              }
+            }'''
+          new = r'''  for(const raw of (recentRows||[])){
+              const r = normalizeSupportRow(raw);
+              const ts = Date.parse(r.created_at || "") || 0;
+              const roomType = String(r.room_type || "public");
+              const roomId = String(r.room_id || "public");
+              const fromId = String(r.sender_id || r.user_id || "");
+              if(roomType === "public" && roomId === "public"){
+                if(fromId && fromId !== USER_ID && ts > publicSeenTs) publicCount += 1;
+              }
+              if(roomType === "dm" && roomId.includes(USER_ID)){
+                // count only messages from the other side
+                if(!fromId || fromId === USER_ID) continue;
+                const key = lsDmSeenKey(roomId);
+                const seen = getSeen(key);
+                const seenTs = seen ? Date.parse(seen) : 0;
+                if(ts > seenTs){
+                  dmByOther.set(fromId, (dmByOther.get(fromId) || 0) + 1);
+                }
+              }
+            }'''
+          if old in text:
+              text = text.replace(old, new)
+          else:
+              print('compute block not found')
+          
+          # replace recent rows loading in loadUsers
+          old = r'''  let recentRows = [];
+            try {
+              const res = await supabase
+                .from("support_messages")
+                .select("sender_id, sender_name, room_type, room_id, created_at")
+                .order("created_at", { ascending: false })
+                .limit(500);
+              if (!res.error && Array.isArray(res.data)) {
+                recentRows = res.data;
+                recentCache = res.data;
+              }
+            } catch {}'''
+          new = r'''  let recentRows = [];
+            try {
+              recentRows = await fetchSupportMessagesApi({ mode: "recent", limit: "500" });
+              recentCache = recentRows;
+            } catch (apiErr) {
+              try {
+                const selects = [
+                  "sender_id, sender_name, user_id, room_type, room_id, created_at",
+                  "sender_id, sender_name, user_id, created_at",
+                  "user_id, sender_name, created_at",
+                  "user_id, name, created_at",
+                ];
+                for (const columns of selects) {
+                  const res = await supabase
+                    .from("support_messages")
+                    .select(columns)
+                    .order("created_at", { ascending: false })
+                    .limit(500);
+                  if (!res.error && Array.isArray(res.data)) {
+                    recentRows = res.data.map(normalizeSupportRow);
+                    recentCache = recentRows;
+                    break;
+                  }
+                  if (!isMissingColumnError(res.error)) break;
+                }
+              } catch {}
+            }'''
+          if old in text:
+              text = text.replace(old, new)
+          else:
+              print('loadUsers recent block not found')
+          
+          # replace isPublic/isRow/render/append/loadMessages blocks
+          old = r'''function isPublicRoomRow(m) {
+            return String(m?.room_type || "public") === "public";
+          }
+          
+          function isRowInActiveRoom(m) {
+            if (!m) return false;
+            if (activeRoom.type === "public") return isPublicRoomRow(m);
+            return String(m.room_type || "") === activeRoom.type && String(m.room_id || "") === String(activeRoom.room_id || "");
+          }
+          
+          function renderSupportMessageRow(m) {
+            const mine = m.sender_id === USER_ID;
+            const bundle = colorBundleForUserId(m.sender_id || m.sender_name || "");
+            const safeId = m.id == null ? "" : escapeHtml(String(m.id));
+            return `
+                <div class="support-msg ${mine ? "mine" : ""}" style="--u:${escapeHtml(bundle.accent)};--ubg:${escapeHtml(bundle.bg)};--uborder:${escapeHtml(bundle.border)}">
+                  <div class="support-msg-meta">
+                    <span class="support-msg-dot" aria-hidden="true"></span>
+                    <span class="support-msg-name">${escapeHtml(m.sender_name || "User")}</span>
+                    <span class="support-msg-time">${escapeHtml(fmtTime(m.created_at))}</span>
+                    ${mine && safeId && !String(safeId).startsWith("local-") ? `<button class="support-del-btn" data-id="${safeId}" title="Delete">🗑️</button>` : ""}
+                  </div>
+                  ${renderMessageHtml(m)}
+                </div>
+              `;
+          }
+          
+          function appendSupportMessage(m) {
+            if (!messagesList || !m) return;
+            messagesList.insertAdjacentHTML("beforeend", renderSupportMessageRow(m));
+            bindDeleteButtons();
+            messagesList.scrollTop = messagesList.scrollHeight;
+          }
+          
+          async function loadMessages() {
+            let query = supabase
+              .from("support_messages")
+              .select("*")
+              .order("created_at", { ascending: true })
+              .limit(300);
+          
+            if (activeRoom.type !== "public") {
+              query = query.eq("room_type", activeRoom.type).eq("room_id", activeRoom.room_id);
+            }
+          
+            const { data, error } = await query;
+          
+            if (error) {
+              console.error(error);
+              setStatus(`Could not load messages. Please contact ${ADMIN_NAME}.`, "error");
+              return;
+            }
+          
+            const rows = (data || []).filter((m) => activeRoom.type === "public" ? isPublicRoomRow(m) : true);
+            messagesList.innerHTML = rows.map(renderSupportMessageRow).join("");
+          
+            // scroll to bottom
+            bindDeleteButtons();
+            messagesList.scrollTop = messagesList.scrollHeight;
+          }
+          '''
+          new = r'''function isPublicRoomRow(m) {
+            const r = normalizeSupportRow(m);
+            return String(r.room_type || "public") === "public";
+          }
+          
+          function isRowInActiveRoom(m) {
+            if (!m) return false;
+            const r = normalizeSupportRow(m);
+            if (activeRoom.type === "public") return isPublicRoomRow(r);
+            return String(r.room_type || "") === activeRoom.type && String(r.room_id || "") === String(activeRoom.room_id || "");
+          }
+          
+          function renderSupportMessageRow(m) {
+            const row = normalizeSupportRow(m);
+            const senderId = String(row.sender_id || row.user_id || "");
+            const mine = senderId === USER_ID;
+            const bundle = colorBundleForUserId(senderId || row.sender_name || "");
+            const safeId = row.id == null ? "" : escapeHtml(String(row.id));
+            return `
+                <div class="support-msg ${mine ? "mine" : ""}" style="--u:${escapeHtml(bundle.accent)};--ubg:${escapeHtml(bundle.bg)};--uborder:${escapeHtml(bundle.border)}">
+                  <div class="support-msg-meta">
+                    <span class="support-msg-dot" aria-hidden="true"></span>
+                    <span class="support-msg-name">${escapeHtml(row.sender_name || "User")}</span>
+                    <span class="support-msg-time">${escapeHtml(fmtTime(row.created_at))}</span>
+                    ${mine && safeId && !String(safeId).startsWith("local-") ? `<button class="support-del-btn" data-id="${safeId}" title="Delete">🗑️</button>` : ""}
+                  </div>
+                  ${renderMessageHtml(row)}
+                </div>
+              `;
+          }
+          
+          function appendSupportMessage(m) {
+            if (!messagesList || !m) return;
+            messagesList.querySelectorAll(".srux-empty-state").forEach((e) => e.remove());
+            messagesList.insertAdjacentHTML("beforeend", renderSupportMessageRow(m));
+            bindDeleteButtons();
+            messagesList.scrollTop = messagesList.scrollHeight;
+          }
+          
+          async function loadMessages() {
+            let rows = [];
+            try {
+              rows = await fetchSupportMessagesApi({
+                room_type: activeRoom.type,
+                room_id: activeRoom.room_id,
+                limit: "300",
+              });
+            } catch (apiErr) {
+              let query = supabase
+                .from("support_messages")
+                .select("*")
+                .order("created_at", { ascending: true })
+                .limit(300);
+          
+              if (activeRoom.type !== "public") {
+                query = query.eq("room_type", activeRoom.type).eq("room_id", activeRoom.room_id);
+              }
+          
+              const { data, error } = await query;
+          
+              if (error) {
+                console.error(error);
+                setStatus(`Could not load messages. Please contact ${ADMIN_NAME}.`, "error");
+                return;
+              }
+              rows = (data || []).map(normalizeSupportRow);
+            }
+          
+            const visibleRows = rows.filter((m) => activeRoom.type === "public" ? isPublicRoomRow(m) : isRowInActiveRoom(m));
+            messagesList.innerHTML = visibleRows.map(renderSupportMessageRow).join("");
+            markActiveRoomSeenFromRows(visibleRows);
+          
+            // scroll to bottom
+            bindDeleteButtons();
+            messagesList.scrollTop = messagesList.scrollHeight;
+          }
+          '''
+          if old in text:
+              text = text.replace(old, new)
+          else:
+              print('message render/load block not found')
+          
+          # Update subscribe room row normalization block
+          old = r'''    .on("postgres_changes", { event: "*", schema: "public", table: "support_messages" }, (payload) => {
+                const rowNew = payload?.new || {};
+                const rowOld = payload?.old || {};
+                const row = Object.keys(rowNew).length ? rowNew : rowOld;
+                if (isRowInActiveRoom(row)) {
+                  loadMessages();
+                }
+                loadUsers();
+              })'''
+          new = r'''    .on("postgres_changes", { event: "*", schema: "public", table: "support_messages" }, (payload) => {
+                const rowNew = payload?.new || {};
+                const rowOld = payload?.old || {};
+                const row = normalizeSupportRow(Object.keys(rowNew).length ? rowNew : rowOld);
+                if (isRowInActiveRoom(row)) {
+                  loadMessages();
+                }
+                loadUsers();
+              })'''
+          if old in text:
+              text = text.replace(old, new)
+          else:
+              print('subscribe block not found')
+          
+          # Update background row normalization
+          old = r'''      const row = payload?.new || {};
+                // Gentle notification sound for incoming messages (not your own).
+                try {
+                  const fromId = row?.sender_id || row?.user_id || "";
+                  if(fromId && fromId !== USER_ID) playSoftNotification();
+                } catch {}'''
+          new = r'''      const row = normalizeSupportRow(payload?.new || {});
+                // Gentle notification sound for incoming messages (not your own).
+                try {
+                  const fromId = row?.sender_id || row?.user_id || "";
+                  if(fromId && fromId !== USER_ID) playSoftNotification();
+                } catch {}'''
+          if old in text:
+              text = text.replace(old, new)
+          else:
+              print('background row block not found')
+          
+          support.write_text(text, encoding='utf-8')
+          
+          admin = ROOT/'public/admin.js'
+          if admin.exists():
+              a = admin.read_text(encoding='utf-8')
+              a = a.replace('const publicMsgs = rows.filter((r) => r && r.room_type === "public");\n  const privateMsgs = rows.filter((r) => r && r.room_type !== "public");', 'const publicMsgs = rows.filter((r) => r && String(r.room_type || "public") === "public");\n  const privateMsgs = rows.filter((r) => r && String(r.room_type || "public") !== "public");')
+              a = a.replace('${escapeHtml(fmtTime(r.created_at))} • ${escapeHtml(r.room_id)} •', '${escapeHtml(fmtTime(r.created_at))} • ${escapeHtml(r.room_id || "public")} •')
+              admin.write_text(a, encoding='utf-8')
+          
+          (ROOT/'SECURITY_UPGRADE_STEP59_SUPPORT_CHAT_VISIBLE_AR.md').write_text('''# Step 5.9 - Support Chat Visible / Legacy Schema Fix
+          
+          إصلاح مشكلة أن رسالة الدعم لا تظهر بعد الإرسال بينما الاقتراحات تعمل.
+          
+          السبب المحتمل في المشاريع القديمة أن جدول `support_messages` لا يحتوي على أعمدة المحادثات الجديدة مثل `room_type` و `room_id` أو أن قراءة الرسائل من المتصفح محكومة بسياسات RLS. لذلك تم عمل الآتي:
+          
+          - مسار `/api/support-message` أصبح يدعم schema جديد وقديم تلقائيًا.
+          - إضافة مسار قراءة آمن `/api/support-messages` عبر السيرفر حتى لا يعتمد فتح الرسائل على RLS من المتصفح فقط.
+          - واجهة الدعم أصبحت تطبع الرسالة فورًا بعد الإرسال وتتعامل مع الأعمدة القديمة `user_id/name` بجانب الأعمدة الجديدة `sender_id/sender_name`.
+          - إصلاح تصنيف رسائل الدعم القديمة في لوحة الأدمن كـ Public بدل ما تظهر خطأ كـ Private.
+          
+          التعديل لا يغير جدول Supabase ولا يحذف أي بيانات.
+          ''', encoding='utf-8')
+          (ROOT/'.cloudflare-deploy-trigger').write_text('step59-support-chat-visible ' + datetime.now(timezone.utc).isoformat() + '\n', encoding='utf-8')
+          PY
+
+      - name: Apply support chat fix and push
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          for attempt in 1 2 3; do
+            echo "Apply attempt $attempt"
+            git fetch origin "${{ github.ref_name }}"
+            git reset --hard "origin/${{ github.ref_name }}"
+
+            python3 /tmp/apply_step59.py
+
+            node --check public/support-chat.js
+            node --check public/admin.js
+            node --check app/api/support-message/route.js
+            node --check app/api/support-messages/route.js
+
+            git add app/api/support-message/route.js app/api/support-messages/route.js public/support-chat.js public/admin.js SECURITY_UPGRADE_STEP59_SUPPORT_CHAT_VISIBLE_AR.md .cloudflare-deploy-trigger
+            if git diff --cached --quiet; then
+              echo "No changes to commit."
+              exit 0
+            fi
+
+            git commit -m "Step 5.9 fix support chat visibility"
+            if git push origin "HEAD:${{ github.ref_name }}"; then
+              echo "Step 5.9 applied and pushed successfully."
+              exit 0
+            fi
+
+            echo "Push failed, another run probably updated the branch. Retrying from the latest origin state..."
+            sleep 2
+          done
+
+          echo "Could not push after 3 safe attempts. Please rerun the workflow."
+          exit 1
