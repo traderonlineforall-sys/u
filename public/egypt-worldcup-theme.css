@@ -1218,19 +1218,38 @@ html.egypt-worldcup-theme-live .tabcontent a.toolsStyle {
   border: 1px solid rgba(238,207,128,.40) !important;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.09), inset 0 -1px 0 rgba(238,207,128,.13) !important;
 }
+/* ===== Egypt layout fix ===== */
 
-
-/* === Layout Lock (added) ===
-   Prevent Egypt theme from changing layout/order. */
-html.egypt-worldcup-theme-live [style*="order"],
-html.egypt-worldcup-theme-live *{
-  order: initial !important;
+html.egypt-worldcup-theme-live .toolsBar{
+    padding-left:20px !important;
+    padding-right:20px !important;
+    margin-top:-10px !important;
+    margin-bottom:18px !important;
+    padding-top:2px !important;
 }
-html.egypt-worldcup-theme-live .tool,
-html.egypt-worldcup-theme-live .tools,
-html.egypt-worldcup-theme-live .toolbar,
-html.egypt-worldcup-theme-live .container,
-html.egypt-worldcup-theme-live main{
-  flex-direction: inherit !important;
-  grid-auto-flow: initial !important;
+
+html.egypt-worldcup-theme-live .toolsBar .toolsStyle{
+    display:inline-block !important;
+    padding:3px 7px !important;
+    margin:2px 6px 8px 0 !important;
+    font:1em "open-sans","sans-serif" !important;
+    line-height:normal !important;
+    min-width:auto !important;
+    height:auto !important;
+}
+
+html.egypt-worldcup-theme-live .navbar a,
+html.egypt-worldcup-theme-live .dropdown .dropbtn,
+html.egypt-worldcup-theme-live #singlelink{
+    padding:14px 16px !important;
+    font-size:16px !important;
+    margin:0 !important;
+    line-height:normal !important;
+    min-width:auto !important;
+    height:auto !important;
+}
+
+html.egypt-worldcup-theme-live .dropdown{
+    float:left !important;
+    overflow:hidden !important;
 }
