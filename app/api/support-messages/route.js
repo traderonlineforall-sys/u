@@ -45,6 +45,17 @@ function normalizeRow(row){
   };
 }
 
+function isExplicitDmRow(row){
+  const r = normalizeRow(row);
+  const roomType = String(r.room_type || "public").trim().toLowerCase();
+  const roomId = String(r.room_id || "public").trim();
+  return roomType === "dm" || (!!roomId && roomId !== "public" && roomId.includes("__"));
+}
+
+function isPublicLikeRow(row){
+  return !isExplicitDmRow(row);
+}
+
 async function selectRows(supabase, { roomType, roomId, limit, recentOnly }){
   const trySelects = [
     "*",
@@ -59,7 +70,9 @@ async function selectRows(supabase, { roomType, roomId, limit, recentOnly }){
       let query = supabase
         .from("support_messages")
         .select(columns)
-        .order("created_at", { ascending: !recentOnly })
+        // Always pull newest rows first. For the room view we reverse below so
+        // messages still display old-to-new, but the latest messages are included.
+        .order("created_at", { ascending: false })
         .limit(limit);
 
       if(!recentOnly && roomType === "dm"){
@@ -70,10 +83,15 @@ async function selectRows(supabase, { roomType, roomId, limit, recentOnly }){
       if(!error){
         let rows = (Array.isArray(data) ? data : []).map(normalizeRow);
         if(!recentOnly && roomType === "public"){
-          rows = rows.filter((r) => String(r.room_type || "public") === "public");
+          // Public support must include legacy rows and admin-visible rows without
+          // room columns. Only exclude explicit DM rows.
+          rows = rows.filter(isPublicLikeRow);
         }
         if(!recentOnly && roomType === "dm"){
           rows = rows.filter((r) => String(r.room_type || "") === "dm" && String(r.room_id || "") === String(roomId || ""));
+        }
+        if(!recentOnly){
+          rows = rows.reverse();
         }
         return { rows, error: null };
       }

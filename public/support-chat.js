@@ -700,9 +700,17 @@ async function loadUsers() {
   });
 }
 
-function isPublicRoomRow(m) {
+function isExplicitDmRow(m) {
   const r = normalizeSupportRow(m);
-  return String(r.room_type || "public") === "public";
+  const roomType = String(r.room_type || "public").trim().toLowerCase();
+  const roomId = String(r.room_id || "public").trim();
+  // Old/public rows may not have room columns at all. Treat every non-explicit-DM
+  // row as public so users see the same saved messages that the admin panel sees.
+  return roomType === "dm" || (!!roomId && roomId !== "public" && roomId.includes("__"));
+}
+
+function isPublicRoomRow(m) {
+  return !isExplicitDmRow(m);
 }
 
 function isRowInActiveRoom(m) {
@@ -719,7 +727,7 @@ function renderSupportMessageRow(m) {
   const bundle = colorBundleForUserId(senderId || row.sender_name || "");
   const safeId = row.id == null ? "" : escapeHtml(String(row.id));
   return `
-      <div class="support-msg ${mine ? "mine" : ""}" style="--u:${escapeHtml(bundle.accent)};--ubg:${escapeHtml(bundle.bg)};--uborder:${escapeHtml(bundle.border)}">
+      <div class="support-msg ${mine ? "mine" : ""}" data-support-msg-id="${safeId}" style="--u:${escapeHtml(bundle.accent)};--ubg:${escapeHtml(bundle.bg)};--uborder:${escapeHtml(bundle.border)}">
         <div class="support-msg-meta">
           <span class="support-msg-dot" aria-hidden="true"></span>
           <span class="support-msg-name">${escapeHtml(row.sender_name || "User")}</span>
@@ -731,12 +739,43 @@ function renderSupportMessageRow(m) {
     `;
 }
 
+function forceSupportMessagesBottom() {
+  if (!messagesList) return;
+  const go = () => {
+    try { messagesList.scrollTop = messagesList.scrollHeight + 9999; } catch {}
+  };
+  go();
+  requestAnimationFrame(go);
+  setTimeout(go, 40);
+  setTimeout(go, 180);
+}
+
+function findSupportMessageElById(id) {
+  const sid = String(id || "");
+  if (!sid || !messagesList) return null;
+  return Array.from(messagesList.querySelectorAll(".support-msg")).find((el) => el?.dataset?.supportMsgId === sid) || null;
+}
+
+function removeSupportMessageById(id) {
+  const el = findSupportMessageElById(id);
+  if (el && el.parentNode) el.parentNode.removeChild(el);
+}
+
+function replaceSupportMessageById(id, row) {
+  const el = findSupportMessageElById(id);
+  if (!el || !row) return false;
+  el.outerHTML = renderSupportMessageRow(row);
+  bindDeleteButtons();
+  forceSupportMessagesBottom();
+  return true;
+}
+
 function appendSupportMessage(m) {
   if (!messagesList || !m) return;
   messagesList.querySelectorAll(".srux-empty-state").forEach((e) => e.remove());
   messagesList.insertAdjacentHTML("beforeend", renderSupportMessageRow(m));
   bindDeleteButtons();
-  messagesList.scrollTop = messagesList.scrollHeight;
+  forceSupportMessagesBottom();
 }
 
 async function loadMessages() {
@@ -751,7 +790,9 @@ async function loadMessages() {
     let query = supabase
       .from("support_messages")
       .select("*")
-      .order("created_at", { ascending: true })
+      // Pull the newest rows first. Ordering ascending with a limit shows the
+      // oldest 300 messages and hides the latest support messages from users.
+      .order("created_at", { ascending: false })
       .limit(300);
 
     if (activeRoom.type !== "public") {
@@ -765,16 +806,20 @@ async function loadMessages() {
       setStatus(`Could not load messages. Please contact ${ADMIN_NAME}.`, "error");
       return;
     }
-    rows = (data || []).map(normalizeSupportRow);
+    rows = (data || []).map(normalizeSupportRow).reverse();
   }
 
-  const visibleRows = rows.filter((m) => activeRoom.type === "public" ? isPublicRoomRow(m) : isRowInActiveRoom(m));
+  let visibleRows = rows.filter((m) => activeRoom.type === "public" ? isPublicRoomRow(m) : isRowInActiveRoom(m));
+  // Safety net: in older databases admin/public messages may have non-standard
+  // room values. For the public room, show anything that is not an explicit DM.
+  if (activeRoom.type === "public" && !visibleRows.length && rows.length) {
+    visibleRows = rows.filter((m) => !isExplicitDmRow(m));
+  }
   messagesList.innerHTML = visibleRows.map(renderSupportMessageRow).join("");
   markActiveRoomSeenFromRows(visibleRows);
 
-  // scroll to bottom
   bindDeleteButtons();
-  messagesList.scrollTop = messagesList.scrollHeight;
+  forceSupportMessagesBottom();
 }
 
 
@@ -924,6 +969,7 @@ async function refreshRoom() {
   await loadUsers();
   await loadMessages();
   subscribeRoom();
+  forceSupportMessagesBottom();
 }
 
 
@@ -974,6 +1020,18 @@ async function sendMessage() {
     room_id: activeRoom.room_id,
   };
 
+  const localId = `local-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const localRow = normalizeSupportRow({
+    ...payload,
+    id: localId,
+    created_at: new Date().toISOString(),
+  });
+
+  // Show the message inside the user's Support window immediately. This fixes
+  // delayed/disabled realtime and old tables where the latest rows were not being loaded.
+  appendSupportMessage(localRow);
+  markRoomSeen(activeRoom.type, activeRoom.room_id);
+
   let insertedRows = [];
   let error = null;
   try {
@@ -985,6 +1043,7 @@ async function sendMessage() {
     });
     const data = await res.json().catch(() => ({}));
     if (data?.nickname_required) {
+      removeSupportMessageById(localId);
       redirectToNicknameLogin();
       return;
     }
@@ -997,6 +1056,7 @@ async function sendMessage() {
   sendBtn.disabled = false;
 
   if (error) {
+    removeSupportMessageById(localId);
     console.error(error);
     setStatus(`Could not send your message. Please contact ${ADMIN_NAME}.`, "error");
     return;
@@ -1006,22 +1066,18 @@ async function sendMessage() {
   setSelectedFile(null);
   if(attachInput) attachInput.value = "";
 
-  // Show immediately inside Support, even when Realtime is delayed/disabled.
-  const inserted = Array.isArray(insertedRows) && insertedRows[0] ? insertedRows[0] : null;
-  appendSupportMessage(inserted || {
-    ...payload,
-    id: `local-${Date.now()}`,
-    created_at: new Date().toISOString(),
-  });
-  markRoomSeen(activeRoom.type, activeRoom.room_id);
+  const inserted = Array.isArray(insertedRows) && insertedRows[0] ? normalizeSupportRow(insertedRows[0]) : null;
+  if (inserted) replaceSupportMessageById(localId, inserted);
   setStatus("");
 
   // Then reload from Supabase so the local temporary row is replaced by the real saved row.
+  // If reload fails, the optimistic row stays visible instead of making the user think it vanished.
   try {
     await loadMessages();
     await loadUsers();
   } catch (refreshErr) {
     console.warn("support refresh after send failed", refreshErr);
+    forceSupportMessagesBottom();
   }
 }
 

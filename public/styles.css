@@ -4673,3 +4673,20 @@ A:link {
     min-width: 654px !important;
   }
 }
+
+/* ===== STEP 6.1 SUPPORT USER VIEW FIX START ===== */
+#supportMessagesList {
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+}
+#supportMessageInput {
+  color: inherit !important;
+  caret-color: currentColor !important;
+}
+#supportMessageInput::placeholder {
+  opacity: .72;
+}
+.support-msg[data-support-msg-id^="local-"] {
+  opacity: .92;
+}
+/* ===== STEP 6.1 SUPPORT USER VIEW FIX END ===== */
