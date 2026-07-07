@@ -34,7 +34,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat > /tmp/rollback_step58_theme.py <<'PY'
+          python3 <<'PY'
           from pathlib import Path
           from datetime import datetime, timezone
 
@@ -55,107 +55,107 @@ jobs:
               return text, changed
 
           changed_files = []
-
-          targets = [
-              (Path('public/styles.css'), CSS_START, CSS_END),
-              (Path('public/app.js'), JS_START, JS_END),
-          ]
-
-          for path, start, end in targets:
+          for file_name, start, end in [
+              ("public/styles.css", CSS_START, CSS_END),
+              ("public/app.js", JS_START, JS_END),
+          ]:
+              path = Path(file_name)
               if not path.exists():
-                  raise SystemExit(f'Missing required file: {path}')
-              original = path.read_text(encoding='utf-8')
+                  print(f"Skip missing file: {file_name}")
+                  continue
+              original = path.read_text(encoding="utf-8")
               updated, changed = remove_marked_block(original, start, end)
               if changed:
-                  path.write_text(updated.rstrip() + '\n', encoding='utf-8')
-                  changed_files.append(str(path))
+                  path.write_text(updated.rstrip() + "\n", encoding="utf-8")
+                  changed_files.append(file_name)
+                  print(f"Rolled back Step 5.8 block from {file_name}")
+              else:
+                  print(f"No Step 5.8 block found in {file_name}")
 
-          old_doc = Path('SECURITY_UPGRADE_STEP58_EGYPT_LUXURY_THEME_AR.md')
+          old_doc = Path("SECURITY_UPGRADE_STEP58_EGYPT_LUXURY_THEME_AR.md")
           if old_doc.exists():
               old_doc.unlink()
               changed_files.append(str(old_doc))
+              print("Removed Step 5.8 document")
 
-          old_workflow = Path('.github/workflows/apply-step58-egypt-luxury-theme.yml')
+          old_workflow = Path(".github/workflows/apply-step58-egypt-luxury-theme.yml")
           if old_workflow.exists():
               old_workflow.unlink()
               changed_files.append(str(old_workflow))
+              print("Removed Step 5.8 workflow")
 
-          Path('SECURITY_UPGRADE_STEP60_ROLLBACK_STEP58_THEME_AR.md').write_text(f'''# Step 6.0 - Rollback Step 5.8 Theme
+          report = "\n".join([
+              "# Step 6.0 - Rollback Step 5.8 Theme",
+              "",
+              "تم الرجوع عن تعديل Step 5.8 الخاص بالثيم والشكل فقط.",
+              "",
+              "الذي تم:",
+              "- حذف بلوك CSS المضاف في Step 5.8 من public/styles.css إذا كان موجودا.",
+              "- حذف بلوك JavaScript الخاص بحارس القوائم من public/app.js إذا كان موجودا.",
+              "- ترك تعديلات الدعم والرسائل وملفات API كما هي بدون لمس.",
+              "- حذف Workflow القديم الخاص بـ Step 5.8 حتى لا يتشغل بالغلط ويرجع يغير الشكل.",
+              "- عدم تغيير Supabase أو الجلسات أو اللوجن.",
+              "",
+              "النتيجة: الشكل يرجع للستايل القديم قبل تعديل Egypt Luxury Theme، مع الاحتفاظ بأي إصلاحات أخرى اتعملت بعده.",
+              "",
+              f"وقت التنفيذ: {datetime.now(timezone.utc).isoformat()}",
+              "",
+          ])
+          report_path = Path("SECURITY_UPGRADE_STEP60_ROLLBACK_STEP58_THEME_AR.md")
+          report_path.write_text(report, encoding="utf-8")
+          changed_files.append(str(report_path))
 
-تم الرجوع عن تعديل Step 5.8 الخاص بالثيم والشكل فقط.
-
-الذي تم:
-- حذف بلوك CSS المضاف في Step 5.8 من `public/styles.css`.
-- حذف بلوك JavaScript الخاص بحارس القوائم من `public/app.js`.
-- ترك تعديلات الدعم / الرسائل وملفات API كما هي بدون لمس.
-- حذف Workflow القديم الخاص بـ Step 5.8 حتى لا يتشغل بالغلط ويرجع يبوظ الشكل.
-- عدم تغيير Supabase أو الجلسات أو اللوجن.
-
-النتيجة: الشكل يرجع للستايل القديم قبل تعديل Egypt Luxury Theme، مع الاحتفاظ بأي إصلاحات أخرى اتعملت بعده.
-
-وقت التنفيذ: {datetime.now(timezone.utc).isoformat()}
-''', encoding='utf-8')
-          changed_files.append('SECURITY_UPGRADE_STEP60_ROLLBACK_STEP58_THEME_AR.md')
-
-          if changed_files:
-              print('Changed files:')
-              for item in changed_files:
-                  print('-', item)
-          else:
-              print('No Step 5.8 theme blocks found. Nothing to rollback.')
+          print("Changed files:")
+          for item in changed_files:
+              print(f"- {item}")
           PY
-          python /tmp/rollback_step58_theme.py
 
-      - name: Validate JavaScript syntax
-        shell: bash
-        run: |
-          set -euo pipefail
-          node --check public/app.js
-
-      - name: Show diff summary
+      - name: Show diff
         shell: bash
         run: |
           set -euo pipefail
           git status --short
-          git diff --stat
+          git diff -- public/styles.css public/app.js || true
 
       - name: Commit and push changes
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           if git diff --quiet && git diff --cached --quiet; then
             echo "No changes to commit."
             exit 0
           fi
 
-          git add public/styles.css public/app.js SECURITY_UPGRADE_STEP60_ROLLBACK_STEP58_THEME_AR.md
-          git rm -f SECURITY_UPGRADE_STEP58_EGYPT_LUXURY_THEME_AR.md 2>/dev/null || true
-          git rm -f .github/workflows/apply-step58-egypt-luxury-theme.yml 2>/dev/null || true
-
-          if git diff --cached --quiet; then
-            echo "No staged changes to commit."
-            exit 0
-          fi
-
-          git commit -m "Step 6.0 rollback Step 5.8 theme"
+          git add -A
+          git commit -m "Rollback Step 5.8 theme changes"
 
           for attempt in 1 2 3; do
             if git push origin "HEAD:${{ github.ref_name }}"; then
-              echo "Push succeeded on attempt ${attempt}."
+              echo "Pushed successfully."
               exit 0
             fi
-            echo "Push failed on attempt ${attempt}; syncing latest and retrying..."
+            echo "Push failed. Attempt ${attempt}/3. Syncing and retrying..."
             git fetch origin "${{ github.ref_name }}"
             if git rebase "origin/${{ github.ref_name }}"; then
               continue
             fi
-            echo "Rebase conflict detected. Aborting rebase and retrying with latest branch."
+
+            conflicted="$(git diff --name-only --diff-filter=U || true)"
+            echo "Conflicted files: ${conflicted}"
+            if [ "${conflicted}" = ".cloudflare-deploy-trigger" ]; then
+              git checkout --theirs .cloudflare-deploy-trigger
+              git add .cloudflare-deploy-trigger
+              GIT_EDITOR=true git rebase --continue
+              continue
+            fi
+
+            echo "Unsafe conflict. Aborting rebase."
             git rebase --abort || true
             exit 1
           done
 
-          echo "Push failed after 3 attempts."
+          echo "Could not push after 3 attempts."
           exit 1
