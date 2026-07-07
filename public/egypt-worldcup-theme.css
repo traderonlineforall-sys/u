@@ -791,3 +791,62 @@ html.egypt-worldcup-theme-live #Calculate .vat-btn.active {
   border-color: rgba(255,229,164,.40) !important;
   box-shadow: inset 2px 0 0 rgba(255,225,150,.50), inset 0 1px 0 rgba(255,246,211,.12) !important;
 }
+
+/* V5: World Cup image toggle + slightly larger Egypt logo */
+html.egypt-worldcup-theme-live #MNDO_UA07_LOGO3 {
+  background-image: url("./egypt-worldcup-logo.webp?v=egyptwc-logo-v5") !important;
+  transform: translateZ(0) scale(1.10) !important;
+  transform-origin: center center !important;
+  z-index: 10 !important;
+}
+html.egypt-worldcup-theme-live #MNDO_UA07_LOGO3:hover {
+  transform: translateZ(0) scale(1.13) !important;
+}
+
+html.egypt-worldcup-theme-live .eid-toggle-btn.is-egypt,
+.eid-toggle-btn.is-egypt {
+  width: 46px !important;
+  min-width: 46px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  padding: 0 !important;
+  border-radius: 15px !important;
+  overflow: hidden !important;
+  background-image: url("./egypt-worldcup-toggle.webp?v=egyptwc-toggle-v5") !important;
+  background-size: cover !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  border: 1px solid rgba(255, 222, 126, .78) !important;
+  box-shadow:
+    0 8px 16px rgba(0,0,0,.50),
+    inset 0 1px 0 rgba(255,255,255,.42),
+    inset 0 -1px 0 rgba(80,40,0,.56) !important;
+  filter: saturate(1.10) brightness(1.04) contrast(1.03) !important;
+}
+html.egypt-worldcup-theme-live .eid-toggle-btn.is-egypt:hover,
+.eid-toggle-btn.is-egypt:hover {
+  transform: translateY(-1px) scale(1.035) !important;
+  border-color: rgba(255,239,178,.94) !important;
+  box-shadow:
+    0 10px 20px rgba(0,0,0,.56),
+    inset 0 1px 0 rgba(255,255,255,.55),
+    0 0 0 1px rgba(255,218,114,.18) !important;
+}
+html.egypt-worldcup-theme-live .eid-toggle-btn.is-egypt .eid-toggle-shell,
+.eid-toggle-btn.is-egypt .eid-toggle-shell,
+html.egypt-worldcup-theme-live .eid-toggle-btn.is-egypt .eid-toggle-glyph,
+.eid-toggle-btn.is-egypt .eid-toggle-glyph,
+html.egypt-worldcup-theme-live .eid-toggle-btn.is-egypt .eid-toggle-orb,
+.eid-toggle-btn.is-egypt .eid-toggle-orb {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+html.egypt-worldcup-theme-live .eid-toggle-btn.is-egypt::before,
+.eid-toggle-btn.is-egypt::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 1px !important;
+  border-radius: 14px !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0) 45%, rgba(0,0,0,.10) 100%) !important;
+  pointer-events: none !important;
+}
