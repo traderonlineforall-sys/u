@@ -1,0 +1,240 @@
+name: Apply Step 5.6 Device Instance Lock
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/apply-step56-device-instance-lock.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-step56:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply device instance lock and safer recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          from datetime import datetime, timezone
+
+          def must(path):
+              p = Path(path)
+              if not p.exists():
+                  raise SystemExit(f"Missing required file: {path}")
+              return p
+
+          login = must('app/login/page.js')
+          txt = login.read_text(encoding='utf-8')
+
+          if 'const DEVICE_SECRET_KEY = "sr_tool_device_instance_secret_v1";' not in txt:
+              txt = txt.replace(
+                  'const COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 5;\n',
+                  'const COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 5;\n'
+                  'const DEVICE_SECRET_KEY = "sr_tool_device_instance_secret_v1";\n'
+              )
+
+          if 'function getStableDeviceSecret()' not in txt:
+              marker = '''function createUserId(){
+  try { if (crypto?.randomUUID) return `uid_${crypto.randomUUID()}`; } catch {}
+  return `uid_${Date.now().toString(16)}_${Math.random().toString(16).slice(2)}`;
+}
+'''
+              insert = marker + '''function createDeviceSecret(){
+  try {
+    const a = crypto?.randomUUID ? crypto.randomUUID() : Math.random().toString(16).slice(2);
+    const bytes = new Uint8Array(16);
+    crypto?.getRandomValues?.(bytes);
+    const b = Array.from(bytes).map((x)=>x.toString(16).padStart(2,"0")).join("");
+    return `dev_${a}_${b}_${Date.now().toString(16)}`;
+  } catch {
+    return `dev_${Date.now().toString(16)}_${Math.random().toString(16).slice(2)}_${Math.random().toString(16).slice(2)}`;
+  }
+}
+function getStableDeviceSecret(){
+  let v = "";
+  try { v = localStorage.getItem(DEVICE_SECRET_KEY) || ""; } catch {}
+  if(!/^dev_[a-zA-Z0-9_.:-]{20,}$/.test(String(v || ""))){
+    v = createDeviceSecret();
+    try { localStorage.setItem(DEVICE_SECRET_KEY, v); } catch {}
+  }
+  return v;
+}
+'''
+              if marker not in txt:
+                  raise SystemExit('Could not find createUserId block in app/login/page.js')
+              txt = txt.replace(marker, insert, 1)
+
+          if 'const deviceInstanceHash = await sha256Hex(getStableDeviceSecret());' not in txt:
+              txt = txt.replace(
+                  '  const [canvasHash, audioHash, fontsHash, webgl, pluginsHash, clientHints, storage, keyboard, capabilities, network, battery, mediaDevices] = await Promise.all([\n',
+                  '  const deviceInstanceHash = await sha256Hex(getStableDeviceSecret());\n'
+                  '  const [canvasHash, audioHash, fontsHash, webgl, pluginsHash, clientHints, storage, keyboard, capabilities, network, battery, mediaDevices] = await Promise.all([\n',
+                  1
+              )
+
+          if 'deviceInstanceHash,' not in txt:
+              txt = txt.replace(
+                  '    pluginsHash,\n  };\n}\n',
+                  '    pluginsHash,\n    deviceInstanceHash,\n  };\n}\n',
+                  1
+              )
+
+          # Tighten manual recovery thresholds in the login API call if this file is used as the source for client text.
+          txt = txt.replace('Number(item.score || 0) < 72 ? " - للتذكير فقط" : ""', 'Number(item.score || 0) < 90 ? " - للتذكير فقط" : ""')
+          login.write_text(txt, encoding='utf-8')
+
+          dev = must('lib/server/device-confidence.js')
+          d = dev.read_text(encoding='utf-8')
+
+          d = d.replace('export const DEVICE_AUTO_RECOVERY_THRESHOLD = 80;', 'export const DEVICE_AUTO_RECOVERY_THRESHOLD = 100;')
+          d = d.replace('export const DEVICE_AMBIGUITY_GAP = 10;', 'export const DEVICE_AMBIGUITY_GAP = 18;')
+          d = d.replace('export const DEVICE_MANUAL_RECOVERY_THRESHOLD = 72;', 'export const DEVICE_MANUAL_RECOVERY_THRESHOLD = 90;')
+          d = d.replace('export const DEVICE_MANUAL_AMBIGUITY_GAP = 8;', 'export const DEVICE_MANUAL_AMBIGUITY_GAP = 15;')
+          d = d.replace('export const DEVICE_MANUAL_STRONG_OVERRIDE_THRESHOLD = 86;', 'export const DEVICE_MANUAL_STRONG_OVERRIDE_THRESHOLD = 105;')
+
+          if 'deviceInstanceHash: s(r.deviceInstanceHash, MAX_HASH),' not in d:
+              d = d.replace(
+                  '    pluginsHash: s(r.pluginsHash, MAX_HASH),\n  };\n}\n',
+                  '    pluginsHash: s(r.pluginsHash, MAX_HASH),\n    deviceInstanceHash: s(r.deviceInstanceHash, MAX_HASH),\n  };\n}\n',
+                  1
+              )
+
+          if 'const deviceInstance = sig.deviceInstanceHash;' not in d:
+              d = d.replace(
+                  '  const mediaDevices = stableJson(sig.mediaDevices);\n  // Keep the main device_hash compatible with Step 4.3 stable components.\n  const all = [ip, ua, lang, platform, screen, timezone, graphics, canvas, fonts].join("||");\n',
+                  '  const mediaDevices = stableJson(sig.mediaDevices);\n  const deviceInstance = sig.deviceInstanceHash;\n  // Step 5.6: bind silent recovery to a browser-local device secret when available.\n  // This prevents a different PC with a similar fingerprint from silently receiving another nickname.\n  const all = [ip, ua, lang, platform, screen, timezone, graphics, canvas, fonts, deviceInstance].join("||");\n',
+                  1
+              )
+
+          if 'device_instance: parts.sig.deviceInstanceHash ? shortHash(parts.sig.deviceInstanceHash) : "",' not in d:
+              d = d.replace(
+                  '    media_devices: [parts.sig.mediaDevices.audioInputs, parts.sig.mediaDevices.videoInputs, parts.sig.mediaDevices.audioOutputs].filter(Boolean).join(" / "),\n',
+                  '    media_devices: [parts.sig.mediaDevices.audioInputs, parts.sig.mediaDevices.videoInputs, parts.sig.mediaDevices.audioOutputs].filter(Boolean).join(" / "),\n    device_instance: parts.sig.deviceInstanceHash ? shortHash(parts.sig.deviceInstanceHash) : "",\n',
+                  1
+              )
+
+          # Do not allow fuzzy candidates to silently recover identity. They are suggestions only.
+          old = '''    let candidates = Array.isArray(exact.data) ? exact.data : [];
+
+    if(candidates.length === 0){
+      let fuzzy = await queryFuzzyDevices(supabase, component, enhanced, bonus);'''
+          new = '''    let candidates = Array.isArray(exact.data) ? exact.data : [];
+    let usedFuzzyCandidates = false;
+
+    if(candidates.length === 0){
+      usedFuzzyCandidates = true;
+      let fuzzy = await queryFuzzyDevices(supabase, component, enhanced, bonus);'''
+          if old in d and 'let usedFuzzyCandidates = false;' not in d:
+              d = d.replace(old, new, 1)
+          elif 'let usedFuzzyCandidates = false;' not in d:
+              raise SystemExit('Could not apply fuzzy-candidate guard block')
+
+          old = '''    const best = scored[0];
+    if(!best || best.score < threshold){
+      return {
+        ok:true,
+        matched:false,
+        reason:"low_confidence",
+        best_score: best?.score || 0,
+        threshold,
+        enhanced,
+        bonus,
+        suggestions,
+      };
+    }
+
+    const secondDifferentUser = scored.find((x)=>x.user_id !== best.user_id);'''
+          new = '''    const best = scored[0];
+
+    // Step 5.6: fuzzy matches can help the user remember a nickname, but they must
+    // never silently assign an existing nickname. Silent recovery is exact-device only.
+    if(usedFuzzyCandidates){
+      return {
+        ok:true,
+        matched:false,
+        reason:"fuzzy_match_requires_confirmation",
+        best_score: best?.score || 0,
+        threshold,
+        enhanced,
+        bonus,
+        suggestions,
+      };
+    }
+
+    if(!best || best.score < threshold){
+      return {
+        ok:true,
+        matched:false,
+        reason:"low_confidence",
+        best_score: best?.score || 0,
+        threshold,
+        enhanced,
+        bonus,
+        suggestions,
+      };
+    }
+
+    const secondDifferentUser = scored.find((x)=>x.user_id !== best.user_id);'''
+          if old in d and 'fuzzy_match_requires_confirmation' not in d:
+              d = d.replace(old, new, 1)
+          elif 'fuzzy_match_requires_confirmation' not in d:
+              raise SystemExit('Could not apply fuzzy auto-recovery stop block')
+
+          dev.write_text(d, encoding='utf-8')
+
+          api = must('app/api/login/route.js')
+          a = api.read_text(encoding='utf-8')
+          a = a.replace('verifyDeviceNicknameChoice(supabase, deviceFingerprint, selectedRecoveryUserId, { minScore: 72, suggestionThreshold: 60, gap: 8, maxSuggestions: 8 })',
+                        'verifyDeviceNicknameChoice(supabase, deviceFingerprint, selectedRecoveryUserId, { minScore: 90, suggestionThreshold: 60, gap: 15, maxSuggestions: 8 })')
+          a = a.replace('choice.manual_threshold || 72', 'choice.manual_threshold || 90')
+          api.write_text(a, encoding='utf-8')
+
+          doc = '''# Step 5.6 - Device Instance Lock + No Silent Fuzzy Recovery
+
+## ماذا يصلح؟
+
+هذا التحديث يمنع الجهاز المختلف من الدخول تلقائيًا بكنية مستخدم آخر، حتى لو بصمة الجهاز أو الشبكة قريبة جدًا.
+
+## القاعدة الجديدة
+
+- الاسترجاع الصامت للكنية يعمل فقط مع نفس browser/device instance الذي تم تعليمه سابقًا.
+- أي تطابق fuzzy أو تشابه عالي يتحول إلى مقترحات فقط، ولا يعطي الاسم تلقائيًا.
+- اختيار كنية من المقترحات يحتاج 90%+ وفارق 15% عن أقرب مستخدم آخر.
+- إذا كتب المستخدم كنية موجودة بالفعل، يستمر فحص Step 5.5 في رفضها من السيرفر.
+
+## ملاحظة مهمة
+
+لو المستخدم مسح Cookies فقط وترك localStorage، غالبًا سيظل نفس device instance ويستعيد كنيته.
+لو مسح Site Data بالكامل، المتصفح يفقد device instance، وسيحتاج كنية جديدة أو مقترح آمن.
+
+لا يوجد SQL جديد.
+لا يوجد polling.
+لا يوجد API جديد.
+'''
+          Path('SECURITY_UPGRADE_STEP56_AR.md').write_text(doc, encoding='utf-8')
+          Path('.cloudflare-deploy-trigger').write_text('step56-device-instance-lock ' + datetime.now(timezone.utc).isoformat() + '\n', encoding='utf-8')
+          PY
+
+      - name: Commit and push changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "sr-security-bot"
+          git config user.email "sr-security-bot@users.noreply.github.com"
+          git add app/login/page.js app/api/login/route.js lib/server/device-confidence.js SECURITY_UPGRADE_STEP56_AR.md .cloudflare-deploy-trigger
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "Step 5.6 device instance nickname safety"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin HEAD:"${GITHUB_REF_NAME}"
