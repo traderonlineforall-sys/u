@@ -13,9 +13,12 @@ const LEGACY_THEME_LINK_ID = "ua07LegacyThemeLink";
 const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy4";
 const AHLY_THEME_LINK_ID = "ahlyPremiumThemeLink";
 const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahly-v9-logic-match-visible";
+const EGYPT_THEME_LINK_ID = "egyptWorldCupThemeLink";
+const EGYPT_THEME_HREF = "egypt-worldcup-theme.css?v=egyptwc-v2";
 const THEME_EID = "eid";
 const THEME_LEGACY = "legacy";
 const THEME_AHLY = "ahly";
+const THEME_EGYPT = "egypt";
 const THEME_OFF = "off";
 
 function getThemeLink(){
@@ -51,17 +54,32 @@ function getAhlyThemeLink(){
     return null;
   }
 }
+function getEgyptThemeLink(){
+  let link = document.getElementById(EGYPT_THEME_LINK_ID);
+  if (link) return link;
+  try {
+    link = document.createElement("link");
+    link.id = EGYPT_THEME_LINK_ID;
+    link.rel = "stylesheet";
+    link.href = EGYPT_THEME_HREF;
+    link.disabled = true;
+    (document.head || document.documentElement).appendChild(link);
+    return link;
+  } catch {
+    return null;
+  }
+}
 function getThemeMode(){
   try {
     const saved = localStorage.getItem(LS_THEME_MODE);
-    if (saved === THEME_EID || saved === THEME_LEGACY || saved === THEME_AHLY || saved === THEME_OFF) return saved;
+    if (saved === THEME_EID || saved === THEME_LEGACY || saved === THEME_AHLY || saved === THEME_EGYPT || saved === THEME_OFF) return saved;
     return localStorage.getItem(LS_THEME_OFF) === "1" ? THEME_OFF : THEME_EID;
   } catch {
     return THEME_EID;
   }
 }
 function setThemeMode(mode){
-  const safeMode = (mode === THEME_EID || mode === THEME_LEGACY || mode === THEME_AHLY || mode === THEME_OFF) ? mode : THEME_EID;
+  const safeMode = (mode === THEME_EID || mode === THEME_LEGACY || mode === THEME_AHLY || mode === THEME_EGYPT || mode === THEME_OFF) ? mode : THEME_EID;
   try {
     localStorage.setItem(LS_THEME_MODE, safeMode);
     localStorage.setItem(LS_THEME_OFF, safeMode === THEME_OFF ? "1" : "0");
@@ -71,7 +89,8 @@ function getNextThemeMode(){
   const mode = getThemeMode();
   if (mode === THEME_EID) return THEME_LEGACY;
   if (mode === THEME_LEGACY) return THEME_AHLY;
-  if (mode === THEME_AHLY) return THEME_OFF;
+  if (mode === THEME_AHLY) return THEME_EGYPT;
+  if (mode === THEME_EGYPT) return THEME_OFF;
   return THEME_EID;
 }
 function isThemeOff(){
@@ -136,6 +155,14 @@ function ensureToggleBaseStyle(){
       border-color: rgba(255,255,255,.30) !important;
       box-shadow: 0 10px 22px rgba(0,0,0,.44), inset 0 1px 0 rgba(255,255,255,.20), inset 0 -1px 0 rgba(255,0,0,.22) !important;
     }
+    .eid-toggle-btn.is-egypt {
+      background:
+        radial-gradient(circle at 28% 18%, rgba(255,255,255,.34), rgba(255,255,255,0) 36%),
+        linear-gradient(180deg, rgba(255,234,165,.98), rgba(163,105,35,.96) 50%, rgba(12,8,7,.98) 100%) !important;
+      border-color: rgba(255,218,132,.56) !important;
+      box-shadow: 0 12px 26px rgba(0,0,0,.48), inset 0 1px 0 rgba(255,255,255,.34), 0 0 17px rgba(255,202,101,.16) !important;
+    }
+    .eid-toggle-btn.is-egypt .eid-toggle-orb { background: linear-gradient(180deg,#dc1f2c,#fff5df 50%,#050505 100%) !important; }
     .eid-toggle-btn .eid-toggle-shell { position: relative; display:flex; align-items:center; justify-content:center; width:100%; height:100%; }
     .eid-toggle-btn .eid-toggle-shell::before {
       content: ""; position:absolute; width:18px; height:18px; border-radius:999px;
@@ -181,12 +208,15 @@ function applyThemeState(){
   const eidLink = getThemeLink();
   const legacyLink = getLegacyThemeLink();
   const ahlyLink = getAhlyThemeLink();
+  const egyptLink = getEgyptThemeLink();
   if(eidLink) eidLink.disabled = mode !== THEME_EID;
   if(legacyLink) legacyLink.disabled = mode !== THEME_LEGACY;
   if(ahlyLink) ahlyLink.disabled = mode !== THEME_AHLY;
+  if(egyptLink) egyptLink.disabled = mode !== THEME_EGYPT;
   document.documentElement.classList.toggle('eid-theme-live', mode === THEME_EID);
   document.documentElement.classList.toggle('ua07-legacy-theme-live', mode === THEME_LEGACY);
   document.documentElement.classList.toggle('ahly-premium-theme-live', mode === THEME_AHLY);
+  document.documentElement.classList.toggle('egypt-worldcup-theme-live', mode === THEME_EGYPT);
   updateToggleUi();
 }
 function findEnvelopeWrap(){
@@ -252,16 +282,21 @@ function updateToggleUi(){
   const off = mode === THEME_OFF;
   const legacy = mode === THEME_LEGACY;
   const ahly = mode === THEME_AHLY;
+  const egypt = mode === THEME_EGYPT;
   btn.classList.toggle("is-off", off);
   btn.classList.toggle("is-legacy", legacy);
   btn.classList.toggle("is-ahly", ahly);
+  btn.classList.toggle("is-egypt", egypt);
   btn.setAttribute("aria-pressed", off ? "false" : "true");
   if (legacy) {
     btn.title = 'ثيم الزمالك 20 مفعل - اضغط لتشغيل ثيم الأهلي الفاخر';
     btn.setAttribute('aria-label', 'ثيم الزمالك 20 مفعل - اضغط لتشغيل ثيم الأهلي الفاخر');
   } else if (ahly) {
-    btn.title = 'ثيم الأهلي الفاخر مفعل - اضغط لإيقاف الثيم';
-    btn.setAttribute('aria-label', 'ثيم الأهلي الفاخر مفعل - اضغط لإيقاف الثيم');
+    btn.title = 'ثيم الأهلي الفاخر مفعل - اضغط لتشغيل ثيم مصر كأس العالم';
+    btn.setAttribute('aria-label', 'ثيم الأهلي الفاخر مفعل - اضغط لتشغيل ثيم مصر كأس العالم');
+  } else if (egypt) {
+    btn.title = 'ثيم مصر كأس العالم مفعل - اضغط لإيقاف الثيم';
+    btn.setAttribute('aria-label', 'ثيم مصر كأس العالم مفعل - اضغط لإيقاف الثيم');
   } else if (off) {
     btn.title = 'الثيم متوقف - اضغط لتشغيل ثيم العيد';
     btn.setAttribute('aria-label', 'الثيم متوقف - اضغط لتشغيل ثيم العيد');
@@ -281,13 +316,13 @@ function fixUa07PointerEvents(logoEl){
 
 function forceAhlyPremiumDefaultOnBoot(){
   /*
-    Ahly-first boot policy:
-    - Forces Ahly Premium as the page-load default on every fresh load/refresh.
-    - Does not break the existing toggle cycle after the page is loaded.
+    Egypt World Cup boot policy:
+    - Forces Egypt World Cup as the page-load default on every fresh load/refresh.
+    - Keeps the existing theme toggle working after the page is loaded.
     - Ignores old localStorage/cache state by rewriting the visual theme mode early.
   */
   try {
-    setThemeMode(THEME_AHLY);
+    setThemeMode(THEME_EGYPT);
   } catch {}
 }
 
