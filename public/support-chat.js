@@ -447,10 +447,30 @@ function getLatestSeenIso(type, roomId){
 function markRoomSeenAt(type, roomId, iso){
   const current = getLatestSeenIso(type, roomId);
   const nextIso = maxIso(current, iso || new Date().toISOString()) || new Date().toISOString();
-  if(type === "public") setSeen(LS_PUBLIC_SEEN, nextIso);
-  if(type === "dm") setSeen(lsDmSeenKey(roomId), nextIso);
+
+  if(type === "public") {
+    setSeen(LS_PUBLIC_SEEN, nextIso);
+
+    // إزالة الرسائل العامة المقروءة من الكاش
+    recentCache = recentCache.filter(msg => {
+      const room = msg.room_id || msg.roomId || "public";
+      return room !== "public";
+    });
+  }
+
+  if(type === "dm") {
+    setSeen(lsDmSeenKey(roomId), nextIso);
+
+    // إزالة رسائل الـ DM الخاصة بالغرفة المقروءة
+    recentCache = recentCache.filter(msg => {
+      const room = msg.room_id || msg.roomId;
+      return room !== roomId;
+    });
+  }
+
   updateBadgesFromRecentCache();
 }
+
 
 function markActiveRoomSeenFromRows(rows){
   if(!Array.isArray(rows) || !rows.length) return;
@@ -657,29 +677,60 @@ function computeUnread(recentRows){
   return { publicCount, dmByOther, dmTotal, total: publicCount + dmTotal };
 }
 
-function updateBadgesFromRecentCache(){
+function updateBadgesFromRecentCache() {
   const { total, dmByOther, dmTotal } = computeUnread(recentCache);
-  setFabBadge(supportBadge, total);
 
-  // Make the Support button "light up" when there are unread private (DM) messages.
-  if(supportBtn){
-    if((dmTotal || 0) > 0) supportBtn.classList.add("has-private");
-    else supportBtn.classList.remove("has-private");
+  // لو مفيش أى رسائل غير مقروءة امسح كل الإشعارات نهائياً
+  if (total <= 0) {
+    setFabBadge(supportBadge, 0);
+
+    if (supportBtn) {
+      supportBtn.classList.remove("has-private");
+    }
+
+    usersList?.querySelectorAll(".support-user").forEach(btn => {
+      const badge = btn.querySelector(".support-user-unread");
+      if (!badge) return;
+
+      badge.textContent = "";
+      badge.classList.remove("is-on");
+    });
+
+    return;
   }
 
-  // per-user unread badges
-  usersList?.querySelectorAll(".support-user").forEach(btn=>{
+  setFabBadge(supportBadge, total);
+
+  // تشغيل إضاءة زر الدعم فقط لو فيه DM غير مقروء
+  if (supportBtn) {
+    if ((dmTotal || 0) > 0)
+      supportBtn.classList.add("has-private");
+    else
+      supportBtn.classList.remove("has-private");
+  }
+
+  // تحديث إشعارات كل مستخدم
+  usersList?.querySelectorAll(".support-user").forEach(btn => {
     const uid = btn.getAttribute("data-user-id");
     const badge = btn.querySelector(".support-user-unread");
-    if(!badge) return;
-    if(!uid || uid === USER_ID){
+
+    if (!badge) return;
+
+    if (!uid || uid === USER_ID) {
       badge.textContent = "";
       badge.classList.remove("is-on");
       return;
     }
+
     const c = dmByOther.get(uid) || 0;
-    badge.textContent = String(c);
-    if(c>0) badge.classList.add("is-on"); else badge.classList.remove("is-on");
+
+    if (c > 0) {
+      badge.textContent = String(c);
+      badge.classList.add("is-on");
+    } else {
+      badge.textContent = "";
+      badge.classList.remove("is-on");
+    }
   });
 }
 
