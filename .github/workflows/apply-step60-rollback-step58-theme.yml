@@ -1,0 +1,161 @@
+name: Apply Step 6.0 Rollback Step 5.8 Theme
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/apply-step60-rollback-step58-theme.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: step60-rollback-theme-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  rollback-step58-theme:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Sync latest branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "${{ github.ref_name }}"
+          git reset --hard "origin/${{ github.ref_name }}"
+
+      - name: Remove Step 5.8 theme only
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/rollback_step58_theme.py <<'PY'
+          from pathlib import Path
+          from datetime import datetime, timezone
+
+          CSS_START = "/* ===== STEP 5.8 EGYPT LUXURY THEME START ===== */"
+          CSS_END = "/* ===== STEP 5.8 EGYPT LUXURY THEME END ===== */"
+          JS_START = "// ===== STEP 5.8 EGYPT LUXURY DROPDOWN GUARD START ====="
+          JS_END = "// ===== STEP 5.8 EGYPT LUXURY DROPDOWN GUARD END ====="
+
+          def remove_marked_block(text: str, start: str, end: str):
+              changed = False
+              while start in text and end in text:
+                  a = text.index(start)
+                  b = text.index(end, a) + len(end)
+                  before = text[:a].rstrip()
+                  after = text[b:].lstrip()
+                  text = before + ("\n\n" if before and after else "") + after
+                  changed = True
+              return text, changed
+
+          changed_files = []
+
+          targets = [
+              (Path('public/styles.css'), CSS_START, CSS_END),
+              (Path('public/app.js'), JS_START, JS_END),
+          ]
+
+          for path, start, end in targets:
+              if not path.exists():
+                  raise SystemExit(f'Missing required file: {path}')
+              original = path.read_text(encoding='utf-8')
+              updated, changed = remove_marked_block(original, start, end)
+              if changed:
+                  path.write_text(updated.rstrip() + '\n', encoding='utf-8')
+                  changed_files.append(str(path))
+
+          old_doc = Path('SECURITY_UPGRADE_STEP58_EGYPT_LUXURY_THEME_AR.md')
+          if old_doc.exists():
+              old_doc.unlink()
+              changed_files.append(str(old_doc))
+
+          old_workflow = Path('.github/workflows/apply-step58-egypt-luxury-theme.yml')
+          if old_workflow.exists():
+              old_workflow.unlink()
+              changed_files.append(str(old_workflow))
+
+          Path('SECURITY_UPGRADE_STEP60_ROLLBACK_STEP58_THEME_AR.md').write_text(f'''# Step 6.0 - Rollback Step 5.8 Theme
+
+تم الرجوع عن تعديل Step 5.8 الخاص بالثيم والشكل فقط.
+
+الذي تم:
+- حذف بلوك CSS المضاف في Step 5.8 من `public/styles.css`.
+- حذف بلوك JavaScript الخاص بحارس القوائم من `public/app.js`.
+- ترك تعديلات الدعم / الرسائل وملفات API كما هي بدون لمس.
+- حذف Workflow القديم الخاص بـ Step 5.8 حتى لا يتشغل بالغلط ويرجع يبوظ الشكل.
+- عدم تغيير Supabase أو الجلسات أو اللوجن.
+
+النتيجة: الشكل يرجع للستايل القديم قبل تعديل Egypt Luxury Theme، مع الاحتفاظ بأي إصلاحات أخرى اتعملت بعده.
+
+وقت التنفيذ: {datetime.now(timezone.utc).isoformat()}
+''', encoding='utf-8')
+          changed_files.append('SECURITY_UPGRADE_STEP60_ROLLBACK_STEP58_THEME_AR.md')
+
+          if changed_files:
+              print('Changed files:')
+              for item in changed_files:
+                  print('-', item)
+          else:
+              print('No Step 5.8 theme blocks found. Nothing to rollback.')
+          PY
+          python /tmp/rollback_step58_theme.py
+
+      - name: Validate JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check public/app.js
+
+      - name: Show diff summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          git status --short
+          git diff --stat
+
+      - name: Commit and push changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git add public/styles.css public/app.js SECURITY_UPGRADE_STEP60_ROLLBACK_STEP58_THEME_AR.md
+          git rm -f SECURITY_UPGRADE_STEP58_EGYPT_LUXURY_THEME_AR.md 2>/dev/null || true
+          git rm -f .github/workflows/apply-step58-egypt-luxury-theme.yml 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No staged changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Step 6.0 rollback Step 5.8 theme"
+
+          for attempt in 1 2 3; do
+            if git push origin "HEAD:${{ github.ref_name }}"; then
+              echo "Push succeeded on attempt ${attempt}."
+              exit 0
+            fi
+            echo "Push failed on attempt ${attempt}; syncing latest and retrying..."
+            git fetch origin "${{ github.ref_name }}"
+            if git rebase "origin/${{ github.ref_name }}"; then
+              continue
+            fi
+            echo "Rebase conflict detected. Aborting rebase and retrying with latest branch."
+            git rebase --abort || true
+            exit 1
+          done
+
+          echo "Push failed after 3 attempts."
+          exit 1
