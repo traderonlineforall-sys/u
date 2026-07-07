@@ -472,6 +472,146 @@ function markRoomSeen(type, roomId){
 }
 
 let recentCache = [];
+
+// ===== STEP 6.2 STABLE SUPPORT UI HELPERS START =====
+let lastSupportListSignature = "";
+let loadUsersTimer = null;
+let seenFlushTimer = null;
+
+function supportMessageDomId(row) {
+  const r = normalizeSupportRow(row || {});
+  return r.id == null ? "" : String(r.id);
+}
+
+function supportMessageFallbackKey(row) {
+  const r = normalizeSupportRow(row || {});
+  return [
+    String(r.sender_id || r.user_id || ""),
+    String(r.created_at || ""),
+    String(r.message || "").slice(0, 160),
+  ].join("|");
+}
+
+function supportRowSignature(row) {
+  const r = normalizeSupportRow(row || {});
+  return [
+    supportMessageDomId(r) || supportMessageFallbackKey(r),
+    String(r.sender_name || ""),
+    String(r.message || ""),
+    String(r.room_type || ""),
+    String(r.room_id || ""),
+    String(r.created_at || ""),
+  ].join("¦");
+}
+
+function supportListSignature(rows) {
+  return (rows || []).map(supportRowSignature).join("\n");
+}
+
+function isSupportChatOpen() {
+  return !!chatOverlay && chatOverlay.style.display !== "none";
+}
+
+function isNearSupportBottom(px = 140) {
+  if (!messagesList) return true;
+  const distance = messagesList.scrollHeight - messagesList.clientHeight - messagesList.scrollTop;
+  return distance <= px;
+}
+
+function smartSupportScroll(force = false) {
+  if (!messagesList) return;
+  if (!force && !isNearSupportBottom()) return;
+  const go = () => {
+    try { messagesList.scrollTop = messagesList.scrollHeight; } catch {}
+  };
+  go();
+  requestAnimationFrame(go);
+}
+
+function keepSupportScrollStable(mutator, opts = {}) {
+  if (!messagesList) {
+    mutator?.();
+    return;
+  }
+  const forceBottom = !!opts.forceBottom;
+  const wasNearBottom = forceBottom || isNearSupportBottom();
+  const bottomOffset = messagesList.scrollHeight - messagesList.scrollTop;
+  mutator?.();
+  if (wasNearBottom) {
+    smartSupportScroll(true);
+  } else {
+    requestAnimationFrame(() => {
+      try { messagesList.scrollTop = Math.max(0, messagesList.scrollHeight - bottomOffset); } catch {}
+    });
+  }
+}
+
+function renderStableMessageList(rows, opts = {}) {
+  const visibleRows = Array.isArray(rows) ? rows : [];
+  const signature = supportListSignature(visibleRows);
+  if (signature === lastSupportListSignature) {
+    bindDeleteButtons();
+    if (opts.forceBottom) smartSupportScroll(true);
+    return false;
+  }
+  keepSupportScrollStable(() => {
+    messagesList.innerHTML = visibleRows.map(renderSupportMessageRow).join("");
+    lastSupportListSignature = signature;
+  }, { forceBottom: !!opts.forceBottom });
+  bindDeleteButtons();
+  return true;
+}
+
+function queueLoadUsers(delay = 180) {
+  if (loadUsersTimer) clearTimeout(loadUsersTimer);
+  loadUsersTimer = setTimeout(() => {
+    loadUsersTimer = null;
+    loadUsers().catch((err) => console.warn("support users refresh failed", err));
+  }, delay);
+}
+
+function markActiveRoomSeenFromCache() {
+  if (!Array.isArray(recentCache) || !recentCache.length) {
+    updateBadgesFromRecentCache();
+    return;
+  }
+  let latestIso = "";
+  for (const raw of recentCache) {
+    const r = normalizeSupportRow(raw);
+    if (!isRowInActiveRoom(r)) continue;
+    latestIso = maxIso(latestIso, r.created_at || "");
+  }
+  if (latestIso) markRoomSeenAt(activeRoom.type, activeRoom.room_id, latestIso);
+  else updateBadgesFromRecentCache();
+}
+
+function flushSeenForOpenRoom() {
+  if (!isSupportChatOpen()) return;
+  markActiveRoomSeenFromCache();
+}
+
+function scheduleSeenFlush() {
+  if (seenFlushTimer) clearTimeout(seenFlushTimer);
+  flushSeenForOpenRoom();
+  seenFlushTimer = setTimeout(() => {
+    seenFlushTimer = null;
+    flushSeenForOpenRoom();
+  }, 260);
+}
+
+function dropRecentMessageById(id) {
+  if (id == null) return;
+  const sid = String(id);
+  const before = recentCache.length;
+  recentCache = recentCache.filter((r) => supportMessageDomId(r) !== sid);
+  if (recentCache.length !== before) updateBadgesFromRecentCache();
+}
+
+function forceSupportMessagesBottom() {
+  smartSupportScroll(true);
+}
+// ===== STEP 6.2 STABLE SUPPORT UI HELPERS END =====
+
 function setFabBadge(el, count){
   if(!el) return;
   const n = Number(count||0);
@@ -493,14 +633,15 @@ function computeUnread(recentRows){
   for(const raw of (recentRows||[])){
     const r = normalizeSupportRow(raw);
     const ts = Date.parse(r.created_at || "") || 0;
-    const roomType = String(r.room_type || "public");
     const roomId = String(r.room_id || "public");
     const fromId = String(r.sender_id || r.user_id || "");
-    if(roomType === "public" && roomId === "public"){
+
+    if(isPublicRoomRow(r)){
       if(fromId && fromId !== USER_ID && ts > publicSeenTs) publicCount += 1;
+      continue;
     }
-    if(roomType === "dm" && roomId.includes(USER_ID)){
-      // count only messages from the other side
+
+    if(isExplicitDmRow(r) && roomId.includes(USER_ID)){
       if(!fromId || fromId === USER_ID) continue;
       const key = lsDmSeenKey(roomId);
       const seen = getSeen(key);
@@ -553,8 +694,8 @@ function setRoomPublic() {
   chatTitle.textContent = "Team Support";
   chatSubtitle.textContent = "Public chat";
   chatBackBtn.style.display = "none";
-  // Viewing the public room marks it as read
   markRoomSeen("public", "public");
+  scheduleSeenFlush();
 }
 
 function setRoomDm(other) {
@@ -562,8 +703,8 @@ function setRoomDm(other) {
   chatTitle.textContent = `Chat with ${other.sender_name || "User"}`;
   chatSubtitle.textContent = "Private chat";
   chatBackBtn.style.display = "inline-flex";
-  // Viewing this DM room marks it as read
   markRoomSeen("dm", activeRoom.room_id);
+  scheduleSeenFlush();
 }
 
 // ---------- Data loading ----------
@@ -739,46 +880,64 @@ function renderSupportMessageRow(m) {
     `;
 }
 
-function forceSupportMessagesBottom() {
-  if (!messagesList) return;
-  const go = () => {
-    try { messagesList.scrollTop = messagesList.scrollHeight + 9999; } catch {}
-  };
-  go();
-  requestAnimationFrame(go);
-  setTimeout(go, 40);
-  setTimeout(go, 180);
-}
-
 function findSupportMessageElById(id) {
   const sid = String(id || "");
   if (!sid || !messagesList) return null;
   return Array.from(messagesList.querySelectorAll(".support-msg")).find((el) => el?.dataset?.supportMsgId === sid) || null;
 }
 
-function removeSupportMessageById(id) {
+function removeSupportMessageById(id, opts = {}) {
   const el = findSupportMessageElById(id);
-  if (el && el.parentNode) el.parentNode.removeChild(el);
+  if (!el || !el.parentNode) {
+    dropRecentMessageById(id);
+    return;
+  }
+  keepSupportScrollStable(() => {
+    el.parentNode.removeChild(el);
+    lastSupportListSignature = "";
+    dropRecentMessageById(id);
+  }, { forceBottom: !!opts.forceBottom });
 }
 
-function replaceSupportMessageById(id, row) {
+function replaceSupportMessageById(id, row, opts = {}) {
   const el = findSupportMessageElById(id);
   if (!el || !row) return false;
-  el.outerHTML = renderSupportMessageRow(row);
+  const r = normalizeSupportRow(row);
+  const forceBottom = !!opts.forceBottom || String(r.sender_id || r.user_id || "") === USER_ID;
+  keepSupportScrollStable(() => {
+    el.outerHTML = renderSupportMessageRow(r);
+    lastSupportListSignature = "";
+    dropRecentMessageById(id);
+    recentCache = [r, ...recentCache.filter((x) => supportRowSignature(x) !== supportRowSignature(r))].slice(0, 500);
+  }, { forceBottom });
   bindDeleteButtons();
-  forceSupportMessagesBottom();
+  if (isSupportChatOpen() && isRowInActiveRoom(r)) markRoomSeenAt(activeRoom.type, activeRoom.room_id, r.created_at || new Date().toISOString());
+  else updateBadgesFromRecentCache();
   return true;
 }
 
-function appendSupportMessage(m) {
+function appendSupportMessage(m, opts = {}) {
   if (!messagesList || !m) return;
-  messagesList.querySelectorAll(".srux-empty-state").forEach((e) => e.remove());
-  messagesList.insertAdjacentHTML("beforeend", renderSupportMessageRow(m));
+  const row = normalizeSupportRow(m);
+  const id = supportMessageDomId(row);
+  if (id && findSupportMessageElById(id)) {
+    replaceSupportMessageById(id, row, opts);
+    return;
+  }
+  const forceBottom = !!opts.forceBottom || String(row.sender_id || row.user_id || "") === USER_ID;
+  keepSupportScrollStable(() => {
+    messagesList.querySelectorAll(".srux-empty-state").forEach((e) => e.remove());
+    messagesList.insertAdjacentHTML("beforeend", renderSupportMessageRow(row));
+    lastSupportListSignature = "";
+    recentCache = [row, ...recentCache.filter((x) => supportRowSignature(x) !== supportRowSignature(row))].slice(0, 500);
+  }, { forceBottom });
   bindDeleteButtons();
-  forceSupportMessagesBottom();
+  if (isSupportChatOpen() && isRowInActiveRoom(row)) markRoomSeenAt(activeRoom.type, activeRoom.room_id, row.created_at || new Date().toISOString());
+  else updateBadgesFromRecentCache();
 }
 
-async function loadMessages() {
+async function loadMessages(opts = {}) {
+  const forceBottom = !!opts.forceBottom;
   let rows = [];
   try {
     rows = await fetchSupportMessagesApi({
@@ -790,8 +949,6 @@ async function loadMessages() {
     let query = supabase
       .from("support_messages")
       .select("*")
-      // Pull the newest rows first. Ordering ascending with a limit shows the
-      // oldest 300 messages and hides the latest support messages from users.
       .order("created_at", { ascending: false })
       .limit(300);
 
@@ -810,16 +967,13 @@ async function loadMessages() {
   }
 
   let visibleRows = rows.filter((m) => activeRoom.type === "public" ? isPublicRoomRow(m) : isRowInActiveRoom(m));
-  // Safety net: in older databases admin/public messages may have non-standard
-  // room values. For the public room, show anything that is not an explicit DM.
   if (activeRoom.type === "public" && !visibleRows.length && rows.length) {
     visibleRows = rows.filter((m) => !isExplicitDmRow(m));
   }
-  messagesList.innerHTML = visibleRows.map(renderSupportMessageRow).join("");
-  markActiveRoomSeenFromRows(visibleRows);
 
-  bindDeleteButtons();
-  forceSupportMessagesBottom();
+  renderStableMessageList(visibleRows, { forceBottom });
+  markActiveRoomSeenFromRows(visibleRows);
+  scheduleSeenFlush();
 }
 
 
@@ -842,7 +996,7 @@ async function deleteOwnMessage(messageId, triggerBtn){
     triggerBtn.setAttribute("aria-busy", "true");
   }
   if (row) {
-    row.style.opacity = "0.55";
+    row.classList.add("is-deleting");
     row.style.pointerEvents = "none";
   }
 
@@ -850,6 +1004,7 @@ async function deleteOwnMessage(messageId, triggerBtn){
     setStatus("Deleting…", "info");
     const res = await fetch((await resolveFnBase()) + "/user-delete-support-message", {
       method: "POST",
+      credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: messageId, user_id: USER_ID })
     });
@@ -857,25 +1012,21 @@ async function deleteOwnMessage(messageId, triggerBtn){
     if(!res.ok) throw new Error(data?.error || "Delete failed");
 
     if (row) {
-      row.style.transition = "opacity .18s ease, transform .18s ease, max-height .2s ease, margin .2s ease";
-      row.style.transform = "translateX(8px)";
-      row.style.maxHeight = row.offsetHeight + "px";
-      requestAnimationFrame(() => {
-        row.style.opacity = "0";
-        row.style.maxHeight = "0px";
-        row.style.margin = "0";
-      });
-      setTimeout(() => {
+      keepSupportScrollStable(() => {
         if (row.parentNode) row.parentNode.removeChild(row);
-        messagesList.scrollTop = messagesList.scrollHeight;
-      }, 220);
+        lastSupportListSignature = "";
+        dropRecentMessageById(messageId);
+      }, { forceBottom: isNearSupportBottom() });
+    } else {
+      dropRecentMessageById(messageId);
     }
 
     setStatus("Message deleted.", "success");
     setTimeout(() => {
       if ((statusEl?.textContent || "").trim() === "Message deleted.") setStatus("");
-    }, 1400);
-    await loadUsers();
+    }, 900);
+    scheduleSeenFlush();
+    queueLoadUsers(200);
   }catch(err){
     console.error(err);
     if (triggerBtn) {
@@ -884,17 +1035,15 @@ async function deleteOwnMessage(messageId, triggerBtn){
       triggerBtn.removeAttribute("aria-busy");
     }
     if (row) {
-      row.style.opacity = "";
+      row.classList.remove("is-deleting");
       row.style.pointerEvents = "";
-      row.style.transform = "";
-      row.style.maxHeight = "";
-      row.style.margin = "";
     }
     const msg = String(err?.message || "");
     if (/not found/i.test(msg)) {
       setStatus("This message was already removed.", "info");
-      await loadMessages();
-      await loadUsers();
+      removeSupportMessageById(messageId, { forceBottom: isNearSupportBottom() });
+      scheduleSeenFlush();
+      queueLoadUsers(200);
       return;
     }
     setStatus(msg || `Could not delete. Please contact ${ADMIN_NAME}.`, "error");
@@ -922,13 +1071,40 @@ function subscribeRoom() {
   sub = supabase
     .channel(`support_changes`)
     .on("postgres_changes", { event: "*", schema: "public", table: "support_messages" }, (payload) => {
-      const rowNew = payload?.new || {};
-      const rowOld = payload?.old || {};
-      const row = normalizeSupportRow(Object.keys(rowNew).length ? rowNew : rowOld);
-      if (isRowInActiveRoom(row)) {
-        loadMessages();
+      const eventType = String(payload?.eventType || "").toUpperCase();
+      const newRowRaw = payload?.new || {};
+      const oldRowRaw = payload?.old || {};
+
+      if (eventType === "DELETE") {
+        const oldRow = normalizeSupportRow(oldRowRaw);
+        const oldId = supportMessageDomId(oldRow);
+        if (oldId) dropRecentMessageById(oldId);
+        if (isRowInActiveRoom(oldRow) && oldId) {
+          removeSupportMessageById(oldId, { forceBottom: isNearSupportBottom() });
+        }
+        scheduleSeenFlush();
+        queueLoadUsers(220);
+        return;
       }
-      loadUsers();
+
+      const row = normalizeSupportRow(Object.keys(newRowRaw).length ? newRowRaw : oldRowRaw);
+      if (eventType === "INSERT" && row && Object.keys(row).length) {
+        recentCache = [row, ...recentCache.filter((r) => supportRowSignature(r) !== supportRowSignature(row))].slice(0, 500);
+      }
+
+      if (isRowInActiveRoom(row)) {
+        const id = supportMessageDomId(row);
+        if (id && findSupportMessageElById(id)) {
+          replaceSupportMessageById(id, row, { forceBottom: String(row.sender_id || row.user_id || "") === USER_ID });
+        } else {
+          appendSupportMessage(row, { forceBottom: String(row.sender_id || row.user_id || "") === USER_ID || isNearSupportBottom() });
+        }
+        markRoomSeenAt(activeRoom.type, activeRoom.room_id, row.created_at || new Date().toISOString());
+        scheduleSeenFlush();
+      } else {
+        updateBadgesFromRecentCache();
+      }
+      queueLoadUsers(220);
     })
     .subscribe();
 }
@@ -940,26 +1116,25 @@ function subscribeBackground(){
     .channel("support_unread")
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "support_messages" }, (payload)=>{
       const row = normalizeSupportRow(payload?.new || {});
-      // Gentle notification sound for incoming messages (not your own).
-      try {
-        const fromId = row?.sender_id || row?.user_id || "";
-        if(fromId && fromId !== USER_ID) playSoftNotification();
-      } catch {}
+      const isChatOpen = isSupportChatOpen();
+      const isActiveOpenRoom = isChatOpen && isRowInActiveRoom(row);
+
       if(row && Object.keys(row).length){
-        recentCache = [row, ...recentCache].slice(0, 500);
+        recentCache = [row, ...recentCache.filter((r) => supportRowSignature(r) !== supportRowSignature(row))].slice(0, 500);
       }
 
-      // If the chat is open and we're currently viewing this room, mark it as read.
-      const isChatOpen = chatOverlay?.style.display !== "none";
-      if(isChatOpen && isRowInActiveRoom(row)){
+      if(isActiveOpenRoom){
         markRoomSeenAt(activeRoom.type, activeRoom.room_id, row.created_at || new Date().toISOString());
-        loadMessages();
+        scheduleSeenFlush();
+      } else {
+        try {
+          const fromId = row?.sender_id || row?.user_id || "";
+          if(fromId && fromId !== USER_ID) playSoftNotification();
+        } catch {}
+        updateBadgesFromRecentCache();
       }
 
-      // Keep names list fresh when open (so new users appear)
-      if(isChatOpen) loadUsers();
-
-      updateBadgesFromRecentCache();
+      if(isChatOpen) queueLoadUsers(260);
     })
     .subscribe();
 }
@@ -967,9 +1142,10 @@ function subscribeBackground(){
 async function refreshRoom() {
   setStatus("");
   await loadUsers();
-  await loadMessages();
+  scheduleSeenFlush();
+  await loadMessages({ forceBottom: true });
+  scheduleSeenFlush();
   subscribeRoom();
-  forceSupportMessagesBottom();
 }
 
 
@@ -1029,8 +1205,9 @@ async function sendMessage() {
 
   // Show the message inside the user's Support window immediately. This fixes
   // delayed/disabled realtime and old tables where the latest rows were not being loaded.
-  appendSupportMessage(localRow);
+  appendSupportMessage(localRow, { forceBottom: true });
   markRoomSeen(activeRoom.type, activeRoom.room_id);
+  scheduleSeenFlush();
 
   let insertedRows = [];
   let error = null;
@@ -1067,18 +1244,11 @@ async function sendMessage() {
   if(attachInput) attachInput.value = "";
 
   const inserted = Array.isArray(insertedRows) && insertedRows[0] ? normalizeSupportRow(insertedRows[0]) : null;
-  if (inserted) replaceSupportMessageById(localId, inserted);
+  if (inserted) replaceSupportMessageById(localId, inserted, { forceBottom: true });
   setStatus("");
-
-  // Then reload from Supabase so the local temporary row is replaced by the real saved row.
-  // If reload fails, the optimistic row stays visible instead of making the user think it vanished.
-  try {
-    await loadMessages();
-    await loadUsers();
-  } catch (refreshErr) {
-    console.warn("support refresh after send failed", refreshErr);
-    forceSupportMessagesBottom();
-  }
+  scheduleSeenFlush();
+  queueLoadUsers(160);
+  try { msgInput?.focus(); } catch {}
 }
 
 // ---------- UI wiring ----------
@@ -1097,13 +1267,12 @@ async function openSupport() {
     return;
   }
 
-  // Keep profile synchronized best-effort; the server will not allow casual renames
-  // unless the admin reset the nickname first.
   upsertProfileName(name).catch(()=>{});
 
   show(chatOverlay);
   setRoomPublic();
-  refreshRoom();
+  await refreshRoom();
+  scheduleSeenFlush();
 }
 
 function closeAll() {
@@ -1179,6 +1348,20 @@ window.addEventListener("storage", (e) => {
     updateBadgesFromRecentCache();
   }
 });
+
+// ===== STEP 6.2 SUPPORT SEEN FLUSH EVENTS START =====
+messagesList?.addEventListener("scroll", () => {
+  if (isNearSupportBottom(80)) scheduleSeenFlush();
+}, { passive: true });
+
+chatOverlay?.addEventListener("pointerdown", () => {
+  if (isSupportChatOpen()) scheduleSeenFlush();
+}, { passive: true });
+
+window.addEventListener("focus", () => {
+  if (isSupportChatOpen()) scheduleSeenFlush();
+});
+// ===== STEP 6.2 SUPPORT SEEN FLUSH EVENTS END =====
 
 // Initial status cleanup
 setStatus("");

@@ -4690,3 +4690,31 @@ A:link {
   opacity: .92;
 }
 /* ===== STEP 6.1 SUPPORT USER VIEW FIX END ===== */
+
+/* ===== STEP 6.2 SUPPORT STABLE PROFESSIONAL UI START ===== */
+#supportMessagesList {
+  scroll-behavior: auto !important;
+  overflow-anchor: none;
+  contain: content;
+}
+
+#supportMessagesList .support-msg,
+#supportMessagesList .support-msg:hover {
+  transform: none !important;
+}
+
+#supportMessagesList .support-msg {
+  transition: border-color .14s ease, box-shadow .14s ease, background-color .14s ease, opacity .14s ease !important;
+  will-change: auto !important;
+}
+
+#supportMessagesList .support-msg.is-deleting {
+  opacity: .58;
+  filter: grayscale(.18);
+}
+
+#supportSendBtn[disabled],
+.support-del-btn[disabled] {
+  transform: none !important;
+}
+/* ===== STEP 6.2 SUPPORT STABLE PROFESSIONAL UI END ===== */
