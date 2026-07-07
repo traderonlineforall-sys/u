@@ -76,6 +76,27 @@ function clearFailures(request, username) {
   loginFailures.delete(failureKey(request, username));
 }
 
+function normalizeSuggestionScore(x) {
+  const n = Number(x?.score || 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function sortRecoverySuggestions(list) {
+  return (Array.isArray(list) ? list : [])
+    .filter((x)=>x && x.user_id && x.display_name)
+    .map((x)=>({ ...x, score: normalizeSuggestionScore(x) }))
+    .sort((x,y)=> y.score - x.score || String(y.last_seen_at || "").localeCompare(String(x.last_seen_at || "")));
+}
+
+function chooseHighConfidenceAutoSuggestion(list) {
+  const ranked = sortRecoverySuggestions(list);
+  const best = ranked[0] || null;
+  if(!best || best.score < 100) return null;
+  const second = ranked.find((x)=>x.user_id !== best.user_id) || null;
+  if(second && (best.score - Number(second.score || 0)) < 18) return null;
+  return best;
+}
+
 export async function POST(request) {
   const so = enforceSameOrigin(request);
   if(!so.ok){
@@ -154,7 +175,14 @@ export async function POST(request) {
       deviceConfidence = Number(match.confidence_score || 0);
       await touchDeviceNickname(supabase, match.device_hash);
     } else {
-      if(selectedRecoveryUserId){
+      const autoRecoveryChoice = chooseHighConfidenceAutoSuggestion(match.suggestions || []);
+      if(!selectedRecoveryUserId && !requestedNickname && autoRecoveryChoice){
+        finalUserId = autoRecoveryChoice.user_id;
+        displayName = autoRecoveryChoice.display_name;
+        recoveredByDevice = true;
+        deviceConfidence = Number(autoRecoveryChoice.score || 0);
+        await touchDeviceNickname(supabase, match.device_hash || deviceFingerprint.device_hash);
+      } else if(selectedRecoveryUserId){
         const choice = await verifyDeviceNicknameChoice(supabase, deviceFingerprint, selectedRecoveryUserId, { minScore: 90, suggestionThreshold: 60, gap: 15, maxSuggestions: 8 });
         if(!choice.ok){
           return noStore(NextResponse.json({ error: choice.error || "Could not verify selected nickname." }, { status: 500 }));

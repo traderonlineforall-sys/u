@@ -74,6 +74,39 @@ function setStoredNickname(name){
   safeSessionSet(NAME_KEY, v);
   safeCookieSet(NAME_KEY, v);
 }
+
+function suggestionScore(item){
+  const n = Number(item?.score || 0);
+  return Number.isFinite(n) ? n : 0;
+}
+function rankedRecoverySuggestions(list){
+  return (Array.isArray(list) ? list : [])
+    .filter((x)=>x && x.user_id)
+    .map((x)=>({ ...x, score: suggestionScore(x) }))
+    .sort((a,b)=>b.score - a.score);
+}
+function isTopRecoverySuggestion(item, list){
+  const ranked = rankedRecoverySuggestions(list);
+  return !!item?.user_id && ranked[0]?.user_id === item.user_id;
+}
+function recoveryGap(item, list){
+  const score = suggestionScore(item);
+  const ranked = rankedRecoverySuggestions(list);
+  const other = ranked.find((x)=>x.user_id !== item?.user_id);
+  return other ? score - suggestionScore(other) : 100;
+}
+function canSelectRecoverySuggestion(item, list){
+  return isTopRecoverySuggestion(item, list) && suggestionScore(item) >= 90 && recoveryGap(item, list) >= 15 && !item?.is_online;
+}
+function recoverySuggestionText(item, list){
+  const score = Math.round(suggestionScore(item));
+  if(item?.is_online) return `${score}% تطابق - هذه الكنية نشطة الآن`;
+  if(!isTopRecoverySuggestion(item, list)) return `${score}% تطابق - ليست أقرب كنية`;
+  if(score < 90) return `${score}% تطابق - للتذكير فقط`;
+  if(recoveryGap(item, list) < 15) return `${score}% تطابق - متشابهة مع كنية أخرى`;
+  return `${score}% تطابق - اختيار آمن`;
+}
+
 function nicknameError(value){
   const v = cleanNickname(value);
   if(v.length < 2) return "اكتب كنية خيالية من حرفين على الأقل.";
@@ -602,6 +635,16 @@ export default function LoginPage() {
                       key={item.user_id}
                       type="button"
                       onClick={() => {
+                        if(item?.is_online){
+                          setSelectedRecoveryUserId("");
+                          setErr("الكنية دي نشطة/أونلاين الآن. لحماية المستخدمين لا تختارها. اكتب كنية جديدة أو اطلب من الأدمن المساعدة.");
+                          return;
+                        }
+                        if(!canSelectRecoverySuggestion(item, nicknameSuggestions)){
+                          setSelectedRecoveryUserId("");
+                          setErr("لا يمكن اختيار هذه الكنية لأنها ليست أقرب تطابق آمن لهذا الجهاز. اختار أعلى كنية مطابقة فقط أو اكتب كنية جديدة.");
+                          return;
+                        }
                         setSelectedRecoveryUserId(item.user_id);
                         setNickname("");
                         setErr("");
@@ -609,13 +652,15 @@ export default function LoginPage() {
                       style={{
                         ...styles.suggestionBtn,
                         ...(selectedRecoveryUserId === item.user_id ? styles.suggestionBtnActive : null),
+                        opacity: canSelectRecoverySuggestion(item, nicknameSuggestions) ? 1 : 0.66,
+                        cursor: canSelectRecoverySuggestion(item, nicknameSuggestions) ? "pointer" : "not-allowed",
                       }}
                     >
                       <span>{item.display_name}</span>
-                      <small>{Math.round(Number(item.score || 0))}% تطابق{Number(item.score || 0) < 90 ? " - للتذكير فقط" : ""}</small>
+                      <small>{recoverySuggestionText(item, nicknameSuggestions)}</small>
                     </button>
                   ))}
-                  <div style={styles.suggestionsHint}>للحماية، اختيار المقترح لا يتم قبوله إلا لو كان التطابق آمنًا وغير ملتبس. لو كنيتك مش ضمن المقترحات أو الاختيار اترفض، اكتب كنية جديدة.</div>
+                  <div style={styles.suggestionsHint}>للحماية، الاختيار مسموح فقط لأعلى كنية مطابقة وبنسبة 90%+ وفارق آمن. لو الكنية أونلاين أو ليست الأعلى، اكتب كنية جديدة أو اطلب من الأدمن المساعدة.</div>
                 </div>
               ) : null}
               {selectedRecoveryUserId ? <div style={styles.nicknameHint}>تم اختيار كنية من المقترحات. اضغط Sign in للمتابعة.</div> : null}
