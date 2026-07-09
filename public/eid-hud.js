@@ -10,7 +10,7 @@ const LS_THEME_OFF = "sr_eid_theme_off";
 const LS_THEME_MODE = "sr_visual_theme_mode";
 const TOGGLE_BTN_ID = "EID_TOGGLE_BTN";
 const LEGACY_THEME_LINK_ID = "ua07LegacyThemeLink";
-const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy8-professional-hover";
+const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy9-blue-menu-hover";
 const AHLY_THEME_LINK_ID = "ahlyPremiumThemeLink";
 const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahly-v14-professional-hover";
 const EGYPT_THEME_LINK_ID = "egyptWorldCupThemeLink";
@@ -489,6 +489,106 @@ html.ua07-legacy-theme-live body .sub-dropdown:hover > a {
   filter: none !important;
 }
 /* ===== END MNDO professional menu hover layer v1 ===== */
+
+/* ===== Zamalek blue menu correction v9 =====
+   Keeps the menu/dropdown in a deep-blue Zamalek-friendly palette, while only
+   adding hover tint to the main choice. Visual-only: no layout/spacing/logic touched.
+*/
+html.ua07-legacy-theme-live body .dropdown:hover .dropbtn,
+html.ua07-legacy-theme-live body .dropdown:focus-within .dropbtn,
+html.ua07-legacy-theme-live body .dropdown.open .dropbtn,
+html.ua07-legacy-theme-live body .dropdown.active .dropbtn,
+html.ua07-legacy-theme-live body .navbar a:hover,
+html.ua07-legacy-theme-live body .navbar a:focus,
+html.ua07-legacy-theme-live body #singlelink:hover,
+html.ua07-legacy-theme-live body #singlelink:focus {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.035) 36%, rgba(20,44,118,.42) 100%),
+    radial-gradient(125% 165% at 16% 0%, rgba(210,220,255,.20), rgba(210,220,255,0) 50%),
+    radial-gradient(125% 180% at 100% 0%, rgba(44,84,190,.28), rgba(44,84,190,0) 60%),
+    linear-gradient(90deg, rgba(16,34,98,.68), rgba(5,10,30,.48) 58%, rgba(0,0,0,.30)) !important;
+  background-color: rgba(8,16,52,.62) !important;
+  border-color: rgba(205,215,255,.42) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,1), 0 0 11px rgba(210,220,255,.30) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.16),
+    inset 0 -1px 0 rgba(205,215,255,.18),
+    inset 2px 0 0 rgba(205,215,255,.46),
+    0 8px 20px rgba(0,0,0,.31),
+    0 0 17px rgba(44,84,190,.20) !important;
+  filter: none !important;
+}
+html.ua07-legacy-theme-live body .dropdown-content,
+html.ua07-legacy-theme-live body .sub-dropdown-content,
+html.ua07-legacy-theme-live body .search-results,
+html.ua07-legacy-theme-live body #searchResults {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.070), rgba(255,255,255,.012) 35%, rgba(0,0,0,.030)),
+    radial-gradient(150% 125% at 12% 0%, rgba(205,215,255,.12), rgba(205,215,255,0) 50%),
+    radial-gradient(150% 140% at 100% 5%, rgba(28,58,150,.22), rgba(28,58,150,0) 60%),
+    linear-gradient(180deg, rgba(3,7,22,.92), rgba(8,16,52,.86) 56%, rgba(2,4,16,.94)) !important;
+  background-color: rgba(3,7,22,.92) !important;
+  border-color: rgba(205,215,255,.30) !important;
+  color: rgba(248,249,255,.98) !important;
+  -webkit-text-fill-color: rgba(248,249,255,.98) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.96) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    inset 0 0 0 1px rgba(205,215,255,.030),
+    0 18px 42px rgba(0,0,0,.62),
+    0 0 18px rgba(28,58,150,.15) !important;
+  backdrop-filter: blur(8px) saturate(1.10) contrast(1.02) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(1.10) contrast(1.02) !important;
+}
+html.ua07-legacy-theme-live body .sub-dropdown,
+html.ua07-legacy-theme-live body .sub-dropdown[style],
+html.ua07-legacy-theme-live body .dropdown-content a,
+html.ua07-legacy-theme-live body .sub-dropdown-content a,
+html.ua07-legacy-theme-live body .sub-dropdown > a,
+html.ua07-legacy-theme-live body #searchResults a,
+html.ua07-legacy-theme-live body .search-results a {
+  color: rgba(248,249,255,.98) !important;
+  -webkit-text-fill-color: rgba(248,249,255,.98) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: rgba(205,215,255,.09) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.98) !important;
+  box-shadow: inset 0 -1px 0 rgba(205,215,255,.035) !important;
+  filter: none !important;
+}
+html.ua07-legacy-theme-live body .sub-dropdown:hover,
+html.ua07-legacy-theme-live body .sub-dropdown:hover[style],
+html.ua07-legacy-theme-live body .dropdown-content a:hover,
+html.ua07-legacy-theme-live body .dropdown-content a:focus,
+html.ua07-legacy-theme-live body .sub-dropdown-content a:hover,
+html.ua07-legacy-theme-live body .sub-dropdown-content a:focus,
+html.ua07-legacy-theme-live body .sub-dropdown:hover > a,
+html.ua07-legacy-theme-live body #searchResults a:hover,
+html.ua07-legacy-theme-live body #searchResults a:focus,
+html.ua07-legacy-theme-live body #searchResults a.highlight,
+html.ua07-legacy-theme-live body .search-results a:hover,
+html.ua07-legacy-theme-live body .search-results a:focus,
+html.ua07-legacy-theme-live body .search-results a.highlight {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.022)),
+    radial-gradient(130% 150% at 8% 0%, rgba(205,215,255,.17), rgba(205,215,255,0) 50%),
+    linear-gradient(90deg, rgba(20,44,118,.64), rgba(6,13,42,.42) 58%, rgba(0,0,0,.20)) !important;
+  background-color: rgba(18,38,104,.54) !important;
+  border-color: rgba(205,215,255,.24) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,1), 0 0 10px rgba(205,215,255,.26) !important;
+  box-shadow:
+    inset 2px 0 0 rgba(205,215,255,.48),
+    inset 0 1px 0 rgba(255,255,255,.10),
+    inset 0 -1px 0 rgba(205,215,255,.13),
+    0 6px 16px rgba(0,0,0,.24) !important;
+  filter: none !important;
+}
+/* ===== END Zamalek blue menu correction v9 ===== */
+
   `;
   const style = document.createElement('style');
   style.id = 'MNDO_PROFESSIONAL_MENU_HOVER_LAYER';
