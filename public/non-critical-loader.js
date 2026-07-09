@@ -124,7 +124,7 @@
     // Keep them delayed so the first tool load stays light.
     [
       './online-users-count.js',
-      './eid-hud.js?v=egypt-calculate-luxury-wine-v9'
+      './eid-hud.js?v=egypt-calculate-flag-accent-v10'
     ].forEach(function(src){
       importOnce(src, src);
     });

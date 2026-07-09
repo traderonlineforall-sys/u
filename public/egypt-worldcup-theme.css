@@ -1294,3 +1294,111 @@ html.egypt-worldcup-theme-live #Calculate button.selected:hover {
 }
 /* ===== END Egypt Calculate luxury wine controls v19 ===== */
 
+
+
+/* ===== Egypt Calculate flag-accent selected controls v20 =====
+   Clear selected state using Egypt flag white with calm red/black accents.
+   Keeps normal buttons dark; selected choices become visibly different without loud gold.
+   Visual-only: no layout, no calculations, no event logic.
+*/
+html.egypt-worldcup-theme-live #Calculate .service-btn.active,
+html.egypt-worldcup-theme-live #Calculate .discount-btn.active,
+html.egypt-worldcup-theme-live #Calculate .extra-btn.active,
+html.egypt-worldcup-theme-live #Calculate .op-btn.active,
+html.egypt-worldcup-theme-live #Calculate .add-btn.active,
+html.egypt-worldcup-theme-live #Calculate .vat-btn.active,
+html.egypt-worldcup-theme-live #Calculate button.active,
+html.egypt-worldcup-theme-live #Calculate [aria-pressed="true"],
+html.egypt-worldcup-theme-live #Calculate .selected,
+html.egypt-worldcup-theme-live #Calculate button.selected {
+  background:
+    linear-gradient(90deg, rgba(128,16,12,.94) 0 5px, rgba(255,255,255,0) 5px),
+    linear-gradient(180deg, rgba(255,255,255,.42), rgba(255,255,255,.08) 36%, rgba(0,0,0,.10) 100%),
+    linear-gradient(180deg, #f3ead1 0%, #d7c69e 58%, #9b875c 100%) !important;
+  background-color: #d7c69e !important;
+  color: #170807 !important;
+  -webkit-text-fill-color: #170807 !important;
+  border-color: rgba(128,16,12,.72) !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.42) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.52),
+    inset 0 -2px 0 rgba(13,10,9,.28),
+    inset 0 0 0 1px rgba(255,244,214,.22),
+    0 11px 24px rgba(0,0,0,.42),
+    0 0 0 1px rgba(128,16,12,.18),
+    0 0 18px rgba(220,205,164,.11) !important;
+  filter: saturate(.92) brightness(.96) contrast(1.08) !important;
+}
+
+html.egypt-worldcup-theme-live #Calculate .service-btn.active:hover,
+html.egypt-worldcup-theme-live #Calculate .discount-btn.active:hover,
+html.egypt-worldcup-theme-live #Calculate .extra-btn.active:hover,
+html.egypt-worldcup-theme-live #Calculate .op-btn.active:hover,
+html.egypt-worldcup-theme-live #Calculate .add-btn.active:hover,
+html.egypt-worldcup-theme-live #Calculate .vat-btn.active:hover,
+html.egypt-worldcup-theme-live #Calculate button.active:hover,
+html.egypt-worldcup-theme-live #Calculate [aria-pressed="true"]:hover,
+html.egypt-worldcup-theme-live #Calculate .selected:hover,
+html.egypt-worldcup-theme-live #Calculate button.selected:hover,
+html.egypt-worldcup-theme-live #Calculate .service-btn.active:focus,
+html.egypt-worldcup-theme-live #Calculate .discount-btn.active:focus,
+html.egypt-worldcup-theme-live #Calculate .extra-btn.active:focus,
+html.egypt-worldcup-theme-live #Calculate .op-btn.active:focus,
+html.egypt-worldcup-theme-live #Calculate .add-btn.active:focus,
+html.egypt-worldcup-theme-live #Calculate .vat-btn.active:focus,
+html.egypt-worldcup-theme-live #Calculate button.active:focus,
+html.egypt-worldcup-theme-live #Calculate [aria-pressed="true"]:focus,
+html.egypt-worldcup-theme-live #Calculate .selected:focus,
+html.egypt-worldcup-theme-live #Calculate button.selected:focus {
+  background:
+    linear-gradient(90deg, rgba(154,22,17,.98) 0 5px, rgba(255,255,255,0) 5px),
+    linear-gradient(180deg, rgba(255,255,255,.50), rgba(255,255,255,.12) 36%, rgba(0,0,0,.08) 100%),
+    linear-gradient(180deg, #fff3d9 0%, #e1cf9e 58%, #a99362 100%) !important;
+  border-color: rgba(154,22,17,.86) !important;
+  color: #120605 !important;
+  -webkit-text-fill-color: #120605 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.62),
+    inset 0 -2px 0 rgba(13,10,9,.25),
+    0 12px 27px rgba(0,0,0,.45),
+    0 0 0 1px rgba(154,22,17,.22),
+    0 0 20px rgba(220,205,164,.14) !important;
+}
+
+html.egypt-worldcup-theme-live #Calculate #reset1,
+html.egypt-worldcup-theme-live #Calculate #Buto,
+html.egypt-worldcup-theme-live #Calculate button[type="reset"] {
+  background:
+    linear-gradient(180deg, rgba(244,228,181,.12), rgba(244,228,181,.025) 38%, rgba(0,0,0,.10) 100%),
+    linear-gradient(180deg, #5b1510 0%, #300807 55%, #100504 100%) !important;
+  background-color: #300807 !important;
+  color: #f0dfb2 !important;
+  -webkit-text-fill-color: #f0dfb2 !important;
+  border-color: rgba(166,37,28,.62) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.90) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,240,196,.14),
+    inset 0 -1px 0 rgba(0,0,0,.45),
+    0 10px 23px rgba(0,0,0,.38),
+    0 0 0 1px rgba(166,37,28,.12) !important;
+}
+
+html.egypt-worldcup-theme-live #Calculate #reset1:hover,
+html.egypt-worldcup-theme-live #Calculate #Buto:hover,
+html.egypt-worldcup-theme-live #Calculate button[type="reset"]:hover,
+html.egypt-worldcup-theme-live #Calculate #reset1:focus,
+html.egypt-worldcup-theme-live #Calculate #Buto:focus,
+html.egypt-worldcup-theme-live #Calculate button[type="reset"]:focus {
+  background:
+    linear-gradient(180deg, rgba(255,238,198,.16), rgba(255,238,198,.04) 38%, rgba(0,0,0,.08) 100%),
+    linear-gradient(180deg, #6c1a13 0%, #3b0908 55%, #120504 100%) !important;
+  border-color: rgba(190,47,37,.76) !important;
+  color: #fff0c9 !important;
+  -webkit-text-fill-color: #fff0c9 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,244,214,.20),
+    inset 0 -1px 0 rgba(0,0,0,.42),
+    0 12px 26px rgba(0,0,0,.42),
+    0 0 18px rgba(166,37,28,.13) !important;
+}
+/* ===== END Egypt Calculate flag-accent selected controls v20 ===== */
