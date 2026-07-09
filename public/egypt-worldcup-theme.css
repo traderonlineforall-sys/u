@@ -1619,3 +1619,194 @@ html.egypt-worldcup-theme-live .smart-calc-btn.is-equals:hover {
     linear-gradient(180deg, #fff2d5 0%, #dec78d 62%, #a98743 100%) !important;
 }
 /* ===== END Egypt Smart Calculator luxury polish v21 ===== */
+
+/* ===== Egypt Call Back OCR luxury theme v22 =====
+   Visual-only polish for Call Back OCR paste box under Egypt theme.
+   No OCR logic, paste behavior, IDs, or Call Back data changed.
+*/
+html.egypt-worldcup-theme-live .cbOcrBox,
+html.egypt-worldcup-theme-live #Call\ Back .cbOcrBox {
+  background:
+    radial-gradient(120% 95% at 18% 0%, rgba(196,33,25,.20), rgba(196,33,25,0) 56%),
+    radial-gradient(95% 80% at 100% 100%, rgba(209,172,91,.13), rgba(209,172,91,0) 58%),
+    linear-gradient(180deg, rgba(31,10,8,.92) 0%, rgba(13,6,5,.94) 100%) !important;
+  border: 1px solid rgba(210,174,96,.45) !important;
+  border-radius: 22px !important;
+  box-shadow:
+    0 28px 70px rgba(0,0,0,.58),
+    0 0 0 1px rgba(117,24,18,.18),
+    inset 0 1px 0 rgba(255,244,214,.12),
+    inset 0 -1px 0 rgba(0,0,0,.48) !important;
+  color: #f5e7c5 !important;
+  backdrop-filter: blur(10px) saturate(.96) brightness(.92) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(.96) brightness(.92) !important;
+}
+
+html.egypt-worldcup-theme-live .cbOcrBox .ocrHeader,
+html.egypt-worldcup-theme-live #Call\ Back .cbOcrBox .ocrHeader {
+  padding-bottom: 10px !important;
+  border-bottom: 1px solid rgba(210,174,96,.16) !important;
+}
+
+html.egypt-worldcup-theme-live .cbOcrBox .ocrTitle,
+html.egypt-worldcup-theme-live #Call\ Back .cbOcrBox .ocrTitle {
+  color: #fff0c7 !important;
+  -webkit-text-fill-color: #fff0c7 !important;
+  font-weight: 950 !important;
+  letter-spacing: .15px !important;
+  text-shadow:
+    0 2px 4px rgba(0,0,0,.72),
+    0 0 18px rgba(210,174,96,.14) !important;
+}
+
+html.egypt-worldcup-theme-live .cbOcrBox .ocrTitle::before,
+html.egypt-worldcup-theme-live #Call\ Back .cbOcrBox .ocrTitle::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-inline-end: 8px;
+  border-radius: 50%;
+  background: #c82f26;
+  box-shadow:
+    0 0 0 3px rgba(200,47,38,.14),
+    0 0 14px rgba(200,47,38,.34) !important;
+  vertical-align: middle;
+}
+
+html.egypt-worldcup-theme-live .cbOcrBox .ocrSubtitle,
+html.egypt-worldcup-theme-live #Call\ Back .cbOcrBox .ocrSubtitle {
+  background:
+    linear-gradient(90deg, rgba(132,23,18,.18), rgba(255,244,214,.045), rgba(0,0,0,.10)) !important;
+  border: 1px solid rgba(210,174,96,.22) !important;
+  color: rgba(245,231,197,.86) !important;
+  -webkit-text-fill-color: rgba(245,231,197,.86) !important;
+  border-radius: 14px !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.58) !important;
+}
+
+html.egypt-worldcup-theme-live .cbOcrBox .ocrPasteZone,
+html.egypt-worldcup-theme-live #Call\ Back .cbOcrBox .ocrPasteZone {
+  background:
+    linear-gradient(180deg, rgba(255,244,214,.055), rgba(255,244,214,.015) 44%, rgba(0,0,0,.16)),
+    linear-gradient(180deg, rgba(23,9,8,.92), rgba(7,5,4,.94)) !important;
+  border: 2px dashed rgba(210,174,96,.54) !important;
+  color: #fff1cf !important;
+  -webkit-text-fill-color: #fff1cf !important;
+  caret-color: #e9c77e !important;
+  border-radius: 18px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,244,214,.10),
+    inset 0 -1px 0 rgba(0,0,0,.50),
+    0 14px 32px rgba(0,0,0,.34),
+    0 0 0 1px rgba(132,23,18,.15) !important;
+}
+
+html.egypt-worldcup-theme-live .cbOcrBox .ocrPasteZone:focus,
+html.egypt-worldcup-theme-live #Call\ Back .cbOcrBox .ocrPasteZone:focus {
+  outline: none !important;
+  border-color: rgba(238,205,132,.84) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,244,214,.13),
+    0 0 0 3px rgba(132,23,18,.22),
+    0 0 28px rgba(210,174,96,.16) !important;
+}
+
+html.egypt-worldcup-theme-live .cbOcrBox .ocrSubHint,
+html.egypt-worldcup-theme-live #Call\ Back .cbOcrBox .ocrSubHint {
+  color: rgba(245,231,197,.68) !important;
+  -webkit-text-fill-color: rgba(245,231,197,.68) !important;
+}
+
+html.egypt-worldcup-theme-live .cbOcrBox .ocrStatus,
+html.egypt-worldcup-theme-live #Call\ Back .cbOcrBox .ocrStatus {
+  background:
+    linear-gradient(90deg, rgba(132,23,18,.26), rgba(255,244,214,.045), rgba(0,0,0,.14)) !important;
+  border: 1px solid rgba(210,174,96,.28) !important;
+  color: #f5e7c5 !important;
+  -webkit-text-fill-color: #f5e7c5 !important;
+  border-radius: 14px !important;
+}
+
+html.egypt-worldcup-theme-live .cbOcrBox .ocrPreview,
+html.egypt-worldcup-theme-live #Call\ Back .cbOcrBox .ocrPreview {
+  border: 1px solid rgba(210,174,96,.34) !important;
+  background: rgba(8,5,4,.76) !important;
+  box-shadow: 0 14px 30px rgba(0,0,0,.44), 0 0 0 1px rgba(132,23,18,.14) !important;
+}
+
+html.egypt-worldcup-theme-live .cbOcrBox .ocrText,
+html.egypt-worldcup-theme-live #Call\ Back .cbOcrBox .ocrText {
+  background:
+    linear-gradient(180deg, rgba(255,244,214,.045), rgba(255,244,214,.012)),
+    linear-gradient(180deg, rgba(18,8,7,.94), rgba(7,5,4,.96)) !important;
+  border: 1px solid rgba(210,174,96,.34) !important;
+  color: #fff0c7 !important;
+  -webkit-text-fill-color: #fff0c7 !important;
+  caret-color: #e9c77e !important;
+  box-shadow: inset 0 1px 0 rgba(255,244,214,.08), inset 0 -1px 0 rgba(0,0,0,.45) !important;
+}
+
+html.egypt-worldcup-theme-live .cbOcrBox .ocrText::placeholder,
+html.egypt-worldcup-theme-live #Call\ Back .cbOcrBox .ocrText::placeholder {
+  color: rgba(245,231,197,.48) !important;
+  -webkit-text-fill-color: rgba(245,231,197,.48) !important;
+}
+
+html.egypt-worldcup-theme-live .cbOcrBox .ocrBtn,
+html.egypt-worldcup-theme-live #Call\ Back .cbOcrBox .ocrBtn {
+  background:
+    linear-gradient(180deg, rgba(255,244,214,.075), rgba(255,244,214,.015)),
+    linear-gradient(180deg, #321512, #110706) !important;
+  border: 1px solid rgba(210,174,96,.30) !important;
+  color: #f5e7c5 !important;
+  -webkit-text-fill-color: #f5e7c5 !important;
+  border-radius: 15px !important;
+  font-weight: 900 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,244,214,.10),
+    inset 0 -1px 0 rgba(0,0,0,.46),
+    0 10px 22px rgba(0,0,0,.30) !important;
+}
+
+html.egypt-worldcup-theme-live .cbOcrBox .ocrBtn:hover,
+html.egypt-worldcup-theme-live #Call\ Back .cbOcrBox .ocrBtn:hover {
+  background:
+    linear-gradient(180deg, rgba(255,244,214,.10), rgba(255,244,214,.025)),
+    linear-gradient(180deg, #431b16, #170807) !important;
+  border-color: rgba(238,205,132,.56) !important;
+  color: #fff2d2 !important;
+  -webkit-text-fill-color: #fff2d2 !important;
+  filter: none !important;
+}
+
+html.egypt-worldcup-theme-live .cbOcrBox .ocrBtnPrimary,
+html.egypt-worldcup-theme-live #Call\ Back .cbOcrBox .ocrBtnPrimary {
+  background:
+    linear-gradient(90deg, rgba(132,23,18,.98) 0 5px, rgba(255,255,255,0) 5px),
+    linear-gradient(180deg, rgba(255,255,255,.42), rgba(255,255,255,.12) 40%, rgba(0,0,0,.08)),
+    linear-gradient(180deg, #f3ead3 0%, #d0b878 62%, #98763a 100%) !important;
+  border-color: rgba(238,205,132,.72) !important;
+  color: #170807 !important;
+  -webkit-text-fill-color: #170807 !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.34) !important;
+}
+
+html.egypt-worldcup-theme-live .cbOcrBox .ocrBtnHq,
+html.egypt-worldcup-theme-live #Call\ Back .cbOcrBox .ocrBtnHq {
+  background:
+    linear-gradient(180deg, rgba(255,244,214,.12), rgba(255,244,214,.028)),
+    linear-gradient(180deg, #7f2018 0%, #4a0d0a 58%, #1c0605 100%) !important;
+  border-color: rgba(198,58,48,.62) !important;
+  color: #fff1cf !important;
+  -webkit-text-fill-color: #fff1cf !important;
+}
+
+html.egypt-worldcup-theme-live .cbOcrBox .ocrBtnGhost,
+html.egypt-worldcup-theme-live #Call\ Back .cbOcrBox .ocrBtnGhost {
+  background: rgba(255,244,214,.045) !important;
+  border-color: rgba(210,174,96,.24) !important;
+  color: rgba(245,231,197,.86) !important;
+  -webkit-text-fill-color: rgba(245,231,197,.86) !important;
+}
+/* ===== END Egypt Call Back OCR luxury theme v22 ===== */
