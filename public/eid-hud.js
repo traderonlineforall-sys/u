@@ -14,7 +14,7 @@ const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy9-main-hover-only";
 const AHLY_THEME_LINK_ID = "ahlyPremiumThemeLink";
 const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahly-v14-professional-hover-restore1";
 const EGYPT_THEME_LINK_ID = "egyptWorldCupThemeLink";
-const EGYPT_THEME_HREF = "egypt-worldcup-theme.css?v=egyptwc-layer-v12-logo-clean";
+const EGYPT_THEME_HREF = "egypt-worldcup-theme.css?v=egyptwc-layer-v13-luxury-tone";
 const THEME_EID = "eid";
 const THEME_LEGACY = "legacy";
 const THEME_AHLY = "ahly";
@@ -368,19 +368,19 @@ function ensureProfessionalMenuHoverLayer(){
    Visual-only: colors/backgrounds/borders/shadows/text effects; no layout or logic touched.
 */
 html.egypt-worldcup-theme-live {
-  --mndo-menu-text: #f5d57d;
-  --mndo-menu-hover-text: #fff7d5;
-  --mndo-menu-hover-bg: linear-gradient(180deg, rgba(255,246,211,.16), rgba(255,246,211,.035) 36%, rgba(92,0,0,.36) 100%), radial-gradient(120% 170% at 14% 0%, rgba(255,218,118,.20), rgba(255,218,118,0) 48%), radial-gradient(120% 180% at 100% 0%, rgba(206,14,45,.26), rgba(206,14,45,0) 58%), linear-gradient(90deg, rgba(76,0,0,.66), rgba(18,0,0,.42) 55%, rgba(5,0,0,.30));
-  --mndo-menu-hover-bg-color: rgba(35,0,0,.56);
-  --mndo-menu-hover-border: rgba(255,226,145,.42);
-  --mndo-menu-hover-glow: rgba(255,218,118,.28);
-  --mndo-menu-hover-accent: rgba(255,218,118,.46);
-  --mndo-panel-bg: linear-gradient(180deg, rgba(255,246,211,.075), rgba(255,246,211,.016) 34%, rgba(0,0,0,.02)), radial-gradient(160% 120% at 12% 0%, rgba(255,218,118,.10), rgba(255,218,118,0) 48%), radial-gradient(150% 135% at 100% 6%, rgba(170,0,0,.20), rgba(170,0,0,0) 58%), linear-gradient(180deg, rgba(20,0,0,.88), rgba(38,0,0,.78) 57%, rgba(5,0,0,.90));
-  --mndo-panel-bg-color: rgba(18,0,0,.86);
-  --mndo-panel-border: rgba(255,226,145,.33);
-  --mndo-row-border: rgba(255,226,145,.10);
-  --mndo-row-hover-bg: linear-gradient(180deg, rgba(255,246,211,.10), rgba(255,246,211,.025)), radial-gradient(125% 150% at 8% 0%, rgba(255,218,118,.18), rgba(255,218,118,0) 48%), linear-gradient(90deg, rgba(116,0,0,.58), rgba(35,0,0,.34) 58%, rgba(3,0,0,.18));
-  --mndo-row-hover-bg-color: rgba(58,0,0,.46);
+  --mndo-menu-text: #d9bd78;
+  --mndo-menu-hover-text: #f6e8c2;
+  --mndo-menu-hover-bg: linear-gradient(180deg, rgba(244,230,192,.105), rgba(244,230,192,.025) 36%, rgba(52,0,0,.28) 100%), radial-gradient(120% 170% at 14% 0%, rgba(217,189,120,.13), rgba(217,189,120,0) 48%), radial-gradient(120% 180% at 100% 0%, rgba(120,10,18,.18), rgba(120,10,18,0) 58%), linear-gradient(90deg, rgba(47,0,0,.52), rgba(12,0,0,.36) 55%, rgba(5,0,0,.26));
+  --mndo-menu-hover-bg-color: rgba(22,0,0,.50);
+  --mndo-menu-hover-border: rgba(217,189,120,.33);
+  --mndo-menu-hover-glow: rgba(217,189,120,.20);
+  --mndo-menu-hover-accent: rgba(217,189,120,.34);
+  --mndo-panel-bg: linear-gradient(180deg, rgba(244,230,192,.052), rgba(244,230,192,.012) 34%, rgba(0,0,0,.02)), radial-gradient(160% 120% at 12% 0%, rgba(217,189,120,.070), rgba(217,189,120,0) 48%), radial-gradient(150% 135% at 100% 6%, rgba(105,0,0,.14), rgba(105,0,0,0) 58%), linear-gradient(180deg, rgba(13,0,0,.88), rgba(25,0,0,.78) 57%, rgba(5,0,0,.90));
+  --mndo-panel-bg-color: rgba(12,0,0,.86);
+  --mndo-panel-border: rgba(217,189,120,.26);
+  --mndo-row-border: rgba(217,189,120,.075);
+  --mndo-row-hover-bg: linear-gradient(180deg, rgba(244,230,192,.072), rgba(244,230,192,.018)), radial-gradient(125% 150% at 8% 0%, rgba(217,189,120,.12), rgba(217,189,120,0) 48%), linear-gradient(90deg, rgba(70,0,0,.42), rgba(20,0,0,.30) 58%, rgba(3,0,0,.16));
+  --mndo-row-hover-bg-color: rgba(38,0,0,.36);
 }
 html.ahly-premium-theme-live {
   --mndo-menu-text: rgba(255,235,184,.98);
@@ -562,6 +562,75 @@ html.sr-theme-off-live body .sub-dropdown:hover > a {
   }
 }
 
+
+
+function ensureEgyptLuxuryToneLayer(){
+  if (document.getElementById('MNDO_EGYPT_LUXURY_TONE_LAYER')) return;
+  const css = `
+html.egypt-worldcup-theme-live body #tabs .tablinks,
+html.egypt-worldcup-theme-live body .toolsStyle,
+html.egypt-worldcup-theme-live body #bat2,
+html.egypt-worldcup-theme-live body #suggestionAddBtn,
+html.egypt-worldcup-theme-live body #supportSendBtn,
+html.egypt-worldcup-theme-live body .suggestions-fab,
+html.egypt-worldcup-theme-live body .support-fab,
+html.egypt-worldcup-theme-live body #supportToggleBtn {
+  color: #d9bd78 !important;
+  -webkit-text-fill-color: #d9bd78 !important;
+  background: linear-gradient(180deg, rgba(244,230,192,.070), rgba(244,230,192,0) 40%), radial-gradient(130% 160% at 18% 0%, rgba(217,189,120,.060), rgba(217,189,120,0) 52%), linear-gradient(180deg, rgba(76,7,9,.82), rgba(28,3,4,.92) 58%, rgba(4,4,5,.97)) !important;
+  background-color: rgba(13,3,3,.93) !important;
+  border-color: rgba(217,189,120,.25) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.94) !important;
+  box-shadow: inset 0 1px 0 rgba(244,230,192,.09), inset 0 -1px 0 rgba(217,189,120,.09), 0 10px 24px rgba(0,0,0,.40) !important;
+  filter: saturate(.90) brightness(.90) contrast(1.02) !important;
+}
+html.egypt-worldcup-theme-live body #tabs .tablinks:hover,
+html.egypt-worldcup-theme-live body #tabs .tablinks:focus,
+html.egypt-worldcup-theme-live body #tabs .tablinks.active,
+html.egypt-worldcup-theme-live body .toolsStyle:hover,
+html.egypt-worldcup-theme-live body .toolsStyle:focus,
+html.egypt-worldcup-theme-live body #bat2:hover,
+html.egypt-worldcup-theme-live body #suggestionAddBtn:hover,
+html.egypt-worldcup-theme-live body #supportSendBtn:hover,
+html.egypt-worldcup-theme-live body .suggestions-fab:hover,
+html.egypt-worldcup-theme-live body .support-fab:hover,
+html.egypt-worldcup-theme-live body #supportToggleBtn:hover {
+  color: #f4e6c0 !important;
+  -webkit-text-fill-color: #f4e6c0 !important;
+  background: linear-gradient(180deg, rgba(244,230,192,.105), rgba(244,230,192,0) 40%), radial-gradient(130% 165% at 20% 0%, rgba(217,189,120,.11), rgba(217,189,120,0) 54%), linear-gradient(180deg, rgba(96,9,11,.88), rgba(38,4,5,.94) 58%, rgba(5,5,5,.98)) !important;
+  border-color: rgba(232,207,146,.40) !important;
+  box-shadow: inset 0 1px 0 rgba(244,230,192,.13), inset 0 -1px 0 rgba(217,189,120,.16), 0 12px 27px rgba(0,0,0,.45), 0 0 22px rgba(217,189,120,.09) !important;
+  filter: saturate(.94) brightness(.96) contrast(1.03) !important;
+}
+html.egypt-worldcup-theme-live body #tabs .tab-utility-btn.is-reset,
+html.egypt-worldcup-theme-live body #headerResetBtn,
+html.egypt-worldcup-theme-live body .tab-utility-btn.is-reset {
+  color: #4a260d !important;
+  -webkit-text-fill-color: #4a260d !important;
+  background: radial-gradient(120% 140% at 28% 0%, rgba(255,255,255,.42), rgba(255,255,255,0) 42%), linear-gradient(180deg, #f5e7bf, #d9bd78 58%, #b7924b) !important;
+  background-color: #e5cf98 !important;
+  border-color: rgba(255,238,190,.68) !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.34) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.46), inset 0 -1px 0 rgba(96,54,18,.16), 0 10px 22px rgba(0,0,0,.38), 0 0 18px rgba(217,189,120,.14) !important;
+  filter: saturate(.86) brightness(.98) contrast(1.02) !important;
+}
+html.egypt-worldcup-theme-live body #tabs .tab-utility-btn.is-reset:hover,
+html.egypt-worldcup-theme-live body #headerResetBtn:hover,
+html.egypt-worldcup-theme-live body .tab-utility-btn.is-reset:hover {
+  color: #3a1c08 !important;
+  -webkit-text-fill-color: #3a1c08 !important;
+  background: radial-gradient(120% 140% at 28% 0%, rgba(255,255,255,.50), rgba(255,255,255,0) 42%), linear-gradient(180deg, #fff0c8, #e1c985 58%, #bd9a52) !important;
+  border-color: rgba(255,244,210,.80) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.54), inset 0 -1px 0 rgba(96,54,18,.14), 0 12px 25px rgba(0,0,0,.42), 0 0 20px rgba(232,207,146,.18) !important;
+}
+  `;
+  const style = document.createElement('style');
+  style.id = 'MNDO_EGYPT_LUXURY_TONE_LAYER';
+  style.textContent = css;
+  try { (document.body || document.documentElement).appendChild(style); }
+  catch { try { (document.head || document.documentElement).appendChild(style); } catch {} }
+}
+
 function ensureDecorLayer(){
   if (document.getElementById('EID_DECOR_LAYER')) return;
   const host = document.body || document.documentElement;
@@ -581,6 +650,7 @@ function applyThemeState(){
   ensureDecorLayer();
   ensureAhlyTransparentMenuLayer();
   ensureProfessionalMenuHoverLayer();
+  ensureEgyptLuxuryToneLayer();
   const mode = getThemeMode();
   const eidLink = getThemeLink();
   const legacyLink = getLegacyThemeLink();

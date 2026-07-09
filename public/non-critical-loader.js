@@ -124,7 +124,7 @@
     // Keep them delayed so the first tool load stays light.
     [
       './online-users-count.js',
-      './eid-hud.js?v=ahly-restore-professional1'
+      './eid-hud.js?v=egypt-luxury-tone1'
     ].forEach(function(src){
       importOnce(src, src);
     });
