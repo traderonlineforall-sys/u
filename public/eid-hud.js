@@ -576,10 +576,10 @@ html.sr-theme-off-live body .sub-dropdown:hover > a {
 
 function ensureHeaderSearchHKPositionLayer(){
   const css = `
-/* ===== MNDO search/HK balanced header position layer v6 =====
+/* ===== MNDO search/HK balanced header position layer v7 =====
    Search is lifted slightly to align with FBB/logo.
    HK/Hayah Karima sits directly under search and safely above the main buttons.
-   Horizontal position and SR/search/FBB logic are untouched. */
+   Search horizontal position and SR/search/FBB logic are untouched; HK is aligned with the search left edge. */
 html.scl-has-search body.scl-has-search .mndo-search-hk-anchor #hkSmartFloatingLine,
 html.eid-theme-live .mndo-search-hk-anchor #hkSmartFloatingLine,
 html.ua07-legacy-theme-live .mndo-search-hk-anchor #hkSmartFloatingLine,
@@ -589,7 +589,7 @@ html.sr-theme-off-live .mndo-search-hk-anchor #hkSmartFloatingLine,
 .mndo-search-hk-anchor #hkSmartFloatingLine {
   position: absolute !important;
   top: 42px !important;
-  left: 5% !important;
+  left: 0 !important;
   right: auto !important;
   bottom: auto !important;
   margin: 0 !important;
@@ -617,7 +617,7 @@ html.scl-has-search body.scl-has-search .mndo-search-hk-anchor .search-container
   margin-top: 0 !important;
   transform: none !important;
 }
-/* ===== END MNDO search/HK balanced header position layer v6 ===== */
+/* ===== END MNDO search/HK balanced header position layer v7 ===== */
   `;
   let style = document.getElementById('MNDO_HEADER_SEARCH_HK_POSITION_LAYER');
   if (!style) {

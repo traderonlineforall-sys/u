@@ -42,7 +42,7 @@
     if (loadLayoutFixes._done) return;
     loadLayoutFixes._done = true;
     [
-      './safe-customization-layer.js?v=header-align-v6'
+      './safe-customization-layer.js?v=hk-align-left-v7'
     ].forEach(function(src){
       importOnce(src, src);
     });
@@ -124,7 +124,7 @@
     // Keep them delayed so the first tool load stays light.
     [
       './online-users-count.js',
-      './eid-hud.js?v=egypt-quota-summary-polish-v21'
+      './eid-hud.js?v=hk-align-left-v7'
     ].forEach(function(src){
       importOnce(src, src);
     });

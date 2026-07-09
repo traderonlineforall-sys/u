@@ -53,7 +53,6 @@
     max-height: 34px;
     overflow: visible;
     align-self: flex-start;
-    top: -10px !important; /* v6: lift search to align with FBB/logo without moving it horizontally */
   }
 
   html.scl-has-search body.scl-has-search .mndo-search-hk-anchor .search-container {
@@ -67,8 +66,8 @@
 
   html.scl-has-search body.scl-has-search .mndo-search-hk-anchor #hkSmartFloatingLine {
     position: absolute !important;
-    left: 5% !important;
-    top: 42px !important; /* v6: HK sits directly under the lifted search and above the main buttons. */
+    left: 0 !important;
+    top: 42px !important; /* HK only: aligned under the search box and above main buttons. */
     margin: 0 !important;
     z-index: 3 !important;
     transform: none !important;
