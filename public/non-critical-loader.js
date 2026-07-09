@@ -124,7 +124,7 @@
     // Keep them delayed so the first tool load stays light.
     [
       './online-users-count.js',
-      './eid-hud.js?v=all-themes-search-hk-align-v1'
+      './eid-hud.js?v=hk-line-down-only-v2'
     ].forEach(function(src){
       importOnce(src, src);
     });

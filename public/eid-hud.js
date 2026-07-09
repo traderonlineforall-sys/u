@@ -566,10 +566,10 @@ html.sr-theme-off-live body .sub-dropdown:hover > a {
 function ensureHeaderSearchHKPositionLayer(){
   if (document.getElementById('MNDO_HEADER_SEARCH_HK_POSITION_LAYER')) return;
   const css = `
-/* ===== MNDO header search/HK position layer v1 =====
-   Applies the approved Egypt header balance to all visual modes:
-   search input lifted, HK/Hayah Karima line dropped slightly.
-   Visual-only: position offset only, no width/left/right/layout logic touched. */
+/* ===== MNDO header search/HK position layer v2 =====
+   Search position is kept exactly as approved.
+   Only the HK/Hayah Karima line is dropped further to avoid touching the search input.
+   Visual-only: no width/left/right/layout logic touched. */
 html.eid-theme-live .mndo-search-logo-row .mndo-search-hk-anchor,
 html.ua07-legacy-theme-live .mndo-search-logo-row .mndo-search-hk-anchor,
 html.ahly-premium-theme-live .mndo-search-logo-row .mndo-search-hk-anchor,
@@ -612,8 +612,8 @@ html.ua07-legacy-theme-live #hkSmartFloatingLine,
 html.ahly-premium-theme-live #hkSmartFloatingLine,
 html.egypt-worldcup-theme-live #hkSmartFloatingLine,
 html.sr-theme-off-live #hkSmartFloatingLine {
-  transform: translateX(-50%) translateY(9px) !important;
-  margin-top: 7px !important;
+  transform: translateX(-50%) translateY(24px) !important;
+  margin-top: 16px !important;
 }
 
 html.eid-theme-live #hkSmartFloatingLine .hk-shell,
@@ -628,7 +628,7 @@ html.sr-theme-off-live #hkSmartFloatingLine .hk-shell,
 html.sr-theme-off-live #hkSmartFloatingLine .hk-row {
   transform: none !important;
 }
-/* ===== END MNDO header search/HK position layer v1 ===== */
+/* ===== END MNDO header search/HK position layer v2 ===== */
   `;
   const style = document.createElement('style');
   style.id = 'MNDO_HEADER_SEARCH_HK_POSITION_LAYER';
