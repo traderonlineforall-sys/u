@@ -31,7 +31,7 @@ html.egypt-worldcup-theme-live body {
     linear-gradient(180deg, rgba(0,0,0,.82), rgba(0,0,0,.26) 24%, rgba(0,0,0,.28) 58%, rgba(0,0,0,.88)),
     radial-gradient(85% 70% at 50% 40%, rgba(255,238,170,.10), rgba(0,0,0,.16) 44%, rgba(0,0,0,.72)),
     linear-gradient(90deg, rgba(0,0,0,.88), rgba(0,0,0,.18) 28%, rgba(0,0,0,.20) 72%, rgba(0,0,0,.90)),
-    url("./egypt-worldcup-bg.webp?v=egyptwc-layer-v9"),
+    url("./egypt-worldcup-bg.webp?v=egyptwc-layer-v10"),
     linear-gradient(135deg, #060302, #220605 48%, #030303) !important;
   background-position: center center, center center, center center, center center, center center !important;
   background-size: cover, cover, cover, cover, cover !important;
@@ -181,19 +181,18 @@ html.egypt-worldcup-theme-live #supportToggleBtn:hover {
   box-shadow: inset 0 1px 0 rgba(255,255,255,.18), inset 0 -1px 0 rgba(255,225,150,.24), 0 12px 27px rgba(0,0,0,.42), 0 0 24px rgba(255,194,84,.14) !important;
 }
 
-/* Menu triggers/normal links: skin only; no float/flex/display/spacing overrides. */
+/* Menu triggers/normal links: text-only skin so the Egypt background stays visible. */
 html.egypt-worldcup-theme-live .dropdown .dropbtn,
 html.egypt-worldcup-theme-live .navbar a,
 html.egypt-worldcup-theme-live #singlelink {
   color: var(--egypt-gold) !important;
   -webkit-text-fill-color: var(--egypt-gold) !important;
-  background:
-    linear-gradient(180deg, rgba(255,246,211,.06), rgba(255,246,211,0) 38%),
-    linear-gradient(180deg, rgba(34,0,1,.70), rgba(7,0,0,.88) 62%, rgba(46,0,0,.42)) !important;
-  background-color: rgba(8,0,0,.80) !important;
-  border-color: rgba(232,205,139,.22) !important;
-  text-shadow: 0 1px 2px rgba(0,0,0,.90) !important;
-  box-shadow: inset 0 1px 0 rgba(255,246,211,.06), inset 0 -1px 0 rgba(232,205,139,.10) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.95), 0 0 7px rgba(0,0,0,.56) !important;
+  box-shadow: none !important;
+  filter: none !important;
 }
 html.egypt-worldcup-theme-live .dropdown:hover .dropbtn,
 html.egypt-worldcup-theme-live .dropdown:focus-within .dropbtn,
@@ -205,11 +204,12 @@ html.egypt-worldcup-theme-live #singlelink:hover,
 html.egypt-worldcup-theme-live #singlelink:focus {
   color: var(--egypt-cream) !important;
   -webkit-text-fill-color: var(--egypt-cream) !important;
-  background:
-    linear-gradient(180deg, rgba(255,246,211,.12), rgba(255,246,211,0) 38%),
-    linear-gradient(90deg, rgba(143,0,0,.92), rgba(62,0,1,.94) 56%, rgba(8,0,0,.91)) !important;
-  border-color: rgba(255,229,164,.46) !important;
-  box-shadow: inset 2px 0 0 rgba(255,225,150,.56), inset 0 1px 0 rgba(255,246,211,.12), inset 0 -1px 0 rgba(255,225,150,.20) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.98), 0 0 10px rgba(255,214,116,.22) !important;
+  box-shadow: none !important;
+  filter: none !important;
 }
 
 /* Open dropdown panels and rows keep original layout; only colors are changed. */
@@ -236,10 +236,11 @@ html.egypt-worldcup-theme-live #searchResults a,
 html.egypt-worldcup-theme-live .search-results a {
   color: var(--egypt-gold) !important;
   -webkit-text-fill-color: var(--egypt-gold) !important;
-  background-color: rgba(0,0,0,.16) !important;
+  background: transparent !important;
+  background-color: transparent !important;
   border-color: rgba(232,205,139,.10) !important;
-  text-shadow: 0 1px 2px rgba(0,0,0,.92) !important;
-  box-shadow: inset 0 -1px 0 rgba(232,205,139,.075) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.94) !important;
+  box-shadow: none !important;
 }
 html.egypt-worldcup-theme-live .dropdown-content a:hover,
 html.egypt-worldcup-theme-live .dropdown-content a:focus,
@@ -254,9 +255,11 @@ html.egypt-worldcup-theme-live .search-results a:focus,
 html.egypt-worldcup-theme-live .search-results a.highlight {
   color: var(--egypt-cream) !important;
   -webkit-text-fill-color: var(--egypt-cream) !important;
-  background: linear-gradient(90deg, rgba(158,0,0,.94), rgba(67,0,1,.92) 56%, rgba(10,0,0,.88)) !important;
-  border-color: rgba(255,229,164,.42) !important;
-  box-shadow: inset 2px 0 0 rgba(255,225,150,.58), inset 0 1px 0 rgba(255,246,211,.10) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: rgba(255,229,164,.20) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.98), 0 0 10px rgba(255,214,116,.22) !important;
+  box-shadow: none !important;
 }
 
 /* Suggestions/support/admin surfaces: visual layer only. */
