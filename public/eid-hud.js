@@ -14,7 +14,7 @@ const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy4";
 const AHLY_THEME_LINK_ID = "ahlyPremiumThemeLink";
 const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahly-v9-logic-match-visible";
 const EGYPT_THEME_LINK_ID = "egyptWorldCupThemeLink";
-const EGYPT_THEME_HREF = "egypt-worldcup-theme.css?v=egyptwc-v10-tool-dropdown-logic";
+const EGYPT_THEME_HREF = "egypt-worldcup-theme.css?v=egyptwc-v11-tool-dropdown-hard-reset";
 const THEME_EID = "eid";
 const THEME_LEGACY = "legacy";
 const THEME_AHLY = "ahly";
@@ -56,7 +56,10 @@ function getAhlyThemeLink(){
 }
 function getEgyptThemeLink(){
   let link = document.getElementById(EGYPT_THEME_LINK_ID);
-  if (link) return link;
+  if (link) {
+    try { if (!link.href || link.href.indexOf('egyptwc-v11-tool-dropdown-hard-reset') === -1) link.href = EGYPT_THEME_HREF; } catch {}
+    return link;
+  }
   try {
     link = document.createElement("link");
     link.id = EGYPT_THEME_LINK_ID;
@@ -212,7 +215,10 @@ function applyThemeState(){
   if(eidLink) eidLink.disabled = mode !== THEME_EID;
   if(legacyLink) legacyLink.disabled = mode !== THEME_LEGACY;
   if(ahlyLink) ahlyLink.disabled = mode !== THEME_AHLY;
-  if(egyptLink) egyptLink.disabled = mode !== THEME_EGYPT;
+  if(egyptLink) {
+    try { if (!egyptLink.href || egyptLink.href.indexOf('egyptwc-v11-tool-dropdown-hard-reset') === -1) egyptLink.href = EGYPT_THEME_HREF; } catch {}
+    egyptLink.disabled = mode !== THEME_EGYPT;
+  }
   document.documentElement.classList.toggle('eid-theme-live', mode === THEME_EID);
   document.documentElement.classList.toggle('ua07-legacy-theme-live', mode === THEME_LEGACY);
   document.documentElement.classList.toggle('ahly-premium-theme-live', mode === THEME_AHLY);
@@ -470,6 +476,7 @@ function boot(){
   ensureDecorLayer();
   applyThemeState();
   installEgyptToolDropdownGuard();
+  setTimeout(function(){ try { window.dispatchEvent(new Event("resize")); } catch {} }, 250);
   triggerSmartHeaderResetOnBoot();
   let tries = 0;
   const t = setInterval(function(){

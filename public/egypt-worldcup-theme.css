@@ -1607,3 +1607,210 @@ html.egypt-worldcup-theme-live .sub-dropdown:focus-within > a {
     right: 100% !important;
   }
 }
+
+/* =========================================================
+   Egypt World Cup Theme - v11 HARD reset to original tool dropdown logic
+   المطلوب هنا: لا تصميم جديد للقوائم. نفس منطق وأبعاد التول الأصلي،
+   مع ألوان ذهب/كريمي فقط تناسب ثيم مصر. هذا البلوك آخر ملف CSS
+   ويكسر أي Overrides قديمة كانت عاملة صناديق حمراء/تظليل ثابت/قص جانبي.
+   ========================================================= */
+html.egypt-worldcup-theme-live {
+  --egypt-dropdown-bg-final: rgba(255, 244, 224, 0.965);
+  --egypt-dropdown-border-final: rgba(212, 175, 55, 0.38);
+  --egypt-dropdown-text-final: #111111;
+  --egypt-dropdown-hover-a-final: rgba(255, 214, 122, 0.96);
+  --egypt-dropdown-hover-b-final: rgba(255, 243, 215, 0.96);
+}
+
+/* Parents must never crop the opened menu/sub-menu. */
+html.egypt-worldcup-theme-live body#myBody .tabcontent,
+html.egypt-worldcup-theme-live body#myBody .tabcontent nav,
+html.egypt-worldcup-theme-live body#myBody nav.container,
+html.egypt-worldcup-theme-live body#myBody .navbar,
+html.egypt-worldcup-theme-live body#myBody .dropdown,
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown,
+html.egypt-worldcup-theme-live body#myBody .dropdown-content,
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown-content {
+  overflow: visible !important;
+}
+
+html.egypt-worldcup-theme-live body#myBody .dropdown,
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown {
+  position: relative !important;
+}
+
+html.egypt-worldcup-theme-live body#myBody .dropdown:hover,
+html.egypt-worldcup-theme-live body#myBody .dropdown:focus-within,
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown:hover,
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown:focus-within {
+  z-index: 2147482998 !important;
+}
+
+/* Panels: original tool geometry. */
+html.egypt-worldcup-theme-live body#myBody .dropdown > .dropdown-content,
+html.egypt-worldcup-theme-live body#myBody .dropdown .dropdown-content,
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown > .sub-dropdown-content,
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown .sub-dropdown-content {
+  display: none;
+  position: absolute !important;
+  float: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: max-content !important;
+  max-width: calc(100vw - 16px) !important;
+  min-width: 160px !important;
+  height: auto !important;
+  max-height: none !important;
+  background: var(--egypt-dropdown-bg-final) !important;
+  background-color: var(--egypt-dropdown-bg-final) !important;
+  background-image: none !important;
+  border: 1px solid var(--egypt-dropdown-border-final) !important;
+  border-radius: 5px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35) !important;
+  color: var(--egypt-dropdown-text-final) !important;
+  -webkit-text-fill-color: var(--egypt-dropdown-text-final) !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transform: none !important;
+  box-sizing: border-box !important;
+  z-index: 2147482999 !important;
+}
+
+html.egypt-worldcup-theme-live body#myBody .dropdown > .dropdown-content,
+html.egypt-worldcup-theme-live body#myBody .dropdown .dropdown-content {
+  top: 100% !important;
+  left: 0 !important;
+  right: auto !important;
+}
+
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown > .sub-dropdown-content,
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown .sub-dropdown-content {
+  top: 0 !important;
+  left: 100% !important;
+  right: auto !important;
+  min-width: 300px !important;
+}
+
+/* Open only on hover/focus exactly like the tool. */
+html.egypt-worldcup-theme-live body#myBody .dropdown:hover > .dropdown-content,
+html.egypt-worldcup-theme-live body#myBody .dropdown:focus-within > .dropdown-content,
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown:hover > .sub-dropdown-content,
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown:focus-within > .sub-dropdown-content {
+  display: block !important;
+}
+
+/* Existing/open-left logic: avoid clipping on screen edges. */
+html.egypt-worldcup-theme-live body#myBody .dropdown-content.open-left {
+  left: auto !important;
+  right: 0 !important;
+}
+
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown-content.open-left,
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown-content.left {
+  left: auto !important;
+  right: 100% !important;
+}
+
+/* Rows: no permanent boxes, no red/dark row backgrounds. */
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown,
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown[style] {
+  display: block !important;
+  position: relative !important;
+  float: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  outline: 0 !important;
+  overflow: visible !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+html.egypt-worldcup-theme-live body#myBody .dropdown-content a,
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown-content a,
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown > a {
+  float: none !important;
+  clear: none !important;
+  display: block !important;
+  padding: 8px 10px !important;
+  margin: 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  max-height: none !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+  text-align: left !important;
+  text-decoration: none !important;
+  font: inherit !important;
+  color: var(--egypt-dropdown-text-final) !important;
+  -webkit-text-fill-color: var(--egypt-dropdown-text-final) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 7px !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  outline: 0 !important;
+  opacity: 1 !important;
+  filter: none !important;
+  transform: none !important;
+}
+
+/* Hover only on the current row. */
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown:hover,
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown:hover[style] {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html.egypt-worldcup-theme-live body#myBody .dropdown-content a:hover,
+html.egypt-worldcup-theme-live body#myBody .dropdown-content a:focus,
+html.egypt-worldcup-theme-live body#myBody .dropdown-content a:active,
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown-content a:hover,
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown-content a:focus,
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown-content a:active,
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown:hover > a,
+html.egypt-worldcup-theme-live body#myBody .sub-dropdown:focus-within > a {
+  background: linear-gradient(135deg, var(--egypt-dropdown-hover-a-final), var(--egypt-dropdown-hover-b-final)) !important;
+  background-color: var(--egypt-dropdown-hover-a-final) !important;
+  background-image: linear-gradient(135deg, var(--egypt-dropdown-hover-a-final), var(--egypt-dropdown-hover-b-final)) !important;
+  color: #111111 !important;
+  -webkit-text-fill-color: #111111 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  transform: none !important;
+}
+
+@media (max-width: 768px) {
+  html.egypt-worldcup-theme-live body#myBody .dropdown > .dropdown-content,
+  html.egypt-worldcup-theme-live body#myBody .dropdown .dropdown-content,
+  html.egypt-worldcup-theme-live body#myBody .sub-dropdown > .sub-dropdown-content,
+  html.egypt-worldcup-theme-live body#myBody .sub-dropdown .sub-dropdown-content {
+    max-width: calc(100vw - 12px) !important;
+  }
+  html.egypt-worldcup-theme-live body#myBody .sub-dropdown > .sub-dropdown-content,
+  html.egypt-worldcup-theme-live body#myBody .sub-dropdown .sub-dropdown-content {
+    left: auto !important;
+    right: 100% !important;
+  }
+}
+/* ===== Egypt v11 hard reset end ===== */
