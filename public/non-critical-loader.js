@@ -124,7 +124,7 @@
     // Keep them delayed so the first tool load stays light.
     [
       './online-users-count.js',
-      './eid-hud.js?v=egypt-callback-ocr-luxury-v12'
+      './eid-hud.js?v=egypt-bottom-actions-luxury-v13'
     ].forEach(function(src){
       importOnce(src, src);
     });

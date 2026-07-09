@@ -1810,3 +1810,109 @@ html.egypt-worldcup-theme-live #Call\ Back .cbOcrBox .ocrBtnGhost {
   -webkit-text-fill-color: rgba(245,231,197,.86) !important;
 }
 /* ===== END Egypt Call Back OCR luxury theme v22 ===== */
+
+/* ===== Egypt bottom action buttons premium calm finish v23 =====
+   Visual-only refinement for the lower/floating action buttons under Egypt theme.
+   Removes the loud yellow fill and replaces it with calm wine/black glass,
+   muted antique-gold borders, and clear cream text. No behavior/layout changes.
+*/
+html.egypt-worldcup-theme-live .floating-actions #suggestionsFab.suggestions-fab,
+html.egypt-worldcup-theme-live #suggestionsFab.suggestions-fab,
+html.egypt-worldcup-theme-live .floating-actions .suggestions-fab,
+html.egypt-worldcup-theme-live .suggestions-fab,
+html.egypt-worldcup-theme-live .floating-actions #supportToggleBtn,
+html.egypt-worldcup-theme-live #supportToggleBtn,
+html.egypt-worldcup-theme-live .floating-actions .support-fab,
+html.egypt-worldcup-theme-live .support-fab,
+html.egypt-worldcup-theme-live #supportSendBtn,
+html.egypt-worldcup-theme-live #suggestionAddBtn,
+html.egypt-worldcup-theme-live input#bss_pkg[type="reset"],
+html.egypt-worldcup-theme-live input[type="reset"],
+html.egypt-worldcup-theme-live button[type="reset"],
+html.egypt-worldcup-theme-live .tab-utility-btn.is-reset,
+html.egypt-worldcup-theme-live #headerResetBtn {
+  color: #f6e8c3 !important;
+  -webkit-text-fill-color: #f6e8c3 !important;
+  background:
+    linear-gradient(90deg, rgba(151,27,22,.72) 0 4px, rgba(255,255,255,0) 4px),
+    radial-gradient(140% 150% at 20% 0%, rgba(255,238,191,.16), rgba(255,238,191,0) 42%),
+    linear-gradient(180deg, rgba(70,20,14,.94) 0%, rgba(20,8,7,.96) 56%, rgba(7,5,4,.98) 100%) !important;
+  background-color: rgba(17,6,5,.96) !important;
+  border: 1px solid rgba(214,177,92,.42) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.86), 0 0 10px rgba(214,177,92,.10) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,244,214,.15),
+    inset 0 -1px 0 rgba(0,0,0,.45),
+    0 12px 28px rgba(0,0,0,.44),
+    0 0 0 1px rgba(151,27,22,.08),
+    0 0 18px rgba(214,177,92,.08) !important;
+  filter: saturate(.98) brightness(.95) contrast(1.04) !important;
+}
+
+html.egypt-worldcup-theme-live .floating-actions #suggestionsFab.suggestions-fab:hover,
+html.egypt-worldcup-theme-live #suggestionsFab.suggestions-fab:hover,
+html.egypt-worldcup-theme-live .floating-actions .suggestions-fab:hover,
+html.egypt-worldcup-theme-live .suggestions-fab:hover,
+html.egypt-worldcup-theme-live .floating-actions #supportToggleBtn:hover,
+html.egypt-worldcup-theme-live #supportToggleBtn:hover,
+html.egypt-worldcup-theme-live .floating-actions .support-fab:hover,
+html.egypt-worldcup-theme-live .support-fab:hover,
+html.egypt-worldcup-theme-live #supportSendBtn:hover,
+html.egypt-worldcup-theme-live #suggestionAddBtn:hover,
+html.egypt-worldcup-theme-live input#bss_pkg[type="reset"]:hover,
+html.egypt-worldcup-theme-live input[type="reset"]:hover,
+html.egypt-worldcup-theme-live button[type="reset"]:hover,
+html.egypt-worldcup-theme-live .tab-utility-btn.is-reset:hover,
+html.egypt-worldcup-theme-live #headerResetBtn:hover {
+  color: #fff0ce !important;
+  -webkit-text-fill-color: #fff0ce !important;
+  background:
+    linear-gradient(90deg, rgba(184,39,31,.86) 0 4px, rgba(255,255,255,0) 4px),
+    radial-gradient(140% 150% at 20% 0%, rgba(255,238,191,.22), rgba(255,238,191,0) 44%),
+    linear-gradient(180deg, rgba(88,24,17,.98) 0%, rgba(28,9,8,.98) 56%, rgba(8,5,4,.99) 100%) !important;
+  border-color: rgba(232,201,129,.62) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,244,214,.22),
+    inset 0 -1px 0 rgba(0,0,0,.42),
+    0 14px 31px rgba(0,0,0,.48),
+    0 0 0 1px rgba(184,39,31,.12),
+    0 0 22px rgba(232,201,129,.13) !important;
+  filter: saturate(1.02) brightness(1.01) contrast(1.05) !important;
+}
+
+html.egypt-worldcup-theme-live .floating-actions #suggestionsFab.suggestions-fab,
+html.egypt-worldcup-theme-live #suggestionsFab.suggestions-fab {
+  color: #f8e9c4 !important;
+  -webkit-text-fill-color: #f8e9c4 !important;
+}
+
+html.egypt-worldcup-theme-live .floating-actions #supportToggleBtn,
+html.egypt-worldcup-theme-live #supportToggleBtn,
+html.egypt-worldcup-theme-live .support-fab {
+  background:
+    linear-gradient(90deg, rgba(214,177,92,.44) 0 3px, rgba(255,255,255,0) 3px),
+    radial-gradient(140% 150% at 20% 0%, rgba(255,238,191,.12), rgba(255,238,191,0) 42%),
+    linear-gradient(180deg, rgba(49,16,12,.94) 0%, rgba(15,7,6,.97) 60%, rgba(6,5,4,.99) 100%) !important;
+  border-color: rgba(214,177,92,.36) !important;
+}
+
+html.egypt-worldcup-theme-live input#bss_pkg[type="reset"],
+html.egypt-worldcup-theme-live input[type="reset"],
+html.egypt-worldcup-theme-live button[type="reset"],
+html.egypt-worldcup-theme-live .tab-utility-btn.is-reset,
+html.egypt-worldcup-theme-live #headerResetBtn {
+  font-weight: 900 !important;
+  letter-spacing: .1px !important;
+}
+
+html.egypt-worldcup-theme-live .fab-badge,
+html.egypt-worldcup-theme-live #badgeSuggestions {
+  color: #fff6df !important;
+  -webkit-text-fill-color: #fff6df !important;
+  background:
+    radial-gradient(circle at 30% 18%, rgba(255,255,255,.30), rgba(255,255,255,0) 38%),
+    linear-gradient(180deg, #2cbf6a, #158142) !important;
+  border: 1px solid rgba(255,246,223,.28) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 8px 18px rgba(0,0,0,.34) !important;
+}
+/* ===== END Egypt bottom action buttons premium calm finish v23 ===== */
