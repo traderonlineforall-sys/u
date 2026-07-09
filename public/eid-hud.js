@@ -14,7 +14,7 @@ const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy4";
 const AHLY_THEME_LINK_ID = "ahlyPremiumThemeLink";
 const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahly-v9-logic-match-visible";
 const EGYPT_THEME_LINK_ID = "egyptWorldCupThemeLink";
-const EGYPT_THEME_HREF = "egypt-worldcup-theme.css?v=egyptwc-v11-tool-dropdown-hard-reset";
+const EGYPT_THEME_HREF = "egypt-worldcup-theme.css?v=egyptwc-v8";
 const THEME_EID = "eid";
 const THEME_LEGACY = "legacy";
 const THEME_AHLY = "ahly";
@@ -56,10 +56,7 @@ function getAhlyThemeLink(){
 }
 function getEgyptThemeLink(){
   let link = document.getElementById(EGYPT_THEME_LINK_ID);
-  if (link) {
-    try { if (!link.href || link.href.indexOf('egyptwc-v11-tool-dropdown-hard-reset') === -1) link.href = EGYPT_THEME_HREF; } catch {}
-    return link;
-  }
+  if (link) return link;
   try {
     link = document.createElement("link");
     link.id = EGYPT_THEME_LINK_ID;
@@ -215,10 +212,7 @@ function applyThemeState(){
   if(eidLink) eidLink.disabled = mode !== THEME_EID;
   if(legacyLink) legacyLink.disabled = mode !== THEME_LEGACY;
   if(ahlyLink) ahlyLink.disabled = mode !== THEME_AHLY;
-  if(egyptLink) {
-    try { if (!egyptLink.href || egyptLink.href.indexOf('egyptwc-v11-tool-dropdown-hard-reset') === -1) egyptLink.href = EGYPT_THEME_HREF; } catch {}
-    egyptLink.disabled = mode !== THEME_EGYPT;
-  }
+  if(egyptLink) egyptLink.disabled = mode !== THEME_EGYPT;
   document.documentElement.classList.toggle('eid-theme-live', mode === THEME_EID);
   document.documentElement.classList.toggle('ua07-legacy-theme-live', mode === THEME_LEGACY);
   document.documentElement.classList.toggle('ahly-premium-theme-live', mode === THEME_AHLY);
@@ -369,114 +363,11 @@ function triggerSmartHeaderResetOnBoot(){
 }
 
 
-function installEgyptToolDropdownGuard(){
-  if (window.__EGYPT_TOOL_DROPDOWN_GUARD_INSTALLED) return;
-  window.__EGYPT_TOOL_DROPDOWN_GUARD_INSTALLED = true;
-
-  function isEgyptTheme(){
-    try { return document.documentElement.classList.contains('egypt-worldcup-theme-live'); }
-    catch (_) { return false; }
-  }
-
-  function directChild(host, selector){
-    if (!host) return null;
-    try {
-      var scoped = host.querySelector(':scope > ' + selector);
-      if (scoped) return scoped;
-    } catch (_) {}
-    try {
-      var nodes = host.querySelectorAll(selector);
-      for (var i = 0; i < nodes.length; i++) {
-        if (nodes[i].parentElement === host) return nodes[i];
-      }
-      return nodes[0] || null;
-    } catch (_) { return null; }
-  }
-
-  function ensureMeasurable(menu, fn){
-    if (!menu) return;
-    var oldDisplay = menu.style.display;
-    var oldVisibility = menu.style.visibility;
-    var oldPointerEvents = menu.style.pointerEvents;
-    try {
-      if (getComputedStyle(menu).display === 'none') {
-        menu.style.visibility = 'hidden';
-        menu.style.pointerEvents = 'none';
-        menu.style.display = 'block';
-      }
-      fn();
-    } catch (_) {
-    } finally {
-      menu.style.display = oldDisplay;
-      menu.style.visibility = oldVisibility;
-      menu.style.pointerEvents = oldPointerEvents;
-    }
-  }
-
-  function placeMain(dropdown){
-    if (!isEgyptTheme() || !dropdown) return;
-    var menu = directChild(dropdown, '.dropdown-content');
-    if (!menu) return;
-    menu.classList.remove('open-left');
-    requestAnimationFrame(function(){
-      ensureMeasurable(menu, function(){
-        var vw = window.innerWidth || document.documentElement.clientWidth || 0;
-        var rect = menu.getBoundingClientRect();
-        if (rect.right > vw - 8) menu.classList.add('open-left');
-        rect = menu.getBoundingClientRect();
-        if (rect.left < 8 && rect.right <= vw - 8) menu.classList.remove('open-left');
-      });
-    });
-  }
-
-  function placeSub(subDropdown){
-    if (!isEgyptTheme() || !subDropdown) return;
-    var menu = directChild(subDropdown, '.sub-dropdown-content');
-    if (!menu) return;
-    menu.classList.remove('open-left');
-    requestAnimationFrame(function(){
-      ensureMeasurable(menu, function(){
-        var vw = window.innerWidth || document.documentElement.clientWidth || 0;
-        var hostRect = subDropdown.getBoundingClientRect();
-        var menuWidth = menu.offsetWidth || menu.getBoundingClientRect().width || 300;
-        var rightSpace = vw - hostRect.right;
-        var leftSpace = hostRect.left;
-        if (rightSpace < menuWidth + 8 && leftSpace > rightSpace) {
-          menu.classList.add('open-left');
-        }
-        var rect = menu.getBoundingClientRect();
-        if (rect.right > vw - 8 && rect.left > 8) menu.classList.add('open-left');
-      });
-    });
-  }
-
-  document.addEventListener('mouseover', function(e){
-    if (!isEgyptTheme()) return;
-    var target = e.target;
-    if (!target || !target.closest) return;
-    var sub = target.closest('.sub-dropdown');
-    if (sub) placeSub(sub);
-    var dropdown = target.closest('.dropdown');
-    if (dropdown) placeMain(dropdown);
-  }, true);
-
-  window.addEventListener('resize', function(){
-    if (!isEgyptTheme()) return;
-    try {
-      document.querySelectorAll('.dropdown:hover').forEach(placeMain);
-      document.querySelectorAll('.sub-dropdown:hover').forEach(placeSub);
-    } catch (_) {}
-  }, { passive: true });
-}
-
-
 function boot(){
   forceAhlyPremiumDefaultOnBoot();
   ensureToggleBaseStyle();
   ensureDecorLayer();
   applyThemeState();
-  installEgyptToolDropdownGuard();
-  setTimeout(function(){ try { window.dispatchEvent(new Event("resize")); } catch {} }, 250);
   triggerSmartHeaderResetOnBoot();
   let tries = 0;
   const t = setInterval(function(){

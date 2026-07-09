@@ -113,7 +113,7 @@
     // Keep them delayed so the first tool load stays light.
     [
       './online-users-count.js',
-      './eid-hud.js?v=egypt-v11-tool-dropdown-hard-reset'
+      './eid-hud.js'
     ].forEach(function(src){
       importOnce(src, src);
     });
