@@ -3730,15 +3730,8 @@ if (link && link.indexOf("srTypeId=100047021") !== -1) {
                                                                                                         }
 
                                                                                                         const allLinks = Array.from(document.querySelectorAll('.dropdown-content a, .sub-dropdown-content a, a#singlelink'))
-                                                                                                                // Search must list only real final SR/TT links.
-                                                                                                                // Internal menu headers usually have href="#" and may not carry no-search,
-                                                                                                                // so exclude them to avoid showing category names as results.
-                                                                                                                .filter(link => {
-                                                                                                                        if (link.classList.contains('no-search')) return false;
-                                                                                                                        const rawHref = (link.getAttribute('href') || '').trim();
-                                                                                                                        if (!rawHref || rawHref === '#' || rawHref.toLowerCase().startsWith('javascript:')) return false;
-                                                                                                                        return true;
-                                                                                                                });
+
+                                                                                                                .filter(link => !link.classList.contains('no-search'));
 
                                                                                                         let hasResults = false;
 
