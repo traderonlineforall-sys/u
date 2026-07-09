@@ -16,6 +16,30 @@ export async function POST(req){
   const chk = await requireAdminAccess(req, body);
   if(!chk.ok) return j({ error: chk.error }, { status: chk.status || 401 });
 
+  const rawUserIds = Array.isArray(body?.user_ids) ? body.user_ids : null;
+  const user_ids = rawUserIds
+    ? Array.from(new Set(rawUserIds.map((v) => normalizeUserId(v)).filter(Boolean)))
+    : [];
+
+  if(user_ids.length > 0){
+    if(user_ids.length > 250) return j({ error:"Too many nicknames selected. Max 250 per request." }, { status: 400 });
+
+    const supabase = getServiceSupabase();
+    const failed = [];
+    let reset_count = 0;
+
+    for(const uid of user_ids){
+      const out = await resetNicknameForUser(supabase, uid);
+      if(out.ok){
+        reset_count += 1;
+      }else{
+        failed.push({ user_id: uid, error: out.error || "Could not reset nickname." });
+      }
+    }
+
+    return j({ ok: failed.length === 0, reset: true, bulk: true, reset_count, failed });
+  }
+
   const user_id = normalizeUserId(body?.user_id);
   if(!user_id) return j({ error:"Missing user_id." }, { status: 400 });
 

@@ -89,22 +89,19 @@ function isTopRecoverySuggestion(item, list){
   const ranked = rankedRecoverySuggestions(list);
   return !!item?.user_id && ranked[0]?.user_id === item.user_id;
 }
-function recoveryGap(item, list){
-  const score = suggestionScore(item);
-  const ranked = rankedRecoverySuggestions(list);
-  const other = ranked.find((x)=>x.user_id !== item?.user_id);
-  return other ? score - suggestionScore(other) : 100;
+function isFirstTwoRecoverySuggestion(item, list){
+  const ranked = rankedRecoverySuggestions(list).slice(0, 2);
+  return !!item?.user_id && ranked.some((x)=>x.user_id === item.user_id);
 }
 function canSelectRecoverySuggestion(item, list){
-  return isTopRecoverySuggestion(item, list) && suggestionScore(item) >= 90 && recoveryGap(item, list) >= 15 && !item?.is_online;
+  return isFirstTwoRecoverySuggestion(item, list) && !item?.is_online;
 }
 function recoverySuggestionText(item, list){
   const score = Math.round(suggestionScore(item));
   if(item?.is_online) return `${score}% تطابق - هذه الكنية نشطة الآن`;
-  if(!isTopRecoverySuggestion(item, list)) return `${score}% تطابق - ليست أقرب كنية`;
-  if(score < 90) return `${score}% تطابق - للتذكير فقط`;
-  if(recoveryGap(item, list) < 15) return `${score}% تطابق - متشابهة مع كنية أخرى`;
-  return `${score}% تطابق - اختيار آمن`;
+  if(!isFirstTwoRecoverySuggestion(item, list)) return `${score}% تطابق - خارج أول اختيارين`;
+  if(score >= 105) return `${score}% تطابق - كان يجب الدخول تلقائيًا`;
+  return `${score}% تطابق - يمكنك اختيارها`;
 }
 
 function nicknameError(value){
@@ -541,14 +538,14 @@ export default function LoginPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         if (data?.nickname_required) {
-          const suggestions = Array.isArray(data?.nickname_suggestions) ? data.nickname_suggestions.slice(0, 3) : [];
+          const suggestions = Array.isArray(data?.nickname_suggestions) ? data.nickname_suggestions.slice(0, 2) : [];
           setNicknameRequired(true);
           setNicknameSuggestions(suggestions);
           setSelectedRecoveryUserId("");
           setNicknamePromptReason(data?.nickname_taken
             ? "الكنية دي مستخدمة بالفعل. اختار كنية مختلفة."
             : suggestions.length
-              ? "الجهاز قريب من كنية محفوظة. اختار كنيتك من المقترحات لو التطابق آمن، أو اكتب كنية جديدة."
+              ? "الجهاز قريب من كنية محفوظة. اختار كنيتك من أول كنيتين ظاهرين أو اكتب كنية جديدة."
               : data?.device_confidence?.best_score
                 ? `لم أجد ثقة كافية لاستعادة كنيتك تلقائيًا. اكتب كنية خيالية جديدة. أقرب تطابق: ${data.device_confidence.best_score}%`
                 : "هذه أول مرة لهذا الجهاز أو قام الأدمن بطلب إعادة اختيار الكنية. اكتب كنية خيالية فقط.");
@@ -642,7 +639,7 @@ export default function LoginPage() {
                         }
                         if(!canSelectRecoverySuggestion(item, nicknameSuggestions)){
                           setSelectedRecoveryUserId("");
-                          setErr("لا يمكن اختيار هذه الكنية لأنها ليست أقرب تطابق آمن لهذا الجهاز. اختار أعلى كنية مطابقة فقط أو اكتب كنية جديدة.");
+                          setErr("اختار كنيتك من أول كنيتين ظاهرين في التطابق فقط، أو اكتب كنية جديدة.");
                           return;
                         }
                         setSelectedRecoveryUserId(item.user_id);
@@ -660,7 +657,7 @@ export default function LoginPage() {
                       <small>{recoverySuggestionText(item, nicknameSuggestions)}</small>
                     </button>
                   ))}
-                  <div style={styles.suggestionsHint}>للحماية، الاختيار مسموح فقط لأعلى كنية مطابقة وبنسبة 90%+ وفارق آمن. لو الكنية أونلاين أو ليست الأعلى، اكتب كنية جديدة أو اطلب من الأدمن المساعدة.</div>
+                  <div style={styles.suggestionsHint}>لو التطابق أقل من 105% تقدر تختار كنيتك من أول كنيتين ظاهرين فقط. لو التطابق 105% أو أعلى الدخول يتم تلقائيًا بدون اختيار كنية.</div>
                 </div>
               ) : null}
               {selectedRecoveryUserId ? <div style={styles.nicknameHint}>تم اختيار كنية من المقترحات. اضغط Sign in للمتابعة.</div> : null}

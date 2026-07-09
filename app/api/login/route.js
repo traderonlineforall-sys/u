@@ -91,9 +91,7 @@ function sortRecoverySuggestions(list) {
 function chooseHighConfidenceAutoSuggestion(list) {
   const ranked = sortRecoverySuggestions(list);
   const best = ranked[0] || null;
-  if(!best || best.score < 100) return null;
-  const second = ranked.find((x)=>x.user_id !== best.user_id) || null;
-  if(second && (best.score - Number(second.score || 0)) < 18) return null;
+  if(!best || best.score < 105) return null;
   return best;
 }
 
@@ -163,7 +161,7 @@ export async function POST(request) {
 
     // Step 4.3: always try device-confidence recovery first. This prevents a user
     // on the same confident device from changing nickname simply by clearing cookies.
-    const match = await findDeviceNicknameMatch(supabase, deviceFingerprint);
+    const match = await findDeviceNicknameMatch(supabase, deviceFingerprint, { threshold: 105, suggestionThreshold: 1, maxSuggestions: 2 });
     if(!match.ok){
       return noStore(NextResponse.json({ error: match.error || "Could not verify device nickname." }, { status: 500 }));
     }
@@ -183,7 +181,7 @@ export async function POST(request) {
         deviceConfidence = Number(autoRecoveryChoice.score || 0);
         await touchDeviceNickname(supabase, match.device_hash || deviceFingerprint.device_hash);
       } else if(selectedRecoveryUserId){
-        const choice = await verifyDeviceNicknameChoice(supabase, deviceFingerprint, selectedRecoveryUserId, { minScore: 90, suggestionThreshold: 60, gap: 15, maxSuggestions: 8 });
+        const choice = await verifyDeviceNicknameChoice(supabase, deviceFingerprint, selectedRecoveryUserId, { minScore: 1, suggestionThreshold: 1, maxSuggestions: 2, selectableTopN: 2, autoThreshold: 105 });
         if(!choice.ok){
           return noStore(NextResponse.json({ error: choice.error || "Could not verify selected nickname." }, { status: 500 }));
         }
@@ -195,13 +193,11 @@ export async function POST(request) {
           await touchDeviceNickname(supabase, choice.device_hash);
         } else {
           const reason = choice.reason || match.reason || "choice_not_confident";
-          const msg = reason === "choice_score_too_low"
-            ? `التطابق مع الكنية المختارة ${Math.round(Number(choice.selected_score || 0))}% فقط، وده أقل من حد التأكيد الآمن. اكتب كنية جديدة أو اطلب من الأدمن عمل Reset nickname لو دي كنيتك.`
-            : reason === "choice_ambiguous"
-              ? "الجهاز قريب من أكثر من كنية، لذلك لا يمكن تأكيد الاختيار بأمان. اكتب كنية جديدة أو اطلب من الأدمن المساعدة."
-              : reason === "choice_not_top_candidate"
-                ? "الكنية المختارة ليست أقرب تطابق لهذا الجهاز، لذلك تم رفض الاختيار لحماية أسماء المستخدمين."
-                : "لم أستطع تأكيد الكنية المختارة لهذا الجهاز. اكتب كنية جديدة أو اختر مقترحًا أقوى إن ظهر.";
+          const msg = reason === "choice_not_in_top_two"
+            ? "اختار كنيتك من أول كنيتين ظاهرين في مقترحات التطابق فقط، أو اكتب كنية جديدة."
+            : reason === "choice_score_too_low"
+              ? "التطابق مع الكنية المختارة ضعيف جدًا ولا يمكن تأكيده. اكتب كنية جديدة أو اطلب من الأدمن المساعدة."
+              : "لم أستطع تأكيد الكنية المختارة لهذا الجهاز. اختار من أول كنيتين ظاهرين أو اكتب كنية جديدة.";
           return noStore(NextResponse.json({
             error: msg,
             nickname_required: true,
@@ -212,7 +208,7 @@ export async function POST(request) {
               reason,
               best_score: match.best_score || choice.best_score || 0,
               selected_score: choice.selected_score || 0,
-              manual_threshold: choice.manual_threshold || 90,
+              manual_threshold: choice.manual_threshold || 1,
               ambiguous: !!(choice.ambiguous || match.ambiguous),
             },
             user_id: finalUserId,

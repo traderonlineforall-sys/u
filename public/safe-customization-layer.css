@@ -53,6 +53,7 @@
     max-height: 34px;
     overflow: visible;
     align-self: flex-start;
+    top: -10px !important; /* v8: restore search lift after Egypt flag buttons package. */
   }
 
   html.scl-has-search body.scl-has-search .mndo-search-hk-anchor .search-container {
@@ -66,8 +67,8 @@
 
   html.scl-has-search body.scl-has-search .mndo-search-hk-anchor #hkSmartFloatingLine {
     position: absolute !important;
-    left: 5% !important;
-    top: 31px !important;
+    left: 0 !important;
+    top: 42px !important; /* v8: HK directly under lifted search, above main buttons. */
     margin: 0 !important;
     z-index: 3 !important;
     transform: none !important;

@@ -10,16 +10,18 @@ const LS_THEME_OFF = "sr_eid_theme_off";
 const LS_THEME_MODE = "sr_visual_theme_mode";
 const TOGGLE_BTN_ID = "EID_TOGGLE_BTN";
 const LEGACY_THEME_LINK_ID = "ua07LegacyThemeLink";
-const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy4";
+const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy10-hk-down-only-v5-calccomfort";
 const AHLY_THEME_LINK_ID = "ahlyPremiumThemeLink";
-const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahly-v9-logic-match-visible";
+const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahly-v15-hk-down-only-v5-calccomfort";
 const EGYPT_THEME_LINK_ID = "egyptWorldCupThemeLink";
-const EGYPT_THEME_HREF = "egypt-worldcup-theme.css?v=egyptwc-v8";
+const EGYPT_THEME_HREF = "egypt-worldcup-theme.css?v=egyptwc-layer-v30-main-tabs-normal";
 const THEME_EID = "eid";
 const THEME_LEGACY = "legacy";
 const THEME_AHLY = "ahly";
 const THEME_EGYPT = "egypt";
 const THEME_OFF = "off";
+const DEFAULT_THEME_MODE = THEME_EGYPT;
+const LS_EGYPT_DEFAULT_MIGRATION = "sr_visual_theme_default_egypt_v1";
 
 function getThemeLink(){
   return document.getElementById("eidThemeLink") || document.querySelector('link[href$="eid-theme.css"], link[href*="eid-theme.css"]');
@@ -73,13 +75,13 @@ function getThemeMode(){
   try {
     const saved = localStorage.getItem(LS_THEME_MODE);
     if (saved === THEME_EID || saved === THEME_LEGACY || saved === THEME_AHLY || saved === THEME_EGYPT || saved === THEME_OFF) return saved;
-    return localStorage.getItem(LS_THEME_OFF) === "1" ? THEME_OFF : THEME_EID;
+    return localStorage.getItem(LS_THEME_OFF) === "1" ? THEME_OFF : DEFAULT_THEME_MODE;
   } catch {
-    return THEME_EID;
+    return DEFAULT_THEME_MODE;
   }
 }
 function setThemeMode(mode){
-  const safeMode = (mode === THEME_EID || mode === THEME_LEGACY || mode === THEME_AHLY || mode === THEME_EGYPT || mode === THEME_OFF) ? mode : THEME_EID;
+  const safeMode = (mode === THEME_EID || mode === THEME_LEGACY || mode === THEME_AHLY || mode === THEME_EGYPT || mode === THEME_OFF) ? mode : DEFAULT_THEME_MODE;
   try {
     localStorage.setItem(LS_THEME_MODE, safeMode);
     localStorage.setItem(LS_THEME_OFF, safeMode === THEME_OFF ? "1" : "0");
@@ -97,16 +99,83 @@ function isThemeOff(){
   return getThemeMode() === THEME_OFF;
 }
 function setThemeOff(v){
-  setThemeMode(v ? THEME_OFF : THEME_EID);
+  setThemeMode(v ? THEME_OFF : DEFAULT_THEME_MODE);
 }
 
+function ensureEgyptDefaultOnce(){
+  try {
+    if (localStorage.getItem(LS_EGYPT_DEFAULT_MIGRATION) === "1") return;
+    localStorage.setItem(LS_THEME_MODE, THEME_EGYPT);
+    localStorage.setItem(LS_THEME_OFF, "0");
+    localStorage.setItem(LS_EGYPT_DEFAULT_MIGRATION, "1");
+  } catch {}
+}
+
+function forceThemeToggleVisible(){
+  try {
+    const logo = document.getElementById("MNDO_UA07_LOGO3") || document.getElementById("MNDO_UA07_LOGO");
+    const wrap = document.getElementById("UA07_SECRET_ENVELOPE_WRAP");
+    const btn = document.getElementById(TOGGLE_BTN_ID);
+    const env = document.getElementById("UA07_SECRET_ENVELOPE");
+    if (logo) {
+      logo.style.overflow = "visible";
+      logo.style.pointerEvents = "auto";
+    }
+    if (wrap) {
+      wrap.hidden = false;
+      wrap.removeAttribute("hidden");
+      wrap.setAttribute("aria-hidden", "false");
+      wrap.style.display = "flex";
+      wrap.style.alignItems = "center";
+      wrap.style.justifyContent = "center";
+      wrap.style.gap = "6px";
+      wrap.style.opacity = "1";
+      wrap.style.visibility = "visible";
+      wrap.style.pointerEvents = "auto";
+      wrap.style.overflow = "visible";
+      wrap.style.zIndex = "2147482000";
+    }
+    [env, btn].forEach(function(el){
+      if (!el) return;
+      el.hidden = false;
+      el.removeAttribute("hidden");
+      el.style.opacity = "1";
+      el.style.visibility = "visible";
+      el.style.pointerEvents = "auto";
+    });
+    if (btn) btn.style.display = "inline-flex";
+  } catch {}
+}
 
 function ensureToggleBaseStyle(){
   if (document.getElementById("EID_TOGGLE_BASE_STYLE")) return;
   const style = document.createElement("style");
   style.id = "EID_TOGGLE_BASE_STYLE";
   style.textContent = `
-    #UA07_SECRET_ENVELOPE_WRAP { z-index: 9002; gap: 6px; }
+    #MNDO_UA07_LOGO3 {
+      overflow: visible !important;
+    }
+    #UA07_SECRET_ENVELOPE_WRAP {
+      position: static !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 6px !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
+      overflow: visible !important;
+      z-index: 2147482000 !important;
+      flex: 0 0 auto !important;
+    }
+    #UA07_SECRET_ENVELOPE,
+    #EID_TOGGLE_BTN {
+      opacity: 1 !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
+      flex: 0 0 auto !important;
+    }
+    #UA07_SECRET_ENVELOPE { display: grid !important; place-items: center !important; }
     .eid-toggle-btn {
       position: relative;
       pointer-events: auto;
@@ -187,6 +256,469 @@ function ensureToggleBaseStyle(){
   `;
   (document.head || document.documentElement).appendChild(style);
 }
+
+function ensureAhlyTransparentMenuLayer(){
+  if (document.getElementById('MNDO_AHLY_TRANSPARENT_MENU_LAYER')) return;
+  const css = `
+    /* Runtime visual-only override for the inline Ahly V9 layer in index.html.
+       It intentionally touches colors/background/border/shadow only. */
+    html.ahly-premium-theme-live body .tabcontent .dropdown .dropbtn,
+    html.ahly-premium-theme-live body .tabcontent .navbar a,
+    html.ahly-premium-theme-live body .tabcontent #singlelink,
+    html.ahly-premium-theme-live body .dropdown .dropbtn,
+    html.ahly-premium-theme-live body .navbar a,
+    html.ahly-premium-theme-live body #singlelink {
+      color: rgba(255, 235, 184, 0.98) !important;
+      -webkit-text-fill-color: rgba(255, 235, 184, 0.98) !important;
+      background: transparent !important;
+      background-color: transparent !important;
+      border-color: transparent !important;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.98), 0 0 8px rgba(145,0,0,0.34), 0 0 7px rgba(255,214,116,0.16) !important;
+      box-shadow: none !important;
+      filter: none !important;
+    }
+    html.ahly-premium-theme-live body .tabcontent .dropdown .dropbtn::before,
+    html.ahly-premium-theme-live body .tabcontent .dropdown .dropbtn::after,
+    html.ahly-premium-theme-live body .tabcontent .navbar a::before,
+    html.ahly-premium-theme-live body .tabcontent .navbar a::after,
+    html.ahly-premium-theme-live body .tabcontent #singlelink::before,
+    html.ahly-premium-theme-live body .tabcontent #singlelink::after,
+    html.ahly-premium-theme-live body .dropdown .dropbtn::before,
+    html.ahly-premium-theme-live body .dropdown .dropbtn::after,
+    html.ahly-premium-theme-live body .navbar a::before,
+    html.ahly-premium-theme-live body .navbar a::after,
+    html.ahly-premium-theme-live body #singlelink::before,
+    html.ahly-premium-theme-live body #singlelink::after {
+      opacity: 0 !important;
+      background: none !important;
+      background-color: transparent !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+      filter: none !important;
+    }
+    html.ahly-premium-theme-live body .dropdown:hover .dropbtn,
+    html.ahly-premium-theme-live body .dropdown:focus-within .dropbtn,
+    html.ahly-premium-theme-live body .dropdown.open .dropbtn,
+    html.ahly-premium-theme-live body .dropdown.active .dropbtn,
+    html.ahly-premium-theme-live body .navbar a:hover,
+    html.ahly-premium-theme-live body .navbar a:focus,
+    html.ahly-premium-theme-live body #singlelink:hover,
+    html.ahly-premium-theme-live body #singlelink:focus {
+      color: #fffdf1 !important;
+      -webkit-text-fill-color: #fffdf1 !important;
+      background: transparent !important;
+      background-color: transparent !important;
+      border-color: transparent !important;
+      text-shadow: 0 1px 2px rgba(0,0,0,1), 0 0 10px rgba(255,213,112,0.24), 0 0 14px rgba(205,0,0,0.18) !important;
+      box-shadow: none !important;
+      filter: none !important;
+    }
+    html.ahly-premium-theme-live body .sub-dropdown,
+    html.ahly-premium-theme-live body .sub-dropdown[style],
+    html.ahly-premium-theme-live body .dropdown-content a,
+    html.ahly-premium-theme-live body .sub-dropdown-content a,
+    html.ahly-premium-theme-live body .sub-dropdown > a,
+    html.ahly-premium-theme-live body #searchResults.search-results a,
+    html.ahly-premium-theme-live body #searchResults a,
+    html.ahly-premium-theme-live body .search-results a {
+      color: rgba(255, 235, 184, 0.98) !important;
+      -webkit-text-fill-color: rgba(255, 235, 184, 0.98) !important;
+      background: transparent !important;
+      background-color: transparent !important;
+      border-color: rgba(255,213,112,0.10) !important;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.96) !important;
+      box-shadow: none !important;
+      filter: none !important;
+    }
+    html.ahly-premium-theme-live body .sub-dropdown:hover,
+    html.ahly-premium-theme-live body .sub-dropdown:hover[style],
+    html.ahly-premium-theme-live body .dropdown-content a:hover,
+    html.ahly-premium-theme-live body .dropdown-content a:focus,
+    html.ahly-premium-theme-live body .sub-dropdown-content a:hover,
+    html.ahly-premium-theme-live body .sub-dropdown-content a:focus,
+    html.ahly-premium-theme-live body .sub-dropdown:hover > a,
+    html.ahly-premium-theme-live body #searchResults.search-results a:hover,
+    html.ahly-premium-theme-live body #searchResults a:hover,
+    html.ahly-premium-theme-live body #searchResults.search-results a:focus,
+    html.ahly-premium-theme-live body #searchResults a:focus,
+    html.ahly-premium-theme-live body #searchResults.search-results a.highlight,
+    html.ahly-premium-theme-live body #searchResults a.highlight,
+    html.ahly-premium-theme-live body .search-results a:hover,
+    html.ahly-premium-theme-live body .search-results a:focus,
+    html.ahly-premium-theme-live body .search-results a.highlight {
+      color: #fffdf1 !important;
+      -webkit-text-fill-color: #fffdf1 !important;
+      background: transparent !important;
+      background-color: transparent !important;
+      border-color: rgba(255,229,164,0.18) !important;
+      text-shadow: 0 1px 2px rgba(0,0,0,1), 0 0 10px rgba(255,213,112,0.20) !important;
+      box-shadow: none !important;
+      filter: none !important;
+    }
+  `;
+  const style = document.createElement('style');
+  style.id = 'MNDO_AHLY_TRANSPARENT_MENU_LAYER';
+  style.textContent = css;
+  try {
+    (document.body || document.documentElement).appendChild(style);
+  } catch {
+    try { (document.head || document.documentElement).appendChild(style); } catch {}
+  }
+}
+
+
+
+function ensureProfessionalMenuHoverLayer(){
+  if (document.getElementById('MNDO_PROFESSIONAL_MENU_HOVER_LAYER')) return;
+  const css = `
+/* ===== MNDO professional menu hover layer v2 =====
+   Ahly/Egypt keep the approved professional hover.
+   Zamalek dropdown panels are intentionally NOT touched here; Zamalek gets only
+   a static main-button hover in ua07-20-theme.css so its dropdown shading stays as accepted.
+   The stopped/off theme gets the requested blue menu/dropdown shading.
+   Visual-only: colors/backgrounds/borders/shadows/text effects; no layout or logic touched.
+*/
+html.egypt-worldcup-theme-live {
+  --mndo-menu-text: #d9bd78;
+  --mndo-menu-hover-text: #f6e8c2;
+  --mndo-menu-hover-bg: linear-gradient(180deg, rgba(244,230,192,.105), rgba(244,230,192,.025) 36%, rgba(52,0,0,.28) 100%), radial-gradient(120% 170% at 14% 0%, rgba(217,189,120,.13), rgba(217,189,120,0) 48%), radial-gradient(120% 180% at 100% 0%, rgba(120,10,18,.18), rgba(120,10,18,0) 58%), linear-gradient(90deg, rgba(47,0,0,.52), rgba(12,0,0,.36) 55%, rgba(5,0,0,.26));
+  --mndo-menu-hover-bg-color: rgba(22,0,0,.50);
+  --mndo-menu-hover-border: rgba(217,189,120,.33);
+  --mndo-menu-hover-glow: rgba(217,189,120,.20);
+  --mndo-menu-hover-accent: rgba(217,189,120,.34);
+  --mndo-panel-bg: linear-gradient(180deg, rgba(244,230,192,.052), rgba(244,230,192,.012) 34%, rgba(0,0,0,.02)), radial-gradient(160% 120% at 12% 0%, rgba(217,189,120,.070), rgba(217,189,120,0) 48%), radial-gradient(150% 135% at 100% 6%, rgba(105,0,0,.14), rgba(105,0,0,0) 58%), linear-gradient(180deg, rgba(13,0,0,.88), rgba(25,0,0,.78) 57%, rgba(5,0,0,.90));
+  --mndo-panel-bg-color: rgba(12,0,0,.86);
+  --mndo-panel-border: rgba(217,189,120,.26);
+  --mndo-row-border: rgba(217,189,120,.075);
+  --mndo-row-hover-bg: linear-gradient(180deg, rgba(244,230,192,.072), rgba(244,230,192,.018)), radial-gradient(125% 150% at 8% 0%, rgba(217,189,120,.12), rgba(217,189,120,0) 48%), linear-gradient(90deg, rgba(70,0,0,.42), rgba(20,0,0,.30) 58%, rgba(3,0,0,.16));
+  --mndo-row-hover-bg-color: rgba(38,0,0,.36);
+}
+html.ahly-premium-theme-live {
+  --mndo-menu-text: rgba(255,235,184,.98);
+  --mndo-menu-hover-text: #fff3bf;
+  --mndo-menu-hover-bg: linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.030) 34%, rgba(96,0,0,.42) 100%), radial-gradient(120% 165% at 14% 0%, rgba(255,214,112,.18), rgba(255,214,112,0) 48%), radial-gradient(126% 180% at 100% 0%, rgba(230,0,0,.28), rgba(230,0,0,0) 58%), linear-gradient(90deg, rgba(108,0,0,.68), rgba(15,15,19,.46) 58%, rgba(0,0,0,.30));
+  --mndo-menu-hover-bg-color: rgba(38,0,0,.58);
+  --mndo-menu-hover-border: rgba(255,220,130,.42);
+  --mndo-menu-hover-glow: rgba(255,214,112,.27);
+  --mndo-menu-hover-accent: rgba(255,214,112,.48);
+  --mndo-panel-bg: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.014) 34%, rgba(0,0,0,.02)), radial-gradient(155% 125% at 12% 0%, rgba(255,214,112,.10), rgba(255,214,112,0) 48%), radial-gradient(155% 140% at 100% 6%, rgba(175,0,0,.22), rgba(175,0,0,0) 58%), linear-gradient(180deg, rgba(12,12,17,.88), rgba(20,4,7,.78) 56%, rgba(42,0,0,.89));
+  --mndo-panel-bg-color: rgba(8,8,12,.88);
+  --mndo-panel-border: rgba(255,220,130,.31);
+  --mndo-row-border: rgba(255,214,112,.10);
+  --mndo-row-hover-bg: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.024)), radial-gradient(130% 150% at 8% 0%, rgba(255,214,112,.17), rgba(255,214,112,0) 48%), linear-gradient(90deg, rgba(126,0,0,.58), rgba(22,18,20,.36) 58%, rgba(0,0,0,.18));
+  --mndo-row-hover-bg-color: rgba(58,0,0,.48);
+}
+html.sr-theme-off-live {
+  --mndo-menu-text: rgba(238,245,255,.98);
+  --mndo-menu-hover-text: #ffffff;
+  --mndo-menu-hover-bg: linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.030) 34%, rgba(20,64,148,.42) 100%), radial-gradient(120% 165% at 14% 0%, rgba(120,190,255,.22), rgba(120,190,255,0) 48%), radial-gradient(126% 180% at 100% 0%, rgba(35,120,255,.30), rgba(35,120,255,0) 58%), linear-gradient(90deg, rgba(13,49,118,.68), rgba(8,18,45,.48) 58%, rgba(0,0,0,.30));
+  --mndo-menu-hover-bg-color: rgba(8,32,88,.60);
+  --mndo-menu-hover-border: rgba(128,194,255,.42);
+  --mndo-menu-hover-glow: rgba(78,160,255,.30);
+  --mndo-menu-hover-accent: rgba(128,194,255,.52);
+  --mndo-panel-bg: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.014) 34%, rgba(0,0,0,.02)), radial-gradient(155% 125% at 12% 0%, rgba(120,190,255,.13), rgba(120,190,255,0) 48%), radial-gradient(155% 140% at 100% 6%, rgba(35,120,255,.24), rgba(35,120,255,0) 58%), linear-gradient(180deg, rgba(4,10,26,.90), rgba(8,20,52,.82) 56%, rgba(2,5,16,.92));
+  --mndo-panel-bg-color: rgba(4,10,26,.90);
+  --mndo-panel-border: rgba(128,194,255,.32);
+  --mndo-row-border: rgba(128,194,255,.10);
+  --mndo-row-hover-bg: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.024)), radial-gradient(130% 150% at 8% 0%, rgba(120,190,255,.19), rgba(120,190,255,0) 48%), linear-gradient(90deg, rgba(19,73,168,.58), rgba(7,20,56,.40) 58%, rgba(0,0,0,.18));
+  --mndo-row-hover-bg-color: rgba(12,50,132,.50);
+}
+html.egypt-worldcup-theme-live body .dropdown .dropbtn,
+html.egypt-worldcup-theme-live body .navbar a,
+html.egypt-worldcup-theme-live body #singlelink,
+html.ahly-premium-theme-live body .dropdown .dropbtn,
+html.ahly-premium-theme-live body .navbar a,
+html.ahly-premium-theme-live body #singlelink,
+html.sr-theme-off-live body .dropdown .dropbtn,
+html.sr-theme-off-live body .navbar a,
+html.sr-theme-off-live body #singlelink {
+  color: var(--mndo-menu-text) !important;
+  -webkit-text-fill-color: var(--mndo-menu-text) !important;
+}
+html.egypt-worldcup-theme-live body .dropdown .dropbtn,
+html.egypt-worldcup-theme-live body .navbar a,
+html.egypt-worldcup-theme-live body #singlelink,
+html.egypt-worldcup-theme-live body .dropdown-content a,
+html.egypt-worldcup-theme-live body .sub-dropdown-content a,
+html.egypt-worldcup-theme-live body .sub-dropdown > a,
+html.ahly-premium-theme-live body .dropdown .dropbtn,
+html.ahly-premium-theme-live body .navbar a,
+html.ahly-premium-theme-live body #singlelink,
+html.ahly-premium-theme-live body .dropdown-content a,
+html.ahly-premium-theme-live body .sub-dropdown-content a,
+html.ahly-premium-theme-live body .sub-dropdown > a,
+html.sr-theme-off-live body .dropdown .dropbtn,
+html.sr-theme-off-live body .navbar a,
+html.sr-theme-off-live body #singlelink,
+html.sr-theme-off-live body .dropdown-content a,
+html.sr-theme-off-live body .sub-dropdown-content a,
+html.sr-theme-off-live body .sub-dropdown > a {
+  transition: color .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease, text-shadow .16s ease, filter .16s ease !important;
+}
+html.egypt-worldcup-theme-live body .dropdown:hover .dropbtn,
+html.egypt-worldcup-theme-live body .dropdown:focus-within .dropbtn,
+html.egypt-worldcup-theme-live body .dropdown.open .dropbtn,
+html.egypt-worldcup-theme-live body .dropdown.active .dropbtn,
+html.egypt-worldcup-theme-live body .navbar a:hover,
+html.egypt-worldcup-theme-live body .navbar a:focus,
+html.egypt-worldcup-theme-live body #singlelink:hover,
+html.egypt-worldcup-theme-live body #singlelink:focus,
+html.ahly-premium-theme-live body .dropdown:hover .dropbtn,
+html.ahly-premium-theme-live body .dropdown:focus-within .dropbtn,
+html.ahly-premium-theme-live body .dropdown.open .dropbtn,
+html.ahly-premium-theme-live body .dropdown.active .dropbtn,
+html.ahly-premium-theme-live body .navbar a:hover,
+html.ahly-premium-theme-live body .navbar a:focus,
+html.ahly-premium-theme-live body #singlelink:hover,
+html.ahly-premium-theme-live body #singlelink:focus,
+html.sr-theme-off-live body .dropdown:hover .dropbtn,
+html.sr-theme-off-live body .dropdown:focus-within .dropbtn,
+html.sr-theme-off-live body .dropdown.open .dropbtn,
+html.sr-theme-off-live body .dropdown.active .dropbtn,
+html.sr-theme-off-live body .navbar a:hover,
+html.sr-theme-off-live body .navbar a:focus,
+html.sr-theme-off-live body #singlelink:hover,
+html.sr-theme-off-live body #singlelink:focus {
+  color: var(--mndo-menu-hover-text) !important;
+  -webkit-text-fill-color: var(--mndo-menu-hover-text) !important;
+  background: var(--mndo-menu-hover-bg) !important;
+  background-color: var(--mndo-menu-hover-bg-color) !important;
+  border-color: var(--mndo-menu-hover-border) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,1), 0 0 12px var(--mndo-menu-hover-glow) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.15), inset 0 -1px 0 var(--mndo-menu-hover-border), inset 2px 0 0 var(--mndo-menu-hover-accent), 0 8px 20px rgba(0,0,0,.31), 0 0 17px var(--mndo-menu-hover-glow) !important;
+  filter: none !important;
+}
+html.egypt-worldcup-theme-live body .dropdown-content,
+html.egypt-worldcup-theme-live body .sub-dropdown-content,
+html.egypt-worldcup-theme-live body .search-results,
+html.egypt-worldcup-theme-live body #searchResults,
+html.ahly-premium-theme-live body .dropdown-content,
+html.ahly-premium-theme-live body .sub-dropdown-content,
+html.ahly-premium-theme-live body .search-results,
+html.ahly-premium-theme-live body #searchResults,
+html.sr-theme-off-live body .dropdown-content,
+html.sr-theme-off-live body .sub-dropdown-content,
+html.sr-theme-off-live body .search-results,
+html.sr-theme-off-live body #searchResults {
+  background: var(--mndo-panel-bg) !important;
+  background-color: var(--mndo-panel-bg-color) !important;
+  border-color: var(--mndo-panel-border) !important;
+  color: var(--mndo-menu-text) !important;
+  -webkit-text-fill-color: var(--mndo-menu-text) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.11), inset 0 0 0 1px rgba(255,255,255,.025), 0 18px 42px rgba(0,0,0,.60), 0 0 21px var(--mndo-menu-hover-glow) !important;
+  backdrop-filter: blur(10px) saturate(1.16) contrast(1.03) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.16) contrast(1.03) !important;
+}
+html.egypt-worldcup-theme-live body .sub-dropdown,
+html.egypt-worldcup-theme-live body .sub-dropdown[style],
+html.egypt-worldcup-theme-live body .dropdown-content a,
+html.egypt-worldcup-theme-live body .sub-dropdown-content a,
+html.egypt-worldcup-theme-live body .sub-dropdown > a,
+html.ahly-premium-theme-live body .sub-dropdown,
+html.ahly-premium-theme-live body .sub-dropdown[style],
+html.ahly-premium-theme-live body .dropdown-content a,
+html.ahly-premium-theme-live body .sub-dropdown-content a,
+html.ahly-premium-theme-live body .sub-dropdown > a,
+html.sr-theme-off-live body .sub-dropdown,
+html.sr-theme-off-live body .sub-dropdown[style],
+html.sr-theme-off-live body .dropdown-content a,
+html.sr-theme-off-live body .sub-dropdown-content a,
+html.sr-theme-off-live body .sub-dropdown > a {
+  color: var(--mndo-menu-text) !important;
+  -webkit-text-fill-color: var(--mndo-menu-text) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: var(--mndo-row-border) !important;
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,.035) !important;
+}
+html.egypt-worldcup-theme-live body .sub-dropdown:hover,
+html.egypt-worldcup-theme-live body .sub-dropdown:hover[style],
+html.egypt-worldcup-theme-live body .dropdown-content a:hover,
+html.egypt-worldcup-theme-live body .dropdown-content a:focus,
+html.egypt-worldcup-theme-live body .sub-dropdown-content a:hover,
+html.egypt-worldcup-theme-live body .sub-dropdown-content a:focus,
+html.egypt-worldcup-theme-live body .sub-dropdown:hover > a,
+html.ahly-premium-theme-live body .sub-dropdown:hover,
+html.ahly-premium-theme-live body .sub-dropdown:hover[style],
+html.ahly-premium-theme-live body .dropdown-content a:hover,
+html.ahly-premium-theme-live body .dropdown-content a:focus,
+html.ahly-premium-theme-live body .sub-dropdown-content a:hover,
+html.ahly-premium-theme-live body .sub-dropdown-content a:focus,
+html.ahly-premium-theme-live body .sub-dropdown:hover > a,
+html.sr-theme-off-live body .sub-dropdown:hover,
+html.sr-theme-off-live body .sub-dropdown:hover[style],
+html.sr-theme-off-live body .dropdown-content a:hover,
+html.sr-theme-off-live body .dropdown-content a:focus,
+html.sr-theme-off-live body .sub-dropdown-content a:hover,
+html.sr-theme-off-live body .sub-dropdown-content a:focus,
+html.sr-theme-off-live body .sub-dropdown:hover > a {
+  color: var(--mndo-menu-hover-text) !important;
+  -webkit-text-fill-color: var(--mndo-menu-hover-text) !important;
+  background: var(--mndo-row-hover-bg) !important;
+  background-color: var(--mndo-row-hover-bg-color) !important;
+  border-color: var(--mndo-panel-border) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,1), 0 0 10px var(--mndo-menu-hover-glow) !important;
+  box-shadow: inset 2px 0 0 var(--mndo-menu-hover-accent), inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 var(--mndo-panel-border), 0 6px 16px rgba(0,0,0,.25) !important;
+  filter: none !important;
+}
+/* ===== END MNDO professional menu hover layer v2 ===== */
+  `;
+  const style = document.createElement('style');
+  style.id = 'MNDO_PROFESSIONAL_MENU_HOVER_LAYER';
+  style.textContent = css;
+  try {
+    (document.body || document.documentElement).appendChild(style);
+  } catch {
+    try { (document.head || document.documentElement).appendChild(style); } catch {}
+  }
+}
+
+
+function ensureHeaderSearchHKPositionLayer(){
+  const css = `
+/* ===== MNDO search/HK balanced header position layer v8 =====
+   Search is lifted slightly to align with FBB/logo.
+   HK/Hayah Karima sits directly under search and safely above the main buttons.
+   Search horizontal position and SR/search/FBB logic are untouched; HK is aligned with the search left edge. */
+html.scl-has-search body.scl-has-search .mndo-search-hk-anchor #hkSmartFloatingLine,
+html.eid-theme-live .mndo-search-hk-anchor #hkSmartFloatingLine,
+html.ua07-legacy-theme-live .mndo-search-hk-anchor #hkSmartFloatingLine,
+html.ahly-premium-theme-live .mndo-search-hk-anchor #hkSmartFloatingLine,
+html.egypt-worldcup-theme-live .mndo-search-hk-anchor #hkSmartFloatingLine,
+html.sr-theme-off-live .mndo-search-hk-anchor #hkSmartFloatingLine,
+.mndo-search-hk-anchor #hkSmartFloatingLine {
+  position: absolute !important;
+  top: 42px !important;
+  left: 0 !important;
+  right: auto !important;
+  bottom: auto !important;
+  margin: 0 !important;
+  transform: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+html.scl-has-search body.scl-has-search .mndo-search-hk-anchor,
+html.eid-theme-live .mndo-search-hk-anchor,
+html.ua07-legacy-theme-live .mndo-search-hk-anchor,
+html.ahly-premium-theme-live .mndo-search-hk-anchor,
+html.egypt-worldcup-theme-live .mndo-search-hk-anchor,
+html.sr-theme-off-live .mndo-search-hk-anchor,
+.mndo-search-hk-anchor {
+  position: relative !important;
+  top: -10px !important;
+  left: auto !important;
+  right: auto !important;
+  overflow: visible !important;
+}
+
+html.scl-has-search body.scl-has-search .mndo-search-hk-anchor .search-container,
+.mndo-search-hk-anchor .search-container {
+  margin-top: 0 !important;
+  transform: none !important;
+}
+
+html.egypt-worldcup-theme-live body .mndo-search-logo-row .mndo-search-hk-anchor,
+html.egypt-worldcup-theme-live body .mndo-search-hk-anchor {
+  position: relative !important;
+  top: -10px !important;
+  transform: none !important;
+  overflow: visible !important;
+}
+html.egypt-worldcup-theme-live body .mndo-search-hk-anchor #hkSmartFloatingLine,
+html.egypt-worldcup-theme-live body #hkSmartFloatingLine {
+  position: absolute !important;
+  top: 42px !important;
+  left: 0 !important;
+  transform: none !important;
+  margin: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+/* ===== END MNDO search/HK balanced header position layer v8 ===== */
+  `;
+  let style = document.getElementById('MNDO_HEADER_SEARCH_HK_POSITION_LAYER');
+  if (!style) {
+    style = document.createElement('style');
+    style.id = 'MNDO_HEADER_SEARCH_HK_POSITION_LAYER';
+    try {
+      (document.body || document.documentElement).appendChild(style);
+    } catch {
+      try { (document.head || document.documentElement).appendChild(style); } catch {}
+    }
+  }
+  try { style.textContent = css; } catch {}
+}
+
+
+
+function ensureEgyptLuxuryToneLayer(){
+  if (document.getElementById('MNDO_EGYPT_LUXURY_TONE_LAYER')) return;
+  const css = `
+html.egypt-worldcup-theme-live body #tabs .tablinks,
+html.egypt-worldcup-theme-live body .toolsStyle,
+html.egypt-worldcup-theme-live body #bat2,
+html.egypt-worldcup-theme-live body #suggestionAddBtn,
+html.egypt-worldcup-theme-live body #supportSendBtn,
+html.egypt-worldcup-theme-live body .suggestions-fab,
+html.egypt-worldcup-theme-live body .support-fab,
+html.egypt-worldcup-theme-live body #supportToggleBtn {
+  color: #d9bd78 !important;
+  -webkit-text-fill-color: #d9bd78 !important;
+  background: linear-gradient(180deg, rgba(244,230,192,.070), rgba(244,230,192,0) 40%), radial-gradient(130% 160% at 18% 0%, rgba(217,189,120,.060), rgba(217,189,120,0) 52%), linear-gradient(180deg, rgba(76,7,9,.82), rgba(28,3,4,.92) 58%, rgba(4,4,5,.97)) !important;
+  background-color: rgba(13,3,3,.93) !important;
+  border-color: rgba(217,189,120,.25) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.94) !important;
+  box-shadow: inset 0 1px 0 rgba(244,230,192,.09), inset 0 -1px 0 rgba(217,189,120,.09), 0 10px 24px rgba(0,0,0,.40) !important;
+  filter: saturate(.90) brightness(.90) contrast(1.02) !important;
+}
+html.egypt-worldcup-theme-live body #tabs .tablinks:hover,
+html.egypt-worldcup-theme-live body #tabs .tablinks:focus,
+html.egypt-worldcup-theme-live body #tabs .tablinks.active,
+html.egypt-worldcup-theme-live body .toolsStyle:hover,
+html.egypt-worldcup-theme-live body .toolsStyle:focus,
+html.egypt-worldcup-theme-live body #bat2:hover,
+html.egypt-worldcup-theme-live body #suggestionAddBtn:hover,
+html.egypt-worldcup-theme-live body #supportSendBtn:hover,
+html.egypt-worldcup-theme-live body .suggestions-fab:hover,
+html.egypt-worldcup-theme-live body .support-fab:hover,
+html.egypt-worldcup-theme-live body #supportToggleBtn:hover {
+  color: #f4e6c0 !important;
+  -webkit-text-fill-color: #f4e6c0 !important;
+  background: linear-gradient(180deg, rgba(244,230,192,.105), rgba(244,230,192,0) 40%), radial-gradient(130% 165% at 20% 0%, rgba(217,189,120,.11), rgba(217,189,120,0) 54%), linear-gradient(180deg, rgba(96,9,11,.88), rgba(38,4,5,.94) 58%, rgba(5,5,5,.98)) !important;
+  border-color: rgba(232,207,146,.40) !important;
+  box-shadow: inset 0 1px 0 rgba(244,230,192,.13), inset 0 -1px 0 rgba(217,189,120,.16), 0 12px 27px rgba(0,0,0,.45), 0 0 22px rgba(217,189,120,.09) !important;
+  filter: saturate(.94) brightness(.96) contrast(1.03) !important;
+}
+html.egypt-worldcup-theme-live body #tabs .tab-utility-btn.is-reset,
+html.egypt-worldcup-theme-live body #headerResetBtn,
+html.egypt-worldcup-theme-live body .tab-utility-btn.is-reset {
+  color: #4a260d !important;
+  -webkit-text-fill-color: #4a260d !important;
+  background: radial-gradient(120% 140% at 28% 0%, rgba(255,255,255,.42), rgba(255,255,255,0) 42%), linear-gradient(180deg, #f5e7bf, #d9bd78 58%, #b7924b) !important;
+  background-color: #e5cf98 !important;
+  border-color: rgba(255,238,190,.68) !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.34) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.46), inset 0 -1px 0 rgba(96,54,18,.16), 0 10px 22px rgba(0,0,0,.38), 0 0 18px rgba(217,189,120,.14) !important;
+  filter: saturate(.86) brightness(.98) contrast(1.02) !important;
+}
+html.egypt-worldcup-theme-live body #tabs .tab-utility-btn.is-reset:hover,
+html.egypt-worldcup-theme-live body #headerResetBtn:hover,
+html.egypt-worldcup-theme-live body .tab-utility-btn.is-reset:hover {
+  color: #3a1c08 !important;
+  -webkit-text-fill-color: #3a1c08 !important;
+  background: radial-gradient(120% 140% at 28% 0%, rgba(255,255,255,.50), rgba(255,255,255,0) 42%), linear-gradient(180deg, #fff0c8, #e1c985 58%, #bd9a52) !important;
+  border-color: rgba(255,244,210,.80) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.54), inset 0 -1px 0 rgba(96,54,18,.14), 0 12px 25px rgba(0,0,0,.42), 0 0 20px rgba(232,207,146,.18) !important;
+}
+  `;
+  const style = document.createElement('style');
+  style.id = 'MNDO_EGYPT_LUXURY_TONE_LAYER';
+  style.textContent = css;
+  try { (document.body || document.documentElement).appendChild(style); }
+  catch { try { (document.head || document.documentElement).appendChild(style); } catch {} }
+}
+
 function ensureDecorLayer(){
   if (document.getElementById('EID_DECOR_LAYER')) return;
   const host = document.body || document.documentElement;
@@ -204,6 +736,10 @@ function ensureDecorLayer(){
 }
 function applyThemeState(){
   ensureDecorLayer();
+  ensureAhlyTransparentMenuLayer();
+  ensureProfessionalMenuHoverLayer();
+  ensureHeaderSearchHKPositionLayer();
+  ensureEgyptLuxuryToneLayer();
   const mode = getThemeMode();
   const eidLink = getThemeLink();
   const legacyLink = getLegacyThemeLink();
@@ -217,6 +753,7 @@ function applyThemeState(){
   document.documentElement.classList.toggle('ua07-legacy-theme-live', mode === THEME_LEGACY);
   document.documentElement.classList.toggle('ahly-premium-theme-live', mode === THEME_AHLY);
   document.documentElement.classList.toggle('egypt-worldcup-theme-live', mode === THEME_EGYPT);
+  document.documentElement.classList.toggle('sr-theme-off-live', mode === THEME_OFF);
   updateToggleUi();
 }
 function findEnvelopeWrap(){
@@ -249,7 +786,10 @@ function ensureToggleButton(){
   const wrap = findEnvelopeWrap();
   if(!wrap) return null;
   let btn = document.getElementById(TOGGLE_BTN_ID);
-  if(btn) return btn;
+  if(btn) {
+    forceThemeToggleVisible();
+    return btn;
+  }
 
   btn = document.createElement("button");
   btn.id = TOGGLE_BTN_ID;
@@ -273,6 +813,7 @@ function ensureToggleButton(){
   } catch {
     try { wrap.appendChild(btn); } catch {}
   }
+  forceThemeToggleVisible();
   return btn;
 }
 function updateToggleUi(){
@@ -304,6 +845,7 @@ function updateToggleUi(){
     btn.title = 'ثيم العيد مفعل - اضغط لتشغيل ثيم الزمالك 20';
     btn.setAttribute('aria-label', 'ثيم العيد مفعل - اضغط لتشغيل ثيم الزمالك 20');
   }
+  forceThemeToggleVisible();
 }
 function fixUa07PointerEvents(logoEl){
   try {
@@ -314,61 +856,221 @@ function fixUa07PointerEvents(logoEl){
   } catch {}
 }
 
-function forceAhlyPremiumDefaultOnBoot(){
-  /*
-    Egypt World Cup boot policy:
-    - Forces Egypt World Cup as the page-load default on every fresh load/refresh.
-    - Keeps the existing theme toggle working after the page is loaded.
-    - Ignores old localStorage/cache state by rewriting the visual theme mode early.
-  */
-  try {
-    setThemeMode(THEME_EGYPT);
-  } catch {}
+
+function ensureAhlyProfessionalRestoreLayer(){
+  if (document.getElementById('MNDO_AHLY_PROFESSIONAL_RESTORE_LAYER')) return;
+  const css = `
+/* ===== MNDO Ahly professional restore from approved package =====
+   Source: professional-hover-menu-themes-egypt-ahly-zamalek.zip
+   Ahly-only visual restore. No logic, no SR data, no layout order changes.
+*/
+/* ===== Ahly transparent menu choices v13 - actual separate layer =====
+   This block mirrors the no-theme menu-choice transparency and overrides the
+   older inline Ahly V9 layer. Visual only: no layout, display, spacing, sizing,
+   ordering, positioning, links, IDs, or tool logic are changed.
+*/
+html.ahly-premium-theme-live body .tabcontent .dropdown .dropbtn,
+html.ahly-premium-theme-live body .tabcontent .navbar a,
+html.ahly-premium-theme-live body .tabcontent #singlelink,
+html.ahly-premium-theme-live body .dropdown .dropbtn,
+html.ahly-premium-theme-live body .navbar a,
+html.ahly-premium-theme-live body #singlelink {
+  color: rgba(255, 235, 184, 0.98) !important;
+  -webkit-text-fill-color: rgba(255, 235, 184, 0.98) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.98), 0 0 8px rgba(145,0,0,0.34), 0 0 7px rgba(255,214,116,0.16) !important;
+  box-shadow: none !important;
+  filter: none !important;
 }
-
-function triggerSmartHeaderResetOnBoot(){
-  /*
-    Runs the same reset effect as pressing the header reset button once per page load.
-    It waits for the safe-upgrade reset button to exist, then clicks it; if the user is
-    already actively typing in an input, it avoids clearing their in-progress edit.
-  */
-  if (window.__AHLY_PREMIUM_AUTO_RESET_DONE) return;
-  window.__AHLY_PREMIUM_AUTO_RESET_DONE = true;
-
-  function isUserEditingNow(){
-    try {
-      const el = document.activeElement;
-      if (!el) return false;
-      const tag = (el.tagName || '').toLowerCase();
-      if (tag !== 'input' && tag !== 'textarea' && tag !== 'select') return false;
-      return !!String(el.value || '').trim();
-    } catch {
-      return false;
-    }
-  }
-
-  let tries = 0;
-  const timer = setInterval(function(){
-    tries++;
-    const btn = document.getElementById('headerResetBtn');
-    if (btn && !isUserEditingNow()) {
-      clearInterval(timer);
-      setTimeout(function(){
-        try { btn.click(); } catch {}
-      }, 120);
-      return;
-    }
-    if (tries > 45) clearInterval(timer);
-  }, 120);
+html.ahly-premium-theme-live body .tabcontent .dropdown .dropbtn::before,
+html.ahly-premium-theme-live body .tabcontent .dropdown .dropbtn::after,
+html.ahly-premium-theme-live body .tabcontent .navbar a::before,
+html.ahly-premium-theme-live body .tabcontent .navbar a::after,
+html.ahly-premium-theme-live body .tabcontent #singlelink::before,
+html.ahly-premium-theme-live body .tabcontent #singlelink::after,
+html.ahly-premium-theme-live body .dropdown .dropbtn::before,
+html.ahly-premium-theme-live body .dropdown .dropbtn::after,
+html.ahly-premium-theme-live body .navbar a::before,
+html.ahly-premium-theme-live body .navbar a::after,
+html.ahly-premium-theme-live body #singlelink::before,
+html.ahly-premium-theme-live body #singlelink::after {
+  opacity: 0 !important;
+  background: none !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
 }
+html.ahly-premium-theme-live body .dropdown:hover .dropbtn,
+html.ahly-premium-theme-live body .dropdown:focus-within .dropbtn,
+html.ahly-premium-theme-live body .dropdown.open .dropbtn,
+html.ahly-premium-theme-live body .dropdown.active .dropbtn,
+html.ahly-premium-theme-live body .navbar a:hover,
+html.ahly-premium-theme-live body .navbar a:focus,
+html.ahly-premium-theme-live body #singlelink:hover,
+html.ahly-premium-theme-live body #singlelink:focus {
+  color: #fffdf1 !important;
+  -webkit-text-fill-color: #fffdf1 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,1), 0 0 10px rgba(255,213,112,0.24), 0 0 14px rgba(205,0,0,0.18) !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+html.ahly-premium-theme-live body .sub-dropdown,
+html.ahly-premium-theme-live body .sub-dropdown[style],
+html.ahly-premium-theme-live body .dropdown-content a,
+html.ahly-premium-theme-live body .sub-dropdown-content a,
+html.ahly-premium-theme-live body .sub-dropdown > a,
+html.ahly-premium-theme-live body #searchResults.search-results a,
+html.ahly-premium-theme-live body #searchResults a,
+html.ahly-premium-theme-live body .search-results a {
+  color: rgba(255, 235, 184, 0.98) !important;
+  -webkit-text-fill-color: rgba(255, 235, 184, 0.98) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: rgba(255,213,112,0.10) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.96) !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+html.ahly-premium-theme-live body .sub-dropdown:hover,
+html.ahly-premium-theme-live body .sub-dropdown:hover[style],
+html.ahly-premium-theme-live body .dropdown-content a:hover,
+html.ahly-premium-theme-live body .dropdown-content a:focus,
+html.ahly-premium-theme-live body .sub-dropdown-content a:hover,
+html.ahly-premium-theme-live body .sub-dropdown-content a:focus,
+html.ahly-premium-theme-live body .sub-dropdown:hover > a,
+html.ahly-premium-theme-live body #searchResults.search-results a:hover,
+html.ahly-premium-theme-live body #searchResults a:hover,
+html.ahly-premium-theme-live body #searchResults.search-results a:focus,
+html.ahly-premium-theme-live body #searchResults a:focus,
+html.ahly-premium-theme-live body #searchResults.search-results a.highlight,
+html.ahly-premium-theme-live body #searchResults a.highlight,
+html.ahly-premium-theme-live body .search-results a:hover,
+html.ahly-premium-theme-live body .search-results a:focus,
+html.ahly-premium-theme-live body .search-results a.highlight {
+  color: #fffdf1 !important;
+  -webkit-text-fill-color: #fffdf1 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: rgba(255,229,164,0.18) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,1), 0 0 10px rgba(255,213,112,0.20) !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+/* ===== END Ahly transparent menu choices v13 ===== */
 
+/* Ahly hover/menu finish from approved professional package */
+html.ahly-premium-theme-live {
+  --mndo-menu-text: rgba(255,235,184,.98);
+  --mndo-menu-hover-text: #fff3bf;
+  --mndo-menu-hover-bg: linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.030) 34%, rgba(96,0,0,.42) 100%), radial-gradient(120% 165% at 14% 0%, rgba(255,214,112,.18), rgba(255,214,112,0) 48%), radial-gradient(126% 180% at 100% 0%, rgba(230,0,0,.28), rgba(230,0,0,0) 58%), linear-gradient(90deg, rgba(108,0,0,.68), rgba(15,15,19,.46) 58%, rgba(0,0,0,.30));
+  --mndo-menu-hover-bg-color: rgba(38,0,0,.58);
+  --mndo-menu-hover-border: rgba(255,220,130,.42);
+  --mndo-menu-hover-glow: rgba(255,214,112,.27);
+  --mndo-menu-hover-accent: rgba(255,214,112,.48);
+  --mndo-panel-bg: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.014) 34%, rgba(0,0,0,.02)), radial-gradient(155% 125% at 12% 0%, rgba(255,214,112,.10), rgba(255,214,112,0) 48%), radial-gradient(155% 140% at 100% 6%, rgba(175,0,0,.22), rgba(175,0,0,0) 58%), linear-gradient(180deg, rgba(12,12,17,.88), rgba(20,4,7,.78) 56%, rgba(42,0,0,.89));
+  --mndo-panel-bg-color: rgba(8,8,12,.88);
+  --mndo-panel-border: rgba(255,220,130,.31);
+  --mndo-row-border: rgba(255,214,112,.10);
+  --mndo-row-hover-bg: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.024)), radial-gradient(130% 150% at 8% 0%, rgba(255,214,112,.17), rgba(255,214,112,0) 48%), linear-gradient(90deg, rgba(126,0,0,.58), rgba(22,18,20,.36) 58%, rgba(0,0,0,.18));
+  --mndo-row-hover-bg-color: rgba(58,0,0,.48);
+}
+html.ahly-premium-theme-live body .dropdown .dropbtn,
+html.ahly-premium-theme-live body .navbar a,
+html.ahly-premium-theme-live body #singlelink {
+  color: var(--mndo-menu-text) !important;
+  -webkit-text-fill-color: var(--mndo-menu-text) !important;
+}
+html.ahly-premium-theme-live body .dropdown .dropbtn,
+html.ahly-premium-theme-live body .navbar a,
+html.ahly-premium-theme-live body #singlelink,
+html.ahly-premium-theme-live body .dropdown-content a,
+html.ahly-premium-theme-live body .sub-dropdown-content a,
+html.ahly-premium-theme-live body .sub-dropdown > a {
+  transition: color .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease, text-shadow .16s ease, filter .16s ease !important;
+}
+html.ahly-premium-theme-live body .dropdown:hover .dropbtn,
+html.ahly-premium-theme-live body .dropdown:focus-within .dropbtn,
+html.ahly-premium-theme-live body .dropdown.open .dropbtn,
+html.ahly-premium-theme-live body .dropdown.active .dropbtn,
+html.ahly-premium-theme-live body .navbar a:hover,
+html.ahly-premium-theme-live body .navbar a:focus,
+html.ahly-premium-theme-live body #singlelink:hover,
+html.ahly-premium-theme-live body #singlelink:focus {
+  color: var(--mndo-menu-hover-text) !important;
+  -webkit-text-fill-color: var(--mndo-menu-hover-text) !important;
+  background: var(--mndo-menu-hover-bg) !important;
+  background-color: var(--mndo-menu-hover-bg-color) !important;
+  border-color: var(--mndo-menu-hover-border) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,1), 0 0 12px var(--mndo-menu-hover-glow) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.15), inset 0 -1px 0 var(--mndo-menu-hover-border), inset 2px 0 0 var(--mndo-menu-hover-accent), 0 8px 20px rgba(0,0,0,.31), 0 0 17px var(--mndo-menu-hover-glow) !important;
+  filter: none !important;
+}
+html.ahly-premium-theme-live body .dropdown-content,
+html.ahly-premium-theme-live body .sub-dropdown-content,
+html.ahly-premium-theme-live body .search-results,
+html.ahly-premium-theme-live body #searchResults {
+  background: var(--mndo-panel-bg) !important;
+  background-color: var(--mndo-panel-bg-color) !important;
+  border-color: var(--mndo-panel-border) !important;
+  color: var(--mndo-menu-text) !important;
+  -webkit-text-fill-color: var(--mndo-menu-text) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.11), inset 0 0 0 1px rgba(255,255,255,.025), 0 18px 42px rgba(0,0,0,.60), 0 0 21px var(--mndo-menu-hover-glow) !important;
+  backdrop-filter: blur(10px) saturate(1.16) contrast(1.03) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.16) contrast(1.03) !important;
+}
+html.ahly-premium-theme-live body .sub-dropdown,
+html.ahly-premium-theme-live body .sub-dropdown[style],
+html.ahly-premium-theme-live body .dropdown-content a,
+html.ahly-premium-theme-live body .sub-dropdown-content a,
+html.ahly-premium-theme-live body .sub-dropdown > a {
+  color: var(--mndo-menu-text) !important;
+  -webkit-text-fill-color: var(--mndo-menu-text) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: var(--mndo-row-border) !important;
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,.035) !important;
+}
+html.ahly-premium-theme-live body .sub-dropdown:hover,
+html.ahly-premium-theme-live body .sub-dropdown:hover[style],
+html.ahly-premium-theme-live body .dropdown-content a:hover,
+html.ahly-premium-theme-live body .dropdown-content a:focus,
+html.ahly-premium-theme-live body .sub-dropdown-content a:hover,
+html.ahly-premium-theme-live body .sub-dropdown-content a:focus,
+html.ahly-premium-theme-live body .sub-dropdown:hover > a {
+  color: var(--mndo-menu-hover-text) !important;
+  -webkit-text-fill-color: var(--mndo-menu-hover-text) !important;
+  background: var(--mndo-row-hover-bg) !important;
+  background-color: var(--mndo-row-hover-bg-color) !important;
+  border-color: var(--mndo-panel-border) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,1), 0 0 10px var(--mndo-menu-hover-glow) !important;
+  box-shadow: inset 2px 0 0 var(--mndo-menu-hover-accent), inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 var(--mndo-panel-border), 0 6px 16px rgba(0,0,0,.25) !important;
+  filter: none !important;
+}
+/* ===== END MNDO Ahly professional restore ===== */
+  `;
+  const style = document.createElement('style');
+  style.id = 'MNDO_AHLY_PROFESSIONAL_RESTORE_LAYER';
+  style.textContent = css;
+  document.head.appendChild(style);
+}
 
 function boot(){
-  forceAhlyPremiumDefaultOnBoot();
+  ensureEgyptDefaultOnce();
   ensureToggleBaseStyle();
   ensureDecorLayer();
+  ensureAhlyTransparentMenuLayer();
+  ensureProfessionalMenuHoverLayer();
+  ensureAhlyProfessionalRestoreLayer();
   applyThemeState();
-  triggerSmartHeaderResetOnBoot();
+  ensureToggleButton();
+  updateToggleUi();
+  forceThemeToggleVisible();
   let tries = 0;
   const t = setInterval(function(){
     tries++;
@@ -377,6 +1079,7 @@ function boot(){
     if (findEnvelopeWrap()) {
       ensureToggleButton();
       updateToggleUi();
+      forceThemeToggleVisible();
     }
     if (tries > 250) clearInterval(t);
   }, 80);

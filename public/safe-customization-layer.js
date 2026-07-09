@@ -39,7 +39,7 @@
     var link = document.createElement("link");
     link.id = "safeCustomizationLayerCss";
     link.rel = "stylesheet";
-    link.href = "./safe-customization-layer.css";
+    link.href = "./safe-customization-layer.css?v=header-flag-stable-v8";
     document.head.appendChild(link);
   }
 

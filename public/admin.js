@@ -319,10 +319,19 @@ async function refreshSupport(){
     if (rows.length === 0) {
       userProfilesHtml = `<div class="admin-empty">No saved user names yet.</div>`;
     } else {
-      userProfilesHtml = rows
+      userProfilesHtml = `
+        <div class="admin-bulkbar" data-user-nicknames-bulkbar="1">
+          <span class="admin-bulk-title">Nicknames</span>
+          <button class="admin-bulkbtn" type="button" data-user-bulk="select-all">Select all</button>
+          <button class="admin-bulkbtn" type="button" data-user-bulk="clear">Clear</button>
+          <button class="admin-bulkbtn danger" type="button" data-user-bulk="delete-selected">Delete selected nicknames</button>
+          <span class="admin-bulk-count" id="adminNicknameBulkCount"></span>
+        </div>
+      ` + rows
         .map((u) => {
           const col = colorForUserId(u.user_id || "");
           const reset = !!u.nickname_reset_required;
+          const uid = String(u.user_id || "");
           const nameLabel = reset ? "Needs new nickname" : (u.display_name || "User");
           const dev = u.device || {};
           const summary = dev.summary || {};
@@ -339,11 +348,14 @@ async function refreshSupport(){
             summary.media_devices ? `media ${summary.media_devices}` : "",
           ].filter(Boolean).join(" • ");
           return `
-            <div class="admin-row">
+            <div class="admin-row" data-nickname-row="1">
+              <label class="admin-check" title="Select nickname">
+                <input class="admin-user-check" type="checkbox" data-user-id="${escapeHtml(uid)}" />
+              </label>
               <div class="admin-row-main">
                 <div class="admin-row-meta">
                   <span class="admin-color-dot" style="--u:${escapeHtml(col)}"></span>
-                  <b>${escapeHtml(nameLabel)}</b> • ${escapeHtml(u.user_id || "")}
+                  <b>${escapeHtml(nameLabel)}</b> • ${escapeHtml(uid)}
                   ${reset ? '<span style="margin-inline-start:8px;opacity:.8;">reset pending</span>' : ''}
                 </div>
                 <div class="admin-row-text" style="opacity:.82;font-size:12px;line-height:1.55;">
@@ -353,7 +365,7 @@ async function refreshSupport(){
                 </div>
               </div>
               <div class="admin-row-actions">
-                <button class="admin-action" type="button" data-action="delete-username" data-user-id="${escapeHtml(u.user_id || "")}">Reset nickname</button>
+                <button class="admin-action" type="button" data-action="delete-username" data-user-id="${escapeHtml(uid)}">Reset nickname</button>
               </div>
             </div>
           `;
@@ -436,6 +448,58 @@ async function refreshSupport(){
       } catch (err) {
         console.error(err);
         setAdminStatus(`Could not reset nickname. Please contact ${ADMIN_NAME}.`, "error");
+      }
+    });
+  });
+
+  function updateNicknameBulkCount() {
+    const checks = Array.from(tabSupport.querySelectorAll("input.admin-user-check"));
+    const selected = checks.filter((c) => c.checked).length;
+    const el = tabSupport.querySelector("#adminNicknameBulkCount");
+    if (el) el.textContent = selected ? `${selected} selected` : "";
+  }
+
+  tabSupport.querySelectorAll("input.admin-user-check").forEach((c) => {
+    c.addEventListener("change", updateNicknameBulkCount);
+  });
+  updateNicknameBulkCount();
+
+  tabSupport.querySelectorAll("button[data-user-bulk='select-all']").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      tabSupport.querySelectorAll("input.admin-user-check").forEach((c) => (c.checked = true));
+      updateNicknameBulkCount();
+    });
+  });
+
+  tabSupport.querySelectorAll("button[data-user-bulk='clear']").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      tabSupport.querySelectorAll("input.admin-user-check").forEach((c) => (c.checked = false));
+      updateNicknameBulkCount();
+    });
+  });
+
+  tabSupport.querySelectorAll("button[data-user-bulk='delete-selected']").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const user_ids = Array.from(tabSupport.querySelectorAll("input.admin-user-check"))
+        .filter((c) => c.checked)
+        .map((c) => String(c.getAttribute("data-user-id") || "").trim())
+        .filter(Boolean);
+      if (user_ids.length === 0) return;
+      const ok = confirm(`Delete/reset ${user_ids.length} selected nicknames?\n\nUsers will be forced to choose new nicknames next time.`);
+      if (!ok) return;
+      try {
+        setAdminStatus("Deleting selected nicknames…");
+        const out = await apiAdmin("/api/admin-delete-support-user", { user_ids });
+        const failed = Array.isArray(out?.failed) ? out.failed.length : 0;
+        if (failed) {
+          setAdminStatus(`Deleted ${out?.reset_count || 0}, failed ${failed}.`, "warn");
+        } else {
+          setAdminStatus(`Selected nicknames deleted ✅ (${out?.reset_count || user_ids.length})`);
+        }
+        await refreshSupport();
+      } catch (err) {
+        console.error(err);
+        setAdminStatus(`Could not delete selected nicknames. Please contact ${ADMIN_NAME}.`, "error");
       }
     });
   });
