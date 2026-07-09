@@ -124,7 +124,7 @@
     // Keep them delayed so the first tool load stays light.
     [
       './online-users-count.js',
-      './eid-hud.js?v=egypt-tool-controls-default-v20'
+      './eid-hud.js?v=egypt-quota-summary-polish-v21'
     ].forEach(function(src){
       importOnce(src, src);
     });
