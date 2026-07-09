@@ -21717,9 +21717,12 @@ html.ahly-premium-theme-live body .search-results a.highlight {
 
 <script src="./device-confidence-learn.js?v=step432" defer></script>
 <style id="mndoProfessionalMenuHoverLayer">
-/* ===== MNDO professional menu hover layer v1 =====
-   Applies to Egypt, Ahly and Zamalek. Normal choices remain transparent;
-   hover/open state gets a polished theme-colored tint. Visual-only: no layout or logic touched.
+/* ===== MNDO professional menu hover layer v2 =====
+   Ahly/Egypt keep the approved professional hover.
+   Zamalek dropdown panels are intentionally NOT touched here; Zamalek gets only
+   a static main-button hover in ua07-20-theme.css so its dropdown shading stays as accepted.
+   The stopped/off theme gets the requested blue menu/dropdown shading.
+   Visual-only: colors/backgrounds/borders/shadows/text effects; no layout or logic touched.
 */
 html.egypt-worldcup-theme-live {
   --mndo-menu-text: #f5d57d;
@@ -21751,20 +21754,20 @@ html.ahly-premium-theme-live {
   --mndo-row-hover-bg: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.024)), radial-gradient(130% 150% at 8% 0%, rgba(255,214,112,.17), rgba(255,214,112,0) 48%), linear-gradient(90deg, rgba(126,0,0,.58), rgba(22,18,20,.36) 58%, rgba(0,0,0,.18));
   --mndo-row-hover-bg-color: rgba(58,0,0,.48);
 }
-html.ua07-legacy-theme-live {
-  --mndo-menu-text: rgba(245,241,255,.98);
+html.sr-theme-off-live {
+  --mndo-menu-text: rgba(238,245,255,.98);
   --mndo-menu-hover-text: #ffffff;
-  --mndo-menu-hover-bg: linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.030) 34%, rgba(58,48,150,.40) 100%), radial-gradient(120% 165% at 14% 0%, rgba(190,174,255,.20), rgba(190,174,255,0) 48%), radial-gradient(126% 180% at 100% 0%, rgba(116,92,255,.28), rgba(116,92,255,0) 58%), linear-gradient(90deg, rgba(42,32,120,.66), rgba(12,12,32,.46) 58%, rgba(0,0,0,.28));
-  --mndo-menu-hover-bg-color: rgba(24,20,70,.58);
-  --mndo-menu-hover-border: rgba(200,186,255,.42);
-  --mndo-menu-hover-glow: rgba(190,174,255,.32);
-  --mndo-menu-hover-accent: rgba(190,174,255,.50);
-  --mndo-panel-bg: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.014) 34%, rgba(0,0,0,.02)), radial-gradient(155% 125% at 12% 0%, rgba(190,174,255,.12), rgba(190,174,255,0) 48%), radial-gradient(155% 140% at 100% 6%, rgba(116,92,255,.22), rgba(116,92,255,0) 58%), linear-gradient(180deg, rgba(7,7,22,.88), rgba(16,13,44,.78) 56%, rgba(5,4,18,.90));
-  --mndo-panel-bg-color: rgba(7,7,22,.88);
-  --mndo-panel-border: rgba(200,186,255,.31);
-  --mndo-row-border: rgba(190,174,255,.10);
-  --mndo-row-hover-bg: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.024)), radial-gradient(130% 150% at 8% 0%, rgba(190,174,255,.18), rgba(190,174,255,0) 48%), linear-gradient(90deg, rgba(58,48,150,.58), rgba(15,13,42,.38) 58%, rgba(0,0,0,.18));
-  --mndo-row-hover-bg-color: rgba(38,32,120,.48);
+  --mndo-menu-hover-bg: linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.030) 34%, rgba(20,64,148,.42) 100%), radial-gradient(120% 165% at 14% 0%, rgba(120,190,255,.22), rgba(120,190,255,0) 48%), radial-gradient(126% 180% at 100% 0%, rgba(35,120,255,.30), rgba(35,120,255,0) 58%), linear-gradient(90deg, rgba(13,49,118,.68), rgba(8,18,45,.48) 58%, rgba(0,0,0,.30));
+  --mndo-menu-hover-bg-color: rgba(8,32,88,.60);
+  --mndo-menu-hover-border: rgba(128,194,255,.42);
+  --mndo-menu-hover-glow: rgba(78,160,255,.30);
+  --mndo-menu-hover-accent: rgba(128,194,255,.52);
+  --mndo-panel-bg: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.014) 34%, rgba(0,0,0,.02)), radial-gradient(155% 125% at 12% 0%, rgba(120,190,255,.13), rgba(120,190,255,0) 48%), radial-gradient(155% 140% at 100% 6%, rgba(35,120,255,.24), rgba(35,120,255,0) 58%), linear-gradient(180deg, rgba(4,10,26,.90), rgba(8,20,52,.82) 56%, rgba(2,5,16,.92));
+  --mndo-panel-bg-color: rgba(4,10,26,.90);
+  --mndo-panel-border: rgba(128,194,255,.32);
+  --mndo-row-border: rgba(128,194,255,.10);
+  --mndo-row-hover-bg: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.024)), radial-gradient(130% 150% at 8% 0%, rgba(120,190,255,.19), rgba(120,190,255,0) 48%), linear-gradient(90deg, rgba(19,73,168,.58), rgba(7,20,56,.40) 58%, rgba(0,0,0,.18));
+  --mndo-row-hover-bg-color: rgba(12,50,132,.50);
 }
 html.egypt-worldcup-theme-live body .dropdown .dropbtn,
 html.egypt-worldcup-theme-live body .navbar a,
@@ -21772,9 +21775,9 @@ html.egypt-worldcup-theme-live body #singlelink,
 html.ahly-premium-theme-live body .dropdown .dropbtn,
 html.ahly-premium-theme-live body .navbar a,
 html.ahly-premium-theme-live body #singlelink,
-html.ua07-legacy-theme-live body .dropdown .dropbtn,
-html.ua07-legacy-theme-live body .navbar a,
-html.ua07-legacy-theme-live body #singlelink {
+html.sr-theme-off-live body .dropdown .dropbtn,
+html.sr-theme-off-live body .navbar a,
+html.sr-theme-off-live body #singlelink {
   color: var(--mndo-menu-text) !important;
   -webkit-text-fill-color: var(--mndo-menu-text) !important;
 }
@@ -21790,12 +21793,12 @@ html.ahly-premium-theme-live body #singlelink,
 html.ahly-premium-theme-live body .dropdown-content a,
 html.ahly-premium-theme-live body .sub-dropdown-content a,
 html.ahly-premium-theme-live body .sub-dropdown > a,
-html.ua07-legacy-theme-live body .dropdown .dropbtn,
-html.ua07-legacy-theme-live body .navbar a,
-html.ua07-legacy-theme-live body #singlelink,
-html.ua07-legacy-theme-live body .dropdown-content a,
-html.ua07-legacy-theme-live body .sub-dropdown-content a,
-html.ua07-legacy-theme-live body .sub-dropdown > a {
+html.sr-theme-off-live body .dropdown .dropbtn,
+html.sr-theme-off-live body .navbar a,
+html.sr-theme-off-live body #singlelink,
+html.sr-theme-off-live body .dropdown-content a,
+html.sr-theme-off-live body .sub-dropdown-content a,
+html.sr-theme-off-live body .sub-dropdown > a {
   transition: color .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease, text-shadow .16s ease, filter .16s ease !important;
 }
 html.egypt-worldcup-theme-live body .dropdown:hover .dropbtn,
@@ -21814,14 +21817,14 @@ html.ahly-premium-theme-live body .navbar a:hover,
 html.ahly-premium-theme-live body .navbar a:focus,
 html.ahly-premium-theme-live body #singlelink:hover,
 html.ahly-premium-theme-live body #singlelink:focus,
-html.ua07-legacy-theme-live body .dropdown:hover .dropbtn,
-html.ua07-legacy-theme-live body .dropdown:focus-within .dropbtn,
-html.ua07-legacy-theme-live body .dropdown.open .dropbtn,
-html.ua07-legacy-theme-live body .dropdown.active .dropbtn,
-html.ua07-legacy-theme-live body .navbar a:hover,
-html.ua07-legacy-theme-live body .navbar a:focus,
-html.ua07-legacy-theme-live body #singlelink:hover,
-html.ua07-legacy-theme-live body #singlelink:focus {
+html.sr-theme-off-live body .dropdown:hover .dropbtn,
+html.sr-theme-off-live body .dropdown:focus-within .dropbtn,
+html.sr-theme-off-live body .dropdown.open .dropbtn,
+html.sr-theme-off-live body .dropdown.active .dropbtn,
+html.sr-theme-off-live body .navbar a:hover,
+html.sr-theme-off-live body .navbar a:focus,
+html.sr-theme-off-live body #singlelink:hover,
+html.sr-theme-off-live body #singlelink:focus {
   color: var(--mndo-menu-hover-text) !important;
   -webkit-text-fill-color: var(--mndo-menu-hover-text) !important;
   background: var(--mndo-menu-hover-bg) !important;
@@ -21839,10 +21842,10 @@ html.ahly-premium-theme-live body .dropdown-content,
 html.ahly-premium-theme-live body .sub-dropdown-content,
 html.ahly-premium-theme-live body .search-results,
 html.ahly-premium-theme-live body #searchResults,
-html.ua07-legacy-theme-live body .dropdown-content,
-html.ua07-legacy-theme-live body .sub-dropdown-content,
-html.ua07-legacy-theme-live body .search-results,
-html.ua07-legacy-theme-live body #searchResults {
+html.sr-theme-off-live body .dropdown-content,
+html.sr-theme-off-live body .sub-dropdown-content,
+html.sr-theme-off-live body .search-results,
+html.sr-theme-off-live body #searchResults {
   background: var(--mndo-panel-bg) !important;
   background-color: var(--mndo-panel-bg-color) !important;
   border-color: var(--mndo-panel-border) !important;
@@ -21862,11 +21865,11 @@ html.ahly-premium-theme-live body .sub-dropdown[style],
 html.ahly-premium-theme-live body .dropdown-content a,
 html.ahly-premium-theme-live body .sub-dropdown-content a,
 html.ahly-premium-theme-live body .sub-dropdown > a,
-html.ua07-legacy-theme-live body .sub-dropdown,
-html.ua07-legacy-theme-live body .sub-dropdown[style],
-html.ua07-legacy-theme-live body .dropdown-content a,
-html.ua07-legacy-theme-live body .sub-dropdown-content a,
-html.ua07-legacy-theme-live body .sub-dropdown > a {
+html.sr-theme-off-live body .sub-dropdown,
+html.sr-theme-off-live body .sub-dropdown[style],
+html.sr-theme-off-live body .dropdown-content a,
+html.sr-theme-off-live body .sub-dropdown-content a,
+html.sr-theme-off-live body .sub-dropdown > a {
   color: var(--mndo-menu-text) !important;
   -webkit-text-fill-color: var(--mndo-menu-text) !important;
   background: transparent !important;
@@ -21888,13 +21891,13 @@ html.ahly-premium-theme-live body .dropdown-content a:focus,
 html.ahly-premium-theme-live body .sub-dropdown-content a:hover,
 html.ahly-premium-theme-live body .sub-dropdown-content a:focus,
 html.ahly-premium-theme-live body .sub-dropdown:hover > a,
-html.ua07-legacy-theme-live body .sub-dropdown:hover,
-html.ua07-legacy-theme-live body .sub-dropdown:hover[style],
-html.ua07-legacy-theme-live body .dropdown-content a:hover,
-html.ua07-legacy-theme-live body .dropdown-content a:focus,
-html.ua07-legacy-theme-live body .sub-dropdown-content a:hover,
-html.ua07-legacy-theme-live body .sub-dropdown-content a:focus,
-html.ua07-legacy-theme-live body .sub-dropdown:hover > a {
+html.sr-theme-off-live body .sub-dropdown:hover,
+html.sr-theme-off-live body .sub-dropdown:hover[style],
+html.sr-theme-off-live body .dropdown-content a:hover,
+html.sr-theme-off-live body .dropdown-content a:focus,
+html.sr-theme-off-live body .sub-dropdown-content a:hover,
+html.sr-theme-off-live body .sub-dropdown-content a:focus,
+html.sr-theme-off-live body .sub-dropdown:hover > a {
   color: var(--mndo-menu-hover-text) !important;
   -webkit-text-fill-color: var(--mndo-menu-hover-text) !important;
   background: var(--mndo-row-hover-bg) !important;
@@ -21904,7 +21907,7 @@ html.ua07-legacy-theme-live body .sub-dropdown:hover > a {
   box-shadow: inset 2px 0 0 var(--mndo-menu-hover-accent), inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 var(--mndo-panel-border), 0 6px 16px rgba(0,0,0,.25) !important;
   filter: none !important;
 }
-/* ===== END MNDO professional menu hover layer v1 ===== */
+/* ===== END MNDO professional menu hover layer v2 ===== */
 </style>
 
 
