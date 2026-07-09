@@ -10,11 +10,11 @@ const LS_THEME_OFF = "sr_eid_theme_off";
 const LS_THEME_MODE = "sr_visual_theme_mode";
 const TOGGLE_BTN_ID = "EID_TOGGLE_BTN";
 const LEGACY_THEME_LINK_ID = "ua07LegacyThemeLink";
-const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy10-search-hk-align";
+const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy10-hk-down-real-only";
 const AHLY_THEME_LINK_ID = "ahlyPremiumThemeLink";
-const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahly-v15-search-hk-align";
+const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahly-v15-hk-down-real-only";
 const EGYPT_THEME_LINK_ID = "egyptWorldCupThemeLink";
-const EGYPT_THEME_HREF = "egypt-worldcup-theme.css?v=egyptwc-layer-v18-all-theme-search-hk";
+const EGYPT_THEME_HREF = "egypt-worldcup-theme.css?v=egyptwc-layer-v19-hk-down-real-only";
 const THEME_EID = "eid";
 const THEME_LEGACY = "legacy";
 const THEME_AHLY = "ahly";
@@ -564,12 +564,11 @@ html.sr-theme-off-live body .sub-dropdown:hover > a {
 
 
 function ensureHeaderSearchHKPositionLayer(){
-  if (document.getElementById('MNDO_HEADER_SEARCH_HK_POSITION_LAYER')) return;
   const css = `
-/* ===== MNDO header search/HK position layer v2 =====
-   Search position is kept exactly as approved.
-   Only the HK/Hayah Karima line is dropped further to avoid touching the search input.
-   Visual-only: no width/left/right/layout logic touched. */
+/* ===== MNDO header search/HK position layer v3 =====
+   Search position is kept exactly as currently approved.
+   Only the HK/Hayah Karima line is moved downward more, away from the search input.
+   Visual-only: no SR/search/FBB logic touched. */
 html.eid-theme-live .mndo-search-logo-row .mndo-search-hk-anchor,
 html.ua07-legacy-theme-live .mndo-search-logo-row .mndo-search-hk-anchor,
 html.ahly-premium-theme-live .mndo-search-logo-row .mndo-search-hk-anchor,
@@ -607,13 +606,19 @@ html.sr-theme-off-live body > .search-container {
   right: auto !important;
 }
 
+html.eid-theme-live .mndo-search-hk-anchor > #hkSmartFloatingLine,
+html.ua07-legacy-theme-live .mndo-search-hk-anchor > #hkSmartFloatingLine,
+html.ahly-premium-theme-live .mndo-search-hk-anchor > #hkSmartFloatingLine,
+html.egypt-worldcup-theme-live .mndo-search-hk-anchor > #hkSmartFloatingLine,
+html.sr-theme-off-live .mndo-search-hk-anchor > #hkSmartFloatingLine,
 html.eid-theme-live #hkSmartFloatingLine,
 html.ua07-legacy-theme-live #hkSmartFloatingLine,
 html.ahly-premium-theme-live #hkSmartFloatingLine,
 html.egypt-worldcup-theme-live #hkSmartFloatingLine,
 html.sr-theme-off-live #hkSmartFloatingLine {
-  transform: translateX(-50%) translateY(24px) !important;
-  margin-top: 16px !important;
+  top: 48px !important;
+  margin-top: 0 !important;
+  transform: translateX(-50%) translateY(0) !important;
 }
 
 html.eid-theme-live #hkSmartFloatingLine .hk-shell,
@@ -628,16 +633,19 @@ html.sr-theme-off-live #hkSmartFloatingLine .hk-shell,
 html.sr-theme-off-live #hkSmartFloatingLine .hk-row {
   transform: none !important;
 }
-/* ===== END MNDO header search/HK position layer v2 ===== */
+/* ===== END MNDO header search/HK position layer v3 ===== */
   `;
-  const style = document.createElement('style');
-  style.id = 'MNDO_HEADER_SEARCH_HK_POSITION_LAYER';
-  style.textContent = css;
-  try {
-    (document.body || document.documentElement).appendChild(style);
-  } catch {
-    try { (document.head || document.documentElement).appendChild(style); } catch {}
+  let style = document.getElementById('MNDO_HEADER_SEARCH_HK_POSITION_LAYER');
+  if (!style) {
+    style = document.createElement('style');
+    style.id = 'MNDO_HEADER_SEARCH_HK_POSITION_LAYER';
+    try {
+      (document.body || document.documentElement).appendChild(style);
+    } catch {
+      try { (document.head || document.documentElement).appendChild(style); } catch {}
+    }
   }
+  try { style.textContent = css; } catch {}
 }
 
 
