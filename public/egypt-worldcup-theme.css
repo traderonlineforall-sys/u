@@ -744,3 +744,18 @@ html.egypt-worldcup-theme-live body > .search-container {
   right: auto !important;
 }
 /* ===== END Egypt header search REAL lift v16 ===== */
+
+
+/* ===== Egypt search/HK vertical separation v17 =====
+   Keep the search box lifted, but drop the Hayah Karima/HK line a little
+   so it no longer sticks to the search input. Visual layer only. */
+html.egypt-worldcup-theme-live #hkSmartFloatingLine {
+  transform: translateX(-50%) translateY(9px) !important;
+  margin-top: 7px !important;
+}
+
+html.egypt-worldcup-theme-live #hkSmartFloatingLine .hk-shell,
+html.egypt-worldcup-theme-live #hkSmartFloatingLine .hk-row {
+  transform: none !important;
+}
+/* ===== END Egypt search/HK vertical separation v17 ===== */
