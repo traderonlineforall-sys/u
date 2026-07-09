@@ -14,7 +14,7 @@ const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy10-hk-down-only-v5-calc
 const AHLY_THEME_LINK_ID = "ahlyPremiumThemeLink";
 const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahly-v15-hk-down-only-v5-calccomfort";
 const EGYPT_THEME_LINK_ID = "egyptWorldCupThemeLink";
-const EGYPT_THEME_HREF = "egypt-worldcup-theme.css?v=egyptwc-layer-v28-flag-ireport-buttons";
+const EGYPT_THEME_HREF = "egypt-worldcup-theme.css?v=egyptwc-layer-v29-main-flag-tabs";
 const THEME_EID = "eid";
 const THEME_LEGACY = "legacy";
 const THEME_AHLY = "ahly";

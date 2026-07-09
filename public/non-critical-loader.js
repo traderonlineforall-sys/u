@@ -124,7 +124,7 @@
     // Keep them delayed so the first tool load stays light.
     [
       './online-users-count.js',
-      './eid-hud.js?v=egypt-flag-ireport-buttons-v14'
+      './eid-hud.js?v=egypt-main-flag-tabs-v15'
     ].forEach(function(src){
       importOnce(src, src);
     });

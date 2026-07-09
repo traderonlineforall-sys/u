@@ -2080,3 +2080,113 @@ html.egypt-worldcup-theme-live body #hkSmartFloatingLine .hk-row {
   transform: none !important;
 }
 /* ===== END Egypt header search/HK final stable restore v8 ===== */
+
+/* ===== Egypt main navigation premium flag tabs v29 =====
+   Visual-only polish for the primary SR/Technical/Installation/Calculate/Call Back tabs.
+   Modern Egypt flag split: deep red top, warm white center with antique-gold text, black base.
+   No click handlers, tab ids, SR data, or layout scripts are changed. */
+html.egypt-worldcup-theme-live #tabs .tablinks {
+  position: relative !important;
+  isolation: isolate !important;
+  overflow: hidden !important;
+  color: #7b5518 !important;
+  -webkit-text-fill-color: #7b5518 !important;
+  font-weight: 900 !important;
+  letter-spacing: .08px !important;
+  text-shadow:
+    0 1px 0 rgba(255,255,255,.48),
+    0 0 10px rgba(124,85,24,.13) !important;
+  background:
+    linear-gradient(180deg,
+      #7b1712 0%,
+      #5a0d0b 27%,
+      #f8f0df 27.5%,
+      #ead9ad 69%,
+      #15110d 69.5%,
+      #030303 100%) !important;
+  background-color: #210302 !important;
+  border: 1px solid rgba(221,185,100,.64) !important;
+  border-radius: 13px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.24),
+    inset 0 -1px 0 rgba(0,0,0,.70),
+    inset 0 0 0 1px rgba(255,244,211,.035),
+    0 10px 21px rgba(0,0,0,.34),
+    0 0 0 1px rgba(80,13,10,.11) !important;
+  filter: saturate(.95) brightness(.98) contrast(1.02) !important;
+  transition:
+    transform .14s ease,
+    box-shadow .14s ease,
+    border-color .14s ease,
+    filter .14s ease !important;
+}
+
+html.egypt-worldcup-theme-live #tabs .tablinks::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: -1 !important;
+  pointer-events: none !important;
+  background:
+    radial-gradient(54px 18px at 50% 50%, rgba(191,145,55,.20), transparent 70%),
+    linear-gradient(90deg, rgba(255,255,255,.15), transparent 22%, transparent 78%, rgba(255,255,255,.08)),
+    linear-gradient(180deg, rgba(255,255,255,.10), transparent 38%, rgba(0,0,0,.18) 100%) !important;
+  opacity: .84 !important;
+}
+
+html.egypt-worldcup-theme-live #tabs .tablinks::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  width: 22px !important;
+  height: 3px !important;
+  transform: translate(-50%, -50%) !important;
+  border-radius: 999px !important;
+  pointer-events: none !important;
+  opacity: .28 !important;
+  background: linear-gradient(90deg, transparent, rgba(142,99,27,.88), transparent) !important;
+  box-shadow: 0 0 10px rgba(214,177,92,.22) !important;
+}
+
+html.egypt-worldcup-theme-live #tabs .tablinks:hover,
+html.egypt-worldcup-theme-live #tabs .tablinks:focus-visible,
+html.egypt-worldcup-theme-live #tabs .tablinks.active,
+html.egypt-worldcup-theme-live #tabs .tablinks.mndo-ahly-current-tab,
+html.egypt-worldcup-theme-live #tabs .tablinks[aria-current="page"] {
+  transform: translateY(-1px) !important;
+  color: #62400d !important;
+  -webkit-text-fill-color: #62400d !important;
+  background:
+    linear-gradient(180deg,
+      #8f2019 0%,
+      #67100c 27%,
+      #fff6e7 27.5%,
+      #f0ddb0 69%,
+      #1b1610 69.5%,
+      #050505 100%) !important;
+  border-color: rgba(239,205,132,.86) !important;
+  text-shadow:
+    0 1px 0 rgba(255,255,255,.60),
+    0 0 11px rgba(98,64,13,.16) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.32),
+    inset 0 -1px 0 rgba(0,0,0,.74),
+    0 13px 26px rgba(0,0,0,.42),
+    0 0 20px rgba(214,177,92,.13),
+    0 0 0 1px rgba(239,205,132,.10) !important;
+  filter: saturate(1.03) brightness(1.04) contrast(1.04) !important;
+}
+
+html.egypt-worldcup-theme-live #tabs .tablinks:active {
+  transform: translateY(0) scale(.99) !important;
+  filter: saturate(.98) brightness(.94) !important;
+}
+
+@media (max-width: 900px) {
+  html.egypt-worldcup-theme-live #tabs .tablinks {
+    border-radius: 11px !important;
+    letter-spacing: 0 !important;
+  }
+}
+/* ===== END Egypt main navigation premium flag tabs v29 ===== */
