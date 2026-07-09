@@ -10,11 +10,11 @@ const LS_THEME_OFF = "sr_eid_theme_off";
 const LS_THEME_MODE = "sr_visual_theme_mode";
 const TOGGLE_BTN_ID = "EID_TOGGLE_BTN";
 const LEGACY_THEME_LINK_ID = "ua07LegacyThemeLink";
-const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy9-main-hover-only";
+const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy10-search-hk-align";
 const AHLY_THEME_LINK_ID = "ahlyPremiumThemeLink";
-const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahly-v14-professional-hover-restore1";
+const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahly-v15-search-hk-align";
 const EGYPT_THEME_LINK_ID = "egyptWorldCupThemeLink";
-const EGYPT_THEME_HREF = "egypt-worldcup-theme.css?v=egyptwc-layer-v17-search-hk-separate";
+const EGYPT_THEME_HREF = "egypt-worldcup-theme.css?v=egyptwc-layer-v18-all-theme-search-hk";
 const THEME_EID = "eid";
 const THEME_LEGACY = "legacy";
 const THEME_AHLY = "ahly";
@@ -563,6 +563,85 @@ html.sr-theme-off-live body .sub-dropdown:hover > a {
 }
 
 
+function ensureHeaderSearchHKPositionLayer(){
+  if (document.getElementById('MNDO_HEADER_SEARCH_HK_POSITION_LAYER')) return;
+  const css = `
+/* ===== MNDO header search/HK position layer v1 =====
+   Applies the approved Egypt header balance to all visual modes:
+   search input lifted, HK/Hayah Karima line dropped slightly.
+   Visual-only: position offset only, no width/left/right/layout logic touched. */
+html.eid-theme-live .mndo-search-logo-row .mndo-search-hk-anchor,
+html.ua07-legacy-theme-live .mndo-search-logo-row .mndo-search-hk-anchor,
+html.ahly-premium-theme-live .mndo-search-logo-row .mndo-search-hk-anchor,
+html.egypt-worldcup-theme-live .mndo-search-logo-row .mndo-search-hk-anchor,
+html.sr-theme-off-live .mndo-search-logo-row .mndo-search-hk-anchor {
+  position: relative !important;
+  top: -12px !important;
+  left: auto !important;
+  right: auto !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+html.eid-theme-live .mndo-search-logo-row .mndo-search-hk-anchor .search-container,
+html.eid-theme-live .mndo-search-logo-row .search-container,
+html.ua07-legacy-theme-live .mndo-search-logo-row .mndo-search-hk-anchor .search-container,
+html.ua07-legacy-theme-live .mndo-search-logo-row .search-container,
+html.ahly-premium-theme-live .mndo-search-logo-row .mndo-search-hk-anchor .search-container,
+html.ahly-premium-theme-live .mndo-search-logo-row .search-container,
+html.egypt-worldcup-theme-live .mndo-search-logo-row .mndo-search-hk-anchor .search-container,
+html.egypt-worldcup-theme-live .mndo-search-logo-row .search-container,
+html.sr-theme-off-live .mndo-search-logo-row .mndo-search-hk-anchor .search-container,
+html.sr-theme-off-live .mndo-search-logo-row .search-container {
+  margin-top: 0 !important;
+}
+
+html.eid-theme-live body > .search-container,
+html.ua07-legacy-theme-live body > .search-container,
+html.ahly-premium-theme-live body > .search-container,
+html.egypt-worldcup-theme-live body > .search-container,
+html.sr-theme-off-live body > .search-container {
+  position: relative !important;
+  top: -12px !important;
+  left: auto !important;
+  right: auto !important;
+}
+
+html.eid-theme-live #hkSmartFloatingLine,
+html.ua07-legacy-theme-live #hkSmartFloatingLine,
+html.ahly-premium-theme-live #hkSmartFloatingLine,
+html.egypt-worldcup-theme-live #hkSmartFloatingLine,
+html.sr-theme-off-live #hkSmartFloatingLine {
+  transform: translateX(-50%) translateY(9px) !important;
+  margin-top: 7px !important;
+}
+
+html.eid-theme-live #hkSmartFloatingLine .hk-shell,
+html.eid-theme-live #hkSmartFloatingLine .hk-row,
+html.ua07-legacy-theme-live #hkSmartFloatingLine .hk-shell,
+html.ua07-legacy-theme-live #hkSmartFloatingLine .hk-row,
+html.ahly-premium-theme-live #hkSmartFloatingLine .hk-shell,
+html.ahly-premium-theme-live #hkSmartFloatingLine .hk-row,
+html.egypt-worldcup-theme-live #hkSmartFloatingLine .hk-shell,
+html.egypt-worldcup-theme-live #hkSmartFloatingLine .hk-row,
+html.sr-theme-off-live #hkSmartFloatingLine .hk-shell,
+html.sr-theme-off-live #hkSmartFloatingLine .hk-row {
+  transform: none !important;
+}
+/* ===== END MNDO header search/HK position layer v1 ===== */
+  `;
+  const style = document.createElement('style');
+  style.id = 'MNDO_HEADER_SEARCH_HK_POSITION_LAYER';
+  style.textContent = css;
+  try {
+    (document.body || document.documentElement).appendChild(style);
+  } catch {
+    try { (document.head || document.documentElement).appendChild(style); } catch {}
+  }
+}
+
+
+
 
 function ensureEgyptLuxuryToneLayer(){
   if (document.getElementById('MNDO_EGYPT_LUXURY_TONE_LAYER')) return;
@@ -650,6 +729,7 @@ function applyThemeState(){
   ensureDecorLayer();
   ensureAhlyTransparentMenuLayer();
   ensureProfessionalMenuHoverLayer();
+  ensureHeaderSearchHKPositionLayer();
   ensureEgyptLuxuryToneLayer();
   const mode = getThemeMode();
   const eidLink = getThemeLink();
