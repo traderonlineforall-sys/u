@@ -664,13 +664,14 @@
   'use strict';
 
   /*
-   * UA07 V14: bottom-only scroll handoff for internal menus.
+   * UA07 V15: top-and-bottom scroll handoff for internal menus.
    *
    * Some menu panels intentionally have their own scrollbar so nested menus stay usable.
-   * When the user reaches the END of one of those menu panels and keeps scrolling down,
-   * this safely forwards only the extra downward scroll to the main page.
+   * When the user reaches the END of a menu panel and keeps scrolling down,
+   * this safely forwards the extra downward scroll to the main page.
+   * When the user reaches the START of a menu panel and keeps scrolling up,
+   * this safely forwards the extra upward scroll to the main page.
    *
-   * It does NOT hand off upward scrolling at the top, by request.
    * It does NOT change menu layout, theme styling, links, or submenu behavior.
    */
 
@@ -682,7 +683,7 @@
     '.search-results'
   ].join(',');
 
-  var BOTTOM_TOLERANCE = 2;
+  var EDGE_TOLERANCE = 2;
   var touchState = null;
 
   function getMainScroller() {
@@ -692,13 +693,19 @@
   function canPageScrollDown() {
     var root = getMainScroller();
     if (!root) return false;
-    return (root.scrollTop + root.clientHeight) < (root.scrollHeight - BOTTOM_TOLERANCE);
+    return (root.scrollTop + root.clientHeight) < (root.scrollHeight - EDGE_TOLERANCE);
+  }
+
+  function canPageScrollUp() {
+    var root = getMainScroller();
+    if (!root) return false;
+    return root.scrollTop > EDGE_TOLERANCE;
   }
 
   function isScrollableMenu(el) {
     if (!el || el.nodeType !== 1) return false;
     if (el.hidden) return false;
-    return (el.scrollHeight - el.clientHeight) > BOTTOM_TOLERANCE;
+    return (el.scrollHeight - el.clientHeight) > EDGE_TOLERANCE;
   }
 
   function findScrollableMenu(target) {
@@ -708,22 +715,38 @@
 
   function isAtMenuBottom(el) {
     if (!el) return false;
-    return (el.scrollTop + el.clientHeight) >= (el.scrollHeight - BOTTOM_TOLERANCE);
+    return (el.scrollTop + el.clientHeight) >= (el.scrollHeight - EDGE_TOLERANCE);
   }
 
-  function forwardDownToPage(amount) {
-    if (!amount || amount <= 0 || !canPageScrollDown()) return false;
+  function isAtMenuTop(el) {
+    if (!el) return false;
+    return el.scrollTop <= EDGE_TOLERANCE;
+  }
+
+  function forwardToPage(amount) {
+    if (!amount) return false;
+
+    if (amount > 0 && !canPageScrollDown()) return false;
+    if (amount < 0 && !canPageScrollUp()) return false;
+
     window.scrollBy({ top: amount, left: 0, behavior: 'auto' });
     return true;
   }
 
+  function shouldHandOff(menu, amount) {
+    if (!menu || !amount) return false;
+    if (amount > 0) return isAtMenuBottom(menu);
+    if (amount < 0) return isAtMenuTop(menu);
+    return false;
+  }
+
   function onWheel(e) {
-    if (!e || e.defaultPrevented || e.deltaY <= 0) return;
+    if (!e || e.defaultPrevented || !e.deltaY) return;
 
     var menu = findScrollableMenu(e.target);
-    if (!menu || !isAtMenuBottom(menu)) return;
+    if (!shouldHandOff(menu, e.deltaY)) return;
 
-    if (forwardDownToPage(e.deltaY)) {
+    if (forwardToPage(e.deltaY)) {
       e.preventDefault();
     }
   }
@@ -750,18 +773,24 @@
     if (!touchState || !e || !e.touches || e.touches.length !== 1) return;
 
     var currentY = e.touches[0].clientY;
-    var deltaDown = touchState.lastY - currentY; // positive means page/content should move down
+    var amount = touchState.lastY - currentY; // positive scrolls page down, negative scrolls page up
     touchState.lastY = currentY;
 
-    if (deltaDown <= 0) return;
-    if (!isScrollableMenu(touchState.menu) || !isAtMenuBottom(touchState.menu)) return;
+    if (!amount) return;
+    if (!isScrollableMenu(touchState.menu) || !shouldHandOff(touchState.menu, amount)) return;
 
-    if (forwardDownToPage(deltaDown)) {
+    if (forwardToPage(amount)) {
       e.preventDefault();
     }
+  }
+
+  function onTouchEnd() {
+    touchState = null;
   }
 
   document.addEventListener('wheel', onWheel, { capture: true, passive: false });
   document.addEventListener('touchstart', onTouchStart, { capture: true, passive: true });
   document.addEventListener('touchmove', onTouchMove, { capture: true, passive: false });
+  document.addEventListener('touchend', onTouchEnd, { capture: true, passive: true });
+  document.addEventListener('touchcancel', onTouchEnd, { capture: true, passive: true });
 }());
