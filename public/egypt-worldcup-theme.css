@@ -719,16 +719,28 @@ html.egypt-worldcup-theme-live input[type="reset"]:focus {
 }
 /* ===== END Egypt lower tool controls luxury tone v14 ===== */
 
-/* ===== Egypt header search vertical nudge v15 =====
-   Visual-only: raise the main search box a few pixels without changing its
-   horizontal position, width, search logic, or results behavior. */
+/* ===== Egypt header search REAL lift v16 =====
+   Target the actual header wrapper, not only margin on the input box.
+   This raises the search area vertically while preserving the same horizontal track. */
+html.egypt-worldcup-theme-live .mndo-search-logo-row .mndo-search-hk-anchor {
+  position: relative !important;
+  top: -12px !important;
+  left: auto !important;
+  right: auto !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
 html.egypt-worldcup-theme-live .mndo-search-logo-row .mndo-search-hk-anchor .search-container,
 html.egypt-worldcup-theme-live .mndo-search-logo-row .search-container {
-  margin-top: -3px !important;
+  margin-top: 0 !important;
 }
-/* Keep legacy horizontal translate intact if the older base rule is the active one. */
-html.egypt-worldcup-theme-live body > .search-container,
-html.egypt-worldcup-theme-live .search-container:not(.mndo-search-logo-row .search-container) {
-  margin-top: -3px !important;
+
+/* Fallback for any older header build where the search container is not inside the wrapper. */
+html.egypt-worldcup-theme-live body > .search-container {
+  position: relative !important;
+  top: -12px !important;
+  left: auto !important;
+  right: auto !important;
 }
-/* ===== END Egypt header search vertical nudge v15 ===== */
+/* ===== END Egypt header search REAL lift v16 ===== */
