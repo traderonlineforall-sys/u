@@ -718,3 +718,17 @@ html.egypt-worldcup-theme-live input[type="reset"]:focus {
   border-color: rgba(255,244,210,.80) !important;
 }
 /* ===== END Egypt lower tool controls luxury tone v14 ===== */
+
+/* ===== Egypt header search vertical nudge v15 =====
+   Visual-only: raise the main search box a few pixels without changing its
+   horizontal position, width, search logic, or results behavior. */
+html.egypt-worldcup-theme-live .mndo-search-logo-row .mndo-search-hk-anchor .search-container,
+html.egypt-worldcup-theme-live .mndo-search-logo-row .search-container {
+  margin-top: -3px !important;
+}
+/* Keep legacy horizontal translate intact if the older base rule is the active one. */
+html.egypt-worldcup-theme-live body > .search-container,
+html.egypt-worldcup-theme-live .search-container:not(.mndo-search-logo-row .search-container) {
+  margin-top: -3px !important;
+}
+/* ===== END Egypt header search vertical nudge v15 ===== */

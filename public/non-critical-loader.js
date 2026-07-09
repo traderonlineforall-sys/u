@@ -124,7 +124,7 @@
     // Keep them delayed so the first tool load stays light.
     [
       './online-users-count.js',
-      './eid-hud.js?v=egypt-lower-controls1'
+      './eid-hud.js?v=egypt-search-up1'
     ].forEach(function(src){
       importOnce(src, src);
     });
