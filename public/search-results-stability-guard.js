@@ -2,7 +2,7 @@
   'use strict';
 
   /*
-   * UA07 Search Results Theme Adaptive V7 + Dropdown Scroll Only V9
+   * UA07 Search Results Theme Adaptive V7
    *
    * Keeps the working lightweight attached overlay behavior:
    * - No layout push.
@@ -13,11 +13,6 @@
    * - Search results inherit the active visual theme instead of forcing Egypt style.
    * - No numbers, no title/header text.
    * - Results stay visually attached to the search input with a polished premium panel.
-   *
-   * Dropdown update V9:
-   * - Cancels the heavy V8 menu styling.
-   * - Adds internal scrolling only to long dropdown menus.
-   * - Does not change menu typography, colors, padding, margins, item height, or layout.
    */
 
   var STYLE_ID = 'ua07-search-results-theme-adaptive-v7';
@@ -490,153 +485,9 @@
     window.addEventListener('click', scheduleAgingAlign, true);
   }
 
-
-  function installDropdownScrollOnlyV9() {
-    var STYLE_ID_V9 = 'ua07-dropdown-scroll-only-v9';
-    var OLD_STYLE_ID_V8 = 'ua07-dropdown-internal-scroll-v8';
-    var SCROLL_CLASS = 'ua07-dropdown-scroll-only-v9-panel';
-    var V8_CLASSES = [
-      'ua07-menu-internal-scroll-panel',
-      'ua07-menu-open-up',
-      'ua07-menu-fixed-subpanel'
-    ];
-
-    function removeV8() {
-      var oldStyle = document.getElementById(OLD_STYLE_ID_V8);
-      if (oldStyle && oldStyle.parentNode) oldStyle.parentNode.removeChild(oldStyle);
-
-      var panels = document.querySelectorAll('.dropdown-content, .sub-dropdown-content');
-      panels.forEach(function (panel) {
-        if (!panel || !panel.classList) return;
-        V8_CLASSES.forEach(function (cls) { panel.classList.remove(cls); });
-        try {
-          panel.style.removeProperty('--ua07-menu-top');
-          panel.style.removeProperty('--ua07-menu-left');
-          panel.style.removeProperty('--ua07-menu-width');
-          panel.style.removeProperty('--ua07-menu-min-width');
-          panel.style.removeProperty('--ua07-menu-max-height');
-          panel.style.removeProperty('top');
-          panel.style.removeProperty('left');
-          panel.style.removeProperty('right');
-          panel.style.removeProperty('bottom');
-          panel.style.removeProperty('width');
-          panel.style.removeProperty('max-width');
-        } catch (_) {}
-      });
-    }
-
-    function injectMenuCss() {
-      removeV8();
-      if (document.getElementById(STYLE_ID_V9)) return;
-
-      var style = document.createElement('style');
-      style.id = STYLE_ID_V9;
-      style.textContent = [
-        '/* UA07 V9: scroll only for long dropdowns; no typography or visual item changes. */',
-        '.dropdown-content.' + SCROLL_CLASS + ', .sub-dropdown-content.' + SCROLL_CLASS + '{',
-        '  max-height: var(--ua07-menu-scroll-max-height, min(420px, calc(100vh - 112px))) !important;',
-        '  overflow-y: auto !important;',
-        '  overflow-x: hidden !important;',
-        '  overscroll-behavior: contain !important;',
-        '  -webkit-overflow-scrolling: touch !important;',
-        '  scrollbar-width: thin !important;',
-        '  box-sizing: border-box !important;',
-        '}',
-        '.dropdown-content.' + SCROLL_CLASS + '::-webkit-scrollbar, .sub-dropdown-content.' + SCROLL_CLASS + '::-webkit-scrollbar{',
-        '  width: 8px !important;',
-        '  height: 8px !important;',
-        '}',
-        '.dropdown-content.' + SCROLL_CLASS + '::-webkit-scrollbar-track, .sub-dropdown-content.' + SCROLL_CLASS + '::-webkit-scrollbar-track{',
-        '  background: transparent !important;',
-        '}',
-        '.dropdown-content.' + SCROLL_CLASS + '::-webkit-scrollbar-thumb, .sub-dropdown-content.' + SCROLL_CLASS + '::-webkit-scrollbar-thumb{',
-        '  background: rgba(180,180,180,.55) !important;',
-        '  border-radius: 999px !important;',
-        '}',
-        '@media (max-width: 768px){',
-        '  .dropdown-content.' + SCROLL_CLASS + ', .sub-dropdown-content.' + SCROLL_CLASS + '{',
-        '    max-height: var(--ua07-menu-scroll-max-height, min(360px, calc(100vh - 96px))) !important;',
-        '  }',
-        '}'
-      ].join('\n');
-      (document.head || document.documentElement).appendChild(style);
-    }
-
-    function isVisible(panel) {
-      if (!panel) return false;
-      var cs;
-      try { cs = window.getComputedStyle(panel); } catch (_) { return false; }
-      if (!cs || cs.display === 'none' || cs.visibility === 'hidden') return false;
-      var r = panel.getBoundingClientRect();
-      return r.width > 0 && r.height >= 0;
-    }
-
-    function tagPanels() {
-      var panels = document.querySelectorAll('.dropdown-content, .sub-dropdown-content');
-      panels.forEach(function (panel) {
-        if (!panel || !panel.classList) return;
-        V8_CLASSES.forEach(function (cls) { panel.classList.remove(cls); });
-        panel.classList.add(SCROLL_CLASS);
-      });
-    }
-
-    function fitVisiblePanels() {
-      window.__ua07DropdownScrollOnlyV9Raf = 0;
-      injectMenuCss();
-      tagPanels();
-
-      var vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0, 320);
-      var panels = document.querySelectorAll('.dropdown-content, .sub-dropdown-content');
-      panels.forEach(function (panel) {
-        if (!panel || !panel.classList) return;
-        if (!isVisible(panel)) return;
-
-        var rect = panel.getBoundingClientRect();
-        var roomBelow = Math.max(120, vh - rect.top - 12);
-        var maxHeight = Math.min(420, roomBelow);
-        if (vh <= 520) maxHeight = Math.min(340, Math.max(120, vh - rect.top - 8));
-
-        try { panel.style.setProperty('--ua07-menu-scroll-max-height', Math.round(maxHeight) + 'px'); } catch (_) {}
-      });
-    }
-
-    function scheduleFit() {
-      if (window.__ua07DropdownScrollOnlyV9Raf) return;
-      window.__ua07DropdownScrollOnlyV9Raf = window.requestAnimationFrame ? window.requestAnimationFrame(fitVisiblePanels) : setTimeout(fitVisiblePanels, 0);
-    }
-
-    function scheduleFitSoon() {
-      scheduleFit();
-      setTimeout(scheduleFit, 50);
-    }
-
-    injectMenuCss();
-    tagPanels();
-
-    if (document.documentElement && document.documentElement.dataset.ua07DropdownScrollOnlyV9Bound === '1') {
-      scheduleFitSoon();
-      return;
-    }
-    if (document.documentElement) document.documentElement.dataset.ua07DropdownScrollOnlyV9Bound = '1';
-
-    ['pointerover', 'focusin', 'touchstart', 'click', 'keydown'].forEach(function (eventName) {
-      document.addEventListener(eventName, function (event) {
-        var target = event && event.target;
-        if (!target || !target.closest) return;
-        if (target.closest('.dropdown, .sub-dropdown, .dropdown-content, .sub-dropdown-content')) scheduleFitSoon();
-      }, { passive: true, capture: true });
-    });
-
-    window.addEventListener('resize', scheduleFitSoon, { passive: true });
-    window.addEventListener('orientationchange', function () { setTimeout(scheduleFitSoon, 80); }, { passive: true });
-
-    scheduleFitSoon();
-  }
-
   function bind() {
     injectCss();
     bindThemeWatcher();
-    installDropdownScrollOnlyV9();
 
     var input = getInput();
     var results = getResults();
@@ -680,9 +531,78 @@
 
   window.addEventListener('load', function () {
     injectCss();
-    installDropdownScrollOnlyV9();
     scheduleAlign();
   }, { once: true, passive: true });
 
+
+  function installDropdownScrollPureV10() {
+    var STYLE_ID_V10 = 'ua07-dropdown-scroll-pure-v10';
+    var OLD_STYLE_IDS = [
+      'ua07-dropdown-internal-scroll-v8',
+      'ua07-dropdown-scroll-only-v9'
+    ];
+    var OLD_CLASSES = [
+      'ua07-menu-internal-scroll-panel',
+      'ua07-menu-open-up',
+      'ua07-menu-fixed-subpanel',
+      'ua07-dropdown-scroll-only-v9-panel'
+    ];
+
+    function removeOldDropdownEdits() {
+      OLD_STYLE_IDS.forEach(function (id) {
+        var oldStyle = document.getElementById(id);
+        if (oldStyle && oldStyle.parentNode) oldStyle.parentNode.removeChild(oldStyle);
+      });
+
+      var panels = document.querySelectorAll('.dropdown-content, .sub-dropdown-content');
+      panels.forEach(function (panel) {
+        if (!panel || !panel.classList) return;
+        OLD_CLASSES.forEach(function (cls) { panel.classList.remove(cls); });
+        try {
+          panel.style.removeProperty('--ua07-menu-top');
+          panel.style.removeProperty('--ua07-menu-left');
+          panel.style.removeProperty('--ua07-menu-width');
+          panel.style.removeProperty('--ua07-menu-min-width');
+          panel.style.removeProperty('--ua07-menu-max-height');
+          panel.style.removeProperty('--ua07-menu-scroll-max-height');
+          panel.style.removeProperty('top');
+          panel.style.removeProperty('left');
+          panel.style.removeProperty('right');
+          panel.style.removeProperty('bottom');
+          panel.style.removeProperty('width');
+          panel.style.removeProperty('max-width');
+        } catch (_) {}
+      });
+    }
+
+    removeOldDropdownEdits();
+    if (document.getElementById(STYLE_ID_V10)) return;
+
+    var style = document.createElement('style');
+    style.id = STYLE_ID_V10;
+    style.textContent = [
+      '/* UA07 V10: pure internal scroll only. No font, color, padding, background, border, or position changes. */',
+      '.dropdown-content, .sub-dropdown-content{',
+      '  max-height: min(420px, calc(100vh - 150px)) !important;',
+      '  overflow-y: auto !important;',
+      '  overflow-x: hidden !important;',
+      '  overscroll-behavior: contain !important;',
+      '  -webkit-overflow-scrolling: touch !important;',
+      '}',
+      '@media (max-height: 560px){',
+      '  .dropdown-content, .sub-dropdown-content{',
+      '    max-height: min(320px, calc(100vh - 105px)) !important;',
+      '  }',
+      '}',
+      '@media (max-width: 768px){',
+      '  .dropdown-content, .sub-dropdown-content{',
+      '    max-height: min(340px, calc(100vh - 100px)) !important;',
+      '  }',
+      '}'
+    ].join('\n');
+    (document.head || document.documentElement).appendChild(style);
+  }
+
+  installDropdownScrollPureV10();
   window.ua07RefreshSearchResultsOverlay = scheduleAlign;
 }());
