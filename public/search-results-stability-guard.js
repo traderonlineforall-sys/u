@@ -2,17 +2,21 @@
   'use strict';
 
   /*
-   * UA07 Search Results Egypt Premium V5
+   * UA07 Search Results Egypt Sleek V6
    *
-   * Behavior:
-   * - Search results float above the UI as a light overlay.
-   * - Results do NOT push tabs / menus / buttons down.
-   * - No portal, no MutationObserver loop, no DOM scanning loop.
-   * - Premium Egypt-themed styling, separated visually from the search input.
+   * Goal:
+   * - Keep the working V4/V5 overlay behavior: no layout push, no heavy portal.
+   * - Remove numbers and the EGYPT SEARCH title.
+   * - Visually attach the results panel to the search input with a premium Egypt theme.
+   * - Stay lightweight: no MutationObserver loops, no body portal, no DOM scanning loop.
    */
 
-  var STYLE_ID = 'ua07-search-results-egypt-premium-v5';
+  var STYLE_ID = 'ua07-search-results-egypt-sleek-v6';
+  var OPEN_CLASS = 'ua07-search-is-open';
+  var PANEL_CLASS = 'ua07-egypt-sleek-panel';
+  var CONTAINER_CLASS = 'ua07-egypt-sleek-container';
   var OLD_STYLE_IDS = [
+    'ua07-search-results-egypt-premium-v5',
     'ua07-search-results-overlay-lite-v4',
     'ua07-search-results-flow-lite-v5',
     'mndo-search-results-floating-layer-v4',
@@ -24,6 +28,8 @@
 
   var raf = 0;
   var bound = false;
+  var lastContainer = null;
+  var lastResults = null;
 
   function getInput() {
     return document.getElementById('searchInput')
@@ -63,7 +69,7 @@
     var style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = [
-      '/* UA07 Egypt premium search overlay: absolute floating layer, no layout push. */',
+      '/* UA07 Egypt sleek attached search results: absolute overlay, no layout push. */',
       '.mndo-search-logo-row,',
       '.mndo-search-hk-anchor,',
       '.search-container{',
@@ -77,179 +83,174 @@
       '  position: relative !important;',
       '  z-index: 2147483001 !important;',
       '}',
-      '.search-container{',
+      '.search-container,',
+      '.' + CONTAINER_CLASS + '{',
       '  position: relative !important;',
       '  z-index: 2147483002 !important;',
       '  contain: none !important;',
       '}',
-      '#searchResults.search-results,',
-      '#searchResults{',
+      '.' + CONTAINER_CLASS + ' input,',
+      '.' + CONTAINER_CLASS + ' input[type="text"],',
+      '.' + CONTAINER_CLASS + ' input[type="search"]{',
+      '  transition: border-color .16s ease, box-shadow .16s ease, border-radius .16s ease, background .16s ease !important;',
+      '}',
+      '.' + CONTAINER_CLASS + '.' + OPEN_CLASS + ' input,',
+      '.' + CONTAINER_CLASS + '.' + OPEN_CLASS + ' input[type="text"],',
+      '.' + CONTAINER_CLASS + '.' + OPEN_CLASS + ' input[type="search"]{',
+      '  border-bottom-left-radius: 12px !important;',
+      '  border-bottom-right-radius: 12px !important;',
+      '  border-color: rgba(235,196,105,.86) !important;',
+      '  box-shadow: 0 0 0 1px rgba(235,196,105,.18), 0 10px 26px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.12) !important;',
+      '}',
+      '#searchResults.' + PANEL_CLASS + ',',
+      '#searchResults.search-results.' + PANEL_CLASS + ',',
+      '#searchResults#searchResults.' + PANEL_CLASS + '{',
       '  position: absolute !important;',
-      '  top: calc(100% + 16px) !important;',
-      '  left: var(--ua07-search-left, 50%) !important;',
+      '  top: calc(100% + 5px) !important;',
+      '  left: var(--ua07-search-left, 0px) !important;',
       '  right: auto !important;',
       '  bottom: auto !important;',
-      '  width: var(--ua07-search-width, min(430px, calc(100vw - 24px))) !important;',
+      '  width: var(--ua07-search-width, min(420px, calc(100vw - 24px))) !important;',
       '  min-width: 0 !important;',
       '  max-width: calc(100vw - 24px) !important;',
-      '  max-height: var(--ua07-search-max-height, min(360px, calc(100vh - 110px))) !important;',
+      '  max-height: var(--ua07-search-max-height, min(350px, calc(100vh - 110px))) !important;',
       '  margin: 0 !important;',
-      '  padding: 14px 12px 12px !important;',
+      '  padding: 8px 8px 9px !important;',
       '  box-sizing: border-box !important;',
       '  overflow-y: auto !important;',
       '  overflow-x: hidden !important;',
       '  overscroll-behavior: contain !important;',
       '  scrollbar-gutter: stable !important;',
-      '  border-radius: 22px !important;',
-      '  border: 1px solid rgba(229,190,98,.62) !important;',
+      '  border-radius: 0 0 19px 19px !important;',
+      '  border: 1px solid rgba(225,184,89,.58) !important;',
+      '  border-top-color: rgba(225,184,89,.82) !important;',
       '  background:',
-      '    radial-gradient(circle at 18% 0%, rgba(224,31,31,.22), transparent 31%),',
-      '    radial-gradient(circle at 86% 12%, rgba(230,176,76,.20), transparent 34%),',
-      '    linear-gradient(180deg, rgba(30,21,12,.985), rgba(7,7,10,.985) 48%, rgba(3,3,7,.985)) !important;',
-      '  color: rgba(255,244,214,.98) !important;',
-      '  -webkit-text-fill-color: rgba(255,244,214,.98) !important;',
+      '    linear-gradient(180deg, rgba(49,38,22,.985), rgba(14,14,19,.985) 42%, rgba(4,5,9,.985)),',
+      '    radial-gradient(circle at 18% -4%, rgba(198,34,27,.28), transparent 34%),',
+      '    radial-gradient(circle at 85% 8%, rgba(240,193,83,.20), transparent 32%) !important;',
+      '  background-blend-mode: normal, screen, screen !important;',
+      '  color: rgba(255,245,218,.98) !important;',
+      '  -webkit-text-fill-color: rgba(255,245,218,.98) !important;',
       '  box-shadow:',
-      '    0 24px 70px rgba(0,0,0,.72),',
-      '    0 0 0 1px rgba(255,234,157,.08),',
-      '    inset 0 1px 0 rgba(255,255,255,.13),',
-      '    inset 0 -20px 42px rgba(0,0,0,.30) !important;',
+      '    0 22px 58px rgba(0,0,0,.66),',
+      '    0 0 0 1px rgba(255,231,156,.08),',
+      '    inset 0 1px 0 rgba(255,255,255,.14),',
+      '    inset 0 -22px 38px rgba(0,0,0,.28) !important;',
       '  text-align: center !important;',
       '  z-index: 2147483647 !important;',
       '  transform: translate3d(0,0,0) !important;',
       '  pointer-events: auto !important;',
       '  isolation: isolate !important;',
       '  contain: none !important;',
-      '  counter-reset: ua07-search-result !important;',
+      '  counter-reset: none !important;',
+      '  backdrop-filter: blur(10px) saturate(1.14) !important;',
+      '  -webkit-backdrop-filter: blur(10px) saturate(1.14) !important;',
       '}',
-      '#searchResults.search-results:empty,',
-      '#searchResults:empty{',
+      '#searchResults.' + PANEL_CLASS + ':empty,',
+      '#searchResults.search-results.' + PANEL_CLASS + ':empty{',
       '  display: none !important;',
       '  padding: 0 !important;',
       '  border-width: 0 !important;',
       '}',
-      '#searchResults.search-results::before,',
-      '#searchResults::before{',
-      '  content: "EGYPT SEARCH" !important;',
-      '  display: flex !important;',
-      '  align-items: center !important;',
-      '  justify-content: center !important;',
-      '  height: 28px !important;',
-      '  margin: -2px 2px 10px !important;',
+      '#searchResults.' + PANEL_CLASS + '::before,',
+      '#searchResults.search-results.' + PANEL_CLASS + '::before,',
+      '#searchResults#searchResults.' + PANEL_CLASS + '::before{',
+      '  content: "" !important;',
+      '  display: block !important;',
+      '  height: 3px !important;',
+      '  margin: -1px 10px 8px !important;',
       '  border-radius: 999px !important;',
-      '  border: 1px solid rgba(236,199,111,.38) !important;',
-      '  background:',
-      '    linear-gradient(90deg, rgba(164,20,18,.92), rgba(232,187,82,.86) 50%, rgba(8,8,10,.96)) !important;',
-      '  color: #fff2c8 !important;',
-      '  -webkit-text-fill-color: #fff2c8 !important;',
-      '  font-size: 11px !important;',
-      '  font-weight: 900 !important;',
-      '  letter-spacing: 1.7px !important;',
-      '  text-shadow: 0 1px 2px rgba(0,0,0,.75) !important;',
-      '  box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 8px 16px rgba(0,0,0,.22) !important;',
+      '  background: linear-gradient(90deg, transparent, rgba(196,34,28,.86) 18%, rgba(241,200,105,.96) 52%, rgba(196,34,28,.64) 82%, transparent) !important;',
+      '  box-shadow: 0 0 16px rgba(230,184,82,.24) !important;',
       '}',
-      '#searchResults.search-results::after,',
-      '#searchResults::after{',
+      '#searchResults.' + PANEL_CLASS + '::after,',
+      '#searchResults.search-results.' + PANEL_CLASS + '::after,',
+      '#searchResults#searchResults.' + PANEL_CLASS + '::after{',
       '  content: "" !important;',
       '  position: absolute !important;',
-      '  top: -7px !important;',
-      '  left: 50% !important;',
-      '  width: 14px !important;',
-      '  height: 14px !important;',
-      '  margin-left: -7px !important;',
-      '  box-sizing: border-box !important;',
-      '  transform: rotate(45deg) !important;',
-      '  border-left: 1px solid rgba(229,190,98,.62) !important;',
-      '  border-top: 1px solid rgba(229,190,98,.62) !important;',
-      '  background: linear-gradient(135deg, rgba(30,21,12,.985), rgba(86,22,14,.985)) !important;',
-      '  box-shadow: -5px -5px 20px rgba(0,0,0,.18) !important;',
+      '  left: 16px !important;',
+      '  right: 16px !important;',
+      '  top: -6px !important;',
+      '  height: 8px !important;',
+      '  border-radius: 999px !important;',
+      '  background: linear-gradient(90deg, rgba(160,24,20,.12), rgba(245,203,106,.38), rgba(160,24,20,.12)) !important;',
+      '  filter: blur(.2px) !important;',
+      '  pointer-events: none !important;',
       '  z-index: -1 !important;',
       '}',
-      '#searchResults.search-results a,',
-      '#searchResults a{',
+      '#searchResults.' + PANEL_CLASS + ' a,',
+      '#searchResults.search-results.' + PANEL_CLASS + ' a,',
+      '#searchResults#searchResults.' + PANEL_CLASS + ' a{',
       '  position: relative !important;',
       '  display: flex !important;',
       '  align-items: center !important;',
       '  justify-content: center !important;',
-      '  gap: 10px !important;',
       '  width: 100% !important;',
-      '  min-height: 43px !important;',
-      '  margin: 7px 0 !important;',
-      '  padding: 10px 14px 10px 46px !important;',
+      '  min-height: 41px !important;',
+      '  margin: 6px 0 !important;',
+      '  padding: 10px 16px !important;',
       '  box-sizing: border-box !important;',
-      '  border-radius: 15px !important;',
-      '  border: 1px solid rgba(223,186,95,.28) !important;',
+      '  border-radius: 14px !important;',
+      '  border: 1px solid rgba(223,184,91,.24) !important;',
       '  background:',
-      '    linear-gradient(180deg, rgba(255,255,255,.095), rgba(255,255,255,.035) 46%, rgba(0,0,0,.22)),',
-      '    linear-gradient(90deg, rgba(184,28,23,.12), transparent 38%, rgba(232,188,86,.10)) !important;',
-      '  color: rgba(255,246,221,.98) !important;',
-      '  -webkit-text-fill-color: rgba(255,246,221,.98) !important;',
+      '    linear-gradient(180deg, rgba(255,255,255,.090), rgba(255,255,255,.030) 45%, rgba(0,0,0,.20)),',
+      '    linear-gradient(90deg, rgba(170,30,24,.13), rgba(255,211,111,.055) 48%, rgba(170,30,24,.08)) !important;',
+      '  color: rgba(255,247,225,.98) !important;',
+      '  -webkit-text-fill-color: rgba(255,247,225,.98) !important;',
       '  font-weight: 900 !important;',
       '  font-size: 14px !important;',
-      '  line-height: 1.35 !important;',
+      '  line-height: 1.36 !important;',
       '  text-align: center !important;',
       '  text-decoration: none !important;',
-      '  text-shadow: 0 1px 2px rgba(0,0,0,.76) !important;',
+      '  text-shadow: 0 1px 2px rgba(0,0,0,.74) !important;',
       '  white-space: normal !important;',
       '  overflow-wrap: anywhere !important;',
-      '  transform: none !important;',
-      '  box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 8px 16px rgba(0,0,0,.16) !important;',
+      '  transform: translateZ(0) !important;',
+      '  box-shadow: inset 0 1px 0 rgba(255,255,255,.09), 0 7px 14px rgba(0,0,0,.15) !important;',
+      '  transition: border-color .15s ease, background .15s ease, box-shadow .15s ease, transform .15s ease, color .15s ease !important;',
       '}',
-      '#searchResults.search-results a::before,',
-      '#searchResults a::before{',
-      '  counter-increment: ua07-search-result !important;',
-      '  content: counter(ua07-search-result) !important;',
-      '  position: absolute !important;',
-      '  left: 12px !important;',
-      '  top: 50% !important;',
-      '  width: 24px !important;',
-      '  height: 24px !important;',
-      '  margin-top: -12px !important;',
-      '  display: inline-flex !important;',
-      '  align-items: center !important;',
-      '  justify-content: center !important;',
-      '  border-radius: 999px !important;',
-      '  border: 1px solid rgba(255,230,154,.48) !important;',
-      '  background: radial-gradient(circle at 32% 25%, #ffeab1, #b98022 56%, #351707 100%) !important;',
-      '  color: #180b04 !important;',
-      '  -webkit-text-fill-color: #180b04 !important;',
-      '  font-size: 11px !important;',
-      '  font-weight: 950 !important;',
-      '  line-height: 1 !important;',
-      '  text-shadow: none !important;',
-      '  box-shadow: 0 4px 10px rgba(0,0,0,.28) !important;',
+      '#searchResults.' + PANEL_CLASS + ' a::before,',
+      '#searchResults.search-results.' + PANEL_CLASS + ' a::before,',
+      '#searchResults#searchResults.' + PANEL_CLASS + ' a::before{',
+      '  content: none !important;',
+      '  display: none !important;',
+      '  counter-increment: none !important;',
       '}',
-      '#searchResults.search-results a::after,',
-      '#searchResults a::after{',
+      '#searchResults.' + PANEL_CLASS + ' a::after,',
+      '#searchResults.search-results.' + PANEL_CLASS + ' a::after,',
+      '#searchResults#searchResults.' + PANEL_CLASS + ' a::after{',
       '  content: "" !important;',
       '  position: absolute !important;',
       '  inset: 1px !important;',
-      '  border-radius: 14px !important;',
-      '  border-top: 1px solid rgba(255,255,255,.10) !important;',
+      '  border-radius: 13px !important;',
+      '  border-top: 1px solid rgba(255,255,255,.105) !important;',
       '  pointer-events: none !important;',
       '}',
-      '#searchResults.search-results a:hover,',
-      '#searchResults.search-results a:focus,',
-      '#searchResults a:hover,',
-      '#searchResults a:focus{',
+      '#searchResults.' + PANEL_CLASS + ' a:hover,',
+      '#searchResults.' + PANEL_CLASS + ' a:focus,',
+      '#searchResults.search-results.' + PANEL_CLASS + ' a:hover,',
+      '#searchResults.search-results.' + PANEL_CLASS + ' a:focus,',
+      '#searchResults#searchResults.' + PANEL_CLASS + ' a:hover,',
+      '#searchResults#searchResults.' + PANEL_CLASS + ' a:focus{',
       '  outline: none !important;',
-      '  color: #fff8dd !important;',
-      '  -webkit-text-fill-color: #fff8dd !important;',
-      '  border-color: rgba(255,220,132,.72) !important;',
+      '  padding: 10px 16px !important;',
+      '  color: #fff8df !important;',
+      '  -webkit-text-fill-color: #fff8df !important;',
+      '  border-color: rgba(255,219,132,.74) !important;',
       '  background:',
-      '    linear-gradient(180deg, rgba(144,28,21,.96), rgba(73,13,10,.96)),',
-      '    linear-gradient(90deg, rgba(255,210,102,.20), transparent) !important;',
-      '  box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 10px 22px rgba(0,0,0,.26), 0 0 0 1px rgba(255,217,132,.08) !important;',
+      '    linear-gradient(180deg, rgba(128,27,21,.88), rgba(52,12,10,.90)),',
+      '    linear-gradient(90deg, rgba(255,211,104,.18), transparent 58%, rgba(255,211,104,.08)) !important;',
+      '  box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 11px 24px rgba(0,0,0,.28), 0 0 0 1px rgba(255,217,132,.08) !important;',
+      '  transform: translateY(-1px) translateZ(0) !important;',
       '}',
-      '#searchResults.search-results a:hover::before,',
-      '#searchResults.search-results a:focus::before,',
-      '#searchResults a:hover::before,',
-      '#searchResults a:focus::before{',
-      '  background: radial-gradient(circle at 32% 25%, #fff6ce, #e1a942 58%, #4b1708 100%) !important;',
+      '#searchResults.' + PANEL_CLASS + ' a:active,',
+      '#searchResults.search-results.' + PANEL_CLASS + ' a:active{',
+      '  transform: translateY(0) translateZ(0) !important;',
       '}',
-      '#searchResults::-webkit-scrollbar{ width: 9px !important; }',
-      '#searchResults::-webkit-scrollbar-track{ background: rgba(0,0,0,.24) !important; border-radius: 999px !important; margin: 14px 0 !important; }',
-      '#searchResults::-webkit-scrollbar-thumb{ background: linear-gradient(180deg, rgba(230,187,85,.80), rgba(134,34,24,.78)) !important; border-radius: 999px !important; border: 2px solid rgba(7,7,10,.92) !important; }',
-      '#searchResults::-webkit-scrollbar-thumb:hover{ background: linear-gradient(180deg, rgba(255,218,125,.94), rgba(178,42,30,.90)) !important; }'
+      '#searchResults.' + PANEL_CLASS + '::-webkit-scrollbar{ width: 8px !important; }',
+      '#searchResults.' + PANEL_CLASS + '::-webkit-scrollbar-track{ background: rgba(0,0,0,.22) !important; border-radius: 999px !important; margin: 12px 0 !important; }',
+      '#searchResults.' + PANEL_CLASS + '::-webkit-scrollbar-thumb{ background: linear-gradient(180deg, rgba(232,190,88,.86), rgba(137,36,27,.78)) !important; border-radius: 999px !important; border: 2px solid rgba(8,8,12,.92) !important; }',
+      '#searchResults.' + PANEL_CLASS + '::-webkit-scrollbar-thumb:hover{ background: linear-gradient(180deg, rgba(255,221,130,.96), rgba(184,45,33,.92)) !important; }'
     ].join('\n');
 
     (document.head || document.documentElement).appendChild(style);
@@ -258,6 +259,21 @@
   function setImportant(el, prop, value) {
     if (!el) return;
     try { el.style.setProperty(prop, value, 'important'); } catch (_) {}
+  }
+
+  function hasVisibleResults(results) {
+    if (!results) return false;
+    var text = (results.textContent || '').replace(/\s+/g, '').trim();
+    return !!text && results.children && results.children.length > 0;
+  }
+
+  function setOpenState(container, results) {
+    var isOpen = hasVisibleResults(results);
+    if (container && container.classList) {
+      container.classList.toggle(OPEN_CLASS, isOpen);
+      container.classList.add(CONTAINER_CLASS);
+    }
+    if (results && results.classList) results.classList.add(PANEL_CLASS);
   }
 
   function alignNow() {
@@ -275,9 +291,13 @@
       try { container.appendChild(results); } catch (_) {}
     }
 
+    lastContainer = container;
+    lastResults = results;
+
     setImportant(container, 'position', 'relative');
     setImportant(container, 'overflow', 'visible');
     setImportant(container, 'z-index', '2147483002');
+    setOpenState(container, results);
 
     var inputRect = input.getBoundingClientRect();
     var containerRect = container.getBoundingClientRect();
@@ -287,18 +307,18 @@
     if (!inputRect.width || !containerRect.width) return;
 
     var gap = 8;
-    var desiredWidth = Math.min(Math.max(inputRect.width + 26, 350), 470, viewportW - (gap * 2));
-    desiredWidth = Math.max(280, Math.round(desiredWidth));
+    var desiredWidth = Math.min(Math.max(inputRect.width, 320), 460, viewportW - (gap * 2));
+    desiredWidth = Math.max(270, Math.round(desiredWidth));
 
-    var left = Math.round((inputRect.left - containerRect.left) + ((inputRect.width - desiredWidth) / 2));
+    var left = Math.round(inputRect.left - containerRect.left + ((inputRect.width - desiredWidth) / 2));
     var panelViewportLeft = Math.round(containerRect.left + left);
     var panelViewportRight = panelViewportLeft + desiredWidth;
 
     if (panelViewportLeft < gap) left += gap - panelViewportLeft;
     if (panelViewportRight > viewportW - gap) left -= panelViewportRight - (viewportW - gap);
 
-    var topInViewport = Math.round(inputRect.bottom + 16);
-    var maxHeight = Math.max(170, Math.min(370, viewportH - topInViewport - 12));
+    var topInViewport = Math.round(inputRect.bottom + 5);
+    var maxHeight = Math.max(160, Math.min(355, viewportH - topInViewport - 12));
 
     results.style.setProperty('--ua07-search-left', Math.round(left) + 'px');
     results.style.setProperty('--ua07-search-width', desiredWidth + 'px');
@@ -308,6 +328,12 @@
   function scheduleAlign() {
     if (raf) return;
     raf = window.requestAnimationFrame ? window.requestAnimationFrame(alignNow) : setTimeout(alignNow, 0);
+  }
+
+  function scheduleAgingAlign() {
+    scheduleAlign();
+    setTimeout(scheduleAlign, 30);
+    setTimeout(scheduleAlign, 90);
   }
 
   function bind() {
@@ -321,7 +347,10 @@
       setImportant(container, 'position', 'relative');
       setImportant(container, 'overflow', 'visible');
       setImportant(container, 'z-index', '2147483002');
+      if (container.classList) container.classList.add(CONTAINER_CLASS);
     }
+    if (results && results.classList) results.classList.add(PANEL_CLASS);
+    setOpenState(container, results);
 
     if (!input || bound) {
       scheduleAlign();
@@ -331,8 +360,12 @@
     bound = true;
 
     ['input', 'focus', 'click', 'keyup', 'change', 'paste'].forEach(function (eventName) {
-      input.addEventListener(eventName, scheduleAlign, { passive: true });
+      input.addEventListener(eventName, scheduleAgingAlign, { passive: true });
     });
+
+    if (results) {
+      results.addEventListener('click', scheduleAlign, { passive: true });
+    }
 
     window.addEventListener('resize', scheduleAlign, { passive: true });
     window.addEventListener('orientationchange', function () { setTimeout(scheduleAlign, 80); }, { passive: true });
@@ -352,4 +385,7 @@
     injectCss();
     scheduleAlign();
   }, { once: true, passive: true });
+
+  // Expose a tiny manual refresh hook for future internal use, without doing background loops.
+  window.ua07RefreshSearchResultsOverlay = scheduleAlign;
 }());
