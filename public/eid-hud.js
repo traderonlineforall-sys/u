@@ -10,11 +10,11 @@ const LS_THEME_OFF = "sr_eid_theme_off";
 const LS_THEME_MODE = "sr_visual_theme_mode";
 const TOGGLE_BTN_ID = "EID_TOGGLE_BTN";
 const LEGACY_THEME_LINK_ID = "ua07LegacyThemeLink";
-const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy7-transparent-menu-layer";
+const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy8-professional-hover";
 const AHLY_THEME_LINK_ID = "ahlyPremiumThemeLink";
-const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahly-v13-transparent-menu-layer";
+const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahly-v14-professional-hover";
 const EGYPT_THEME_LINK_ID = "egyptWorldCupThemeLink";
-const EGYPT_THEME_HREF = "egypt-worldcup-theme.css?v=egyptwc-layer-v10";
+const EGYPT_THEME_HREF = "egypt-worldcup-theme.css?v=egyptwc-layer-v11-professional-hover";
 const THEME_EID = "eid";
 const THEME_LEGACY = "legacy";
 const THEME_AHLY = "ahly";
@@ -297,6 +297,209 @@ function ensureAhlyTransparentMenuLayer(){
   }
 }
 
+
+function ensureProfessionalMenuHoverLayer(){
+  if (document.getElementById('MNDO_PROFESSIONAL_MENU_HOVER_LAYER')) return;
+  const css = `
+/* ===== MNDO professional menu hover layer v1 =====
+   Applies to Egypt, Ahly and Zamalek. Normal choices remain transparent;
+   hover/open state gets a polished theme-colored tint. Visual-only: no layout or logic touched.
+*/
+html.egypt-worldcup-theme-live {
+  --mndo-menu-text: #f5d57d;
+  --mndo-menu-hover-text: #fff7d5;
+  --mndo-menu-hover-bg: linear-gradient(180deg, rgba(255,246,211,.16), rgba(255,246,211,.035) 36%, rgba(92,0,0,.36) 100%), radial-gradient(120% 170% at 14% 0%, rgba(255,218,118,.20), rgba(255,218,118,0) 48%), radial-gradient(120% 180% at 100% 0%, rgba(206,14,45,.26), rgba(206,14,45,0) 58%), linear-gradient(90deg, rgba(76,0,0,.66), rgba(18,0,0,.42) 55%, rgba(5,0,0,.30));
+  --mndo-menu-hover-bg-color: rgba(35,0,0,.56);
+  --mndo-menu-hover-border: rgba(255,226,145,.42);
+  --mndo-menu-hover-glow: rgba(255,218,118,.28);
+  --mndo-menu-hover-accent: rgba(255,218,118,.46);
+  --mndo-panel-bg: linear-gradient(180deg, rgba(255,246,211,.075), rgba(255,246,211,.016) 34%, rgba(0,0,0,.02)), radial-gradient(160% 120% at 12% 0%, rgba(255,218,118,.10), rgba(255,218,118,0) 48%), radial-gradient(150% 135% at 100% 6%, rgba(170,0,0,.20), rgba(170,0,0,0) 58%), linear-gradient(180deg, rgba(20,0,0,.88), rgba(38,0,0,.78) 57%, rgba(5,0,0,.90));
+  --mndo-panel-bg-color: rgba(18,0,0,.86);
+  --mndo-panel-border: rgba(255,226,145,.33);
+  --mndo-row-border: rgba(255,226,145,.10);
+  --mndo-row-hover-bg: linear-gradient(180deg, rgba(255,246,211,.10), rgba(255,246,211,.025)), radial-gradient(125% 150% at 8% 0%, rgba(255,218,118,.18), rgba(255,218,118,0) 48%), linear-gradient(90deg, rgba(116,0,0,.58), rgba(35,0,0,.34) 58%, rgba(3,0,0,.18));
+  --mndo-row-hover-bg-color: rgba(58,0,0,.46);
+}
+html.ahly-premium-theme-live {
+  --mndo-menu-text: rgba(255,235,184,.98);
+  --mndo-menu-hover-text: #fff3bf;
+  --mndo-menu-hover-bg: linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.030) 34%, rgba(96,0,0,.42) 100%), radial-gradient(120% 165% at 14% 0%, rgba(255,214,112,.18), rgba(255,214,112,0) 48%), radial-gradient(126% 180% at 100% 0%, rgba(230,0,0,.28), rgba(230,0,0,0) 58%), linear-gradient(90deg, rgba(108,0,0,.68), rgba(15,15,19,.46) 58%, rgba(0,0,0,.30));
+  --mndo-menu-hover-bg-color: rgba(38,0,0,.58);
+  --mndo-menu-hover-border: rgba(255,220,130,.42);
+  --mndo-menu-hover-glow: rgba(255,214,112,.27);
+  --mndo-menu-hover-accent: rgba(255,214,112,.48);
+  --mndo-panel-bg: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.014) 34%, rgba(0,0,0,.02)), radial-gradient(155% 125% at 12% 0%, rgba(255,214,112,.10), rgba(255,214,112,0) 48%), radial-gradient(155% 140% at 100% 6%, rgba(175,0,0,.22), rgba(175,0,0,0) 58%), linear-gradient(180deg, rgba(12,12,17,.88), rgba(20,4,7,.78) 56%, rgba(42,0,0,.89));
+  --mndo-panel-bg-color: rgba(8,8,12,.88);
+  --mndo-panel-border: rgba(255,220,130,.31);
+  --mndo-row-border: rgba(255,214,112,.10);
+  --mndo-row-hover-bg: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.024)), radial-gradient(130% 150% at 8% 0%, rgba(255,214,112,.17), rgba(255,214,112,0) 48%), linear-gradient(90deg, rgba(126,0,0,.58), rgba(22,18,20,.36) 58%, rgba(0,0,0,.18));
+  --mndo-row-hover-bg-color: rgba(58,0,0,.48);
+}
+html.ua07-legacy-theme-live {
+  --mndo-menu-text: rgba(245,241,255,.98);
+  --mndo-menu-hover-text: #ffffff;
+  --mndo-menu-hover-bg: linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.030) 34%, rgba(58,48,150,.40) 100%), radial-gradient(120% 165% at 14% 0%, rgba(190,174,255,.20), rgba(190,174,255,0) 48%), radial-gradient(126% 180% at 100% 0%, rgba(116,92,255,.28), rgba(116,92,255,0) 58%), linear-gradient(90deg, rgba(42,32,120,.66), rgba(12,12,32,.46) 58%, rgba(0,0,0,.28));
+  --mndo-menu-hover-bg-color: rgba(24,20,70,.58);
+  --mndo-menu-hover-border: rgba(200,186,255,.42);
+  --mndo-menu-hover-glow: rgba(190,174,255,.32);
+  --mndo-menu-hover-accent: rgba(190,174,255,.50);
+  --mndo-panel-bg: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.014) 34%, rgba(0,0,0,.02)), radial-gradient(155% 125% at 12% 0%, rgba(190,174,255,.12), rgba(190,174,255,0) 48%), radial-gradient(155% 140% at 100% 6%, rgba(116,92,255,.22), rgba(116,92,255,0) 58%), linear-gradient(180deg, rgba(7,7,22,.88), rgba(16,13,44,.78) 56%, rgba(5,4,18,.90));
+  --mndo-panel-bg-color: rgba(7,7,22,.88);
+  --mndo-panel-border: rgba(200,186,255,.31);
+  --mndo-row-border: rgba(190,174,255,.10);
+  --mndo-row-hover-bg: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.024)), radial-gradient(130% 150% at 8% 0%, rgba(190,174,255,.18), rgba(190,174,255,0) 48%), linear-gradient(90deg, rgba(58,48,150,.58), rgba(15,13,42,.38) 58%, rgba(0,0,0,.18));
+  --mndo-row-hover-bg-color: rgba(38,32,120,.48);
+}
+html.egypt-worldcup-theme-live body .dropdown .dropbtn,
+html.egypt-worldcup-theme-live body .navbar a,
+html.egypt-worldcup-theme-live body #singlelink,
+html.ahly-premium-theme-live body .dropdown .dropbtn,
+html.ahly-premium-theme-live body .navbar a,
+html.ahly-premium-theme-live body #singlelink,
+html.ua07-legacy-theme-live body .dropdown .dropbtn,
+html.ua07-legacy-theme-live body .navbar a,
+html.ua07-legacy-theme-live body #singlelink {
+  color: var(--mndo-menu-text) !important;
+  -webkit-text-fill-color: var(--mndo-menu-text) !important;
+}
+html.egypt-worldcup-theme-live body .dropdown .dropbtn,
+html.egypt-worldcup-theme-live body .navbar a,
+html.egypt-worldcup-theme-live body #singlelink,
+html.egypt-worldcup-theme-live body .dropdown-content a,
+html.egypt-worldcup-theme-live body .sub-dropdown-content a,
+html.egypt-worldcup-theme-live body .sub-dropdown > a,
+html.ahly-premium-theme-live body .dropdown .dropbtn,
+html.ahly-premium-theme-live body .navbar a,
+html.ahly-premium-theme-live body #singlelink,
+html.ahly-premium-theme-live body .dropdown-content a,
+html.ahly-premium-theme-live body .sub-dropdown-content a,
+html.ahly-premium-theme-live body .sub-dropdown > a,
+html.ua07-legacy-theme-live body .dropdown .dropbtn,
+html.ua07-legacy-theme-live body .navbar a,
+html.ua07-legacy-theme-live body #singlelink,
+html.ua07-legacy-theme-live body .dropdown-content a,
+html.ua07-legacy-theme-live body .sub-dropdown-content a,
+html.ua07-legacy-theme-live body .sub-dropdown > a {
+  transition: color .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease, text-shadow .16s ease, filter .16s ease !important;
+}
+html.egypt-worldcup-theme-live body .dropdown:hover .dropbtn,
+html.egypt-worldcup-theme-live body .dropdown:focus-within .dropbtn,
+html.egypt-worldcup-theme-live body .dropdown.open .dropbtn,
+html.egypt-worldcup-theme-live body .dropdown.active .dropbtn,
+html.egypt-worldcup-theme-live body .navbar a:hover,
+html.egypt-worldcup-theme-live body .navbar a:focus,
+html.egypt-worldcup-theme-live body #singlelink:hover,
+html.egypt-worldcup-theme-live body #singlelink:focus,
+html.ahly-premium-theme-live body .dropdown:hover .dropbtn,
+html.ahly-premium-theme-live body .dropdown:focus-within .dropbtn,
+html.ahly-premium-theme-live body .dropdown.open .dropbtn,
+html.ahly-premium-theme-live body .dropdown.active .dropbtn,
+html.ahly-premium-theme-live body .navbar a:hover,
+html.ahly-premium-theme-live body .navbar a:focus,
+html.ahly-premium-theme-live body #singlelink:hover,
+html.ahly-premium-theme-live body #singlelink:focus,
+html.ua07-legacy-theme-live body .dropdown:hover .dropbtn,
+html.ua07-legacy-theme-live body .dropdown:focus-within .dropbtn,
+html.ua07-legacy-theme-live body .dropdown.open .dropbtn,
+html.ua07-legacy-theme-live body .dropdown.active .dropbtn,
+html.ua07-legacy-theme-live body .navbar a:hover,
+html.ua07-legacy-theme-live body .navbar a:focus,
+html.ua07-legacy-theme-live body #singlelink:hover,
+html.ua07-legacy-theme-live body #singlelink:focus {
+  color: var(--mndo-menu-hover-text) !important;
+  -webkit-text-fill-color: var(--mndo-menu-hover-text) !important;
+  background: var(--mndo-menu-hover-bg) !important;
+  background-color: var(--mndo-menu-hover-bg-color) !important;
+  border-color: var(--mndo-menu-hover-border) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,1), 0 0 12px var(--mndo-menu-hover-glow) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.15), inset 0 -1px 0 var(--mndo-menu-hover-border), inset 2px 0 0 var(--mndo-menu-hover-accent), 0 8px 20px rgba(0,0,0,.31), 0 0 17px var(--mndo-menu-hover-glow) !important;
+  filter: none !important;
+}
+html.egypt-worldcup-theme-live body .dropdown-content,
+html.egypt-worldcup-theme-live body .sub-dropdown-content,
+html.egypt-worldcup-theme-live body .search-results,
+html.egypt-worldcup-theme-live body #searchResults,
+html.ahly-premium-theme-live body .dropdown-content,
+html.ahly-premium-theme-live body .sub-dropdown-content,
+html.ahly-premium-theme-live body .search-results,
+html.ahly-premium-theme-live body #searchResults,
+html.ua07-legacy-theme-live body .dropdown-content,
+html.ua07-legacy-theme-live body .sub-dropdown-content,
+html.ua07-legacy-theme-live body .search-results,
+html.ua07-legacy-theme-live body #searchResults {
+  background: var(--mndo-panel-bg) !important;
+  background-color: var(--mndo-panel-bg-color) !important;
+  border-color: var(--mndo-panel-border) !important;
+  color: var(--mndo-menu-text) !important;
+  -webkit-text-fill-color: var(--mndo-menu-text) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.11), inset 0 0 0 1px rgba(255,255,255,.025), 0 18px 42px rgba(0,0,0,.60), 0 0 21px var(--mndo-menu-hover-glow) !important;
+  backdrop-filter: blur(10px) saturate(1.16) contrast(1.03) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.16) contrast(1.03) !important;
+}
+html.egypt-worldcup-theme-live body .sub-dropdown,
+html.egypt-worldcup-theme-live body .sub-dropdown[style],
+html.egypt-worldcup-theme-live body .dropdown-content a,
+html.egypt-worldcup-theme-live body .sub-dropdown-content a,
+html.egypt-worldcup-theme-live body .sub-dropdown > a,
+html.ahly-premium-theme-live body .sub-dropdown,
+html.ahly-premium-theme-live body .sub-dropdown[style],
+html.ahly-premium-theme-live body .dropdown-content a,
+html.ahly-premium-theme-live body .sub-dropdown-content a,
+html.ahly-premium-theme-live body .sub-dropdown > a,
+html.ua07-legacy-theme-live body .sub-dropdown,
+html.ua07-legacy-theme-live body .sub-dropdown[style],
+html.ua07-legacy-theme-live body .dropdown-content a,
+html.ua07-legacy-theme-live body .sub-dropdown-content a,
+html.ua07-legacy-theme-live body .sub-dropdown > a {
+  color: var(--mndo-menu-text) !important;
+  -webkit-text-fill-color: var(--mndo-menu-text) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: var(--mndo-row-border) !important;
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,.035) !important;
+}
+html.egypt-worldcup-theme-live body .sub-dropdown:hover,
+html.egypt-worldcup-theme-live body .sub-dropdown:hover[style],
+html.egypt-worldcup-theme-live body .dropdown-content a:hover,
+html.egypt-worldcup-theme-live body .dropdown-content a:focus,
+html.egypt-worldcup-theme-live body .sub-dropdown-content a:hover,
+html.egypt-worldcup-theme-live body .sub-dropdown-content a:focus,
+html.egypt-worldcup-theme-live body .sub-dropdown:hover > a,
+html.ahly-premium-theme-live body .sub-dropdown:hover,
+html.ahly-premium-theme-live body .sub-dropdown:hover[style],
+html.ahly-premium-theme-live body .dropdown-content a:hover,
+html.ahly-premium-theme-live body .dropdown-content a:focus,
+html.ahly-premium-theme-live body .sub-dropdown-content a:hover,
+html.ahly-premium-theme-live body .sub-dropdown-content a:focus,
+html.ahly-premium-theme-live body .sub-dropdown:hover > a,
+html.ua07-legacy-theme-live body .sub-dropdown:hover,
+html.ua07-legacy-theme-live body .sub-dropdown:hover[style],
+html.ua07-legacy-theme-live body .dropdown-content a:hover,
+html.ua07-legacy-theme-live body .dropdown-content a:focus,
+html.ua07-legacy-theme-live body .sub-dropdown-content a:hover,
+html.ua07-legacy-theme-live body .sub-dropdown-content a:focus,
+html.ua07-legacy-theme-live body .sub-dropdown:hover > a {
+  color: var(--mndo-menu-hover-text) !important;
+  -webkit-text-fill-color: var(--mndo-menu-hover-text) !important;
+  background: var(--mndo-row-hover-bg) !important;
+  background-color: var(--mndo-row-hover-bg-color) !important;
+  border-color: var(--mndo-panel-border) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,1), 0 0 10px var(--mndo-menu-hover-glow) !important;
+  box-shadow: inset 2px 0 0 var(--mndo-menu-hover-accent), inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 var(--mndo-panel-border), 0 6px 16px rgba(0,0,0,.25) !important;
+  filter: none !important;
+}
+/* ===== END MNDO professional menu hover layer v1 ===== */
+  `;
+  const style = document.createElement('style');
+  style.id = 'MNDO_PROFESSIONAL_MENU_HOVER_LAYER';
+  style.textContent = css;
+  try {
+    (document.body || document.documentElement).appendChild(style);
+  } catch {
+    try { (document.head || document.documentElement).appendChild(style); } catch {}
+  }
+}
+
 function ensureDecorLayer(){
   if (document.getElementById('EID_DECOR_LAYER')) return;
   const host = document.body || document.documentElement;
@@ -315,6 +518,7 @@ function ensureDecorLayer(){
 function applyThemeState(){
   ensureDecorLayer();
   ensureAhlyTransparentMenuLayer();
+  ensureProfessionalMenuHoverLayer();
   const mode = getThemeMode();
   const eidLink = getThemeLink();
   const legacyLink = getLegacyThemeLink();
@@ -430,6 +634,7 @@ function boot(){
   ensureToggleBaseStyle();
   ensureDecorLayer();
   ensureAhlyTransparentMenuLayer();
+  ensureProfessionalMenuHoverLayer();
   applyThemeState();
   let tries = 0;
   const t = setInterval(function(){
