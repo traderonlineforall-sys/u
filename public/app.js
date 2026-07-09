@@ -3757,8 +3757,9 @@ if (link && link.indexOf("srTypeId=100047021") !== -1) {
                                                                                                                         const resultLink = document.createElement('a');
                                                                                                                         resultLink.href = link.href;
                                                                                                                         resultLink.textContent = link.textContent;
-                                                                // لا نضع title هنا حتى لا يظهر مسار القائمة كـ tooltip فوق نتيجة البحث.
-                                                                resultLink.removeAttribute('title');
+                                                                // إظهار مسار النتيجة عند الوقوف بالماوس، مع بقاء فلترة القوائم الداخلية فعالة.
+                                                                const path = getLinkPath(link);
+                                                                resultLink.title = path ? (path + ' → ' + link.textContent.trim()) : link.textContent.trim();
                                                                                                                         resultLink.onclick = function (e) {
                                                                                                                                 e.preventDefault();
                                                                                                                                 link.click(); // simulate click on original link
