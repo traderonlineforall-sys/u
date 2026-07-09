@@ -67,7 +67,7 @@
   html.scl-has-search body.scl-has-search .mndo-search-hk-anchor #hkSmartFloatingLine {
     position: absolute !important;
     left: 5% !important;
-    top: 31px !important;
+    top: 58px !important; /* HK only: lowered away from the search box. */
     margin: 0 !important;
     z-index: 3 !important;
     transform: none !important;

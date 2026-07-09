@@ -42,7 +42,7 @@
     if (loadLayoutFixes._done) return;
     loadLayoutFixes._done = true;
     [
-      './safe-customization-layer.js'
+      './safe-customization-layer.js?v=hk-down-source-v5'
     ].forEach(function(src){
       importOnce(src, src);
     });
@@ -124,7 +124,7 @@
     // Keep them delayed so the first tool load stays light.
     [
       './online-users-count.js',
-      './eid-hud.js?v=hk-down-real-only-v4'
+      './eid-hud.js?v=hk-down-only-source-v5'
     ].forEach(function(src){
       importOnce(src, src);
     });
