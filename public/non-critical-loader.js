@@ -42,7 +42,7 @@
     if (loadLayoutFixes._done) return;
     loadLayoutFixes._done = true;
     [
-      './safe-customization-layer.js?v=hk-align-left-v7-calccomfort'
+      './safe-customization-layer.js?v=header-flag-stable-v8'
     ].forEach(function(src){
       importOnce(src, src);
     });

@@ -576,7 +576,7 @@ html.sr-theme-off-live body .sub-dropdown:hover > a {
 
 function ensureHeaderSearchHKPositionLayer(){
   const css = `
-/* ===== MNDO search/HK balanced header position layer v7 =====
+/* ===== MNDO search/HK balanced header position layer v8 =====
    Search is lifted slightly to align with FBB/logo.
    HK/Hayah Karima sits directly under search and safely above the main buttons.
    Search horizontal position and SR/search/FBB logic are untouched; HK is aligned with the search left edge. */
@@ -617,7 +617,25 @@ html.scl-has-search body.scl-has-search .mndo-search-hk-anchor .search-container
   margin-top: 0 !important;
   transform: none !important;
 }
-/* ===== END MNDO search/HK balanced header position layer v7 ===== */
+
+html.egypt-worldcup-theme-live body .mndo-search-logo-row .mndo-search-hk-anchor,
+html.egypt-worldcup-theme-live body .mndo-search-hk-anchor {
+  position: relative !important;
+  top: -10px !important;
+  transform: none !important;
+  overflow: visible !important;
+}
+html.egypt-worldcup-theme-live body .mndo-search-hk-anchor #hkSmartFloatingLine,
+html.egypt-worldcup-theme-live body #hkSmartFloatingLine {
+  position: absolute !important;
+  top: 42px !important;
+  left: 0 !important;
+  transform: none !important;
+  margin: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+/* ===== END MNDO search/HK balanced header position layer v8 ===== */
   `;
   let style = document.getElementById('MNDO_HEADER_SEARCH_HK_POSITION_LAYER');
   if (!style) {
