@@ -1603,3 +1603,174 @@ html.egypt-worldcup-theme-live #searchResults a {
   font-size: 14px !important;
   line-height: 1.18 !important;
 }
+
+/* ===== Egypt World Cup Theme - native menu logic alignment v8 =====
+   Visual-only override: keep DOM/order/SR logic untouched.
+   Menus now follow the same open/hover behavior as the rest of the tool,
+   while preserving Egypt colors and the internal scroll on long option panels. */
+html.egypt-worldcup-theme-live {
+  --egypt-v8-menu-bg: rgba(18, 1, 1, .982);
+  --egypt-v8-menu-bg-2: rgba(45, 4, 2, .972);
+  --egypt-v8-menu-line: rgba(238, 207, 128, .34);
+  --egypt-v8-menu-text: #f7e2a5;
+  --egypt-v8-menu-text-hot: #fff8dc;
+  --egypt-v8-hover-1: rgba(150, 0, 0, .92);
+  --egypt-v8-hover-2: rgba(54, 0, 0, .90);
+}
+
+html.egypt-worldcup-theme-live .dropdown,
+html.egypt-worldcup-theme-live .sub-dropdown,
+html.egypt-worldcup-theme-live .sub-dropdown[style] {
+  overflow: visible !important;
+}
+
+html.egypt-worldcup-theme-live .dropdown-content,
+html.egypt-worldcup-theme-live .sub-dropdown-content,
+html.egypt-worldcup-theme-live .dropdown:hover .dropdown-content,
+html.egypt-worldcup-theme-live .dropdown:focus-within .dropdown-content,
+html.egypt-worldcup-theme-live .sub-dropdown:hover .sub-dropdown-content,
+html.egypt-worldcup-theme-live .sub-dropdown:focus-within .sub-dropdown-content {
+  width: max-content !important;
+  min-width: 180px !important;
+  max-width: none !important;
+  overflow: visible !important;
+  padding: 3px 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  color: var(--egypt-v8-menu-text) !important;
+  -webkit-text-fill-color: var(--egypt-v8-menu-text) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 246, 211, .045), rgba(255, 246, 211, 0) 34%),
+    linear-gradient(180deg, var(--egypt-v8-menu-bg), var(--egypt-v8-menu-bg-2) 58%, rgba(6, 0, 0, .988)) !important;
+  background-color: var(--egypt-v8-menu-bg) !important;
+  border: 1px solid var(--egypt-v8-menu-line) !important;
+  border-radius: 6px !important;
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, .46),
+    inset 0 1px 0 rgba(255, 246, 211, .07) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .82) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+  z-index: 999999 !important;
+}
+
+/* Keep Egypt's useful internal scroll for long final option lists without clipping side submenus. */
+html.egypt-worldcup-theme-live .sub-dropdown-content {
+  max-height: calc(100vh - 176px) !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
+  scrollbar-gutter: stable !important;
+}
+
+@supports selector(.dropdown-content:not(:has(.sub-dropdown))) {
+  html.egypt-worldcup-theme-live .dropdown-content:not(:has(.sub-dropdown)) {
+    max-height: calc(100vh - 176px) !important;
+    overflow-y: auto !important;
+    overflow-x: auto !important;
+    scrollbar-gutter: stable !important;
+  }
+
+  html.egypt-worldcup-theme-live .dropdown-content:has(.sub-dropdown) {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}
+
+html.egypt-worldcup-theme-live .sub-dropdown,
+html.egypt-worldcup-theme-live .sub-dropdown[style] {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html.egypt-worldcup-theme-live .dropdown-content a,
+html.egypt-worldcup-theme-live .sub-dropdown-content a,
+html.egypt-worldcup-theme-live .sub-dropdown > a {
+  display: block !important;
+  float: none !important;
+  width: auto !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: 8px 14px !important;
+  border: 0 !important;
+  border-radius: 4px !important;
+  outline: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  color: var(--egypt-v8-menu-text) !important;
+  -webkit-text-fill-color: var(--egypt-v8-menu-text) !important;
+  font-size: 14.5px !important;
+  font-weight: 650 !important;
+  line-height: 1.18 !important;
+  letter-spacing: 0 !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-align: left !important;
+  text-decoration: none !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .86) !important;
+  transition: background .12s ease, color .12s ease, box-shadow .12s ease !important;
+}
+
+html.egypt-worldcup-theme-live .dropdown-content a + a,
+html.egypt-worldcup-theme-live .sub-dropdown-content a + a,
+html.egypt-worldcup-theme-live .sub-dropdown + .sub-dropdown,
+html.egypt-worldcup-theme-live .dropdown-content > a + .sub-dropdown,
+html.egypt-worldcup-theme-live .dropdown-content > .sub-dropdown + a,
+html.egypt-worldcup-theme-live .sub-dropdown-content > .sub-dropdown + a,
+html.egypt-worldcup-theme-live .sub-dropdown-content > a + .sub-dropdown {
+  border-top: 0 !important;
+}
+
+html.egypt-worldcup-theme-live .sub-dropdown:hover,
+html.egypt-worldcup-theme-live .sub-dropdown:hover[style],
+html.egypt-worldcup-theme-live .sub-dropdown:focus-within,
+html.egypt-worldcup-theme-live .sub-dropdown:focus-within[style] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html.egypt-worldcup-theme-live .dropdown-content a:hover,
+html.egypt-worldcup-theme-live .dropdown-content a:focus,
+html.egypt-worldcup-theme-live .sub-dropdown-content a:hover,
+html.egypt-worldcup-theme-live .sub-dropdown-content a:focus,
+html.egypt-worldcup-theme-live .sub-dropdown:hover > a,
+html.egypt-worldcup-theme-live .sub-dropdown:focus-within > a {
+  color: var(--egypt-v8-menu-text-hot) !important;
+  -webkit-text-fill-color: var(--egypt-v8-menu-text-hot) !important;
+  background:
+    linear-gradient(90deg, var(--egypt-v8-hover-1), var(--egypt-v8-hover-2) 64%, rgba(10, 0, 0, .76)) !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  border-radius: 4px !important;
+  box-shadow:
+    inset 3px 0 0 rgba(255, 225, 150, .58),
+    inset 0 1px 0 rgba(255, 246, 211, .09) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .96) !important;
+}
+
+html.egypt-worldcup-theme-live .dropdown-content::-webkit-scrollbar,
+html.egypt-worldcup-theme-live .sub-dropdown-content::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+}
+html.egypt-worldcup-theme-live .dropdown-content::-webkit-scrollbar-track,
+html.egypt-worldcup-theme-live .sub-dropdown-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, .26) !important;
+  border-radius: 9px !important;
+}
+html.egypt-worldcup-theme-live .dropdown-content::-webkit-scrollbar-thumb,
+html.egypt-worldcup-theme-live .sub-dropdown-content::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(238, 207, 128, .42), rgba(136, 0, 0, .52)) !important;
+  border-radius: 9px !important;
+}
