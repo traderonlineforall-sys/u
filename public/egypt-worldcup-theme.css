@@ -759,3 +759,138 @@ html.egypt-worldcup-theme-live #hkSmartFloatingLine .hk-row {
   transform: none !important;
 }
 /* ===== END Egypt search/HK vertical separation v17 ===== */
+
+/* ===== Egypt daily usage + quota controls + default-entry polish v20 =====
+   Scope: Egypt theme only. Visual styling only; no SR logic, no calculation logic.
+   Also neutralizes the old search lift so only the HK line can be positioned by safe-customization-layer.css.
+*/
+html.egypt-worldcup-theme-live .mndo-search-logo-row .mndo-search-hk-anchor,
+html.egypt-worldcup-theme-live body > .search-container {
+  top: 0 !important;
+}
+
+html.egypt-worldcup-theme-live .mndo-usage-tool-btn,
+html.egypt-worldcup-theme-live button.mndo-usage-tool-btn {
+  color: #3c210d !important;
+  -webkit-text-fill-color: #3c210d !important;
+  background:
+    radial-gradient(120% 140% at 26% 0%, rgba(255,255,255,.44), rgba(255,255,255,0) 43%),
+    linear-gradient(180deg, #f6e9c5, #dcc27e 58%, #a9823d) !important;
+  background-color: #dec98e !important;
+  border: 1px solid rgba(255,241,204,.76) !important;
+  border-radius: 12px !important;
+  padding: 6px 12px !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  line-height: 1.2 !important;
+  letter-spacing: .1px !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.34) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.48),
+    inset 0 -1px 0 rgba(92,50,17,.16),
+    0 10px 22px rgba(0,0,0,.34),
+    0 0 18px rgba(217,189,120,.12) !important;
+  filter: saturate(.88) brightness(.98) contrast(1.03) !important;
+}
+html.egypt-worldcup-theme-live .mndo-usage-tool-btn:hover,
+html.egypt-worldcup-theme-live .mndo-usage-tool-btn:focus {
+  color: #2e1707 !important;
+  -webkit-text-fill-color: #2e1707 !important;
+  background:
+    radial-gradient(120% 140% at 26% 0%, rgba(255,255,255,.54), rgba(255,255,255,0) 43%),
+    linear-gradient(180deg, #fff3d1, #e6cd87 58%, #b89249) !important;
+  border-color: rgba(255,249,224,.88) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.56),
+    inset 0 -1px 0 rgba(92,50,17,.14),
+    0 13px 27px rgba(0,0,0,.38),
+    0 0 22px rgba(232,207,146,.18) !important;
+}
+html.egypt-worldcup-theme-live .mndo-usage-tool-btn a {
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+  text-decoration: none !important;
+}
+
+html.egypt-worldcup-theme-live label[for="pkgs"],
+html.egypt-worldcup-theme-live #real label,
+html.egypt-worldcup-theme-live .mndo-renewal-label,
+html.egypt-worldcup-theme-live .mndo-renewal-label[style] {
+  color: #ead59b !important;
+  -webkit-text-fill-color: #ead59b !important;
+  font-weight: 900 !important;
+  letter-spacing: .15px !important;
+  text-shadow: 0 2px 12px rgba(0,0,0,.86), 0 0 14px rgba(217,189,120,.14) !important;
+}
+
+html.egypt-worldcup-theme-live select#pkgs,
+html.egypt-worldcup-theme-live input#other_pkg,
+html.egypt-worldcup-theme-live input#bss_pkg[type="text"] {
+  color: #f6e7bf !important;
+  -webkit-text-fill-color: #f6e7bf !important;
+  background:
+    radial-gradient(130% 150% at 22% 0%, rgba(244,230,192,.14), rgba(244,230,192,0) 43%),
+    linear-gradient(180deg, rgba(42,17,10,.90), rgba(9,7,7,.95) 58%, rgba(39,4,5,.88)) !important;
+  background-color: rgba(20,5,4,.94) !important;
+  border: 1px solid rgba(217,189,120,.34) !important;
+  border-radius: 11px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(244,230,192,.13),
+    inset 0 -1px 0 rgba(217,189,120,.10),
+    0 10px 24px rgba(0,0,0,.32) !important;
+  outline: none !important;
+}
+html.egypt-worldcup-theme-live select#pkgs:focus,
+html.egypt-worldcup-theme-live input#other_pkg:focus,
+html.egypt-worldcup-theme-live input#bss_pkg[type="text"]:focus {
+  border-color: rgba(232,207,146,.58) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(244,230,192,.16),
+    0 0 0 3px rgba(217,189,120,.12),
+    0 13px 28px rgba(0,0,0,.38) !important;
+}
+html.egypt-worldcup-theme-live select#pkgs option {
+  background: #160505 !important;
+  color: #f4e6c0 !important;
+}
+
+html.egypt-worldcup-theme-live input#bss_pkg[type="reset"] {
+  color: #3d210c !important;
+  -webkit-text-fill-color: #3d210c !important;
+  background:
+    radial-gradient(120% 140% at 25% 0%, rgba(255,255,255,.46), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg, #f7e9c1, #dbc17b 58%, #af8943) !important;
+  border: 1px solid rgba(255,240,202,.72) !important;
+  border-radius: 12px !important;
+  font-weight: 900 !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.34) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.50), inset 0 -1px 0 rgba(96,54,18,.15), 0 10px 22px rgba(0,0,0,.34) !important;
+}
+
+html.egypt-worldcup-theme-live .floating-actions #suggestionsFab.suggestions-fab,
+html.egypt-worldcup-theme-live #suggestionsFab.suggestions-fab {
+  color: #3b210d !important;
+  -webkit-text-fill-color: #3b210d !important;
+  background:
+    radial-gradient(120% 135% at 22% 0%, rgba(255,255,255,.42), rgba(255,255,255,0) 44%),
+    linear-gradient(180deg, #f2e2b5, #d7bd79 58%, #a9823d) !important;
+  background-color: #dfca92 !important;
+  border-color: rgba(255,239,196,.72) !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.34) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.44),
+    inset 0 -1px 0 rgba(74,38,13,.12),
+    0 14px 30px rgba(0,0,0,.38),
+    0 0 20px rgba(217,189,120,.12) !important;
+}
+html.egypt-worldcup-theme-live .floating-actions #suggestionsFab.suggestions-fab:hover,
+html.egypt-worldcup-theme-live #suggestionsFab.suggestions-fab:hover {
+  color: #2d1707 !important;
+  -webkit-text-fill-color: #2d1707 !important;
+  background:
+    radial-gradient(120% 135% at 22% 0%, rgba(255,255,255,.52), rgba(255,255,255,0) 44%),
+    linear-gradient(180deg, #fff0c8, #e0c884 58%, #b9944a) !important;
+  border-color: rgba(255,247,216,.86) !important;
+}
+/* ===== END Egypt daily usage + quota controls + default-entry polish v20 ===== */
+

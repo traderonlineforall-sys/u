@@ -14,12 +14,14 @@ const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy10-hk-down-only-v5";
 const AHLY_THEME_LINK_ID = "ahlyPremiumThemeLink";
 const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahly-v15-hk-down-only-v5";
 const EGYPT_THEME_LINK_ID = "egyptWorldCupThemeLink";
-const EGYPT_THEME_HREF = "egypt-worldcup-theme.css?v=egyptwc-layer-v19-hk-down-only-v5";
+const EGYPT_THEME_HREF = "egypt-worldcup-theme.css?v=egyptwc-layer-v20-tool-controls-default";
 const THEME_EID = "eid";
 const THEME_LEGACY = "legacy";
 const THEME_AHLY = "ahly";
 const THEME_EGYPT = "egypt";
 const THEME_OFF = "off";
+const DEFAULT_THEME_MODE = THEME_EGYPT;
+const LS_EGYPT_DEFAULT_MIGRATION = "sr_visual_theme_default_egypt_v1";
 
 function getThemeLink(){
   return document.getElementById("eidThemeLink") || document.querySelector('link[href$="eid-theme.css"], link[href*="eid-theme.css"]');
@@ -73,13 +75,13 @@ function getThemeMode(){
   try {
     const saved = localStorage.getItem(LS_THEME_MODE);
     if (saved === THEME_EID || saved === THEME_LEGACY || saved === THEME_AHLY || saved === THEME_EGYPT || saved === THEME_OFF) return saved;
-    return localStorage.getItem(LS_THEME_OFF) === "1" ? THEME_OFF : THEME_EID;
+    return localStorage.getItem(LS_THEME_OFF) === "1" ? THEME_OFF : DEFAULT_THEME_MODE;
   } catch {
-    return THEME_EID;
+    return DEFAULT_THEME_MODE;
   }
 }
 function setThemeMode(mode){
-  const safeMode = (mode === THEME_EID || mode === THEME_LEGACY || mode === THEME_AHLY || mode === THEME_EGYPT || mode === THEME_OFF) ? mode : THEME_EID;
+  const safeMode = (mode === THEME_EID || mode === THEME_LEGACY || mode === THEME_AHLY || mode === THEME_EGYPT || mode === THEME_OFF) ? mode : DEFAULT_THEME_MODE;
   try {
     localStorage.setItem(LS_THEME_MODE, safeMode);
     localStorage.setItem(LS_THEME_OFF, safeMode === THEME_OFF ? "1" : "0");
@@ -97,7 +99,16 @@ function isThemeOff(){
   return getThemeMode() === THEME_OFF;
 }
 function setThemeOff(v){
-  setThemeMode(v ? THEME_OFF : THEME_EID);
+  setThemeMode(v ? THEME_OFF : DEFAULT_THEME_MODE);
+}
+
+function ensureEgyptDefaultOnce(){
+  try {
+    if (localStorage.getItem(LS_EGYPT_DEFAULT_MIGRATION) === "1") return;
+    localStorage.setItem(LS_THEME_MODE, THEME_EGYPT);
+    localStorage.setItem(LS_THEME_OFF, "0");
+    localStorage.setItem(LS_EGYPT_DEFAULT_MIGRATION, "1");
+  } catch {}
 }
 
 function forceThemeToggleVisible(){
@@ -1023,6 +1034,7 @@ html.ahly-premium-theme-live body .sub-dropdown:hover > a {
 }
 
 function boot(){
+  ensureEgyptDefaultOnce();
   ensureToggleBaseStyle();
   ensureDecorLayer();
   ensureAhlyTransparentMenuLayer();

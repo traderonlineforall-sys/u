@@ -21,7 +21,20 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" href="/favicon.ico?v=uwk07c">
 <!-- Eid visual theme (safe, toggleable, non-invasive) -->
-    <link id="eidThemeLink" rel="stylesheet" href="eid-theme.css">
+    <link id="eidThemeLink" rel="stylesheet" href="eid-theme.css" disabled>
+    <link id="egyptWorldCupThemeLink" rel="stylesheet" href="egypt-worldcup-theme.css?v=egyptwc-layer-v20-tool-controls-default">
+    <script>
+      (function(){
+        try {
+          if (localStorage.getItem('sr_visual_theme_default_egypt_v1') !== '1') {
+            localStorage.setItem('sr_visual_theme_mode', 'egypt');
+            localStorage.setItem('sr_eid_theme_off', '0');
+            localStorage.setItem('sr_visual_theme_default_egypt_v1', '1');
+          }
+        } catch(e) {}
+        try { document.documentElement.classList.add('egypt-worldcup-theme-live'); } catch(e) {}
+      })();
+    </script>
 
     <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -13761,16 +13774,11 @@ https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeNam
 
 
 
-                                                <button style="
-    background: #ccc;
-    box-shadow: 20px 8px 16px 0px rgba(0,0,0,0.2);
-    border-radius: 10%;
-">
-       
-        "> <a href=" https://sp-wiki.te.eg:5443/SiteAssets/mini_tools/new_usage_tool.html" target="_blank 717"> Daily Usage Tool </a>
+                                                <button class="mndo-usage-tool-btn mndo-daily-usage-btn" type="button">
+                                                        <a href="https://sp-wiki.te.eg:5443/SiteAssets/mini_tools/new_usage_tool.html" target="_blank" rel="noopener noreferrer">Daily Usage Tool</a>
                                                 </button>
 &nbsp; 
-<button style="background:#ccc;border-radius:10%;padding:2px 6px;font-size:10px;box-shadow:6px 3px 6px 0px rgba(0,0,0,0.2);"> <a href=" https://sp-wiki.te.eg:5443/SiteAssets/mini_tools/usage-calculator.html" target="_blank"> Usage Calculator </a></button>
+<button class="mndo-usage-tool-btn mndo-usage-calculator-btn" type="button"><a href="https://sp-wiki.te.eg:5443/SiteAssets/mini_tools/usage-calculator.html" target="_blank" rel="noopener noreferrer">Usage Calculator</a></button>
 
 
                                                 <script
@@ -13902,7 +13910,7 @@ https://bss.te.eg:12900/csp/sr/business.action?BMEBusiness=srNewSrPage&srTypeNam
                                                                 </div>
                                                         </div>
 
-                                                        <p style="color: #ffffff;">
+                                                        <p class="mndo-renewal-label" style="color: #ffffff;">
                                                                 معاد التجديد :
                                                         </p>
 
