@@ -1253,3 +1253,171 @@ html.egypt-worldcup-theme-live .dropdown{
     float:left !important;
     overflow:hidden !important;
 }
+
+/* ===== Egypt SR Sales dropdown layout normalization =====
+   Keep Egypt visual styling, but restore the same geometry used by
+   the working themes for the SR Sales dropdown/options row. */
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar {
+  overflow: hidden !important;
+  background: transparent !important;
+}
+
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar > .dropdown {
+  float: left !important;
+  display: block !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar > .dropdown > .dropbtn {
+  font-size: 16px !important;
+  font-family: inherit !important;
+  padding: 14px 16px !important;
+  margin: 0 !important;
+  border-width: 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  box-sizing: content-box !important;
+  white-space: nowrap !important;
+  line-height: normal !important;
+}
+
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar > a,
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar > #singlelink {
+  float: left !important;
+  font-size: 16px !important;
+  padding: 14px 16px !important;
+  margin: 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  box-sizing: content-box !important;
+  white-space: nowrap !important;
+  line-height: normal !important;
+}
+
+html.egypt-worldcup-theme-live #SR\ Sales .toolsBar .toolsStyle {
+  padding: 3px 7px !important;
+  margin: 2px 6px 8px 0 !important;
+  display: inline-block !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  white-space: nowrap !important;
+}
+
+/* ===== Egypt SR Sales layout hard lock v2 =====
+   Fixes float wrapping gaps in Egypt theme only.
+   Keeps DOM order untouched and preserves Egypt visuals. */
+
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: flex-start !important;
+  align-content: flex-start !important;
+  justify-content: flex-start !important;
+  gap: 0 !important;
+  float: none !important;
+  clear: both !important;
+  overflow: visible !important;
+  background: transparent !important;
+}
+
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar > .dropdown {
+  float: none !important;
+  clear: none !important;
+  flex: 0 0 auto !important;
+  display: block !important;
+  position: relative !important;
+  overflow: visible !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  box-sizing: content-box !important;
+}
+
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar > .dropdown > .dropbtn {
+  float: none !important;
+  display: block !important;
+  clear: none !important;
+  font-size: 16px !important;
+  font-family: inherit !important;
+  font-weight: normal !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  text-align: left !important;
+  padding: 14px 16px !important;
+  margin: 0 !important;
+  border-width: 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  box-sizing: content-box !important;
+  white-space: nowrap !important;
+  line-height: normal !important;
+}
+
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar > a,
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar > #singlelink {
+  float: none !important;
+  clear: none !important;
+  flex: 0 0 auto !important;
+  display: block !important;
+  font-size: 16px !important;
+  font-family: inherit !important;
+  font-weight: normal !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  text-align: left !important;
+  padding: 14px 16px !important;
+  margin: 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  box-sizing: content-box !important;
+  white-space: nowrap !important;
+  line-height: normal !important;
+}
+
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar > .dropdown > .dropdown-content {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  display: none;
+  z-index: 9999 !important;
+}
+
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar > .dropdown:hover > .dropdown-content,
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar > .dropdown:focus-within > .dropdown-content {
+  display: block !important;
+}
+
+html.egypt-worldcup-theme-live #SR\ Sales .toolsBar .toolsStyle {
+  display: inline-block !important;
+  float: none !important;
+  clear: none !important;
+  padding: 3px 7px !important;
+  margin: 2px 6px 8px 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+}
