@@ -3681,6 +3681,22 @@ if (link && link.indexOf("srTypeId=100047021") !== -1) {
                                                                                                         .replace(/\s+/g, ' ')                  // تحويل المسافات المتعددة إلى واحدة
                                                                                                         .trim();
 
+                                                                                                // ✅ يظهر في البحث روابط التنفيذ الحقيقية فقط، وليس عناوين القوائم الداخلية.
+                                                                                                // هذا يمنع ظهور مسارات مثل: Fixed Voice - Billing - ... داخل مربع البحث.
+                                                                                                const isRealSearchResultLink = link => {
+                                                                                                        if (!link || link.classList.contains('no-search')) return false;
+                                                                                                        if (link.closest && link.closest('#searchResults')) return false;
+
+                                                                                                        const rawHref = (link.getAttribute('href') || '').trim();
+                                                                                                        if (!rawHref || rawHref === '#' || rawHref.charAt(0) === '#') return false;
+                                                                                                        if (/^javascript\s*:/i.test(rawHref)) return false;
+
+                                                                                                        // روابط الهيدر/القوائم الداخلية يكون بعدها sub-dropdown-content وليست SR حقيقي.
+                                                                                                        if (link.nextElementSibling && link.nextElementSibling.classList && link.nextElementSibling.classList.contains('sub-dropdown-content')) return false;
+
+                                                                                                        return true;
+                                                                                                };
+
                                                                                                 const searchInput = document.getElementById('searchInput');
                                                                                                 const searchResults = document.getElementById('searchResults');
 
@@ -3731,7 +3747,7 @@ if (link && link.indexOf("srTypeId=100047021") !== -1) {
 
                                                                                                         const allLinks = Array.from(document.querySelectorAll('.dropdown-content a, .sub-dropdown-content a, a#singlelink'))
 
-                                                                                                                .filter(link => !link.classList.contains('no-search'));
+                                                                                                                .filter(isRealSearchResultLink);
 
                                                                                                         let hasResults = false;
 
@@ -3741,8 +3757,8 @@ if (link && link.indexOf("srTypeId=100047021") !== -1) {
                                                                                                                         const resultLink = document.createElement('a');
                                                                                                                         resultLink.href = link.href;
                                                                                                                         resultLink.textContent = link.textContent;
-                                                                const path = getLinkPath(link);
-                                                                resultLink.title = path ? (path + ' → ' + link.textContent) : link.textContent;
+                                                                // لا نضع title هنا حتى لا يظهر مسار القائمة كـ tooltip فوق نتيجة البحث.
+                                                                resultLink.removeAttribute('title');
                                                                                                                         resultLink.onclick = function (e) {
                                                                                                                                 e.preventDefault();
                                                                                                                                 link.click(); // simulate click on original link

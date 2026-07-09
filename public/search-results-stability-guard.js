@@ -180,9 +180,32 @@
     rafPosition = window.requestAnimationFrame ? window.requestAnimationFrame(positionResultsNow) : setTimeout(positionResultsNow, 0);
   }
 
+  function sanitizeSearchResults() {
+    var p = parts();
+    var links;
+    if (!p.results) return;
+
+    links = Array.prototype.slice.call(p.results.querySelectorAll('a'));
+    links.forEach(function (a) {
+      var original;
+      try { a.removeAttribute('title'); } catch (_) {}
+      original = findOriginalLink(a);
+      if (!original || !isRealSearchResultLink(original)) {
+        try { a.remove(); } catch (_) {}
+      }
+    });
+
+    if (!hasResults(p.results)) setStyle(p.results, 'display', 'none');
+  }
+
   function showResults() {
     var p = parts();
-    if (!hasText(p.input) || !hasResults(p.results)) return;
+    if (!hasText(p.input)) return;
+    sanitizeSearchResults();
+    if (!hasResults(p.results)) {
+      if (p.results) setStyle(p.results, 'display', 'none');
+      return;
+    }
     ensureResultsInContainer();
     positionResults();
     setStyle(p.results, 'display', 'block');
@@ -197,13 +220,27 @@
     });
   }
 
+  function isRealSearchResultLink(link) {
+    var rawHref;
+    if (!link || !link.classList || link.classList.contains('no-search')) return false;
+    if (link.closest && link.closest('#' + SEARCH_RESULTS_ID)) return false;
+
+    rawHref = String(link.getAttribute('href') || '').trim();
+    if (!rawHref || rawHref === '#' || rawHref.charAt(0) === '#') return false;
+    if (/^javascript\s*:/i.test(rawHref)) return false;
+
+    // Internal submenu headers are navigation labels, not executable SR links.
+    if (link.nextElementSibling && link.nextElementSibling.classList && link.nextElementSibling.classList.contains('sub-dropdown-content')) {
+      return false;
+    }
+
+    return true;
+  }
+
   function allSearchableLinks() {
-    var currentResults = byId(SEARCH_RESULTS_ID);
     return Array.prototype.slice.call(
       document.querySelectorAll('.dropdown-content a, .sub-dropdown-content a, a#singlelink')
-    ).filter(function (link) {
-      return link && !link.classList.contains('no-search') && !(currentResults && currentResults.contains(link));
-    });
+    ).filter(isRealSearchResultLink);
   }
 
   function sameHref(a, b) {
@@ -317,9 +354,19 @@
 
   function openOriginalFromSearch(resultLink) {
     var original = findOriginalLink(resultLink);
-    var url = buildUrlForOriginal(original, resultLink);
-    var rawTarget = String((original && original.getAttribute('target')) || resultLink.getAttribute('target') || '_blank');
-    var target = /blank/i.test(rawTarget) ? '_blank' : (rawTarget.replace(/\s+/g, '') || '_blank');
+    var url;
+    var rawTarget;
+    var target;
+
+    if (!original || !isRealSearchResultLink(original)) {
+      try { if (resultLink) resultLink.remove(); } catch (_) {}
+      sanitizeSearchResults();
+      return;
+    }
+
+    url = buildUrlForOriginal(original, resultLink);
+    rawTarget = String((original && original.getAttribute('target')) || resultLink.getAttribute('target') || '_blank');
+    target = /blank/i.test(rawTarget) ? '_blank' : (rawTarget.replace(/\s+/g, '') || '_blank');
 
     keepResultsOpen();
     positionResults();
@@ -505,6 +552,7 @@
       if (results) {
         var mo = new MutationObserver(function () {
           ensureResultsInContainer();
+          sanitizeSearchResults();
           showResults();
           positionResults();
         });
