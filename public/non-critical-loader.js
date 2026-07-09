@@ -124,7 +124,7 @@
     // Keep them delayed so the first tool load stays light.
     [
       './online-users-count.js',
-      './eid-hud.js'
+      './eid-hud.js?v=theme-toggle-visible-v1'
     ].forEach(function(src){
       importOnce(src, src);
     });
