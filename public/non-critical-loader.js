@@ -103,7 +103,7 @@
           e.stopImmediatePropagation();
         } catch {}
 
-        importOnce('admin', './admin.js').then(function(){
+        importOnce('admin', './admin.js?v=nick-bulk-admin-v1').then(function(){
           try {
             if (typeof window.__srOpenAdminPanel === 'function') {
               window.__srOpenAdminPanel();
