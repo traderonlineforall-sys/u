@@ -42,7 +42,7 @@
     if (loadLayoutFixes._done) return;
     loadLayoutFixes._done = true;
     [
-      './safe-customization-layer.js?v=hk-down-source-v5'
+      './safe-customization-layer.js?v=header-align-v6'
     ].forEach(function(src){
       importOnce(src, src);
     });

@@ -39,7 +39,7 @@
     var link = document.createElement("link");
     link.id = "safeCustomizationLayerCss";
     link.rel = "stylesheet";
-    link.href = "./safe-customization-layer.css?v=hk-down-source-v5";
+    link.href = "./safe-customization-layer.css?v=header-align-v6";
     document.head.appendChild(link);
   }
 

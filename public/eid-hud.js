@@ -576,10 +576,10 @@ html.sr-theme-off-live body .sub-dropdown:hover > a {
 
 function ensureHeaderSearchHKPositionLayer(){
   const css = `
-/* ===== MNDO HK down-only position layer v5 =====
-   Search stays exactly where the tool puts it.
-   Only #hkSmartFloatingLine is lowered inside its existing anchor.
-   No SR/search/FBB logic touched. */
+/* ===== MNDO search/HK balanced header position layer v6 =====
+   Search is lifted slightly to align with FBB/logo.
+   HK/Hayah Karima sits directly under search and safely above the main buttons.
+   Horizontal position and SR/search/FBB logic are untouched. */
 html.scl-has-search body.scl-has-search .mndo-search-hk-anchor #hkSmartFloatingLine,
 html.eid-theme-live .mndo-search-hk-anchor #hkSmartFloatingLine,
 html.ua07-legacy-theme-live .mndo-search-hk-anchor #hkSmartFloatingLine,
@@ -588,7 +588,7 @@ html.egypt-worldcup-theme-live .mndo-search-hk-anchor #hkSmartFloatingLine,
 html.sr-theme-off-live .mndo-search-hk-anchor #hkSmartFloatingLine,
 .mndo-search-hk-anchor #hkSmartFloatingLine {
   position: absolute !important;
-  top: 58px !important;
+  top: 42px !important;
   left: 5% !important;
   right: auto !important;
   bottom: auto !important;
@@ -599,7 +599,16 @@ html.sr-theme-off-live .mndo-search-hk-anchor #hkSmartFloatingLine,
 }
 
 html.scl-has-search body.scl-has-search .mndo-search-hk-anchor,
+html.eid-theme-live .mndo-search-hk-anchor,
+html.ua07-legacy-theme-live .mndo-search-hk-anchor,
+html.ahly-premium-theme-live .mndo-search-hk-anchor,
+html.egypt-worldcup-theme-live .mndo-search-hk-anchor,
+html.sr-theme-off-live .mndo-search-hk-anchor,
 .mndo-search-hk-anchor {
+  position: relative !important;
+  top: -10px !important;
+  left: auto !important;
+  right: auto !important;
   overflow: visible !important;
 }
 
@@ -608,7 +617,7 @@ html.scl-has-search body.scl-has-search .mndo-search-hk-anchor .search-container
   margin-top: 0 !important;
   transform: none !important;
 }
-/* ===== END MNDO HK down-only position layer v5 ===== */
+/* ===== END MNDO search/HK balanced header position layer v6 ===== */
   `;
   let style = document.getElementById('MNDO_HEADER_SEARCH_HK_POSITION_LAYER');
   if (!style) {
