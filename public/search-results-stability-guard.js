@@ -2,7 +2,7 @@
   'use strict';
 
   /*
-   * UA07 Search Results Theme Adaptive V7 + Dropdown Internal Scroll V8
+   * UA07 Search Results Theme Adaptive V7 + Dropdown Scroll Only V9
    *
    * Keeps the working lightweight attached overlay behavior:
    * - No layout push.
@@ -13,6 +13,11 @@
    * - Search results inherit the active visual theme instead of forcing Egypt style.
    * - No numbers, no title/header text.
    * - Results stay visually attached to the search input with a polished premium panel.
+   *
+   * Dropdown update V9:
+   * - Cancels the heavy V8 menu styling.
+   * - Adds internal scrolling only to long dropdown menus.
+   * - Does not change menu typography, colors, padding, margins, item height, or layout.
    */
 
   var STYLE_ID = 'ua07-search-results-theme-adaptive-v7';
@@ -486,267 +491,135 @@
   }
 
 
-  function installDropdownInternalScrollV8() {
-    var styleId = 'ua07-dropdown-internal-scroll-v8';
-    var panelClass = 'ua07-menu-internal-scroll-panel';
-    var openUpClass = 'ua07-menu-open-up';
-    var fixedSubClass = 'ua07-menu-fixed-subpanel';
-    var html = document.documentElement;
+  function installDropdownScrollOnlyV9() {
+    var STYLE_ID_V9 = 'ua07-dropdown-scroll-only-v9';
+    var OLD_STYLE_ID_V8 = 'ua07-dropdown-internal-scroll-v8';
+    var SCROLL_CLASS = 'ua07-dropdown-scroll-only-v9-panel';
+    var V8_CLASSES = [
+      'ua07-menu-internal-scroll-panel',
+      'ua07-menu-open-up',
+      'ua07-menu-fixed-subpanel'
+    ];
+
+    function removeV8() {
+      var oldStyle = document.getElementById(OLD_STYLE_ID_V8);
+      if (oldStyle && oldStyle.parentNode) oldStyle.parentNode.removeChild(oldStyle);
+
+      var panels = document.querySelectorAll('.dropdown-content, .sub-dropdown-content');
+      panels.forEach(function (panel) {
+        if (!panel || !panel.classList) return;
+        V8_CLASSES.forEach(function (cls) { panel.classList.remove(cls); });
+        try {
+          panel.style.removeProperty('--ua07-menu-top');
+          panel.style.removeProperty('--ua07-menu-left');
+          panel.style.removeProperty('--ua07-menu-width');
+          panel.style.removeProperty('--ua07-menu-min-width');
+          panel.style.removeProperty('--ua07-menu-max-height');
+          panel.style.removeProperty('top');
+          panel.style.removeProperty('left');
+          panel.style.removeProperty('right');
+          panel.style.removeProperty('bottom');
+          panel.style.removeProperty('width');
+          panel.style.removeProperty('max-width');
+        } catch (_) {}
+      });
+    }
 
     function injectMenuCss() {
-      if (document.getElementById(styleId)) return;
+      removeV8();
+      if (document.getElementById(STYLE_ID_V9)) return;
+
       var style = document.createElement('style');
-      style.id = styleId;
+      style.id = STYLE_ID_V9;
       style.textContent = [
-        '/* UA07 V8: internal scrolling for long dropdown choices without page scroll. */',
-        ':root{',
-        '  --ua07-menu-scroll-thumb: linear-gradient(180deg, rgba(230,238,255,.92), rgba(98,153,255,.76));',
-        '  --ua07-menu-scroll-track: rgba(0,0,0,.24);',
-        '  --ua07-menu-scroll-border: rgba(8,10,18,.92);',
-        '  --ua07-menu-focus-ring: rgba(180,210,255,.34);',
-        '}',
-        'html.egypt-worldcup-theme-live{',
-        '  --ua07-menu-scroll-thumb: linear-gradient(180deg, rgba(241,202,105,.92), rgba(162,36,29,.78));',
-        '  --ua07-menu-scroll-track: rgba(15,0,0,.42);',
-        '  --ua07-menu-scroll-border: rgba(20,0,0,.92);',
-        '  --ua07-menu-focus-ring: rgba(241,202,105,.34);',
-        '}',
-        'html.ahly-premium-theme-live{',
-        '  --ua07-menu-scroll-thumb: linear-gradient(180deg, rgba(255,224,143,.94), rgba(190,0,0,.82));',
-        '  --ua07-menu-scroll-track: rgba(18,0,0,.45);',
-        '  --ua07-menu-scroll-border: rgba(18,0,0,.94);',
-        '  --ua07-menu-focus-ring: rgba(255,224,143,.32);',
-        '}',
-        'html.ua07-legacy-theme-live{',
-        '  --ua07-menu-scroll-thumb: linear-gradient(180deg, rgba(255,255,255,.86), rgba(128,106,255,.72));',
-        '  --ua07-menu-scroll-track: rgba(0,0,0,.30);',
-        '  --ua07-menu-scroll-border: rgba(8,8,12,.94);',
-        '  --ua07-menu-focus-ring: rgba(220,220,255,.28);',
-        '}',
-        'html.eid-theme-live{',
-        '  --ua07-menu-scroll-thumb: linear-gradient(180deg, rgba(255,240,190,.92), rgba(113,160,255,.76));',
-        '  --ua07-menu-scroll-track: rgba(2,7,18,.38);',
-        '  --ua07-menu-scroll-border: rgba(5,8,16,.94);',
-        '  --ua07-menu-focus-ring: rgba(255,240,190,.30);',
-        '}',
-        'html.ramadan-theme-live{',
-        '  --ua07-menu-scroll-thumb: linear-gradient(180deg, rgba(241,210,122,.92), rgba(16,185,129,.76));',
-        '  --ua07-menu-scroll-track: rgba(0,18,16,.38);',
-        '  --ua07-menu-scroll-border: rgba(3,14,13,.94);',
-        '  --ua07-menu-focus-ring: rgba(241,210,122,.30);',
-        '}',
-        'html.sr-theme-off-live{',
-        '  --ua07-menu-scroll-thumb: linear-gradient(180deg, rgba(226,242,255,.90), rgba(78,160,255,.74));',
-        '  --ua07-menu-scroll-track: rgba(0,8,22,.36);',
-        '  --ua07-menu-scroll-border: rgba(2,7,18,.94);',
-        '  --ua07-menu-focus-ring: rgba(128,194,255,.28);',
-        '}',
-        '.navbar, .dropdown, .sub-dropdown{',
-        '  overflow: visible !important;',
-        '  contain: none !important;',
-        '}',
-        '.dropdown, .sub-dropdown{',
-        '  position: relative !important;',
-        '}',
-        '.dropdown-content.' + panelClass + ', .sub-dropdown-content.' + panelClass + '{',
-        '  max-height: var(--ua07-menu-max-height, min(420px, calc(100vh - 118px))) !important;',
+        '/* UA07 V9: scroll only for long dropdowns; no typography or visual item changes. */',
+        '.dropdown-content.' + SCROLL_CLASS + ', .sub-dropdown-content.' + SCROLL_CLASS + '{',
+        '  max-height: var(--ua07-menu-scroll-max-height, min(420px, calc(100vh - 112px))) !important;',
         '  overflow-y: auto !important;',
         '  overflow-x: hidden !important;',
         '  overscroll-behavior: contain !important;',
         '  -webkit-overflow-scrolling: touch !important;',
         '  scrollbar-width: thin !important;',
-        '  scrollbar-color: rgba(230,218,170,.84) rgba(0,0,0,.28) !important;',
-        '  scrollbar-gutter: stable !important;',
-        '  padding: 7px !important;',
         '  box-sizing: border-box !important;',
-        '  border-radius: 14px !important;',
-        '  z-index: 2147483300 !important;',
-        '  isolation: isolate !important;',
-        '  contain: none !important;',
         '}',
-        '.dropdown-content.' + panelClass + '{',
-        '  min-width: max(180px, var(--ua07-menu-min-width, 160px)) !important;',
-        '}',
-        '.sub-dropdown-content.' + panelClass + '{',
-        '  min-width: max(260px, var(--ua07-menu-min-width, 300px)) !important;',
-        '}',
-        '.dropdown-content.' + panelClass + '.' + openUpClass + '{',
-        '  top: auto !important;',
-        '  bottom: calc(100% + 5px) !important;',
-        '}',
-        '.sub-dropdown-content.' + panelClass + '.' + fixedSubClass + '{',
-        '  position: fixed !important;',
-        '  top: var(--ua07-menu-top, 12px) !important;',
-        '  left: var(--ua07-menu-left, 12px) !important;',
-        '  right: auto !important;',
-        '  bottom: auto !important;',
-        '  width: var(--ua07-menu-width, auto) !important;',
-        '  max-width: calc(100vw - 24px) !important;',
-        '  z-index: 2147483350 !important;',
-        '}',
-        '.dropdown-content.' + panelClass + '::-webkit-scrollbar, .sub-dropdown-content.' + panelClass + '::-webkit-scrollbar{',
+        '.dropdown-content.' + SCROLL_CLASS + '::-webkit-scrollbar, .sub-dropdown-content.' + SCROLL_CLASS + '::-webkit-scrollbar{',
         '  width: 8px !important;',
         '  height: 8px !important;',
         '}',
-        '.dropdown-content.' + panelClass + '::-webkit-scrollbar-track, .sub-dropdown-content.' + panelClass + '::-webkit-scrollbar-track{',
-        '  background: var(--ua07-menu-scroll-track) !important;',
+        '.dropdown-content.' + SCROLL_CLASS + '::-webkit-scrollbar-track, .sub-dropdown-content.' + SCROLL_CLASS + '::-webkit-scrollbar-track{',
+        '  background: transparent !important;',
+        '}',
+        '.dropdown-content.' + SCROLL_CLASS + '::-webkit-scrollbar-thumb, .sub-dropdown-content.' + SCROLL_CLASS + '::-webkit-scrollbar-thumb{',
+        '  background: rgba(180,180,180,.55) !important;',
         '  border-radius: 999px !important;',
-        '  margin: 10px 0 !important;',
-        '}',
-        '.dropdown-content.' + panelClass + '::-webkit-scrollbar-thumb, .sub-dropdown-content.' + panelClass + '::-webkit-scrollbar-thumb{',
-        '  background: var(--ua07-menu-scroll-thumb) !important;',
-        '  border-radius: 999px !important;',
-        '  border: 2px solid var(--ua07-menu-scroll-border) !important;',
-        '}',
-        '.dropdown-content.' + panelClass + '::-webkit-scrollbar-thumb:hover, .sub-dropdown-content.' + panelClass + '::-webkit-scrollbar-thumb:hover{',
-        '  filter: brightness(1.10) saturate(1.06) !important;',
-        '}',
-        '.dropdown-content.' + panelClass + ' > a, .dropdown-content.' + panelClass + ' > .sub-dropdown > a, .sub-dropdown-content.' + panelClass + ' > a{',
-        '  border-radius: 10px !important;',
-        '  margin: 2px 0 !important;',
-        '  min-height: 32px !important;',
-        '}',
-        '.dropdown-content.' + panelClass + ' a:focus-visible, .sub-dropdown-content.' + panelClass + ' a:focus-visible{',
-        '  outline: 2px solid var(--ua07-menu-focus-ring) !important;',
-        '  outline-offset: -2px !important;',
         '}',
         '@media (max-width: 768px){',
-        '  .dropdown-content.' + panelClass + ', .sub-dropdown-content.' + panelClass + '{',
-        '    max-height: var(--ua07-menu-max-height, min(360px, calc(100vh - 96px))) !important;',
+        '  .dropdown-content.' + SCROLL_CLASS + ', .sub-dropdown-content.' + SCROLL_CLASS + '{',
+        '    max-height: var(--ua07-menu-scroll-max-height, min(360px, calc(100vh - 96px))) !important;',
         '  }',
         '}'
       ].join('\n');
       (document.head || document.documentElement).appendChild(style);
     }
 
-    function setVar(el, name, value) {
-      try { el.style.setProperty(name, value); } catch (_) {}
-    }
-
-    function isVisible(el) {
-      if (!el) return false;
+    function isVisible(panel) {
+      if (!panel) return false;
       var cs;
-      try { cs = window.getComputedStyle(el); } catch (_) { return false; }
+      try { cs = window.getComputedStyle(panel); } catch (_) { return false; }
       if (!cs || cs.display === 'none' || cs.visibility === 'hidden') return false;
-      var r = el.getBoundingClientRect();
+      var r = panel.getBoundingClientRect();
       return r.width > 0 && r.height >= 0;
     }
 
-    function addPanelClass() {
-      var panels = document.querySelectorAll('.dropdown-content, .sub-dropdown-content');
-      panels.forEach(function (panel) {
-        if (panel && panel.classList) panel.classList.add(panelClass);
-      });
-    }
-
-    function fitMainPanel(panel) {
-      if (!panel || !panel.classList) return;
-      var owner = panel.closest ? panel.closest('.dropdown') : null;
-      panel.classList.remove(fixedSubClass);
-      panel.classList.remove(openUpClass);
-      panel.style.removeProperty('--ua07-menu-top');
-      panel.style.removeProperty('--ua07-menu-left');
-      panel.style.removeProperty('--ua07-menu-width');
-
-      var vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0, 320);
-      var vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0, 320);
-      var ownerRect = owner ? owner.getBoundingClientRect() : panel.getBoundingClientRect();
-      var rect = panel.getBoundingClientRect();
-      if (!rect.width) return;
-
-      var cap = Math.min(430, Math.max(190, vh - 76));
-      var below = Math.max(92, vh - rect.top - 12);
-      var above = Math.max(0, ownerRect.top - 12);
-      var openUp = below < 185 && above > below && above > 148;
-      var maxHeight = Math.min(cap, openUp ? above : below);
-      maxHeight = Math.max(118, Math.round(maxHeight));
-
-      if (openUp) panel.classList.add(openUpClass);
-      setVar(panel, '--ua07-menu-max-height', maxHeight + 'px');
-      setVar(panel, '--ua07-menu-min-width', Math.max(160, Math.round(rect.width || 160)) + 'px');
-
-      window.requestAnimationFrame(function () {
-        var fixedRect = panel.getBoundingClientRect();
-        if (fixedRect.right > vw - 8) panel.classList.add('open-left');
-        if (fixedRect.left < 8 && panel.classList.contains('open-left')) panel.classList.remove('open-left');
-      });
-    }
-
-    function fitSubPanel(panel) {
-      if (!panel || !panel.classList) return;
-      var owner = panel.closest ? panel.closest('.sub-dropdown') : null;
-      if (!owner) return;
-
-      var vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0, 320);
-      var vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0, 320);
-      var ownerRect = owner.getBoundingClientRect();
-      var currentRect = panel.getBoundingClientRect();
-      var width = Math.max(currentRect.width || panel.offsetWidth || 300, 260);
-      width = Math.min(width, vw - 18);
-
-      var gap = 8;
-      var left = ownerRect.right + gap;
-      if (left + width > vw - 8) left = ownerRect.left - width - gap;
-      if (left < 8) left = 8;
-      if (left + width > vw - 8) width = Math.max(220, vw - left - 8);
-
-      var cap = Math.min(430, Math.max(190, vh - 76));
-      var wantedHeight = Math.min(cap, Math.max(160, panel.scrollHeight || cap));
-      var top = Math.round(ownerRect.top);
-      if (top + wantedHeight > vh - 10) top = Math.max(8, vh - wantedHeight - 10);
-      var maxHeight = Math.min(cap, vh - top - 10);
-      if (maxHeight < 118) {
-        top = 8;
-        maxHeight = Math.max(118, vh - 16);
-      }
-
-      panel.classList.add(fixedSubClass);
-      panel.classList.remove(openUpClass);
-      setVar(panel, '--ua07-menu-left', Math.round(left) + 'px');
-      setVar(panel, '--ua07-menu-top', Math.round(top) + 'px');
-      setVar(panel, '--ua07-menu-width', Math.round(width) + 'px');
-      setVar(panel, '--ua07-menu-max-height', Math.round(maxHeight) + 'px');
-      setVar(panel, '--ua07-menu-min-width', Math.round(width) + 'px');
-    }
-
-    function fitVisiblePanels() {
-      window.__ua07MenuScrollV8Raf = 0;
-      injectMenuCss();
-      addPanelClass();
+    function tagPanels() {
       var panels = document.querySelectorAll('.dropdown-content, .sub-dropdown-content');
       panels.forEach(function (panel) {
         if (!panel || !panel.classList) return;
-        if (!isVisible(panel)) {
-          panel.classList.remove(openUpClass);
-          panel.classList.remove(fixedSubClass);
-          return;
-        }
-        if (panel.classList.contains('sub-dropdown-content')) fitSubPanel(panel);
-        else fitMainPanel(panel);
+        V8_CLASSES.forEach(function (cls) { panel.classList.remove(cls); });
+        panel.classList.add(SCROLL_CLASS);
+      });
+    }
+
+    function fitVisiblePanels() {
+      window.__ua07DropdownScrollOnlyV9Raf = 0;
+      injectMenuCss();
+      tagPanels();
+
+      var vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0, 320);
+      var panels = document.querySelectorAll('.dropdown-content, .sub-dropdown-content');
+      panels.forEach(function (panel) {
+        if (!panel || !panel.classList) return;
+        if (!isVisible(panel)) return;
+
+        var rect = panel.getBoundingClientRect();
+        var roomBelow = Math.max(120, vh - rect.top - 12);
+        var maxHeight = Math.min(420, roomBelow);
+        if (vh <= 520) maxHeight = Math.min(340, Math.max(120, vh - rect.top - 8));
+
+        try { panel.style.setProperty('--ua07-menu-scroll-max-height', Math.round(maxHeight) + 'px'); } catch (_) {}
       });
     }
 
     function scheduleFit() {
-      if (window.__ua07MenuScrollV8Raf) return;
-      window.__ua07MenuScrollV8Raf = window.requestAnimationFrame ? window.requestAnimationFrame(fitVisiblePanels) : setTimeout(fitVisiblePanels, 0);
+      if (window.__ua07DropdownScrollOnlyV9Raf) return;
+      window.__ua07DropdownScrollOnlyV9Raf = window.requestAnimationFrame ? window.requestAnimationFrame(fitVisiblePanels) : setTimeout(fitVisiblePanels, 0);
     }
 
     function scheduleFitSoon() {
       scheduleFit();
-      setTimeout(scheduleFit, 35);
-      setTimeout(scheduleFit, 120);
+      setTimeout(scheduleFit, 50);
     }
 
     injectMenuCss();
-    addPanelClass();
+    tagPanels();
 
-    if (html && html.dataset.ua07MenuScrollV8Bound === '1') {
+    if (document.documentElement && document.documentElement.dataset.ua07DropdownScrollOnlyV9Bound === '1') {
       scheduleFitSoon();
       return;
     }
-    if (html) html.dataset.ua07MenuScrollV8Bound = '1';
+    if (document.documentElement) document.documentElement.dataset.ua07DropdownScrollOnlyV9Bound = '1';
 
-    ['pointerover', 'focusin', 'touchstart'].forEach(function (eventName) {
+    ['pointerover', 'focusin', 'touchstart', 'click', 'keydown'].forEach(function (eventName) {
       document.addEventListener(eventName, function (event) {
         var target = event && event.target;
         if (!target || !target.closest) return;
@@ -754,15 +627,8 @@
       }, { passive: true, capture: true });
     });
 
-    document.addEventListener('keydown', function (event) {
-      if (!event || !event.target || !event.target.closest) return;
-      if (!event.target.closest('.dropdown, .sub-dropdown, .dropdown-content, .sub-dropdown-content')) return;
-      if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Enter' || event.key === ' ') scheduleFitSoon();
-    }, true);
-
     window.addEventListener('resize', scheduleFitSoon, { passive: true });
     window.addEventListener('orientationchange', function () { setTimeout(scheduleFitSoon, 80); }, { passive: true });
-    window.addEventListener('scroll', scheduleFit, { passive: true });
 
     scheduleFitSoon();
   }
@@ -770,7 +636,7 @@
   function bind() {
     injectCss();
     bindThemeWatcher();
-    installDropdownInternalScrollV8();
+    installDropdownScrollOnlyV9();
 
     var input = getInput();
     var results = getResults();
@@ -814,7 +680,7 @@
 
   window.addEventListener('load', function () {
     injectCss();
-    installDropdownInternalScrollV8();
+    installDropdownScrollOnlyV9();
     scheduleAlign();
   }, { once: true, passive: true });
 
