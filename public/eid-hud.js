@@ -12,7 +12,7 @@ const TOGGLE_BTN_ID = "EID_TOGGLE_BTN";
 const LEGACY_THEME_LINK_ID = "ua07LegacyThemeLink";
 const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy9-main-hover-only";
 const AHLY_THEME_LINK_ID = "ahlyPremiumThemeLink";
-const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahly-v14-professional-hover";
+const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahly-v14-professional-hover-restore1";
 const EGYPT_THEME_LINK_ID = "egyptWorldCupThemeLink";
 const EGYPT_THEME_HREF = "egypt-worldcup-theme.css?v=egyptwc-layer-v11-professional-hover";
 const THEME_EID = "eid";
@@ -698,11 +698,215 @@ function fixUa07PointerEvents(logoEl){
 }
 
 
+function ensureAhlyProfessionalRestoreLayer(){
+  if (document.getElementById('MNDO_AHLY_PROFESSIONAL_RESTORE_LAYER')) return;
+  const css = `
+/* ===== MNDO Ahly professional restore from approved package =====
+   Source: professional-hover-menu-themes-egypt-ahly-zamalek.zip
+   Ahly-only visual restore. No logic, no SR data, no layout order changes.
+*/
+/* ===== Ahly transparent menu choices v13 - actual separate layer =====
+   This block mirrors the no-theme menu-choice transparency and overrides the
+   older inline Ahly V9 layer. Visual only: no layout, display, spacing, sizing,
+   ordering, positioning, links, IDs, or tool logic are changed.
+*/
+html.ahly-premium-theme-live body .tabcontent .dropdown .dropbtn,
+html.ahly-premium-theme-live body .tabcontent .navbar a,
+html.ahly-premium-theme-live body .tabcontent #singlelink,
+html.ahly-premium-theme-live body .dropdown .dropbtn,
+html.ahly-premium-theme-live body .navbar a,
+html.ahly-premium-theme-live body #singlelink {
+  color: rgba(255, 235, 184, 0.98) !important;
+  -webkit-text-fill-color: rgba(255, 235, 184, 0.98) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.98), 0 0 8px rgba(145,0,0,0.34), 0 0 7px rgba(255,214,116,0.16) !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+html.ahly-premium-theme-live body .tabcontent .dropdown .dropbtn::before,
+html.ahly-premium-theme-live body .tabcontent .dropdown .dropbtn::after,
+html.ahly-premium-theme-live body .tabcontent .navbar a::before,
+html.ahly-premium-theme-live body .tabcontent .navbar a::after,
+html.ahly-premium-theme-live body .tabcontent #singlelink::before,
+html.ahly-premium-theme-live body .tabcontent #singlelink::after,
+html.ahly-premium-theme-live body .dropdown .dropbtn::before,
+html.ahly-premium-theme-live body .dropdown .dropbtn::after,
+html.ahly-premium-theme-live body .navbar a::before,
+html.ahly-premium-theme-live body .navbar a::after,
+html.ahly-premium-theme-live body #singlelink::before,
+html.ahly-premium-theme-live body #singlelink::after {
+  opacity: 0 !important;
+  background: none !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+html.ahly-premium-theme-live body .dropdown:hover .dropbtn,
+html.ahly-premium-theme-live body .dropdown:focus-within .dropbtn,
+html.ahly-premium-theme-live body .dropdown.open .dropbtn,
+html.ahly-premium-theme-live body .dropdown.active .dropbtn,
+html.ahly-premium-theme-live body .navbar a:hover,
+html.ahly-premium-theme-live body .navbar a:focus,
+html.ahly-premium-theme-live body #singlelink:hover,
+html.ahly-premium-theme-live body #singlelink:focus {
+  color: #fffdf1 !important;
+  -webkit-text-fill-color: #fffdf1 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,1), 0 0 10px rgba(255,213,112,0.24), 0 0 14px rgba(205,0,0,0.18) !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+html.ahly-premium-theme-live body .sub-dropdown,
+html.ahly-premium-theme-live body .sub-dropdown[style],
+html.ahly-premium-theme-live body .dropdown-content a,
+html.ahly-premium-theme-live body .sub-dropdown-content a,
+html.ahly-premium-theme-live body .sub-dropdown > a,
+html.ahly-premium-theme-live body #searchResults.search-results a,
+html.ahly-premium-theme-live body #searchResults a,
+html.ahly-premium-theme-live body .search-results a {
+  color: rgba(255, 235, 184, 0.98) !important;
+  -webkit-text-fill-color: rgba(255, 235, 184, 0.98) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: rgba(255,213,112,0.10) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.96) !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+html.ahly-premium-theme-live body .sub-dropdown:hover,
+html.ahly-premium-theme-live body .sub-dropdown:hover[style],
+html.ahly-premium-theme-live body .dropdown-content a:hover,
+html.ahly-premium-theme-live body .dropdown-content a:focus,
+html.ahly-premium-theme-live body .sub-dropdown-content a:hover,
+html.ahly-premium-theme-live body .sub-dropdown-content a:focus,
+html.ahly-premium-theme-live body .sub-dropdown:hover > a,
+html.ahly-premium-theme-live body #searchResults.search-results a:hover,
+html.ahly-premium-theme-live body #searchResults a:hover,
+html.ahly-premium-theme-live body #searchResults.search-results a:focus,
+html.ahly-premium-theme-live body #searchResults a:focus,
+html.ahly-premium-theme-live body #searchResults.search-results a.highlight,
+html.ahly-premium-theme-live body #searchResults a.highlight,
+html.ahly-premium-theme-live body .search-results a:hover,
+html.ahly-premium-theme-live body .search-results a:focus,
+html.ahly-premium-theme-live body .search-results a.highlight {
+  color: #fffdf1 !important;
+  -webkit-text-fill-color: #fffdf1 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: rgba(255,229,164,0.18) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,1), 0 0 10px rgba(255,213,112,0.20) !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+/* ===== END Ahly transparent menu choices v13 ===== */
+
+/* Ahly hover/menu finish from approved professional package */
+html.ahly-premium-theme-live {
+  --mndo-menu-text: rgba(255,235,184,.98);
+  --mndo-menu-hover-text: #fff3bf;
+  --mndo-menu-hover-bg: linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.030) 34%, rgba(96,0,0,.42) 100%), radial-gradient(120% 165% at 14% 0%, rgba(255,214,112,.18), rgba(255,214,112,0) 48%), radial-gradient(126% 180% at 100% 0%, rgba(230,0,0,.28), rgba(230,0,0,0) 58%), linear-gradient(90deg, rgba(108,0,0,.68), rgba(15,15,19,.46) 58%, rgba(0,0,0,.30));
+  --mndo-menu-hover-bg-color: rgba(38,0,0,.58);
+  --mndo-menu-hover-border: rgba(255,220,130,.42);
+  --mndo-menu-hover-glow: rgba(255,214,112,.27);
+  --mndo-menu-hover-accent: rgba(255,214,112,.48);
+  --mndo-panel-bg: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.014) 34%, rgba(0,0,0,.02)), radial-gradient(155% 125% at 12% 0%, rgba(255,214,112,.10), rgba(255,214,112,0) 48%), radial-gradient(155% 140% at 100% 6%, rgba(175,0,0,.22), rgba(175,0,0,0) 58%), linear-gradient(180deg, rgba(12,12,17,.88), rgba(20,4,7,.78) 56%, rgba(42,0,0,.89));
+  --mndo-panel-bg-color: rgba(8,8,12,.88);
+  --mndo-panel-border: rgba(255,220,130,.31);
+  --mndo-row-border: rgba(255,214,112,.10);
+  --mndo-row-hover-bg: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.024)), radial-gradient(130% 150% at 8% 0%, rgba(255,214,112,.17), rgba(255,214,112,0) 48%), linear-gradient(90deg, rgba(126,0,0,.58), rgba(22,18,20,.36) 58%, rgba(0,0,0,.18));
+  --mndo-row-hover-bg-color: rgba(58,0,0,.48);
+}
+html.ahly-premium-theme-live body .dropdown .dropbtn,
+html.ahly-premium-theme-live body .navbar a,
+html.ahly-premium-theme-live body #singlelink {
+  color: var(--mndo-menu-text) !important;
+  -webkit-text-fill-color: var(--mndo-menu-text) !important;
+}
+html.ahly-premium-theme-live body .dropdown .dropbtn,
+html.ahly-premium-theme-live body .navbar a,
+html.ahly-premium-theme-live body #singlelink,
+html.ahly-premium-theme-live body .dropdown-content a,
+html.ahly-premium-theme-live body .sub-dropdown-content a,
+html.ahly-premium-theme-live body .sub-dropdown > a {
+  transition: color .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease, text-shadow .16s ease, filter .16s ease !important;
+}
+html.ahly-premium-theme-live body .dropdown:hover .dropbtn,
+html.ahly-premium-theme-live body .dropdown:focus-within .dropbtn,
+html.ahly-premium-theme-live body .dropdown.open .dropbtn,
+html.ahly-premium-theme-live body .dropdown.active .dropbtn,
+html.ahly-premium-theme-live body .navbar a:hover,
+html.ahly-premium-theme-live body .navbar a:focus,
+html.ahly-premium-theme-live body #singlelink:hover,
+html.ahly-premium-theme-live body #singlelink:focus {
+  color: var(--mndo-menu-hover-text) !important;
+  -webkit-text-fill-color: var(--mndo-menu-hover-text) !important;
+  background: var(--mndo-menu-hover-bg) !important;
+  background-color: var(--mndo-menu-hover-bg-color) !important;
+  border-color: var(--mndo-menu-hover-border) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,1), 0 0 12px var(--mndo-menu-hover-glow) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.15), inset 0 -1px 0 var(--mndo-menu-hover-border), inset 2px 0 0 var(--mndo-menu-hover-accent), 0 8px 20px rgba(0,0,0,.31), 0 0 17px var(--mndo-menu-hover-glow) !important;
+  filter: none !important;
+}
+html.ahly-premium-theme-live body .dropdown-content,
+html.ahly-premium-theme-live body .sub-dropdown-content,
+html.ahly-premium-theme-live body .search-results,
+html.ahly-premium-theme-live body #searchResults {
+  background: var(--mndo-panel-bg) !important;
+  background-color: var(--mndo-panel-bg-color) !important;
+  border-color: var(--mndo-panel-border) !important;
+  color: var(--mndo-menu-text) !important;
+  -webkit-text-fill-color: var(--mndo-menu-text) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.11), inset 0 0 0 1px rgba(255,255,255,.025), 0 18px 42px rgba(0,0,0,.60), 0 0 21px var(--mndo-menu-hover-glow) !important;
+  backdrop-filter: blur(10px) saturate(1.16) contrast(1.03) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.16) contrast(1.03) !important;
+}
+html.ahly-premium-theme-live body .sub-dropdown,
+html.ahly-premium-theme-live body .sub-dropdown[style],
+html.ahly-premium-theme-live body .dropdown-content a,
+html.ahly-premium-theme-live body .sub-dropdown-content a,
+html.ahly-premium-theme-live body .sub-dropdown > a {
+  color: var(--mndo-menu-text) !important;
+  -webkit-text-fill-color: var(--mndo-menu-text) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: var(--mndo-row-border) !important;
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,.035) !important;
+}
+html.ahly-premium-theme-live body .sub-dropdown:hover,
+html.ahly-premium-theme-live body .sub-dropdown:hover[style],
+html.ahly-premium-theme-live body .dropdown-content a:hover,
+html.ahly-premium-theme-live body .dropdown-content a:focus,
+html.ahly-premium-theme-live body .sub-dropdown-content a:hover,
+html.ahly-premium-theme-live body .sub-dropdown-content a:focus,
+html.ahly-premium-theme-live body .sub-dropdown:hover > a {
+  color: var(--mndo-menu-hover-text) !important;
+  -webkit-text-fill-color: var(--mndo-menu-hover-text) !important;
+  background: var(--mndo-row-hover-bg) !important;
+  background-color: var(--mndo-row-hover-bg-color) !important;
+  border-color: var(--mndo-panel-border) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,1), 0 0 10px var(--mndo-menu-hover-glow) !important;
+  box-shadow: inset 2px 0 0 var(--mndo-menu-hover-accent), inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 var(--mndo-panel-border), 0 6px 16px rgba(0,0,0,.25) !important;
+  filter: none !important;
+}
+/* ===== END MNDO Ahly professional restore ===== */
+  `;
+  const style = document.createElement('style');
+  style.id = 'MNDO_AHLY_PROFESSIONAL_RESTORE_LAYER';
+  style.textContent = css;
+  document.head.appendChild(style);
+}
+
 function boot(){
   ensureToggleBaseStyle();
   ensureDecorLayer();
   ensureAhlyTransparentMenuLayer();
   ensureProfessionalMenuHoverLayer();
+  ensureAhlyProfessionalRestoreLayer();
   applyThemeState();
   ensureToggleButton();
   updateToggleUi();
