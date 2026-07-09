@@ -97,12 +97,21 @@ export function getStableUserId(){
   return id;
 }
 
+export function cleanStoredUserName(name){
+  return String(name || "")
+    .replace(/\u0000/g, "")
+    .replace(/[\r\n\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 40);
+}
+
 export function getStoredUserName(){
-  return String(safeLocalGet(NAME_KEY) || safeCookieGet(NAME_KEY) || "").trim();
+  return cleanStoredUserName(safeLocalGet(NAME_KEY) || safeCookieGet(NAME_KEY) || "");
 }
 
 export function setStoredUserName(name){
-  const v = String(name || "").trim();
+  const v = cleanStoredUserName(name);
   if (!v) {
     try { localStorage.removeItem(NAME_KEY); } catch {}
     try { sessionStorage.removeItem(NAME_KEY); } catch {}
@@ -112,6 +121,21 @@ export function setStoredUserName(name){
   safeLocalSet(NAME_KEY, v);
   safeSessionSet(NAME_KEY, v);
   safeCookieSet(NAME_KEY, v);
+  try { window.dispatchEvent(new CustomEvent("sr:nickname-updated", { detail: { display_name: v } })); } catch {}
+}
+
+export function clearStoredUserName(){
+  setStoredUserName("");
+}
+
+export function requireNicknameLogin(){
+  try { clearStoredUserName(); } catch {}
+  try {
+    const next = `${location.pathname || "/"}${location.search || ""}`;
+    location.href = `/login?nickname=1&next=${encodeURIComponent(next)}`;
+  } catch {
+    location.href = "/login?nickname=1";
+  }
 }
 
 export function aliasForUserId(uid = "") {

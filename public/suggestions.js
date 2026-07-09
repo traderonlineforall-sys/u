@@ -1,6 +1,6 @@
 import { supabase as sharedSupabase } from "./supabase-client.js";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_NAME } from "./supabase-config.js";
-import { getStableUserId, aliasForUserId } from "./stable-user-identity.js";
+import { getStableUserId, aliasForUserId, getStoredUserName, requireNicknameLogin } from "./stable-user-identity.js";
 
 const elInput = document.getElementById("suggestionInput");
 const elBtn = document.getElementById("suggestionAddBtn");
@@ -71,9 +71,10 @@ let supabase = null;
 // Anonymous user id (stored locally) used for admin blocks
 const USER_ID = getStableUserId();
 
-// Stable, anonymous display name derived from the stored USER_ID.
-// This avoids requiring a `name` column in the `suggestions` table.
-const SESSION_ALIAS = aliasForUserId(USER_ID);
+function currentDisplayName(){
+  return getStoredUserName() || aliasForUserId(USER_ID);
+}
+let profileNameMap = new Map();
 
 // Per-user colors to make multi-user threads clear
 function hueFromString(str = "") {
@@ -136,6 +137,40 @@ async function isBlocked() {
 
 
 
+function redirectToNickname(){
+  try { requireNicknameLogin(); }
+  catch { location.href = "/login?nickname=1"; }
+}
+
+function displayNameForUser(userId, rowName = ""){
+  const uid = String(userId || "");
+  const direct = String(rowName || "").trim();
+  return direct || profileNameMap.get(uid) || aliasForUserId(uid) || "User";
+}
+
+async function loadProfileNamesForRows(rows){
+  profileNameMap = new Map();
+  if(!supabase || !Array.isArray(rows) || rows.length === 0) return;
+  const ids = Array.from(new Set(rows.map(r => String(r?.user_id || "").trim()).filter(Boolean))).slice(0, 500);
+  if(!ids.length) return;
+  try{
+    let res = await supabase
+      .from("support_users")
+      .select("user_id, display_name, nickname_reset_required")
+      .in("user_id", ids)
+      .limit(500);
+    if(res.error && /nickname_reset_required|column .*does not exist|schema cache/i.test(String(res.error.message || ""))){
+      res = await supabase.from("support_users").select("user_id, display_name").in("user_id", ids).limit(500);
+    }
+    if(res.error || !Array.isArray(res.data)) return;
+    for(const r of res.data){
+      if(!r?.user_id || r.nickname_reset_required) continue;
+      const dn = String(r.display_name || "").trim();
+      if(dn) profileNameMap.set(String(r.user_id), dn);
+    }
+  }catch{}
+}
+
 async function loadSuggestions() {
   if (!supabase) return;
 
@@ -161,6 +196,7 @@ async function loadSuggestions() {
   }
 
   const repliesOk = await detectRepliesTable().catch(()=>false);
+  await loadProfileNamesForRows(data).catch(()=>{});
 
   // Preload reply counts so users can see them without opening each thread.
   let replyCountMap = new Map();
@@ -195,7 +231,7 @@ async function loadSuggestions() {
       const when = x?.created_at ? new Date(x.created_at).toLocaleString() : "";
       const text = escapeHtml(x?.text ?? "");
       const uid = String(x?.user_id || "");
-      const name = escapeHtml(x?.name || aliasForUserId(uid) || "User");
+      const name = escapeHtml(displayNameForUser(uid, x?.name));
       const col = colorForUserId(uid || name);
       const sid = String(x?.id || "");
       const rCount = repliesOk ? (replyCountMap.get(Number(x?.id)) || 0) : 0;
@@ -242,6 +278,12 @@ async function loadSuggestions() {
 async function addSuggestion() {
   if (!supabase) return;
 
+  const displayName = currentDisplayName();
+  if(!getStoredUserName()){
+    redirectToNickname();
+    return;
+  }
+
   const text = (elInput.value || "").trim();
   if (!text) {
     setStatus("Please write a suggestion first.", "warn");
@@ -263,6 +305,7 @@ async function addSuggestion() {
   const payload = {
     text,
     user_id: USER_ID,
+    display_name: displayName,
   };
 
   const apiRes = await fetch("/api/public-suggestion", {
@@ -272,6 +315,10 @@ async function addSuggestion() {
     body: JSON.stringify(payload),
   });
   const apiData = await apiRes.json().catch(() => ({}));
+  if(apiData?.nickname_required){
+    redirectToNickname();
+    return;
+  }
   const error = apiRes.ok && apiData?.ok ? null : new Error(apiData?.error || "Could not add suggestion.");
 
   elBtn.disabled = false;
@@ -293,7 +340,7 @@ async function addSuggestion() {
 function renderReplyItem(r){
   const when = r?.created_at ? new Date(r.created_at).toLocaleString() : "";
   const uid = String(r?.user_id || "");
-  const name = escapeHtml(r?.name || aliasForUserId(uid) || "User");
+  const name = escapeHtml(displayNameForUser(uid, r?.name));
   const col = colorForUserId(uid || name);
   const text = escapeHtml(r?.text ?? "");
   const rid = String(r?.id || "");
@@ -349,6 +396,7 @@ async function renderRepliesPanel(suggestionId, box, btn){
   }
 
   const replies = Array.isArray(data) ? data : [];
+  await loadProfileNamesForRows(replies).catch(()=>{});
   const count = replies.length;
   if(btn){
     btn.dataset.replyCount = String(count);
@@ -386,12 +434,16 @@ async function renderRepliesPanel(suggestionId, box, btn){
     }
 
     try{
+      if(!getStoredUserName()){
+        redirectToNickname();
+        return;
+      }
       send && (send.disabled = true);
       const payload = {
         suggestion_id: Number(suggestionId),
         text,
         user_id: USER_ID,
-        name: SESSION_ALIAS,
+        name: currentDisplayName(),
       };
       const apiRes = await fetch("/api/public-suggestion-reply", {
         method: "POST",
@@ -400,6 +452,10 @@ async function renderRepliesPanel(suggestionId, box, btn){
         body: JSON.stringify(payload),
       });
       const apiData = await apiRes.json().catch(() => ({}));
+      if(apiData?.nickname_required){
+        redirectToNickname();
+        return;
+      }
       if(!apiRes.ok || !apiData?.ok) throw new Error(apiData?.error || "Could not post reply.");
       input.value = "";
       await renderRepliesPanel(suggestionId, box, btn);
@@ -482,13 +538,14 @@ function init() {
 
   // Initial load
   loadSuggestions();
+  window.addEventListener("sr:suggestions-changed", () => loadSuggestions());
 
-  // Realtime updates (INSERT only)
+  // Realtime updates (INSERT/UPDATE/DELETE)
   supabase
     .channel("suggestions-public")
     .on(
       "postgres_changes",
-      { event: "INSERT", schema: "public", table: "suggestions" },
+      { event: "*", schema: "public", table: "suggestions" },
       () => loadSuggestions()
     )
     .subscribe((status) => {
@@ -504,7 +561,7 @@ function init() {
       .channel("suggestion-replies")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "suggestion_replies" },
+        { event: "*", schema: "public", table: "suggestion_replies" },
         () => loadSuggestions()
       )
       .subscribe(()=>{});

@@ -1,7 +1,7 @@
 
 import { supabase } from "./supabase-client.js";
 import { ADMIN_NAME } from "./supabase-config.js";
-import { getStableUserId, getStoredUserName, setStoredUserName } from "./stable-user-identity.js";
+import { getStableUserId, getStoredUserName, setStoredUserName, clearStoredUserName, requireNicknameLogin } from "./stable-user-identity.js";
 import { playSoftNotification, unlockSound } from "./notification-sound.js";
 // Fixed Functions base for Cloudflare/Next.js.
 // No Vercel/Netlify probing and no startup ping, to keep requests lower and behavior deterministic.
@@ -117,13 +117,24 @@ async function fetchProfileName() {
   const ok = await detectProfileTable();
   if (!ok) return null;
   try {
-    const res = await supabase
+    let res = await supabase
       .from("support_users")
-      .select("display_name")
+      .select("display_name,nickname_reset_required")
       .eq("user_id", USER_ID)
       .limit(1);
+
+    if (res.error && /nickname_reset_required|column .*does not exist|schema cache/i.test(String(res.error.message || ""))) {
+      res = await supabase
+        .from("support_users")
+        .select("display_name")
+        .eq("user_id", USER_ID)
+        .limit(1);
+    }
+
     if (res.error) return null;
-    return res.data && res.data[0] ? (res.data[0].display_name || null) : null;
+    const row = res.data && res.data[0] ? res.data[0] : null;
+    if(!row || row.nickname_reset_required) return null;
+    return row.display_name || null;
   } catch {
     return null;
   }
@@ -149,9 +160,30 @@ async function upsertProfileName(name) {
   }
 }
 
+
+async function ensureNicknameReady() {
+  const localName = getUserName();
+  const okProfiles = await detectProfileTable();
+  if (okProfiles) {
+    const dbName = await fetchProfileName();
+    if (dbName) {
+      setUserName(dbName);
+      return true;
+    }
+    clearStoredUserName();
+    return false;
+  }
+  return !!localName;
+}
+
+function redirectToNicknameLogin() {
+  try { requireNicknameLogin(); }
+  catch { location.href = "/login?nickname=1"; }
+}
+
 // ---------- Helpers ----------
 function escapeHtml(s = "") {
-  return s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+  return String(s == null ? "" : s).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
 // Convert URLs in plain text to safe clickable links.
@@ -165,6 +197,41 @@ function linkifyText(raw = "") {
     }
     return escapeHtml(p);
   }).join("");
+}
+
+
+function isMissingColumnError(error){
+  const msg = String(error?.message || "") + " " + String(error?.details || "");
+  const code = String(error?.code || "");
+  return code === "42P01" || code === "42703" || /Could not find|does not exist|column .* does not exist|schema cache/i.test(msg);
+}
+
+function normalizeSupportRow(row){
+  const r = row && typeof row === "object" ? { ...row } : {};
+  const userId = String(r.user_id || r.sender_id || "");
+  const senderId = String(r.sender_id || r.user_id || userId || "");
+  return {
+    ...r,
+    user_id: userId || senderId,
+    sender_id: senderId || userId,
+    sender_name: String(r.sender_name || r.name || r.display_name || "User"),
+    message: String(r.message || r.text || ""),
+    room_type: String(r.room_type || "public"),
+    room_id: String(r.room_id || "public"),
+    created_at: r.created_at || new Date().toISOString(),
+  };
+}
+
+async function fetchSupportMessagesApi(params){
+  const qs = new URLSearchParams(params || {});
+  const res = await fetch((await resolveFnBase()) + "/support-messages?" + qs.toString(), {
+    method: "GET",
+    credentials: "same-origin",
+    headers: { "accept": "application/json" },
+  });
+  const data = await res.json().catch(() => ({}));
+  if(!res.ok || !data?.ok) throw new Error(data?.error || "Could not load support messages.");
+  return Array.isArray(data.rows) ? data.rows.map(normalizeSupportRow) : [];
 }
 
 function renderMessageHtml(m) {
@@ -380,10 +447,30 @@ function getLatestSeenIso(type, roomId){
 function markRoomSeenAt(type, roomId, iso){
   const current = getLatestSeenIso(type, roomId);
   const nextIso = maxIso(current, iso || new Date().toISOString()) || new Date().toISOString();
-  if(type === "public") setSeen(LS_PUBLIC_SEEN, nextIso);
-  if(type === "dm") setSeen(lsDmSeenKey(roomId), nextIso);
+
+  if(type === "public") {
+    setSeen(LS_PUBLIC_SEEN, nextIso);
+
+    // إزالة الرسائل العامة المقروءة من الكاش
+    recentCache = recentCache.filter(msg => {
+      const room = msg.room_id || msg.roomId || "public";
+      return room !== "public";
+    });
+  }
+
+  if(type === "dm") {
+    setSeen(lsDmSeenKey(roomId), nextIso);
+
+    // إزالة رسائل الـ DM الخاصة بالغرفة المقروءة
+    recentCache = recentCache.filter(msg => {
+      const room = msg.room_id || msg.roomId;
+      return room !== roomId;
+    });
+  }
+
   updateBadgesFromRecentCache();
 }
+
 
 function markActiveRoomSeenFromRows(rows){
   if(!Array.isArray(rows) || !rows.length) return;
@@ -405,6 +492,146 @@ function markRoomSeen(type, roomId){
 }
 
 let recentCache = [];
+
+// ===== STEP 6.2 STABLE SUPPORT UI HELPERS START =====
+let lastSupportListSignature = "";
+let loadUsersTimer = null;
+let seenFlushTimer = null;
+
+function supportMessageDomId(row) {
+  const r = normalizeSupportRow(row || {});
+  return r.id == null ? "" : String(r.id);
+}
+
+function supportMessageFallbackKey(row) {
+  const r = normalizeSupportRow(row || {});
+  return [
+    String(r.sender_id || r.user_id || ""),
+    String(r.created_at || ""),
+    String(r.message || "").slice(0, 160),
+  ].join("|");
+}
+
+function supportRowSignature(row) {
+  const r = normalizeSupportRow(row || {});
+  return [
+    supportMessageDomId(r) || supportMessageFallbackKey(r),
+    String(r.sender_name || ""),
+    String(r.message || ""),
+    String(r.room_type || ""),
+    String(r.room_id || ""),
+    String(r.created_at || ""),
+  ].join("¦");
+}
+
+function supportListSignature(rows) {
+  return (rows || []).map(supportRowSignature).join("\n");
+}
+
+function isSupportChatOpen() {
+  return !!chatOverlay && chatOverlay.style.display !== "none";
+}
+
+function isNearSupportBottom(px = 140) {
+  if (!messagesList) return true;
+  const distance = messagesList.scrollHeight - messagesList.clientHeight - messagesList.scrollTop;
+  return distance <= px;
+}
+
+function smartSupportScroll(force = false) {
+  if (!messagesList) return;
+  if (!force && !isNearSupportBottom()) return;
+  const go = () => {
+    try { messagesList.scrollTop = messagesList.scrollHeight; } catch {}
+  };
+  go();
+  requestAnimationFrame(go);
+}
+
+function keepSupportScrollStable(mutator, opts = {}) {
+  if (!messagesList) {
+    mutator?.();
+    return;
+  }
+  const forceBottom = !!opts.forceBottom;
+  const wasNearBottom = forceBottom || isNearSupportBottom();
+  const bottomOffset = messagesList.scrollHeight - messagesList.scrollTop;
+  mutator?.();
+  if (wasNearBottom) {
+    smartSupportScroll(true);
+  } else {
+    requestAnimationFrame(() => {
+      try { messagesList.scrollTop = Math.max(0, messagesList.scrollHeight - bottomOffset); } catch {}
+    });
+  }
+}
+
+function renderStableMessageList(rows, opts = {}) {
+  const visibleRows = Array.isArray(rows) ? rows : [];
+  const signature = supportListSignature(visibleRows);
+  if (signature === lastSupportListSignature) {
+    bindDeleteButtons();
+    if (opts.forceBottom) smartSupportScroll(true);
+    return false;
+  }
+  keepSupportScrollStable(() => {
+    messagesList.innerHTML = visibleRows.map(renderSupportMessageRow).join("");
+    lastSupportListSignature = signature;
+  }, { forceBottom: !!opts.forceBottom });
+  bindDeleteButtons();
+  return true;
+}
+
+function queueLoadUsers(delay = 180) {
+  if (loadUsersTimer) clearTimeout(loadUsersTimer);
+  loadUsersTimer = setTimeout(() => {
+    loadUsersTimer = null;
+    loadUsers().catch((err) => console.warn("support users refresh failed", err));
+  }, delay);
+}
+
+function markActiveRoomSeenFromCache() {
+  if (!Array.isArray(recentCache) || !recentCache.length) {
+    updateBadgesFromRecentCache();
+    return;
+  }
+  let latestIso = "";
+  for (const raw of recentCache) {
+    const r = normalizeSupportRow(raw);
+    if (!isRowInActiveRoom(r)) continue;
+    latestIso = maxIso(latestIso, r.created_at || "");
+  }
+  if (latestIso) markRoomSeenAt(activeRoom.type, activeRoom.room_id, latestIso);
+  else updateBadgesFromRecentCache();
+}
+
+function flushSeenForOpenRoom() {
+  if (!isSupportChatOpen()) return;
+  markActiveRoomSeenFromCache();
+}
+
+function scheduleSeenFlush() {
+  if (seenFlushTimer) clearTimeout(seenFlushTimer);
+  flushSeenForOpenRoom();
+  seenFlushTimer = setTimeout(() => {
+    seenFlushTimer = null;
+    flushSeenForOpenRoom();
+  }, 260);
+}
+
+function dropRecentMessageById(id) {
+  if (id == null) return;
+  const sid = String(id);
+  const before = recentCache.length;
+  recentCache = recentCache.filter((r) => supportMessageDomId(r) !== sid);
+  if (recentCache.length !== before) updateBadgesFromRecentCache();
+}
+
+function forceSupportMessagesBottom() {
+  smartSupportScroll(true);
+}
+// ===== STEP 6.2 STABLE SUPPORT UI HELPERS END =====
+
 function setFabBadge(el, count){
   if(!el) return;
   const n = Number(count||0);
@@ -423,20 +650,24 @@ function computeUnread(recentRows){
   const dmByOther = new Map();
   let publicCount = 0;
 
-  for(const r of (recentRows||[])){
+  for(const raw of (recentRows||[])){
+    const r = normalizeSupportRow(raw);
     const ts = Date.parse(r.created_at || "") || 0;
-    if(r.room_type === "public" && r.room_id === "public"){
-      if(r.sender_id && r.sender_id !== USER_ID && ts > publicSeenTs) publicCount += 1;
+    const roomId = String(r.room_id || "public");
+    const fromId = String(r.sender_id || r.user_id || "");
+
+    if(isPublicRoomRow(r)){
+      if(fromId && fromId !== USER_ID && ts > publicSeenTs) publicCount += 1;
+      continue;
     }
-    if(r.room_type === "dm" && typeof r.room_id === "string" && r.room_id.includes(USER_ID)){
-      // count only messages from the other side
-      if(!r.sender_id || r.sender_id === USER_ID) continue;
-      const key = lsDmSeenKey(r.room_id);
+
+    if(isExplicitDmRow(r) && roomId.includes(USER_ID)){
+      if(!fromId || fromId === USER_ID) continue;
+      const key = lsDmSeenKey(roomId);
       const seen = getSeen(key);
       const seenTs = seen ? Date.parse(seen) : 0;
       if(ts > seenTs){
-        const otherId = r.sender_id;
-        dmByOther.set(otherId, (dmByOther.get(otherId) || 0) + 1);
+        dmByOther.set(fromId, (dmByOther.get(fromId) || 0) + 1);
       }
     }
   }
@@ -446,29 +677,60 @@ function computeUnread(recentRows){
   return { publicCount, dmByOther, dmTotal, total: publicCount + dmTotal };
 }
 
-function updateBadgesFromRecentCache(){
+function updateBadgesFromRecentCache() {
   const { total, dmByOther, dmTotal } = computeUnread(recentCache);
-  setFabBadge(supportBadge, total);
 
-  // Make the Support button "light up" when there are unread private (DM) messages.
-  if(supportBtn){
-    if((dmTotal || 0) > 0) supportBtn.classList.add("has-private");
-    else supportBtn.classList.remove("has-private");
+  // لو مفيش أى رسائل غير مقروءة امسح كل الإشعارات نهائياً
+  if (total <= 0) {
+    setFabBadge(supportBadge, 0);
+
+    if (supportBtn) {
+      supportBtn.classList.remove("has-private");
+    }
+
+    usersList?.querySelectorAll(".support-user").forEach(btn => {
+      const badge = btn.querySelector(".support-user-unread");
+      if (!badge) return;
+
+      badge.textContent = "";
+      badge.classList.remove("is-on");
+    });
+
+    return;
   }
 
-  // per-user unread badges
-  usersList?.querySelectorAll(".support-user").forEach(btn=>{
+  setFabBadge(supportBadge, total);
+
+  // تشغيل إضاءة زر الدعم فقط لو فيه DM غير مقروء
+  if (supportBtn) {
+    if ((dmTotal || 0) > 0)
+      supportBtn.classList.add("has-private");
+    else
+      supportBtn.classList.remove("has-private");
+  }
+
+  // تحديث إشعارات كل مستخدم
+  usersList?.querySelectorAll(".support-user").forEach(btn => {
     const uid = btn.getAttribute("data-user-id");
     const badge = btn.querySelector(".support-user-unread");
-    if(!badge) return;
-    if(!uid || uid === USER_ID){
+
+    if (!badge) return;
+
+    if (!uid || uid === USER_ID) {
       badge.textContent = "";
       badge.classList.remove("is-on");
       return;
     }
+
     const c = dmByOther.get(uid) || 0;
-    badge.textContent = String(c);
-    if(c>0) badge.classList.add("is-on"); else badge.classList.remove("is-on");
+
+    if (c > 0) {
+      badge.textContent = String(c);
+      badge.classList.add("is-on");
+    } else {
+      badge.textContent = "";
+      badge.classList.remove("is-on");
+    }
   });
 }
 
@@ -483,8 +745,8 @@ function setRoomPublic() {
   chatTitle.textContent = "Team Support";
   chatSubtitle.textContent = "Public chat";
   chatBackBtn.style.display = "none";
-  // Viewing the public room marks it as read
   markRoomSeen("public", "public");
+  scheduleSeenFlush();
 }
 
 function setRoomDm(other) {
@@ -492,8 +754,8 @@ function setRoomDm(other) {
   chatTitle.textContent = `Chat with ${other.sender_name || "User"}`;
   chatSubtitle.textContent = "Private chat";
   chatBackBtn.style.display = "inline-flex";
-  // Viewing this DM room marks it as read
   markRoomSeen("dm", activeRoom.room_id);
+  scheduleSeenFlush();
 }
 
 // ---------- Data loading ----------
@@ -502,32 +764,57 @@ async function loadUsers() {
   // This is separate from the user list source.
   let recentRows = [];
   try {
-    const res = await supabase
-      .from("support_messages")
-      .select("sender_id, sender_name, room_type, room_id, created_at")
-      .order("created_at", { ascending: false })
-      .limit(500);
-    if (!res.error && Array.isArray(res.data)) {
-      recentRows = res.data;
-      recentCache = res.data;
-    }
-  } catch {}
+    recentRows = await fetchSupportMessagesApi({ mode: "recent", limit: "500" });
+    recentCache = recentRows;
+  } catch (apiErr) {
+    try {
+      const selects = [
+        "sender_id, sender_name, user_id, room_type, room_id, created_at",
+        "sender_id, sender_name, user_id, created_at",
+        "user_id, sender_name, created_at",
+        "user_id, name, created_at",
+      ];
+      for (const columns of selects) {
+        const res = await supabase
+          .from("support_messages")
+          .select(columns)
+          .order("created_at", { ascending: false })
+          .limit(500);
+        if (!res.error && Array.isArray(res.data)) {
+          recentRows = res.data.map(normalizeSupportRow);
+          recentCache = recentRows;
+          break;
+        }
+        if (!isMissingColumnError(res.error)) break;
+      }
+    } catch {}
+  }
 
   // Preferred source: `support_users` profiles (allows admin to delete names)
   const profileOk = await detectProfileTable();
   if (profileOk) {
     try {
-      const res = await supabase
+      let res = await supabase
         .from("support_users")
-        .select("user_id, display_name")
+        .select("user_id, display_name, nickname_reset_required")
         .order("display_name", { ascending: true })
         .limit(500);
+
+      if (res.error && /nickname_reset_required|column .*does not exist|schema cache/i.test(String(res.error.message || ""))) {
+        res = await supabase
+          .from("support_users")
+          .select("user_id, display_name")
+          .order("display_name", { ascending: true })
+          .limit(500);
+      }
 
       if (!res.error && Array.isArray(res.data)) {
         const map = new Map();
         for (const r of res.data) {
-          if (!r || !r.user_id) continue;
-          map.set(String(r.user_id), String(r.display_name || "User"));
+          if (!r || !r.user_id || r.nickname_reset_required) continue;
+          const dn = String(r.display_name || "").trim();
+          if(!dn) continue;
+          map.set(String(r.user_id), dn);
         }
         // Ensure current user appears
         map.set(USER_ID, getUserName() || map.get(USER_ID) || "Me");
@@ -605,65 +892,139 @@ async function loadUsers() {
   });
 }
 
+function isExplicitDmRow(m) {
+  const r = normalizeSupportRow(m);
+  const roomType = String(r.room_type || "public").trim().toLowerCase();
+  const roomId = String(r.room_id || "public").trim();
+  // Old/public rows may not have room columns at all. Treat every non-explicit-DM
+  // row as public so users see the same saved messages that the admin panel sees.
+  return roomType === "dm" || (!!roomId && roomId !== "public" && roomId.includes("__"));
+}
+
 function isPublicRoomRow(m) {
-  return String(m?.room_type || "public") === "public";
+  return !isExplicitDmRow(m);
 }
 
 function isRowInActiveRoom(m) {
   if (!m) return false;
-  if (activeRoom.type === "public") return isPublicRoomRow(m);
-  return String(m.room_type || "") === activeRoom.type && String(m.room_id || "") === String(activeRoom.room_id || "");
+  const r = normalizeSupportRow(m);
+  if (activeRoom.type === "public") return isPublicRoomRow(r);
+  return String(r.room_type || "") === activeRoom.type && String(r.room_id || "") === String(activeRoom.room_id || "");
 }
 
 function renderSupportMessageRow(m) {
-  const mine = m.sender_id === USER_ID;
-  const bundle = colorBundleForUserId(m.sender_id || m.sender_name || "");
-  const safeId = m.id == null ? "" : escapeHtml(String(m.id));
+  const row = normalizeSupportRow(m);
+  const senderId = String(row.sender_id || row.user_id || "");
+  const mine = senderId === USER_ID;
+  const bundle = colorBundleForUserId(senderId || row.sender_name || "");
+  const safeId = row.id == null ? "" : escapeHtml(String(row.id));
   return `
-      <div class="support-msg ${mine ? "mine" : ""}" style="--u:${escapeHtml(bundle.accent)};--ubg:${escapeHtml(bundle.bg)};--uborder:${escapeHtml(bundle.border)}">
+      <div class="support-msg ${mine ? "mine" : ""}" data-support-msg-id="${safeId}" style="--u:${escapeHtml(bundle.accent)};--ubg:${escapeHtml(bundle.bg)};--uborder:${escapeHtml(bundle.border)}">
         <div class="support-msg-meta">
           <span class="support-msg-dot" aria-hidden="true"></span>
-          <span class="support-msg-name">${escapeHtml(m.sender_name || "User")}</span>
-          <span class="support-msg-time">${escapeHtml(fmtTime(m.created_at))}</span>
+          <span class="support-msg-name">${escapeHtml(row.sender_name || "User")}</span>
+          <span class="support-msg-time">${escapeHtml(fmtTime(row.created_at))}</span>
           ${mine && safeId && !String(safeId).startsWith("local-") ? `<button class="support-del-btn" data-id="${safeId}" title="Delete">🗑️</button>` : ""}
         </div>
-        ${renderMessageHtml(m)}
+        ${renderMessageHtml(row)}
       </div>
     `;
 }
 
-function appendSupportMessage(m) {
-  if (!messagesList || !m) return;
-  messagesList.insertAdjacentHTML("beforeend", renderSupportMessageRow(m));
-  bindDeleteButtons();
-  messagesList.scrollTop = messagesList.scrollHeight;
+function findSupportMessageElById(id) {
+  const sid = String(id || "");
+  if (!sid || !messagesList) return null;
+  return Array.from(messagesList.querySelectorAll(".support-msg")).find((el) => el?.dataset?.supportMsgId === sid) || null;
 }
 
-async function loadMessages() {
-  let query = supabase
-    .from("support_messages")
-    .select("*")
-    .order("created_at", { ascending: true })
-    .limit(300);
-
-  if (activeRoom.type !== "public") {
-    query = query.eq("room_type", activeRoom.type).eq("room_id", activeRoom.room_id);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error(error);
-    setStatus(`Could not load messages. Please contact ${ADMIN_NAME}.`, "error");
+function removeSupportMessageById(id, opts = {}) {
+  const el = findSupportMessageElById(id);
+  if (!el || !el.parentNode) {
+    dropRecentMessageById(id);
     return;
   }
+  keepSupportScrollStable(() => {
+    el.parentNode.removeChild(el);
+    lastSupportListSignature = "";
+    dropRecentMessageById(id);
+  }, { forceBottom: !!opts.forceBottom });
+}
 
-  const rows = (data || []).filter((m) => activeRoom.type === "public" ? isPublicRoomRow(m) : true);
-  messagesList.innerHTML = rows.map(renderSupportMessageRow).join("");
-
-  // scroll to bottom
+function replaceSupportMessageById(id, row, opts = {}) {
+  const el = findSupportMessageElById(id);
+  if (!el || !row) return false;
+  const r = normalizeSupportRow(row);
+  const forceBottom = !!opts.forceBottom || String(r.sender_id || r.user_id || "") === USER_ID;
+  keepSupportScrollStable(() => {
+    el.outerHTML = renderSupportMessageRow(r);
+    lastSupportListSignature = "";
+    dropRecentMessageById(id);
+    recentCache = [r, ...recentCache.filter((x) => supportRowSignature(x) !== supportRowSignature(r))].slice(0, 500);
+  }, { forceBottom });
   bindDeleteButtons();
-  messagesList.scrollTop = messagesList.scrollHeight;
+  if (isSupportChatOpen() && isRowInActiveRoom(r)) markRoomSeenAt(activeRoom.type, activeRoom.room_id, r.created_at || new Date().toISOString());
+  else updateBadgesFromRecentCache();
+  return true;
+}
+
+function appendSupportMessage(m, opts = {}) {
+  if (!messagesList || !m) return;
+  const row = normalizeSupportRow(m);
+  const id = supportMessageDomId(row);
+  if (id && findSupportMessageElById(id)) {
+    replaceSupportMessageById(id, row, opts);
+    return;
+  }
+  const forceBottom = !!opts.forceBottom || String(row.sender_id || row.user_id || "") === USER_ID;
+  keepSupportScrollStable(() => {
+    messagesList.querySelectorAll(".srux-empty-state").forEach((e) => e.remove());
+    messagesList.insertAdjacentHTML("beforeend", renderSupportMessageRow(row));
+    lastSupportListSignature = "";
+    recentCache = [row, ...recentCache.filter((x) => supportRowSignature(x) !== supportRowSignature(row))].slice(0, 500);
+  }, { forceBottom });
+  bindDeleteButtons();
+  if (isSupportChatOpen() && isRowInActiveRoom(row)) markRoomSeenAt(activeRoom.type, activeRoom.room_id, row.created_at || new Date().toISOString());
+  else updateBadgesFromRecentCache();
+}
+
+async function loadMessages(opts = {}) {
+  const forceBottom = !!opts.forceBottom;
+  let rows = [];
+  try {
+    rows = await fetchSupportMessagesApi({
+      room_type: activeRoom.type,
+      room_id: activeRoom.room_id,
+      limit: "300",
+    });
+  } catch (apiErr) {
+    let query = supabase
+      .from("support_messages")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(300);
+
+    if (activeRoom.type !== "public") {
+      query = query.eq("room_type", activeRoom.type).eq("room_id", activeRoom.room_id);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error(error);
+      setStatus(`Could not load messages. Please contact ${ADMIN_NAME}.`, "error");
+      return;
+    }
+    rows = (data || []).map(normalizeSupportRow).reverse();
+  }
+
+  let visibleRows = rows.filter((m) => activeRoom.type === "public" ? isPublicRoomRow(m) : isRowInActiveRoom(m));
+  if (activeRoom.type === "public" && !visibleRows.length && rows.length) {
+    visibleRows = rows.filter((m) => !isExplicitDmRow(m));
+  }
+
+  renderStableMessageList(visibleRows, { forceBottom });
+  markActiveRoomSeenFromRows(visibleRows);
+  scheduleSeenFlush();
 }
 
 
@@ -686,7 +1047,7 @@ async function deleteOwnMessage(messageId, triggerBtn){
     triggerBtn.setAttribute("aria-busy", "true");
   }
   if (row) {
-    row.style.opacity = "0.55";
+    row.classList.add("is-deleting");
     row.style.pointerEvents = "none";
   }
 
@@ -694,6 +1055,7 @@ async function deleteOwnMessage(messageId, triggerBtn){
     setStatus("Deleting…", "info");
     const res = await fetch((await resolveFnBase()) + "/user-delete-support-message", {
       method: "POST",
+      credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: messageId, user_id: USER_ID })
     });
@@ -701,25 +1063,21 @@ async function deleteOwnMessage(messageId, triggerBtn){
     if(!res.ok) throw new Error(data?.error || "Delete failed");
 
     if (row) {
-      row.style.transition = "opacity .18s ease, transform .18s ease, max-height .2s ease, margin .2s ease";
-      row.style.transform = "translateX(8px)";
-      row.style.maxHeight = row.offsetHeight + "px";
-      requestAnimationFrame(() => {
-        row.style.opacity = "0";
-        row.style.maxHeight = "0px";
-        row.style.margin = "0";
-      });
-      setTimeout(() => {
+      keepSupportScrollStable(() => {
         if (row.parentNode) row.parentNode.removeChild(row);
-        messagesList.scrollTop = messagesList.scrollHeight;
-      }, 220);
+        lastSupportListSignature = "";
+        dropRecentMessageById(messageId);
+      }, { forceBottom: isNearSupportBottom() });
+    } else {
+      dropRecentMessageById(messageId);
     }
 
     setStatus("Message deleted.", "success");
     setTimeout(() => {
       if ((statusEl?.textContent || "").trim() === "Message deleted.") setStatus("");
-    }, 1400);
-    await loadUsers();
+    }, 900);
+    scheduleSeenFlush();
+    queueLoadUsers(200);
   }catch(err){
     console.error(err);
     if (triggerBtn) {
@@ -728,17 +1086,15 @@ async function deleteOwnMessage(messageId, triggerBtn){
       triggerBtn.removeAttribute("aria-busy");
     }
     if (row) {
-      row.style.opacity = "";
+      row.classList.remove("is-deleting");
       row.style.pointerEvents = "";
-      row.style.transform = "";
-      row.style.maxHeight = "";
-      row.style.margin = "";
     }
     const msg = String(err?.message || "");
     if (/not found/i.test(msg)) {
       setStatus("This message was already removed.", "info");
-      await loadMessages();
-      await loadUsers();
+      removeSupportMessageById(messageId, { forceBottom: isNearSupportBottom() });
+      scheduleSeenFlush();
+      queueLoadUsers(200);
       return;
     }
     setStatus(msg || `Could not delete. Please contact ${ADMIN_NAME}.`, "error");
@@ -766,13 +1122,40 @@ function subscribeRoom() {
   sub = supabase
     .channel(`support_changes`)
     .on("postgres_changes", { event: "*", schema: "public", table: "support_messages" }, (payload) => {
-      const rowNew = payload?.new || {};
-      const rowOld = payload?.old || {};
-      const row = Object.keys(rowNew).length ? rowNew : rowOld;
-      if (isRowInActiveRoom(row)) {
-        loadMessages();
+      const eventType = String(payload?.eventType || "").toUpperCase();
+      const newRowRaw = payload?.new || {};
+      const oldRowRaw = payload?.old || {};
+
+      if (eventType === "DELETE") {
+        const oldRow = normalizeSupportRow(oldRowRaw);
+        const oldId = supportMessageDomId(oldRow);
+        if (oldId) dropRecentMessageById(oldId);
+        if (isRowInActiveRoom(oldRow) && oldId) {
+          removeSupportMessageById(oldId, { forceBottom: isNearSupportBottom() });
+        }
+        scheduleSeenFlush();
+        queueLoadUsers(220);
+        return;
       }
-      loadUsers();
+
+      const row = normalizeSupportRow(Object.keys(newRowRaw).length ? newRowRaw : oldRowRaw);
+      if (eventType === "INSERT" && row && Object.keys(row).length) {
+        recentCache = [row, ...recentCache.filter((r) => supportRowSignature(r) !== supportRowSignature(row))].slice(0, 500);
+      }
+
+      if (isRowInActiveRoom(row)) {
+        const id = supportMessageDomId(row);
+        if (id && findSupportMessageElById(id)) {
+          replaceSupportMessageById(id, row, { forceBottom: String(row.sender_id || row.user_id || "") === USER_ID });
+        } else {
+          appendSupportMessage(row, { forceBottom: String(row.sender_id || row.user_id || "") === USER_ID || isNearSupportBottom() });
+        }
+        markRoomSeenAt(activeRoom.type, activeRoom.room_id, row.created_at || new Date().toISOString());
+        scheduleSeenFlush();
+      } else {
+        updateBadgesFromRecentCache();
+      }
+      queueLoadUsers(220);
     })
     .subscribe();
 }
@@ -783,27 +1166,26 @@ function subscribeBackground(){
   bgSub = supabase
     .channel("support_unread")
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "support_messages" }, (payload)=>{
-      const row = payload?.new || {};
-      // Gentle notification sound for incoming messages (not your own).
-      try {
-        const fromId = row?.sender_id || row?.user_id || "";
-        if(fromId && fromId !== USER_ID) playSoftNotification();
-      } catch {}
+      const row = normalizeSupportRow(payload?.new || {});
+      const isChatOpen = isSupportChatOpen();
+      const isActiveOpenRoom = isChatOpen && isRowInActiveRoom(row);
+
       if(row && Object.keys(row).length){
-        recentCache = [row, ...recentCache].slice(0, 500);
+        recentCache = [row, ...recentCache.filter((r) => supportRowSignature(r) !== supportRowSignature(row))].slice(0, 500);
       }
 
-      // If the chat is open and we're currently viewing this room, mark it as read.
-      const isChatOpen = chatOverlay?.style.display !== "none";
-      if(isChatOpen && isRowInActiveRoom(row)){
+      if(isActiveOpenRoom){
         markRoomSeenAt(activeRoom.type, activeRoom.room_id, row.created_at || new Date().toISOString());
-        loadMessages();
+        scheduleSeenFlush();
+      } else {
+        try {
+          const fromId = row?.sender_id || row?.user_id || "";
+          if(fromId && fromId !== USER_ID) playSoftNotification();
+        } catch {}
+        updateBadgesFromRecentCache();
       }
 
-      // Keep names list fresh when open (so new users appear)
-      if(isChatOpen) loadUsers();
-
-      updateBadgesFromRecentCache();
+      if(isChatOpen) queueLoadUsers(260);
     })
     .subscribe();
 }
@@ -811,7 +1193,9 @@ function subscribeBackground(){
 async function refreshRoom() {
   setStatus("");
   await loadUsers();
-  await loadMessages();
+  scheduleSeenFlush();
+  await loadMessages({ forceBottom: true });
+  scheduleSeenFlush();
   subscribeRoom();
 }
 
@@ -819,6 +1203,10 @@ async function refreshRoom() {
 // ---------- Sending ----------
 async function sendMessage() {
   const name = getUserName();
+  if (!name) {
+    redirectToNicknameLogin();
+    return;
+  }
   const text = (msgInput.value || "").trim();
   if (!text && !selectedFile) return;
 
@@ -859,6 +1247,19 @@ async function sendMessage() {
     room_id: activeRoom.room_id,
   };
 
+  const localId = `local-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const localRow = normalizeSupportRow({
+    ...payload,
+    id: localId,
+    created_at: new Date().toISOString(),
+  });
+
+  // Show the message inside the user's Support window immediately. This fixes
+  // delayed/disabled realtime and old tables where the latest rows were not being loaded.
+  appendSupportMessage(localRow, { forceBottom: true });
+  markRoomSeen(activeRoom.type, activeRoom.room_id);
+  scheduleSeenFlush();
+
   let insertedRows = [];
   let error = null;
   try {
@@ -869,6 +1270,11 @@ async function sendMessage() {
       body: JSON.stringify({ payload }),
     });
     const data = await res.json().catch(() => ({}));
+    if (data?.nickname_required) {
+      removeSupportMessageById(localId);
+      redirectToNicknameLogin();
+      return;
+    }
     if (!res.ok || !data?.ok) throw new Error(data?.error || "Message insert failed.");
     insertedRows = Array.isArray(data?.data) ? data.data : [];
   } catch (err) {
@@ -878,6 +1284,7 @@ async function sendMessage() {
   sendBtn.disabled = false;
 
   if (error) {
+    removeSupportMessageById(localId);
     console.error(error);
     setStatus(`Could not send your message. Please contact ${ADMIN_NAME}.`, "error");
     return;
@@ -887,57 +1294,36 @@ async function sendMessage() {
   setSelectedFile(null);
   if(attachInput) attachInput.value = "";
 
-  // Show immediately inside Support, even when Realtime is delayed/disabled.
-  const inserted = Array.isArray(insertedRows) && insertedRows[0] ? insertedRows[0] : null;
-  appendSupportMessage(inserted || {
-    ...payload,
-    id: `local-${Date.now()}`,
-    created_at: new Date().toISOString(),
-  });
-  markRoomSeen(activeRoom.type, activeRoom.room_id);
+  const inserted = Array.isArray(insertedRows) && insertedRows[0] ? normalizeSupportRow(insertedRows[0]) : null;
+  if (inserted) replaceSupportMessageById(localId, inserted, { forceBottom: true });
   setStatus("");
-
-  // Then reload from Supabase so the local temporary row is replaced by the real saved row.
-  try {
-    await loadMessages();
-    await loadUsers();
-  } catch (refreshErr) {
-    console.warn("support refresh after send failed", refreshErr);
-  }
+  scheduleSeenFlush();
+  queueLoadUsers(160);
+  try { msgInput?.focus(); } catch {}
 }
 
 // ---------- UI wiring ----------
 async function openSupport() {
   try { unlockSound(); } catch {}
 
-  // If the optional `support_users` table exists, use it as the source of truth
-  // for whether this user currently has a name (admin can delete names).
-  const okProfiles = await detectProfileTable();
-  if (okProfiles) {
-    const dbName = await fetchProfileName();
-    if (dbName) {
-      setUserName(dbName);
-    } else {
-      // Admin may have removed the name (or first time) → force choosing again.
-      try { localStorage.removeItem("sr_tool_user_name"); } catch {}
-    }
-  }
-
-  // If no name, ask first
-  const name = getUserName();
-  if (!name) {
-    nameInput.value = "";
-    show(nameOverlay);
-    setTimeout(() => nameInput.focus(), 50);
+  const ready = await ensureNicknameReady();
+  if (!ready) {
+    redirectToNicknameLogin();
     return;
   }
 
-  // Keep profile updated (best-effort; does not block UI)
+  const name = getUserName();
+  if (!name) {
+    redirectToNicknameLogin();
+    return;
+  }
+
   upsertProfileName(name).catch(()=>{});
 
   show(chatOverlay);
   setRoomPublic();
-  refreshRoom();
+  await refreshRoom();
+  scheduleSeenFlush();
 }
 
 function closeAll() {
@@ -954,15 +1340,8 @@ try {
 supportBtn?.addEventListener("click", openSupport);
 
 nameConfirmBtn?.addEventListener("click", async () => {
-  const name = (nameInput.value || "").trim();
-  if (!name) return;
-  setUserName(name);
-  // Save to DB profile if enabled (admin can delete these rows later)
-  try { await upsertProfileName(name); } catch {}
-  hide(nameOverlay);
-  show(chatOverlay);
-  setRoomPublic();
-  refreshRoom();
+  // Step 4 centralizes nickname collection on the login screen.
+  redirectToNicknameLogin();
 });
 
 nameCloseBtn?.addEventListener("click", closeAll);
@@ -1020,6 +1399,20 @@ window.addEventListener("storage", (e) => {
     updateBadgesFromRecentCache();
   }
 });
+
+// ===== STEP 6.2 SUPPORT SEEN FLUSH EVENTS START =====
+messagesList?.addEventListener("scroll", () => {
+  if (isNearSupportBottom(80)) scheduleSeenFlush();
+}, { passive: true });
+
+chatOverlay?.addEventListener("pointerdown", () => {
+  if (isSupportChatOpen()) scheduleSeenFlush();
+}, { passive: true });
+
+window.addEventListener("focus", () => {
+  if (isSupportChatOpen()) scheduleSeenFlush();
+});
+// ===== STEP 6.2 SUPPORT SEEN FLUSH EVENTS END =====
 
 // Initial status cleanup
 setStatus("");

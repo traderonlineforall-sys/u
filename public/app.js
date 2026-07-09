@@ -5076,3 +5076,17 @@ function handlePasteForOcr(e){
     setStatus('جاهز (اضغط داخل المربع ثم Ctrl+V)');
   });
 })();
+
+
+;/* sr-device-confidence-appjs-loader-v433 */
+(function(){
+  try{
+    if(window.__srDeviceConfidenceAppLoaderV433) return;
+    window.__srDeviceConfidenceAppLoaderV433 = true;
+    if(document.querySelector('script[src*="device-confidence-learn.js"]')) return;
+    var s=document.createElement('script');
+    s.src='./device-confidence-learn.js?v=step433';
+    s.defer=true;
+    (document.head||document.documentElement).appendChild(s);
+  }catch(e){}
+})();

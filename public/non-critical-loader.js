@@ -38,7 +38,7 @@
   }
 
   function loadSupportThenOpen(){
-    importOnce('support-chat', './support-chat.js?v=support-visible-20260426').then(function(){
+    importOnce('support-chat', './support-chat.js?v=step62-support-stable-notification').then(function(){
       try {
         if (typeof window.__srOpenSupportChat === 'function') {
           window.__srOpenSupportChat();

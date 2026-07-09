@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { enforceSameOrigin, requireUserSession, noStore } from "../../../lib/server/auth.js";
 import { getServiceSupabase } from "../../../lib/server/admin.js";
+import { requireActiveNickname, cleanNickname } from "../../../lib/server/nickname.js";
 
 function j(body, init){
   return noStore(NextResponse.json(body, init));
@@ -30,8 +31,21 @@ function normalizeRoomId(value, roomType, senderId){
 
 function isMissingTableOrColumn(error){
   const msg = String(error?.message || "");
+  const details = String(error?.details || "");
   const code = String(error?.code || "");
-  return code === "42P01" || code === "42703" || /Could not find|does not exist|column .* does not exist/i.test(msg);
+  return code === "42P01" || code === "42703" || /Could not find|does not exist|column .* does not exist|schema cache/i.test(msg + " " + details);
+}
+
+function normalizeInsertedRow(row, fallback){
+  const r = row && typeof row === "object" ? { ...row } : {};
+  r.sender_id = String(r.sender_id || r.user_id || fallback.sender_id || "");
+  r.user_id = String(r.user_id || r.sender_id || fallback.user_id || "");
+  r.sender_name = String(r.sender_name || r.name || fallback.sender_name || "User");
+  r.message = String(r.message || fallback.message || "");
+  r.room_type = String(r.room_type || fallback.room_type || "public");
+  r.room_id = String(r.room_id || fallback.room_id || "public");
+  r.created_at = r.created_at || new Date().toISOString();
+  return r;
 }
 
 async function currentBlockForUser(supabase, userId){
@@ -66,6 +80,67 @@ async function currentBlockForUser(supabase, userId){
   }
 }
 
+async function insertSupportMessage(supabase, basePayload){
+  // New schema first, then safe legacy fallbacks. This fixes old Supabase projects
+  // that do not have room_type/room_id or sender_id yet.
+  const attempts = [
+    {
+      label: "full",
+      payload: {
+        sender_id: basePayload.sender_id,
+        user_id: basePayload.user_id,
+        sender_name: basePayload.sender_name,
+        message: basePayload.message,
+        room_type: basePayload.room_type,
+        room_id: basePayload.room_id,
+      },
+    },
+    {
+      label: "no-room-columns",
+      payload: {
+        sender_id: basePayload.sender_id,
+        user_id: basePayload.user_id,
+        sender_name: basePayload.sender_name,
+        message: basePayload.message,
+      },
+    },
+    {
+      label: "legacy-user-id",
+      payload: {
+        user_id: basePayload.user_id,
+        sender_name: basePayload.sender_name,
+        message: basePayload.message,
+      },
+    },
+    {
+      label: "legacy-name",
+      payload: {
+        user_id: basePayload.user_id,
+        name: basePayload.sender_name,
+        message: basePayload.message,
+      },
+    },
+  ];
+
+  let lastError = null;
+  for(const attempt of attempts){
+    const { data, error } = await supabase
+      .from("support_messages")
+      .insert(attempt.payload)
+      .select("*");
+
+    if(!error){
+      const rows = Array.isArray(data) ? data.map((row) => normalizeInsertedRow(row, basePayload)) : [];
+      return { data: rows, error: null, used: attempt.label };
+    }
+
+    lastError = error;
+    if(!isMissingTableOrColumn(error)) break;
+  }
+
+  return { data: [], error: lastError || new Error("Message insert failed.") };
+}
+
 export async function POST(req){
   const same = enforceSameOrigin(req);
   if(!same.ok) return j({ error: same.error }, { status: same.status || 403 });
@@ -77,7 +152,7 @@ export async function POST(req){
   const payload = body?.payload && typeof body.payload === "object" ? body.payload : body;
   const sender_id = normalizeUserId(payload?.sender_id || payload?.user_id);
   const user_id = normalizeUserId(payload?.user_id || payload?.sender_id);
-  const sender_name = cleanText(payload?.sender_name || "Anonymous", 60) || "Anonymous";
+  const requested_sender_name = cleanNickname(payload?.sender_name || payload?.display_name || "");
   const message = cleanText(payload?.message, 5000);
   const room_type = normalizeRoomType(payload?.room_type);
   const room_id = normalizeRoomId(payload?.room_id, room_type, sender_id);
@@ -89,19 +164,24 @@ export async function POST(req){
 
   try {
     const supabase = getServiceSupabase();
+    const nick = await requireActiveNickname(supabase, sender_id, requested_sender_name);
+    if(!nick.ok){
+      return j({
+        error: nick.error || "Nickname is required.",
+        nickname_required: !!nick.nickname_required,
+        user_id: sender_id,
+      }, { status: nick.status || 409 });
+    }
+
     const blocked = await currentBlockForUser(supabase, sender_id);
     if(blocked){
       return j({ error: "You are blocked.", blocked_until: blocked.expires_at || null }, { status: 403 });
     }
 
-    const insertPayload = { sender_id, user_id, sender_name, message, room_type, room_id };
-    const { data, error } = await supabase
-      .from("support_messages")
-      .insert(insertPayload)
-      .select("*");
-
+    const basePayload = { sender_id, user_id, sender_name: nick.display_name, message, room_type, room_id };
+    const { data, error, used } = await insertSupportMessage(supabase, basePayload);
     if(error) return j({ error: error.message || "Message insert failed." }, { status: 500 });
-    return j({ ok: true, data: Array.isArray(data) ? data : [] });
+    return j({ ok: true, data, compatibility_mode: used !== "full", used_schema: used });
   } catch (err) {
     return j({ error: String(err?.message || err || "Message insert failed.") }, { status: 500 });
   }

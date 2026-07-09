@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { enforceSameOrigin, requireUserSession, noStore } from "../../../lib/server/auth.js";
 import { getServiceSupabase } from "../../../lib/server/admin.js";
+import { requireActiveNickname, cleanNickname } from "../../../lib/server/nickname.js";
 
 function j(body, init){
   return noStore(NextResponse.json(body, init));
@@ -63,22 +64,37 @@ export async function POST(req){
   const body = await req.json().catch(() => ({}));
   const text = cleanText(body?.text, 2000);
   const user_id = normalizeUserId(body?.user_id);
+  const requestedName = cleanNickname(body?.display_name || body?.name || "");
 
   if(!text) return j({ error: "Missing suggestion text." }, { status: 400 });
   if(!user_id) return j({ error: "Missing user id." }, { status: 400 });
 
   try {
     const supabase = getServiceSupabase();
+    const nick = await requireActiveNickname(supabase, user_id, requestedName);
+    if(!nick.ok){
+      return j({
+        error: nick.error || "Nickname is required.",
+        nickname_required: !!nick.nickname_required,
+        user_id,
+      }, { status: nick.status || 409 });
+    }
+
     const blocked = await currentBlockForUser(supabase, user_id);
     if(blocked){
       return j({ error: "You are blocked.", blocked_until: blocked.expires_at || null }, { status: 403 });
     }
 
-    const { data, error } = await supabase
+    let result = await supabase
       .from("suggestions")
-      .insert({ text, user_id })
+      .insert({ text, user_id, name: nick.display_name })
       .select("*");
 
+    if(result.error && isMissingTableOrColumn(result.error) && /name/i.test(String(result.error.message || ""))){
+      result = await supabase.from("suggestions").insert({ text, user_id }).select("*");
+    }
+
+    const { data, error } = result;
     if(error) return j({ error: error.message || "Suggestion insert failed." }, { status: 500 });
     return j({ ok: true, data: Array.isArray(data) ? data : [] });
   } catch (err) {

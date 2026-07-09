@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { enforceSameOrigin, requireUserSession, noStore } from "../../../lib/server/auth.js";
 import { requireAdminAccess, getServiceSupabase } from "../../../lib/server/admin.js";
+import { resetNicknameForUser, normalizeUserId } from "../../../lib/server/nickname.js";
 
 function j(body, init){
   return noStore(NextResponse.json(body, init));
@@ -15,11 +16,11 @@ export async function POST(req){
   const chk = await requireAdminAccess(req, body);
   if(!chk.ok) return j({ error: chk.error }, { status: chk.status || 401 });
 
-  const user_id = String(body?.user_id || "");
+  const user_id = normalizeUserId(body?.user_id);
   if(!user_id) return j({ error:"Missing user_id." }, { status: 400 });
 
   const supabase = getServiceSupabase();
-  const { error } = await supabase.from("support_users").delete().eq("user_id", user_id);
-  if(error) return j({ error: error.message }, { status: 500 });
-  return j({ ok: true });
+  const out = await resetNicknameForUser(supabase, user_id);
+  if(!out.ok) return j({ error: out.error || "Could not reset nickname." }, { status: out.status || 500 });
+  return j({ ok: true, reset: true, user_id });
 }

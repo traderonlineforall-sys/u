@@ -1,0 +1,1423 @@
+/*
+  Egypt World Cup Theme (Safe Layer)
+  ----------------------------------
+  Visual-only theme layer. It is active only while:
+    html.egypt-worldcup-theme-live
+  No data logic, API calls, IDs, storage, or layout order is changed.
+*/
+
+html.egypt-worldcup-theme-live,
+html.egypt-worldcup-theme-live body {
+  min-height: 100%;
+  background-color: #050403 !important;
+}
+
+html.egypt-worldcup-theme-live body {
+  background-image:
+    linear-gradient(180deg, rgba(0,0,0,.78) 0%, rgba(0,0,0,.32) 18%, rgba(0,0,0,.20) 47%, rgba(0,0,0,.58) 78%, rgba(0,0,0,.88) 100%),
+    radial-gradient(86% 70% at 50% 42%, rgba(0,0,0,.24) 0%, rgba(0,0,0,.06) 42%, rgba(0,0,0,.72) 100%),
+    linear-gradient(90deg, rgba(0,0,0,.88) 0%, rgba(0,0,0,.26) 22%, rgba(0,0,0,.12) 50%, rgba(0,0,0,.28) 78%, rgba(0,0,0,.90) 100%),
+    url("./egypt-worldcup-bg.webp?v=egyptwc2"),
+    linear-gradient(135deg, #060302 0%, #1b0705 42%, #030303 100%) !important;
+  background-position: center center, center center, center center, center center, center center !important;
+  background-size: cover, cover, cover, cover, cover !important;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat !important;
+  background-attachment: fixed, fixed, fixed, fixed, fixed !important;
+}
+
+html.egypt-worldcup-theme-live .moon,
+html.egypt-worldcup-theme-live .star,
+html.egypt-worldcup-theme-live #EID_DECOR_LAYER,
+html.egypt-worldcup-theme-live #EID_DECOR_LAYER .eid-art,
+html.egypt-worldcup-theme-live #EID_DECOR_LAYER::before,
+html.egypt-worldcup-theme-live #EID_DECOR_LAYER::after {
+  display: none !important;
+}
+
+/* Logo swap: same box and click behavior as Ahly/Zamalek layers */
+html.egypt-worldcup-theme-live #MNDO_UA07_LOGO3 {
+  background-image: url("./egypt-worldcup-logo.webp?v=egyptwc-logo1") !important;
+  background-repeat: no-repeat !important;
+  background-position: center center !important;
+  background-size: 100% 100% !important;
+  filter: drop-shadow(0 7px 18px rgba(0,0,0,.86)) drop-shadow(0 0 12px rgba(214,37,32,.20)) drop-shadow(0 0 9px rgba(255,202,111,.18)) !important;
+  box-shadow: none !important;
+}
+html.egypt-worldcup-theme-live #MNDO_UA07_LOGO3:hover {
+  transform: translateZ(0) scale(1.004) !important;
+  filter: drop-shadow(0 8px 20px rgba(0,0,0,.90)) drop-shadow(0 0 14px rgba(255,202,111,.20)) !important;
+}
+html.egypt-worldcup-theme-live #MNDO_UA07_LOGO3 .mndo-uwk07-logo-img {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  pointer-events: auto !important;
+}
+html.egypt-worldcup-theme-live #MNDO_UA07_LOGO3::before,
+html.egypt-worldcup-theme-live #MNDO_UA07_LOGO3::after {
+  opacity: 0 !important;
+  filter: none !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+/* Theme toggle mark */
+html.egypt-worldcup-theme-live .eid-toggle-btn.is-egypt,
+.eid-toggle-btn.is-egypt {
+  background:
+    radial-gradient(circle at 24% 18%, rgba(255,255,255,.42), rgba(255,255,255,0) 35%),
+    linear-gradient(180deg, rgba(255,234,167,.98), rgba(180,115,33,.94) 49%, rgba(20,5,3,.96) 100%) !important;
+  border-color: rgba(255,216,126,.58) !important;
+  box-shadow: 0 12px 28px rgba(0,0,0,.50), inset 0 1px 0 rgba(255,255,255,.42), 0 0 18px rgba(255,190,77,.18) !important;
+}
+html.egypt-worldcup-theme-live .eid-toggle-btn.is-egypt .eid-toggle-orb,
+.eid-toggle-btn.is-egypt .eid-toggle-orb {
+  background: linear-gradient(180deg, #e11d2f, #fff7e2 48%, #060606 100%) !important;
+}
+
+/* Inputs and text surfaces */
+html.egypt-worldcup-theme-live input,
+html.egypt-worldcup-theme-live textarea,
+html.egypt-worldcup-theme-live select,
+html.egypt-worldcup-theme-live #arabicNumber,
+html.egypt-worldcup-theme-live #arabiccNumber,
+html.egypt-worldcup-theme-live .in1,
+html.egypt-worldcup-theme-live .in2,
+html.egypt-worldcup-theme-live #searchInput {
+  background:
+    radial-gradient(130% 150% at 18% 0%, rgba(255,255,255,.16), rgba(255,255,255,0) 44%),
+    linear-gradient(180deg, rgba(32,18,12,.78), rgba(8,7,7,.84) 58%, rgba(31,7,5,.74) 100%) !important;
+  color: #fff7dd !important;
+  -webkit-text-fill-color: #fff7dd !important;
+  caret-color: #ffd27a !important;
+  border-color: rgba(255,210,116,.34) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.74) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 12px 30px rgba(0,0,0,.42), 0 0 0 1px rgba(255,210,116,.06) !important;
+}
+html.egypt-worldcup-theme-live input::placeholder,
+html.egypt-worldcup-theme-live textarea::placeholder,
+html.egypt-worldcup-theme-live #searchInput::placeholder {
+  color: rgba(255,238,196,.66) !important;
+  opacity: 1 !important;
+}
+html.egypt-worldcup-theme-live input:focus,
+html.egypt-worldcup-theme-live textarea:focus,
+html.egypt-worldcup-theme-live select:focus,
+html.egypt-worldcup-theme-live #searchInput:focus {
+  border-color: rgba(255,223,148,.62) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.24), 0 15px 36px rgba(0,0,0,.52), 0 0 0 1px rgba(255,223,148,.16), 0 0 24px rgba(205,24,31,.12) !important;
+}
+
+/* Main controls */
+html.egypt-worldcup-theme-live button,
+html.egypt-worldcup-theme-live .toolsStyle,
+html.egypt-worldcup-theme-live #bat2,
+html.egypt-worldcup-theme-live #suggestionAddBtn,
+html.egypt-worldcup-theme-live #supportSendBtn,
+html.egypt-worldcup-theme-live .suggestions-fab,
+html.egypt-worldcup-theme-live #supportToggleBtn,
+html.egypt-worldcup-theme-live .tablinks {
+  border-color: rgba(255,212,116,.36) !important;
+  color: #fff5d8 !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.78) !important;
+  background:
+    radial-gradient(125% 150% at 22% 0%, rgba(255,255,255,.24), rgba(255,255,255,0) 43%),
+    linear-gradient(180deg, rgba(143,13,18,.94), rgba(38,9,8,.96) 56%, rgba(7,7,7,.96) 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.20), inset 0 -1px 0 rgba(255,215,115,.20), 0 12px 27px rgba(0,0,0,.45), 0 0 20px rgba(184,28,30,.12) !important;
+}
+html.egypt-worldcup-theme-live button:hover,
+html.egypt-worldcup-theme-live .toolsStyle:hover,
+html.egypt-worldcup-theme-live #bat2:hover,
+html.egypt-worldcup-theme-live #suggestionAddBtn:hover,
+html.egypt-worldcup-theme-live #supportSendBtn:hover,
+html.egypt-worldcup-theme-live .suggestions-fab:hover,
+html.egypt-worldcup-theme-live #supportToggleBtn:hover,
+html.egypt-worldcup-theme-live .tablinks:hover {
+  background:
+    radial-gradient(125% 150% at 22% 0%, rgba(255,255,255,.31), rgba(255,255,255,0) 43%),
+    linear-gradient(180deg, rgba(193,22,30,.98), rgba(62,10,9,.98) 52%, rgba(14,13,13,.98) 100%) !important;
+  border-color: rgba(255,228,155,.56) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.28), inset 0 -1px 0 rgba(255,215,115,.25), 0 15px 34px rgba(0,0,0,.52), 0 0 26px rgba(255,194,84,.16) !important;
+}
+
+/* Menus / dropdowns */
+html.egypt-worldcup-theme-live .dropdown-content,
+html.egypt-worldcup-theme-live .sub-dropdown-content,
+html.egypt-worldcup-theme-live .search-results {
+  background:
+    radial-gradient(130% 130% at 18% 0%, rgba(255,255,255,.12), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg, rgba(27,18,13,.985), rgba(5,5,5,.988) 54%, rgba(23,5,4,.985) 100%) !important;
+  border-color: rgba(255,212,116,.24) !important;
+  color: #fff6dc !important;
+  box-shadow: 0 22px 58px rgba(0,0,0,.72), 0 0 28px rgba(202,31,36,.10) !important;
+}
+html.egypt-worldcup-theme-live .dropdown-content a,
+html.egypt-worldcup-theme-live .sub-dropdown-content a,
+html.egypt-worldcup-theme-live .search-results a {
+  color: rgba(255,247,223,.96) !important;
+}
+html.egypt-worldcup-theme-live .dropdown-content a:hover,
+html.egypt-worldcup-theme-live .sub-dropdown-content a:hover,
+html.egypt-worldcup-theme-live .search-results a:hover {
+  background: linear-gradient(90deg, rgba(176,18,26,.86), rgba(33,20,12,.92)) !important;
+  color: #fff !important;
+}
+
+/* Suggestions + Support modals */
+html.egypt-worldcup-theme-live #supportChatOverlay,
+html.egypt-worldcup-theme-live #supportNameOverlay,
+html.egypt-worldcup-theme-live #suggestionsOverlay,
+html.egypt-worldcup-theme-live #adminOverlay {
+  backdrop-filter: blur(10px) saturate(1.08) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.08) !important;
+}
+html.egypt-worldcup-theme-live .support-chat,
+html.egypt-worldcup-theme-live .support-name-card,
+html.egypt-worldcup-theme-live .suggestions-modal,
+html.egypt-worldcup-theme-live .suggestions-panel,
+html.egypt-worldcup-theme-live .admin-modal {
+  background:
+    linear-gradient(180deg, rgba(23,28,44,.88), rgba(8,10,17,.92) 48%, rgba(12,8,8,.94) 100%) !important;
+  border: 1px solid rgba(255,213,116,.25) !important;
+  box-shadow: 0 28px 80px rgba(0,0,0,.70), inset 0 1px 0 rgba(255,255,255,.10), 0 0 0 1px rgba(194,31,36,.08), 0 0 34px rgba(255,197,91,.08) !important;
+}
+html.egypt-worldcup-theme-live .support-chat::before,
+html.egypt-worldcup-theme-live .suggestions-modal::before,
+html.egypt-worldcup-theme-live .admin-modal::before {
+  background: linear-gradient(90deg, rgba(190,22,30,.74), rgba(255,219,132,.58), rgba(255,255,255,.20), rgba(10,10,10,.60)) !important;
+}
+html.egypt-worldcup-theme-live .support-chat h2,
+html.egypt-worldcup-theme-live .support-chat h3,
+html.egypt-worldcup-theme-live .suggestions-header h2,
+html.egypt-worldcup-theme-live .admin-modal h2 {
+  color: #fff4d3 !important;
+  text-shadow: 0 2px 12px rgba(0,0,0,.80), 0 0 18px rgba(255,203,96,.12) !important;
+}
+html.egypt-worldcup-theme-live .suggestions-subtitle,
+html.egypt-worldcup-theme-live .support-chat p,
+html.egypt-worldcup-theme-live .support-chat small {
+  color: rgba(255,238,202,.72) !important;
+}
+
+/* Support people list */
+html.egypt-worldcup-theme-live .support-user {
+  background:
+    radial-gradient(130% 150% at 10% 0%, rgba(255,255,255,.17), rgba(255,255,255,0) 45%),
+    linear-gradient(180deg, rgba(34,40,55,.84), rgba(13,17,26,.86)) !important;
+  border-color: rgba(255,213,116,.20) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 12px 28px rgba(0,0,0,.36) !important;
+}
+html.egypt-worldcup-theme-live .support-user.me,
+html.egypt-worldcup-theme-live .support-user.is-online {
+  background:
+    radial-gradient(120% 150% at 12% 0%, rgba(255,255,255,.20), rgba(255,255,255,0) 43%),
+    linear-gradient(180deg, rgba(32,65,46,.82), rgba(9,29,23,.88)) !important;
+  border-color: rgba(116,255,176,.34) !important;
+}
+html.egypt-worldcup-theme-live .support-user-badge,
+html.egypt-worldcup-theme-live .support-presence-badge,
+html.egypt-worldcup-theme-live .support-user-status {
+  color: #05130b !important;
+  background: linear-gradient(180deg, #7cff9b, #27d75d) !important;
+  border-color: rgba(220,255,231,.42) !important;
+  box-shadow: 0 0 18px rgba(39,215,93,.22), inset 0 1px 0 rgba(255,255,255,.38) !important;
+}
+
+/* Messages and suggestion cards */
+html.egypt-worldcup-theme-live .support-msg,
+html.egypt-worldcup-theme-live .suggestion-item,
+html.egypt-worldcup-theme-live .suggestion-reply {
+  background:
+    radial-gradient(100% 130% at 0% 0%, rgba(255,214,116,.12), rgba(255,214,116,0) 38%),
+    linear-gradient(180deg, rgba(21,24,30,.88), rgba(9,11,16,.92)) !important;
+  border-color: rgba(255,213,116,.24) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.09), 0 18px 42px rgba(0,0,0,.42), 0 0 0 1px rgba(194,31,36,.06) !important;
+}
+html.egypt-worldcup-theme-live .support-msg.mine,
+html.egypt-worldcup-theme-live .suggestion-item.has-replies {
+  background:
+    radial-gradient(100% 130% at 0% 0%, rgba(255,214,116,.16), rgba(255,214,116,0) 38%),
+    linear-gradient(180deg, rgba(34,52,43,.88), rgba(9,22,18,.92)) !important;
+  border-color: rgba(116,255,176,.24) !important;
+}
+html.egypt-worldcup-theme-live .support-msg-name,
+html.egypt-worldcup-theme-live .suggestion-name {
+  color: #fff1c5 !important;
+}
+html.egypt-worldcup-theme-live .support-msg-time,
+html.egypt-worldcup-theme-live .suggestion-when {
+  color: rgba(255,238,202,.64) !important;
+}
+html.egypt-worldcup-theme-live .suggestion-text,
+html.egypt-worldcup-theme-live .support-msg-text {
+  color: rgba(255,250,235,.96) !important;
+}
+
+/* Close buttons and small action chips */
+html.egypt-worldcup-theme-live .suggestions-close,
+html.egypt-worldcup-theme-live #supportChatCloseBtn,
+html.egypt-worldcup-theme-live #supportNameCloseBtn,
+html.egypt-worldcup-theme-live .admin-close {
+  background: rgba(11,12,16,.72) !important;
+  border-color: rgba(255,213,116,.32) !important;
+  color: #fff1c5 !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 10px 24px rgba(0,0,0,.42) !important;
+}
+html.egypt-worldcup-theme-live .suggestion-replies-toggle,
+html.egypt-worldcup-theme-live .support-del-btn,
+html.egypt-worldcup-theme-live .support-emoji-btn,
+html.egypt-worldcup-theme-live .support-attach-chip {
+  border-color: rgba(255,213,116,.26) !important;
+  background: linear-gradient(180deg, rgba(56,38,22,.88), rgba(12,12,14,.90)) !important;
+  color: #fff2ce !important;
+}
+
+/* Scrollbars */
+html.egypt-worldcup-theme-live *::-webkit-scrollbar { width: 10px; height: 10px; }
+html.egypt-worldcup-theme-live *::-webkit-scrollbar-track { background: rgba(0,0,0,.28); border-radius: 999px; }
+html.egypt-worldcup-theme-live *::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255,213,116,.72), rgba(165,22,28,.72)) !important;
+  border: 2px solid rgba(5,5,7,.65);
+}
+
+@media (max-width: 760px) {
+  html.egypt-worldcup-theme-live body {
+    background-position: 54% center, 54% center, 54% center, 54% center, center center !important;
+  }
+  html.egypt-worldcup-theme-live .support-chat,
+  html.egypt-worldcup-theme-live .suggestions-modal {
+    box-shadow: 0 18px 48px rgba(0,0,0,.72), inset 0 1px 0 rgba(255,255,255,.10) !important;
+  }
+}
+
+/* =========================================================
+   Egypt World Cup Theme - UI readability fix v3
+   Requested fixes:
+   - internal dropdown menus are not faded
+   - secondary buttons under the main tabs are clear and premium
+   - option/dropdown shadows removed from the outside
+   - no layout/order/JS/data behavior changes
+   ========================================================= */
+html.egypt-worldcup-theme-live {
+  --egypt-v3-cream: #fff8dc;
+  --egypt-v3-gold: #e8d49f;
+  --egypt-v3-gold-soft: #cdb77f;
+  --egypt-v3-red-hot: rgba(168, 0, 0, .92);
+  --egypt-v3-red-mid: rgba(74, 0, 1, .92);
+  --egypt-v3-red-dark: rgba(11, 0, 0, .96);
+  --egypt-v3-panel: rgba(8, 0, 0, .985);
+  --egypt-v3-line: rgba(232, 205, 139, .30);
+  --egypt-v3-line-hot: rgba(255, 229, 164, .58);
+}
+
+/* No outside tint/bar around tab rows or the secondary tools row. */
+html.egypt-worldcup-theme-live #tabs,
+html.egypt-worldcup-theme-live #tabs.tab,
+html.egypt-worldcup-theme-live .toolsBar,
+html.egypt-worldcup-theme-live .tabcontent .toolsBar {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Kill old pseudo shine/extra layers on option buttons. */
+html.egypt-worldcup-theme-live .toolsBar .toolsStyle::before,
+html.egypt-worldcup-theme-live .toolsBar .toolsStyle::after,
+html.egypt-worldcup-theme-live .tabcontent .toolsBar .toolsStyle::before,
+html.egypt-worldcup-theme-live .tabcontent .toolsBar .toolsStyle::after,
+html.egypt-worldcup-theme-live .tabcontent .dropdown .dropbtn::before,
+html.egypt-worldcup-theme-live .tabcontent .dropdown .dropbtn::after,
+html.egypt-worldcup-theme-live .tabcontent .navbar a::before,
+html.egypt-worldcup-theme-live .tabcontent .navbar a::after,
+html.egypt-worldcup-theme-live .tabcontent #singlelink::before,
+html.egypt-worldcup-theme-live .tabcontent #singlelink::after {
+  content: none !important;
+  opacity: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+/* Main tab buttons stay individual, not washed out. */
+html.egypt-worldcup-theme-live #tabs .tablinks {
+  color: var(--egypt-v3-gold) !important;
+  -webkit-text-fill-color: var(--egypt-v3-gold) !important;
+  background:
+    linear-gradient(180deg, rgba(255,246,211,.11), rgba(255,246,211,0) 35%),
+    linear-gradient(180deg, rgba(64,0,1,.86) 0%, rgba(8,0,0,.94) 60%, rgba(52,0,0,.66) 100%) !important;
+  background-color: rgba(10,0,0,.92) !important;
+  border: 1px solid rgba(232,205,139,.30) !important;
+  border-radius: 13px !important;
+  text-shadow: 0 2px 3px rgba(0,0,0,1), 0 0 6px rgba(232,205,139,.10) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,246,211,.10),
+    inset 0 -1px 0 rgba(232,205,139,.14) !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+html.egypt-worldcup-theme-live #tabs .tablinks:hover,
+html.egypt-worldcup-theme-live #tabs .tablinks:focus,
+html.egypt-worldcup-theme-live #tabs .tablinks.active,
+html.egypt-worldcup-theme-live #tabs .tablinks.mndo-ahly-current-tab,
+html.egypt-worldcup-theme-live #tabs .tablinks[aria-current="page"] {
+  color: var(--egypt-v3-cream) !important;
+  -webkit-text-fill-color: var(--egypt-v3-cream) !important;
+  background:
+    linear-gradient(180deg, rgba(255,246,211,.16), rgba(255,246,211,0) 35%),
+    linear-gradient(180deg, rgba(148,0,0,.92) 0%, rgba(55,0,1,.96) 58%, rgba(10,0,0,.96) 100%) !important;
+  border-color: var(--egypt-v3-line-hot) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,246,211,.16),
+    inset 0 -2px 0 rgba(255,225,150,.46) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* The small buttons under the main tabs: clear, compact, no ugly outside glow. */
+html.egypt-worldcup-theme-live .toolsBar .toolsStyle,
+html.egypt-worldcup-theme-live .tabcontent .toolsBar .toolsStyle {
+  display: inline-block !important;
+  position: relative !important;
+  isolation: auto !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+  margin: 2px 6px 8px 0 !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+  text-decoration: none !important;
+  vertical-align: top !important;
+  color: var(--egypt-v3-gold) !important;
+  -webkit-text-fill-color: var(--egypt-v3-gold) !important;
+  background:
+    linear-gradient(180deg, rgba(255,246,211,.075), rgba(255,246,211,0) 36%),
+    linear-gradient(180deg, rgba(42,0,1,.78) 0%, rgba(8,0,0,.92) 58%, rgba(58,0,0,.50) 100%) !important;
+  background-color: rgba(9,0,0,.86) !important;
+  border: 1px solid rgba(232,205,139,.28) !important;
+  text-shadow: 0 2px 3px rgba(0,0,0,1), 0 0 5px rgba(232,205,139,.10) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,246,211,.085),
+    inset 0 -1px 0 rgba(232,205,139,.12) !important;
+  opacity: 1 !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+html.egypt-worldcup-theme-live .toolsBar .toolsStyle:hover,
+html.egypt-worldcup-theme-live .toolsBar .toolsStyle:focus,
+html.egypt-worldcup-theme-live .tabcontent .toolsBar .toolsStyle:hover,
+html.egypt-worldcup-theme-live .tabcontent .toolsBar .toolsStyle:focus {
+  color: var(--egypt-v3-cream) !important;
+  -webkit-text-fill-color: var(--egypt-v3-cream) !important;
+  background:
+    linear-gradient(180deg, rgba(255,246,211,.12), rgba(255,246,211,0) 36%),
+    linear-gradient(90deg, rgba(146,0,0,.92) 0%, rgba(68,0,1,.94) 55%, rgba(10,0,0,.91) 100%) !important;
+  border-color: var(--egypt-v3-line-hot) !important;
+  box-shadow:
+    inset 2px 0 0 rgba(255,225,150,.58),
+    inset 0 1px 0 rgba(255,246,211,.13),
+    inset 0 -1px 0 rgba(255,225,150,.22) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Main SR option/dropdown triggers: visible but without any external shadow. */
+html.egypt-worldcup-theme-live .tabcontent .dropdown .dropbtn,
+html.egypt-worldcup-theme-live .tabcontent .navbar a,
+html.egypt-worldcup-theme-live .tabcontent #singlelink,
+html.egypt-worldcup-theme-live .dropdown .dropbtn,
+html.egypt-worldcup-theme-live .navbar a,
+html.egypt-worldcup-theme-live #singlelink {
+  color: var(--egypt-v3-gold) !important;
+  -webkit-text-fill-color: var(--egypt-v3-gold) !important;
+  background:
+    linear-gradient(180deg, rgba(255,246,211,.055), rgba(255,246,211,0) 38%),
+    linear-gradient(180deg, rgba(34,0,1,.70) 0%, rgba(7,0,0,.88) 62%, rgba(46,0,0,.42) 100%) !important;
+  background-color: rgba(8,0,0,.80) !important;
+  border: 1px solid rgba(232,205,139,.22) !important;
+  border-radius: 7px !important;
+  text-shadow: 0 2px 3px rgba(0,0,0,1), 0 0 5px rgba(232,205,139,.10) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,246,211,.060),
+    inset 0 -1px 0 rgba(232,205,139,.10) !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+html.egypt-worldcup-theme-live .dropdown:hover .dropbtn,
+html.egypt-worldcup-theme-live .dropdown:focus-within .dropbtn,
+html.egypt-worldcup-theme-live .dropdown.open .dropbtn,
+html.egypt-worldcup-theme-live .dropdown.active .dropbtn,
+html.egypt-worldcup-theme-live #singlelink:hover,
+html.egypt-worldcup-theme-live #singlelink:focus,
+html.egypt-worldcup-theme-live .navbar a:hover,
+html.egypt-worldcup-theme-live .navbar a:focus {
+  color: var(--egypt-v3-cream) !important;
+  -webkit-text-fill-color: var(--egypt-v3-cream) !important;
+  background:
+    linear-gradient(180deg, rgba(255,246,211,.12), rgba(255,246,211,0) 38%),
+    linear-gradient(90deg, rgba(143,0,0,.92) 0%, rgba(62,0,1,.94) 56%, rgba(8,0,0,.91) 100%) !important;
+  border-color: rgba(255,229,164,.46) !important;
+  box-shadow:
+    inset 2px 0 0 rgba(255,225,150,.56),
+    inset 0 1px 0 rgba(255,246,211,.12),
+    inset 0 -1px 0 rgba(255,225,150,.20) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Open internal menus: solid/readable, not faded, and no outer shadow. */
+html.egypt-worldcup-theme-live .dropdown-content,
+html.egypt-worldcup-theme-live .sub-dropdown-content,
+html.egypt-worldcup-theme-live .dropdown:hover .dropdown-content,
+html.egypt-worldcup-theme-live .dropdown:focus-within .dropdown-content,
+html.egypt-worldcup-theme-live .sub-dropdown:hover .sub-dropdown-content,
+html.egypt-worldcup-theme-live .sub-dropdown:focus-within .sub-dropdown-content {
+  color: var(--egypt-v3-gold) !important;
+  -webkit-text-fill-color: var(--egypt-v3-gold) !important;
+  background:
+    linear-gradient(180deg, rgba(255,246,211,.055), rgba(255,246,211,0) 30%),
+    linear-gradient(180deg, rgba(16,0,1,.99) 0%, rgba(42,0,1,.985) 54%, rgba(5,0,0,.995) 100%) !important;
+  background-color: var(--egypt-v3-panel) !important;
+  border: 1px solid rgba(232,205,139,.34) !important;
+  border-radius: 7px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,246,211,.080),
+    inset 0 -1px 0 rgba(120,0,0,.28) !important;
+  text-shadow: 0 2px 3px rgba(0,0,0,1) !important;
+  opacity: 1 !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  z-index: 999999 !important;
+}
+
+/* Items inside menus: separated readable rows, no external shadow. */
+html.egypt-worldcup-theme-live .sub-dropdown,
+html.egypt-worldcup-theme-live .sub-dropdown[style],
+html.egypt-worldcup-theme-live .dropdown-content a,
+html.egypt-worldcup-theme-live .sub-dropdown-content a,
+html.egypt-worldcup-theme-live .sub-dropdown > a,
+html.egypt-worldcup-theme-live #searchResults.search-results a,
+html.egypt-worldcup-theme-live #searchResults a {
+  color: var(--egypt-v3-gold) !important;
+  -webkit-text-fill-color: var(--egypt-v3-gold) !important;
+  background: rgba(0,0,0,.18) !important;
+  background-color: rgba(0,0,0,.18) !important;
+  border: 1px solid rgba(232,205,139,.10) !important;
+  border-radius: 5px !important;
+  margin: 2px !important;
+  text-shadow: 0 2px 3px rgba(0,0,0,1), 0 0 5px rgba(232,205,139,.08) !important;
+  box-shadow: inset 0 -1px 0 rgba(232,205,139,.07) !important;
+  opacity: 1 !important;
+}
+html.egypt-worldcup-theme-live .sub-dropdown:hover,
+html.egypt-worldcup-theme-live .sub-dropdown:hover[style],
+html.egypt-worldcup-theme-live .dropdown-content a:hover,
+html.egypt-worldcup-theme-live .sub-dropdown-content a:hover,
+html.egypt-worldcup-theme-live .sub-dropdown:hover > a,
+html.egypt-worldcup-theme-live .dropdown-content a:focus,
+html.egypt-worldcup-theme-live .sub-dropdown-content a:focus,
+html.egypt-worldcup-theme-live #searchResults.search-results a:hover,
+html.egypt-worldcup-theme-live #searchResults a:hover,
+html.egypt-worldcup-theme-live #searchResults.search-results a:focus,
+html.egypt-worldcup-theme-live #searchResults a:focus,
+html.egypt-worldcup-theme-live #searchResults.search-results a.highlight,
+html.egypt-worldcup-theme-live #searchResults a.highlight {
+  color: var(--egypt-v3-cream) !important;
+  -webkit-text-fill-color: var(--egypt-v3-cream) !important;
+  background:
+    linear-gradient(90deg, rgba(155,0,0,.94) 0%, rgba(74,0,1,.92) 55%, rgba(12,0,0,.88) 100%) !important;
+  border-color: rgba(255,229,164,.42) !important;
+  box-shadow:
+    inset 2px 0 0 rgba(255,225,150,.58),
+    inset 0 1px 0 rgba(255,246,211,.10),
+    inset 0 -1px 0 rgba(255,225,150,.18) !important;
+}
+
+/* Search suggestions panel follows the same no-outside-shadow rule. */
+html.egypt-worldcup-theme-live #searchResults.search-results,
+html.egypt-worldcup-theme-live #searchResults,
+html.egypt-worldcup-theme-live .search-results {
+  color: var(--egypt-v3-gold) !important;
+  -webkit-text-fill-color: var(--egypt-v3-gold) !important;
+  background:
+    linear-gradient(180deg, rgba(16,0,1,.985) 0%, rgba(38,0,1,.980) 54%, rgba(5,0,0,.990) 100%) !important;
+  background-color: var(--egypt-v3-panel) !important;
+  border: 1px solid rgba(232,205,139,.30) !important;
+  border-radius: 9px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,246,211,.080),
+    inset 0 -1px 0 rgba(120,0,0,.25) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Native select/options, where the browser allows styling. */
+html.egypt-worldcup-theme-live select,
+html.egypt-worldcup-theme-live select option {
+  background-color: #130000 !important;
+  color: var(--egypt-v3-cream) !important;
+  -webkit-text-fill-color: var(--egypt-v3-cream) !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 900px) {
+  html.egypt-worldcup-theme-live .toolsBar,
+  html.egypt-worldcup-theme-live .tabcontent .toolsBar {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+  html.egypt-worldcup-theme-live .toolsBar .toolsStyle,
+  html.egypt-worldcup-theme-live .tabcontent .toolsBar .toolsStyle {
+    border-radius: 6px !important;
+  }
+}
+
+
+/* =========================================================
+   Egypt World Cup Theme - clean options fix v4
+   Requested:
+   - option rows under main tabs stay clear/transparent so background image shows
+   - no ugly external tint or shadow on option triggers
+   - internal dropdown menus keep their readable shaded panel
+   - Calculate page purple panels removed
+   ========================================================= */
+html.egypt-worldcup-theme-live {
+  --egypt-v4-text: #f0d894;
+  --egypt-v4-text-hot: #fff6d4;
+  --egypt-v4-line: rgba(232,205,139,.18);
+  --egypt-v4-line-hot: rgba(255,229,164,.38);
+  --egypt-v4-hover-red: rgba(150,0,0,.25);
+  --egypt-v4-hover-gold: rgba(232,205,139,.075);
+}
+
+/* Avoid the browser blue text-selection look on buttons/tabs. */
+html.egypt-worldcup-theme-live button,
+html.egypt-worldcup-theme-live .tablinks,
+html.egypt-worldcup-theme-live .dropbtn,
+html.egypt-worldcup-theme-live .toolsStyle,
+html.egypt-worldcup-theme-live #singlelink,
+html.egypt-worldcup-theme-live .navbar a {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+html.egypt-worldcup-theme-live button::selection,
+html.egypt-worldcup-theme-live .tablinks::selection,
+html.egypt-worldcup-theme-live .dropbtn::selection,
+html.egypt-worldcup-theme-live .toolsStyle::selection,
+html.egypt-worldcup-theme-live #singlelink::selection,
+html.egypt-worldcup-theme-live .navbar a::selection {
+  background: transparent !important;
+  color: inherit !important;
+}
+
+/* Remove any outside slab around the option rows. */
+html.egypt-worldcup-theme-live .tabcontent,
+html.egypt-worldcup-theme-live .toolsBar,
+html.egypt-worldcup-theme-live .navbar {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+  outline: 0 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Option triggers under the main tabs: transparent, only a fine line and readable text. */
+html.egypt-worldcup-theme-live .tabcontent .dropdown > .dropbtn,
+html.egypt-worldcup-theme-live .tabcontent .navbar > a,
+html.egypt-worldcup-theme-live .tabcontent a#singlelink,
+html.egypt-worldcup-theme-live .tabcontent #singlelink,
+html.egypt-worldcup-theme-live .tabcontent .toolsBar .toolsStyle,
+html.egypt-worldcup-theme-live #SR\ Sales .toolsBar .toolsStyle,
+html.egypt-worldcup-theme-live #SR\ Technical .toolsBar .toolsStyle,
+html.egypt-worldcup-theme-live #Mobile .toolsBar .toolsStyle,
+html.egypt-worldcup-theme-live #Calculate .toolsBar .toolsStyle {
+  color: var(--egypt-v4-text) !important;
+  -webkit-text-fill-color: var(--egypt-v4-text) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 1px solid var(--egypt-v4-line) !important;
+  border-radius: 5px !important;
+  box-shadow: none !important;
+  text-shadow: 0 2px 3px rgba(0,0,0,.98), 0 0 7px rgba(232,205,139,.12) !important;
+  filter: none !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transform: none !important;
+}
+
+/* Hover/open state: subtle only; still lets the background show. */
+html.egypt-worldcup-theme-live .tabcontent .dropdown:hover > .dropbtn,
+html.egypt-worldcup-theme-live .tabcontent .dropdown:focus-within > .dropbtn,
+html.egypt-worldcup-theme-live .tabcontent .dropdown.open > .dropbtn,
+html.egypt-worldcup-theme-live .tabcontent .dropdown.active > .dropbtn,
+html.egypt-worldcup-theme-live .tabcontent .navbar > a:hover,
+html.egypt-worldcup-theme-live .tabcontent .navbar > a:focus,
+html.egypt-worldcup-theme-live .tabcontent a#singlelink:hover,
+html.egypt-worldcup-theme-live .tabcontent a#singlelink:focus,
+html.egypt-worldcup-theme-live .tabcontent #singlelink:hover,
+html.egypt-worldcup-theme-live .tabcontent #singlelink:focus,
+html.egypt-worldcup-theme-live .tabcontent .toolsBar .toolsStyle:hover,
+html.egypt-worldcup-theme-live .tabcontent .toolsBar .toolsStyle:focus {
+  color: var(--egypt-v4-text-hot) !important;
+  -webkit-text-fill-color: var(--egypt-v4-text-hot) !important;
+  background:
+    linear-gradient(90deg, var(--egypt-v4-hover-red) 0%, var(--egypt-v4-hover-gold) 48%, rgba(0,0,0,0) 100%) !important;
+  background-color: transparent !important;
+  border-color: var(--egypt-v4-line-hot) !important;
+  box-shadow: inset 2px 0 0 rgba(232,205,139,.42) !important;
+  text-shadow: 0 2px 3px rgba(0,0,0,1), 0 0 9px rgba(255,229,164,.18) !important;
+  transform: none !important;
+}
+
+/* Keep the dropdown menus themselves shaded/readable when opened. */
+html.egypt-worldcup-theme-live .dropdown-content,
+html.egypt-worldcup-theme-live .sub-dropdown-content,
+html.egypt-worldcup-theme-live .dropdown:hover .dropdown-content,
+html.egypt-worldcup-theme-live .dropdown:focus-within .dropdown-content,
+html.egypt-worldcup-theme-live .sub-dropdown:hover .sub-dropdown-content,
+html.egypt-worldcup-theme-live .sub-dropdown:focus-within .sub-dropdown-content {
+  color: #f3dc9f !important;
+  -webkit-text-fill-color: #f3dc9f !important;
+  background:
+    linear-gradient(180deg, rgba(255,246,211,.055), rgba(255,246,211,0) 30%),
+    linear-gradient(180deg, rgba(14,0,0,.992) 0%, rgba(45,0,1,.988) 55%, rgba(4,0,0,.997) 100%) !important;
+  background-color: rgba(8,0,0,.992) !important;
+  border: 1px solid rgba(232,205,139,.34) !important;
+  border-radius: 7px !important;
+  box-shadow: 0 18px 44px rgba(0,0,0,.68), inset 0 1px 0 rgba(255,246,211,.08) !important;
+  text-shadow: 0 2px 3px rgba(0,0,0,1) !important;
+  opacity: 1 !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html.egypt-worldcup-theme-live .dropdown-content a,
+html.egypt-worldcup-theme-live .sub-dropdown-content a,
+html.egypt-worldcup-theme-live .sub-dropdown > a {
+  color: #f3dc9f !important;
+  -webkit-text-fill-color: #f3dc9f !important;
+  background: rgba(0,0,0,.16) !important;
+  border-color: rgba(232,205,139,.10) !important;
+  box-shadow: inset 0 -1px 0 rgba(232,205,139,.075) !important;
+}
+html.egypt-worldcup-theme-live .dropdown-content a:hover,
+html.egypt-worldcup-theme-live .dropdown-content a:focus,
+html.egypt-worldcup-theme-live .sub-dropdown-content a:hover,
+html.egypt-worldcup-theme-live .sub-dropdown-content a:focus,
+html.egypt-worldcup-theme-live .sub-dropdown:hover > a {
+  color: #fff6d4 !important;
+  -webkit-text-fill-color: #fff6d4 !important;
+  background: linear-gradient(90deg, rgba(158,0,0,.94), rgba(67,0,1,.92) 56%, rgba(10,0,0,.88)) !important;
+  border-color: rgba(255,229,164,.42) !important;
+  box-shadow: inset 2px 0 0 rgba(255,225,150,.58), inset 0 1px 0 rgba(255,246,211,.10) !important;
+}
+
+/* Calculate tab: remove the purple cards and make them fit Egypt theme. */
+html.egypt-worldcup-theme-live #Calculate #divv,
+html.egypt-worldcup-theme-live #Calculate #withoutvat,
+html.egypt-worldcup-theme-live #divv,
+html.egypt-worldcup-theme-live #withoutvat {
+  background:
+    linear-gradient(180deg, rgba(255,246,211,.060), rgba(255,246,211,0) 34%),
+    linear-gradient(135deg, rgba(12,0,0,.76), rgba(36,0,1,.66) 52%, rgba(5,0,0,.80)) !important;
+  border: 1px solid rgba(232,205,139,.24) !important;
+  color: #f0d894 !important;
+  box-shadow: 0 22px 56px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,246,211,.10) !important;
+  text-shadow: 0 2px 3px rgba(0,0,0,.95) !important;
+}
+html.egypt-worldcup-theme-live #Calculate #Hhhh,
+html.egypt-worldcup-theme-live #Calculate #Poll1,
+html.egypt-worldcup-theme-live #Hhhh,
+html.egypt-worldcup-theme-live #Poll1 {
+  color: #fff6d4 !important;
+  -webkit-text-fill-color: #fff6d4 !important;
+  text-shadow: 0 2px 4px rgba(0,0,0,.95), 0 0 10px rgba(232,205,139,.14) !important;
+}
+html.egypt-worldcup-theme-live #Calculate .selectt,
+html.egypt-worldcup-theme-live #Calculate .ino,
+html.egypt-worldcup-theme-live #Calculate #nom1,
+html.egypt-worldcup-theme-live #Calculate #nom2,
+html.egypt-worldcup-theme-live #Calculate select,
+html.egypt-worldcup-theme-live #Calculate input {
+  background: rgba(7,0,0,.74) !important;
+  color: #fff6d4 !important;
+  -webkit-text-fill-color: #fff6d4 !important;
+  border: 1px solid rgba(232,205,139,.30) !important;
+  box-shadow: inset 0 1px 0 rgba(255,246,211,.08) !important;
+  text-shadow: 0 2px 3px rgba(0,0,0,.95) !important;
+}
+html.egypt-worldcup-theme-live #Calculate .service-btn,
+html.egypt-worldcup-theme-live #Calculate .discount-btn,
+html.egypt-worldcup-theme-live #Calculate .extra-btn,
+html.egypt-worldcup-theme-live #Calculate .op-btn,
+html.egypt-worldcup-theme-live #Calculate .add-btn,
+html.egypt-worldcup-theme-live #Calculate .vat-btn,
+html.egypt-worldcup-theme-live #Calculate #reset1,
+html.egypt-worldcup-theme-live #Calculate #Buto {
+  background:
+    linear-gradient(180deg, rgba(142,0,0,.78), rgba(14,0,0,.88)) !important;
+  color: #fff6d4 !important;
+  -webkit-text-fill-color: #fff6d4 !important;
+  border: 1px solid rgba(232,205,139,.24) !important;
+  box-shadow: inset 0 1px 0 rgba(255,246,211,.10) !important;
+  text-shadow: 0 2px 3px rgba(0,0,0,.95) !important;
+}
+html.egypt-worldcup-theme-live #Calculate .service-btn:hover,
+html.egypt-worldcup-theme-live #Calculate .discount-btn:hover,
+html.egypt-worldcup-theme-live #Calculate .extra-btn:hover,
+html.egypt-worldcup-theme-live #Calculate .op-btn:hover,
+html.egypt-worldcup-theme-live #Calculate .add-btn:hover,
+html.egypt-worldcup-theme-live #Calculate .vat-btn:hover,
+html.egypt-worldcup-theme-live #Calculate #reset1:hover,
+html.egypt-worldcup-theme-live #Calculate #Buto:hover,
+html.egypt-worldcup-theme-live #Calculate .service-btn.active,
+html.egypt-worldcup-theme-live #Calculate .discount-btn.active,
+html.egypt-worldcup-theme-live #Calculate .extra-btn.active,
+html.egypt-worldcup-theme-live #Calculate .op-btn.active,
+html.egypt-worldcup-theme-live #Calculate .add-btn.active,
+html.egypt-worldcup-theme-live #Calculate .vat-btn.active {
+  background:
+    linear-gradient(90deg, rgba(165,0,0,.92), rgba(70,0,1,.90) 58%, rgba(10,0,0,.90)) !important;
+  border-color: rgba(255,229,164,.40) !important;
+  box-shadow: inset 2px 0 0 rgba(255,225,150,.50), inset 0 1px 0 rgba(255,246,211,.12) !important;
+}
+
+/* V5: World Cup image toggle + slightly larger Egypt logo */
+html.egypt-worldcup-theme-live #MNDO_UA07_LOGO3 {
+  background-image: url("./egypt-worldcup-logo.webp?v=egyptwc-logo-v5") !important;
+  transform: translateZ(0) scale(1.10) !important;
+  transform-origin: center center !important;
+  z-index: 10 !important;
+}
+html.egypt-worldcup-theme-live #MNDO_UA07_LOGO3:hover {
+  transform: translateZ(0) scale(1.13) !important;
+}
+
+html.egypt-worldcup-theme-live .eid-toggle-btn.is-egypt,
+.eid-toggle-btn.is-egypt {
+  width: 46px !important;
+  min-width: 46px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  padding: 0 !important;
+  border-radius: 15px !important;
+  overflow: hidden !important;
+  background-image: url("./egypt-worldcup-toggle.webp?v=egyptwc-toggle-v5") !important;
+  background-size: cover !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  border: 1px solid rgba(255, 222, 126, .78) !important;
+  box-shadow:
+    0 8px 16px rgba(0,0,0,.50),
+    inset 0 1px 0 rgba(255,255,255,.42),
+    inset 0 -1px 0 rgba(80,40,0,.56) !important;
+  filter: saturate(1.10) brightness(1.04) contrast(1.03) !important;
+}
+html.egypt-worldcup-theme-live .eid-toggle-btn.is-egypt:hover,
+.eid-toggle-btn.is-egypt:hover {
+  transform: translateY(-1px) scale(1.035) !important;
+  border-color: rgba(255,239,178,.94) !important;
+  box-shadow:
+    0 10px 20px rgba(0,0,0,.56),
+    inset 0 1px 0 rgba(255,255,255,.55),
+    0 0 0 1px rgba(255,218,114,.18) !important;
+}
+html.egypt-worldcup-theme-live .eid-toggle-btn.is-egypt .eid-toggle-shell,
+.eid-toggle-btn.is-egypt .eid-toggle-shell,
+html.egypt-worldcup-theme-live .eid-toggle-btn.is-egypt .eid-toggle-glyph,
+.eid-toggle-btn.is-egypt .eid-toggle-glyph,
+html.egypt-worldcup-theme-live .eid-toggle-btn.is-egypt .eid-toggle-orb,
+.eid-toggle-btn.is-egypt .eid-toggle-orb {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+html.egypt-worldcup-theme-live .eid-toggle-btn.is-egypt::before,
+.eid-toggle-btn.is-egypt::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 1px !important;
+  border-radius: 14px !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0) 45%, rgba(0,0,0,.10) 100%) !important;
+  pointer-events: none !important;
+}
+
+/* =========================================================
+   Egypt World Cup Theme - final clean options v6
+   Requested from screenshots:
+   - theme toggle smaller, same place
+   - Egypt logo slightly larger like Ahly size
+   - secondary link buttons just under the main tabs are clearly buttons
+   - dropdown option rows are text-only, no transparent squares, no normal text shadow
+   - only hover/opened option gets a shaded highlight
+   - internal dropdown menus remain shaded/readable
+   ========================================================= */
+html.egypt-worldcup-theme-live {
+  --egypt-v6-link-bg1: rgba(74, 6, 7, .86);
+  --egypt-v6-link-bg2: rgba(10, 5, 5, .92);
+  --egypt-v6-link-text: #f7e2a5;
+  --egypt-v6-option-text: #f0d894;
+  --egypt-v6-option-hover: rgba(118, 0, 0, .62);
+  --egypt-v6-option-hover2: rgba(22, 0, 0, .80);
+  --egypt-v6-gold-line: rgba(238, 207, 128, .34);
+}
+
+/* Egypt logo: larger inside the same Ahly/Zamalek box, without moving the layout. */
+html.egypt-worldcup-theme-live #MNDO_UA07_LOGO3 {
+  background-image: url("./egypt-worldcup-logo.webp?v=egyptwc-logo-v6") !important;
+  background-size: 112% 112% !important;
+  background-position: center center !important;
+  transform: translateZ(0) scale(1.10) !important;
+  transform-origin: center center !important;
+  box-shadow: none !important;
+}
+html.egypt-worldcup-theme-live #MNDO_UA07_LOGO3:hover {
+  transform: translateZ(0) scale(1.12) !important;
+}
+
+/* Theme switch button: reduced from the big v5 size and keep the World Cup look + Egypt flag. */
+html.egypt-worldcup-theme-live .eid-toggle-btn.is-egypt,
+.eid-toggle-btn.is-egypt {
+  position: relative !important;
+  width: 34px !important;
+  min-width: 34px !important;
+  max-width: 34px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  padding: 0 !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  background-image: url("./egypt-worldcup-toggle.webp?v=egyptwc-toggle-v6") !important;
+  background-size: cover !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  border: 1px solid rgba(255, 221, 122, .82) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 4px 10px rgba(0,0,0,.44) !important;
+  filter: saturate(1.08) brightness(1.03) contrast(1.04) !important;
+  vertical-align: middle !important;
+}
+html.egypt-worldcup-theme-live .eid-toggle-btn.is-egypt:hover,
+.eid-toggle-btn.is-egypt:hover {
+  transform: translateY(-1px) scale(1.02) !important;
+  border-color: rgba(255, 239, 178, .95) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.34), 0 6px 13px rgba(0,0,0,.50) !important;
+}
+html.egypt-worldcup-theme-live .eid-toggle-btn.is-egypt::before,
+.eid-toggle-btn.is-egypt::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 1px !important;
+  border-radius: 9px !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,0) 44%, rgba(0,0,0,.10) 100%) !important;
+  pointer-events: none !important;
+}
+html.egypt-worldcup-theme-live .eid-toggle-btn.is-egypt::after,
+.eid-toggle-btn.is-egypt::after {
+  content: "" !important;
+  position: absolute !important;
+  right: 2px !important;
+  bottom: 2px !important;
+  width: 13px !important;
+  height: 8px !important;
+  border-radius: 2px !important;
+  background: linear-gradient(180deg, #ce1126 0 33.33%, #fff 33.33% 66.66%, #111 66.66% 100%) !important;
+  box-shadow: 0 0 0 1px rgba(255,221,122,.58), 0 1px 3px rgba(0,0,0,.70) !important;
+  pointer-events: none !important;
+}
+
+/* No invisible slab behind content rows. */
+html.egypt-worldcup-theme-live .tabcontent,
+html.egypt-worldcup-theme-live .tabcontent .navbar,
+html.egypt-worldcup-theme-live .tabcontent .dropdown,
+html.egypt-worldcup-theme-live .tabcontent .toolsBar {
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* The first small link row under the main tabs: these stay buttons, like the original no-theme row. */
+html.egypt-worldcup-theme-live .tabcontent .toolsBar .toolsStyle,
+html.egypt-worldcup-theme-live .toolsBar .toolsStyle,
+html.egypt-worldcup-theme-live a.toolsStyle,
+html.egypt-worldcup-theme-live .tabcontent a.toolsStyle {
+  display: inline-block !important;
+  box-sizing: border-box !important;
+  margin: 2px 5px 7px 0 !important;
+  padding: 3px 8px !important;
+  min-height: 0 !important;
+  line-height: 1.15 !important;
+  border-radius: 3px !important;
+  color: var(--egypt-v6-link-text) !important;
+  -webkit-text-fill-color: var(--egypt-v6-link-text) !important;
+  text-decoration: none !important;
+  background:
+    linear-gradient(180deg, rgba(255,236,178,.11), rgba(255,236,178,0) 35%),
+    linear-gradient(180deg, var(--egypt-v6-link-bg1), var(--egypt-v6-link-bg2)) !important;
+  background-color: rgba(30, 3, 3, .88) !important;
+  border: 1px solid rgba(231, 198, 116, .48) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 rgba(238,207,128,.16) !important;
+  text-shadow: 0 1px 1px rgba(0,0,0,.92) !important;
+  filter: none !important;
+  opacity: 1 !important;
+}
+html.egypt-worldcup-theme-live .tabcontent .toolsBar .toolsStyle:hover,
+html.egypt-worldcup-theme-live .toolsBar .toolsStyle:hover,
+html.egypt-worldcup-theme-live a.toolsStyle:hover,
+html.egypt-worldcup-theme-live .tabcontent a.toolsStyle:hover,
+html.egypt-worldcup-theme-live .tabcontent .toolsBar .toolsStyle:focus,
+html.egypt-worldcup-theme-live .toolsBar .toolsStyle:focus,
+html.egypt-worldcup-theme-live a.toolsStyle:focus,
+html.egypt-worldcup-theme-live .tabcontent a.toolsStyle:focus {
+  color: #fff7d8 !important;
+  -webkit-text-fill-color: #fff7d8 !important;
+  background:
+    linear-gradient(180deg, rgba(255,236,178,.16), rgba(255,236,178,0) 35%),
+    linear-gradient(180deg, rgba(122, 10, 12, .92), rgba(14, 4, 4, .96)) !important;
+  border-color: rgba(255, 226, 153, .72) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.16), inset 0 -1px 0 rgba(238,207,128,.22) !important;
+  text-shadow: 0 1px 1px rgba(0,0,0,.95) !important;
+  transform: none !important;
+}
+
+/* Dropdown/main choice triggers: text-only by default. No transparent boxes, no writing shadow. */
+html.egypt-worldcup-theme-live .tabcontent .dropdown > .dropbtn,
+html.egypt-worldcup-theme-live .tabcontent .dropdown .dropbtn,
+html.egypt-worldcup-theme-live .tabcontent .navbar > a:not(.toolsStyle),
+html.egypt-worldcup-theme-live .tabcontent a#singlelink:not(.toolsStyle),
+html.egypt-worldcup-theme-live .tabcontent #singlelink:not(.toolsStyle),
+html.egypt-worldcup-theme-live .tabcontent button.dropbtn,
+html.egypt-worldcup-theme-live .dropdown > .dropbtn {
+  color: var(--egypt-v6-option-text) !important;
+  -webkit-text-fill-color: var(--egypt-v6-option-text) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 5px !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transform: none !important;
+}
+html.egypt-worldcup-theme-live .tabcontent .dropdown > .dropbtn::before,
+html.egypt-worldcup-theme-live .tabcontent .dropdown > .dropbtn::after,
+html.egypt-worldcup-theme-live .tabcontent .dropdown .dropbtn::before,
+html.egypt-worldcup-theme-live .tabcontent .dropdown .dropbtn::after,
+html.egypt-worldcup-theme-live .tabcontent .navbar > a:not(.toolsStyle)::before,
+html.egypt-worldcup-theme-live .tabcontent .navbar > a:not(.toolsStyle)::after,
+html.egypt-worldcup-theme-live .tabcontent a#singlelink:not(.toolsStyle)::before,
+html.egypt-worldcup-theme-live .tabcontent a#singlelink:not(.toolsStyle)::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+/* Only on hover/open/focus: give the selected choice a clean shaded strip. */
+html.egypt-worldcup-theme-live .tabcontent .dropdown:hover > .dropbtn,
+html.egypt-worldcup-theme-live .tabcontent .dropdown:focus-within > .dropbtn,
+html.egypt-worldcup-theme-live .tabcontent .dropdown.open > .dropbtn,
+html.egypt-worldcup-theme-live .tabcontent .dropdown.active > .dropbtn,
+html.egypt-worldcup-theme-live .tabcontent .navbar > a:not(.toolsStyle):hover,
+html.egypt-worldcup-theme-live .tabcontent .navbar > a:not(.toolsStyle):focus,
+html.egypt-worldcup-theme-live .tabcontent a#singlelink:not(.toolsStyle):hover,
+html.egypt-worldcup-theme-live .tabcontent a#singlelink:not(.toolsStyle):focus,
+html.egypt-worldcup-theme-live .tabcontent #singlelink:not(.toolsStyle):hover,
+html.egypt-worldcup-theme-live .tabcontent #singlelink:not(.toolsStyle):focus,
+html.egypt-worldcup-theme-live .tabcontent .dropdown:hover .dropbtn,
+html.egypt-worldcup-theme-live .tabcontent .dropdown:focus-within .dropbtn {
+  color: #fff6d4 !important;
+  -webkit-text-fill-color: #fff6d4 !important;
+  background: linear-gradient(90deg, var(--egypt-v6-option-hover), rgba(60,0,0,.36) 48%, rgba(0,0,0,0) 100%) !important;
+  background-color: transparent !important;
+  border-color: var(--egypt-v6-gold-line) !important;
+  box-shadow: inset 2px 0 0 rgba(238,207,128,.42) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.90) !important;
+  transform: none !important;
+}
+
+/* Keep opened internal menus shaded and readable, as requested. */
+html.egypt-worldcup-theme-live .dropdown-content,
+html.egypt-worldcup-theme-live .sub-dropdown-content,
+html.egypt-worldcup-theme-live .dropdown:hover .dropdown-content,
+html.egypt-worldcup-theme-live .dropdown:focus-within .dropdown-content,
+html.egypt-worldcup-theme-live .sub-dropdown:hover .sub-dropdown-content,
+html.egypt-worldcup-theme-live .sub-dropdown:focus-within .sub-dropdown-content {
+  color: #f7e2a5 !important;
+  -webkit-text-fill-color: #f7e2a5 !important;
+  background:
+    linear-gradient(180deg, rgba(255,246,211,.055), rgba(255,246,211,0) 28%),
+    linear-gradient(180deg, rgba(13,0,0,.992) 0%, rgba(43,0,1,.988) 56%, rgba(3,0,0,.997) 100%) !important;
+  background-color: rgba(8,0,0,.992) !important;
+  border: 1px solid rgba(238,207,128,.34) !important;
+  border-radius: 7px !important;
+  box-shadow: 0 18px 44px rgba(0,0,0,.68), inset 0 1px 0 rgba(255,246,211,.08) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.92) !important;
+  opacity: 1 !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  z-index: 999999 !important;
+}
+html.egypt-worldcup-theme-live .dropdown-content a,
+html.egypt-worldcup-theme-live .sub-dropdown-content a,
+html.egypt-worldcup-theme-live .sub-dropdown > a {
+  color: #f7e2a5 !important;
+  -webkit-text-fill-color: #f7e2a5 !important;
+  background: rgba(0,0,0,.20) !important;
+  border: 1px solid rgba(238,207,128,.11) !important;
+  box-shadow: inset 0 -1px 0 rgba(238,207,128,.075) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.92) !important;
+}
+html.egypt-worldcup-theme-live .dropdown-content a:hover,
+html.egypt-worldcup-theme-live .dropdown-content a:focus,
+html.egypt-worldcup-theme-live .sub-dropdown-content a:hover,
+html.egypt-worldcup-theme-live .sub-dropdown-content a:focus,
+html.egypt-worldcup-theme-live .sub-dropdown:hover > a {
+  color: #fff8dc !important;
+  -webkit-text-fill-color: #fff8dc !important;
+  background: linear-gradient(90deg, rgba(158,0,0,.94), rgba(67,0,1,.92) 56%, rgba(10,0,0,.88)) !important;
+  border-color: rgba(255,229,164,.42) !important;
+  box-shadow: inset 2px 0 0 rgba(255,225,150,.58), inset 0 1px 0 rgba(255,246,211,.10) !important;
+}
+
+/* Avoid selection blue on main buttons/choices after clicking. */
+html.egypt-worldcup-theme-live .tablinks::selection,
+html.egypt-worldcup-theme-live .dropbtn::selection,
+html.egypt-worldcup-theme-live .toolsStyle::selection,
+html.egypt-worldcup-theme-live #singlelink::selection,
+html.egypt-worldcup-theme-live .navbar a::selection,
+html.egypt-worldcup-theme-live button::selection {
+  background: transparent !important;
+  color: inherit !important;
+}
+
+
+/* =========================================================
+   Egypt World Cup Theme - v7 user requested cleanup
+   - Suggestions floating button matches Egypt theme
+   - plain single-link choices are text-only by default
+   - single-link choices get shaded only on hover/focus
+   - internal opened dropdown menus stay shaded/readable
+   ========================================================= */
+html.egypt-worldcup-theme-live {
+  --egypt-v7-gold: #f4dda0;
+  --egypt-v7-gold-hot: #fff6d4;
+  --egypt-v7-red: rgba(139, 0, 0, .76);
+  --egypt-v7-red-dark: rgba(20, 0, 0, .88);
+  --egypt-v7-line: rgba(238, 207, 128, .38);
+}
+
+/* Floating Suggestions/Support buttons: same red/gold theme instead of the blue box. */
+html.egypt-worldcup-theme-live .floating-actions .suggestions-fab,
+html.egypt-worldcup-theme-live #suggestionsFab.suggestions-fab,
+html.egypt-worldcup-theme-live .floating-actions .support-fab,
+html.egypt-worldcup-theme-live #supportToggleBtn.support-fab {
+  color: var(--egypt-v7-gold-hot) !important;
+  -webkit-text-fill-color: var(--egypt-v7-gold-hot) !important;
+  background:
+    linear-gradient(180deg, rgba(255,236,178,.13), rgba(255,236,178,0) 36%),
+    linear-gradient(180deg, rgba(105, 7, 9, .94), rgba(25, 3, 3, .96) 58%, rgba(7, 3, 3, .98)) !important;
+  border: 1px solid rgba(238,207,128,.55) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.16),
+    inset 0 -1px 0 rgba(238,207,128,.18),
+    0 8px 18px rgba(0,0,0,.45) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.96) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+}
+html.egypt-worldcup-theme-live .floating-actions .suggestions-fab:hover,
+html.egypt-worldcup-theme-live #suggestionsFab.suggestions-fab:hover,
+html.egypt-worldcup-theme-live .floating-actions .support-fab:hover,
+html.egypt-worldcup-theme-live #supportToggleBtn.support-fab:hover {
+  background:
+    linear-gradient(180deg, rgba(255,236,178,.18), rgba(255,236,178,0) 35%),
+    linear-gradient(180deg, rgba(155, 12, 15, .96), rgba(42, 4, 4, .98) 58%, rgba(8, 3, 3, .98)) !important;
+  border-color: rgba(255,229,164,.78) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.20),
+    inset 0 -1px 0 rgba(238,207,128,.24),
+    0 10px 22px rgba(0,0,0,.52) !important;
+  transform: none !important;
+}
+html.egypt-worldcup-theme-live .floating-actions .fab-badge,
+html.egypt-worldcup-theme-live .fab-badge {
+  background: linear-gradient(180deg, #ff3b3b, #a60000) !important;
+  border: 1px solid rgba(255,236,178,.72) !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,.46) !important;
+}
+
+/* Plain single-link choices in SR rows: no colored boxes unless hover/focus. */
+html.egypt-worldcup-theme-live .tabcontent > a:not(.toolsStyle):not(.tablinks):not(.dropbtn),
+html.egypt-worldcup-theme-live .tabcontent > div:not(.dropdown):not(.toolsBar):not(.dropdown-content):not(.sub-dropdown-content) > a:not(.toolsStyle):not(.tablinks):not(.dropbtn),
+html.egypt-worldcup-theme-live .tabcontent div[dir] > a:not(.toolsStyle):not(.tablinks):not(.dropbtn),
+html.egypt-worldcup-theme-live .tabcontent div[align] > a:not(.toolsStyle):not(.tablinks):not(.dropbtn) {
+  color: var(--egypt-v7-gold) !important;
+  -webkit-text-fill-color: var(--egypt-v7-gold) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 5px !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transform: none !important;
+  text-decoration: none !important;
+}
+html.egypt-worldcup-theme-live .tabcontent > a:not(.toolsStyle):not(.tablinks):not(.dropbtn):hover,
+html.egypt-worldcup-theme-live .tabcontent > a:not(.toolsStyle):not(.tablinks):not(.dropbtn):focus,
+html.egypt-worldcup-theme-live .tabcontent > div:not(.dropdown):not(.toolsBar):not(.dropdown-content):not(.sub-dropdown-content) > a:not(.toolsStyle):not(.tablinks):not(.dropbtn):hover,
+html.egypt-worldcup-theme-live .tabcontent > div:not(.dropdown):not(.toolsBar):not(.dropdown-content):not(.sub-dropdown-content) > a:not(.toolsStyle):not(.tablinks):not(.dropbtn):focus,
+html.egypt-worldcup-theme-live .tabcontent div[dir] > a:not(.toolsStyle):not(.tablinks):not(.dropbtn):hover,
+html.egypt-worldcup-theme-live .tabcontent div[dir] > a:not(.toolsStyle):not(.tablinks):not(.dropbtn):focus,
+html.egypt-worldcup-theme-live .tabcontent div[align] > a:not(.toolsStyle):not(.tablinks):not(.dropbtn):hover,
+html.egypt-worldcup-theme-live .tabcontent div[align] > a:not(.toolsStyle):not(.tablinks):not(.dropbtn):focus {
+  color: var(--egypt-v7-gold-hot) !important;
+  -webkit-text-fill-color: var(--egypt-v7-gold-hot) !important;
+  background: linear-gradient(90deg, var(--egypt-v7-red), rgba(70,0,0,.42) 52%, rgba(0,0,0,0) 100%) !important;
+  background-color: transparent !important;
+  border-color: var(--egypt-v7-line) !important;
+  box-shadow: inset 2px 0 0 rgba(238,207,128,.44) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.92) !important;
+  transform: none !important;
+}
+
+/* Keep true link-buttons directly under the main tabs visually distinct. */
+html.egypt-worldcup-theme-live .tabcontent .toolsBar .toolsStyle,
+html.egypt-worldcup-theme-live .toolsBar .toolsStyle,
+html.egypt-worldcup-theme-live a.toolsStyle,
+html.egypt-worldcup-theme-live .tabcontent a.toolsStyle {
+  color: #f8e5ad !important;
+  -webkit-text-fill-color: #f8e5ad !important;
+  background:
+    linear-gradient(180deg, rgba(255,236,178,.11), rgba(255,236,178,0) 35%),
+    linear-gradient(180deg, rgba(62, 5, 6, .82), rgba(8, 3, 3, .90)) !important;
+  border: 1px solid rgba(238,207,128,.40) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.09), inset 0 -1px 0 rgba(238,207,128,.13) !important;
+}
+/* ===== Egypt layout fix ===== */
+
+html.egypt-worldcup-theme-live .toolsBar{
+    padding-left:20px !important;
+    padding-right:20px !important;
+    margin-top:-10px !important;
+    margin-bottom:18px !important;
+    padding-top:2px !important;
+}
+
+html.egypt-worldcup-theme-live .toolsBar .toolsStyle{
+    display:inline-block !important;
+    padding:3px 7px !important;
+    margin:2px 6px 8px 0 !important;
+    font:1em "open-sans","sans-serif" !important;
+    line-height:normal !important;
+    min-width:auto !important;
+    height:auto !important;
+}
+
+html.egypt-worldcup-theme-live .navbar a,
+html.egypt-worldcup-theme-live .dropdown .dropbtn,
+html.egypt-worldcup-theme-live #singlelink{
+    padding:14px 16px !important;
+    font-size:16px !important;
+    margin:0 !important;
+    line-height:normal !important;
+    min-width:auto !important;
+    height:auto !important;
+}
+
+html.egypt-worldcup-theme-live .dropdown{
+    float:left !important;
+    overflow:hidden !important;
+}
+
+/* ===== Egypt SR Sales dropdown layout normalization =====
+   Keep Egypt visual styling, but restore the same geometry used by
+   the working themes for the SR Sales dropdown/options row. */
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar {
+  overflow: hidden !important;
+  background: transparent !important;
+}
+
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar > .dropdown {
+  float: left !important;
+  display: block !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar > .dropdown > .dropbtn {
+  font-size: 16px !important;
+  font-family: inherit !important;
+  padding: 14px 16px !important;
+  margin: 0 !important;
+  border-width: 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  box-sizing: content-box !important;
+  white-space: nowrap !important;
+  line-height: normal !important;
+}
+
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar > a,
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar > #singlelink {
+  float: left !important;
+  font-size: 16px !important;
+  padding: 14px 16px !important;
+  margin: 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  box-sizing: content-box !important;
+  white-space: nowrap !important;
+  line-height: normal !important;
+}
+
+html.egypt-worldcup-theme-live #SR\ Sales .toolsBar .toolsStyle {
+  padding: 3px 7px !important;
+  margin: 2px 6px 8px 0 !important;
+  display: inline-block !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  white-space: nowrap !important;
+}
+
+/* ===== Egypt SR Sales layout hard lock v2 =====
+   Fixes float wrapping gaps in Egypt theme only.
+   Keeps DOM order untouched and preserves Egypt visuals. */
+
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: flex-start !important;
+  align-content: flex-start !important;
+  justify-content: flex-start !important;
+  gap: 0 !important;
+  float: none !important;
+  clear: both !important;
+  overflow: visible !important;
+  background: transparent !important;
+}
+
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar > .dropdown {
+  float: none !important;
+  clear: none !important;
+  flex: 0 0 auto !important;
+  display: block !important;
+  position: relative !important;
+  overflow: visible !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  box-sizing: content-box !important;
+}
+
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar > .dropdown > .dropbtn {
+  float: none !important;
+  display: block !important;
+  clear: none !important;
+  font-size: 16px !important;
+  font-family: inherit !important;
+  font-weight: normal !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  text-align: left !important;
+  padding: 14px 16px !important;
+  margin: 0 !important;
+  border-width: 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  box-sizing: content-box !important;
+  white-space: nowrap !important;
+  line-height: normal !important;
+}
+
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar > a,
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar > #singlelink {
+  float: none !important;
+  clear: none !important;
+  flex: 0 0 auto !important;
+  display: block !important;
+  font-size: 16px !important;
+  font-family: inherit !important;
+  font-weight: normal !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  text-align: left !important;
+  padding: 14px 16px !important;
+  margin: 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  box-sizing: content-box !important;
+  white-space: nowrap !important;
+  line-height: normal !important;
+}
+
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar > .dropdown > .dropdown-content {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  display: none;
+  z-index: 9999 !important;
+}
+
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar > .dropdown:hover > .dropdown-content,
+html.egypt-worldcup-theme-live #SR\ Sales nav.container .navbar > .dropdown:focus-within > .dropdown-content {
+  display: block !important;
+}
+
+html.egypt-worldcup-theme-live #SR\ Sales .toolsBar .toolsStyle {
+  display: inline-block !important;
+  float: none !important;
+  clear: none !important;
+  padding: 3px 7px !important;
+  margin: 2px 6px 8px 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+}

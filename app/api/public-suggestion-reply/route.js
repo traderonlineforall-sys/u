@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { enforceSameOrigin, requireUserSession, noStore } from "../../../lib/server/auth.js";
 import { getServiceSupabase } from "../../../lib/server/admin.js";
+import { requireActiveNickname, cleanNickname } from "../../../lib/server/nickname.js";
 
 function j(body, init){
   return noStore(NextResponse.json(body, init));
@@ -73,7 +74,7 @@ export async function POST(req){
   const suggestion_id = normalizeId(body?.suggestion_id);
   const text = cleanText(body?.text, 1200);
   const user_id = normalizeUserId(body?.user_id);
-  const name = cleanName(body?.name);
+  const requestedName = cleanNickname(body?.name || body?.display_name || "");
 
   if(!suggestion_id) return j({ error: "Missing suggestion id." }, { status: 400 });
   if(!text) return j({ error: "Missing reply text." }, { status: 400 });
@@ -81,12 +82,21 @@ export async function POST(req){
 
   try {
     const supabase = getServiceSupabase();
+    const nick = await requireActiveNickname(supabase, user_id, requestedName);
+    if(!nick.ok){
+      return j({
+        error: nick.error || "Nickname is required.",
+        nickname_required: !!nick.nickname_required,
+        user_id,
+      }, { status: nick.status || 409 });
+    }
+
     const blocked = await currentBlockForUser(supabase, user_id);
     if(blocked){
       return j({ error: "You are blocked.", blocked_until: blocked.expires_at || null }, { status: 403 });
     }
 
-    let payload = { suggestion_id, text, user_id, name };
+    let payload = { suggestion_id, text, user_id, name: nick.display_name };
     let result = await supabase.from("suggestion_replies").insert(payload).select("*");
 
     // Compatibility with older schemas that do not have a `name` column.
