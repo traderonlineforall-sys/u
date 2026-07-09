@@ -1003,3 +1003,194 @@ html.egypt-worldcup-theme-live #quotaSummaryCopyBtn.quota-copy-btn.is-copied {
   border-color: rgba(222,190,111,.46) !important;
 }
 /* ===== END Egypt quota summary card luxury polish v21 ===== */
+
+/* ===== Egypt Calculate comfort polish v18 =====
+   Softer professional Calculate section for heavy daily use.
+   Visual-only: colors/backgrounds/borders/shadows/text effects only.
+   No IDs, no forms, no calculation logic, no layout/position changes.
+*/
+html.egypt-worldcup-theme-live #Calculate #divv,
+html.egypt-worldcup-theme-live #Calculate #withoutvat,
+html.egypt-worldcup-theme-live #divv,
+html.egypt-worldcup-theme-live #withoutvat {
+  background:
+    radial-gradient(145% 120% at 14% 0%, rgba(217,189,120,.090), rgba(217,189,120,0) 46%),
+    radial-gradient(135% 130% at 100% 0%, rgba(96,20,17,.18), rgba(96,20,17,0) 58%),
+    linear-gradient(135deg, rgba(13,6,5,.92), rgba(46,10,9,.78) 55%, rgba(8,6,5,.94)) !important;
+  background-color: rgba(14,6,5,.94) !important;
+  border-color: rgba(217,189,120,.30) !important;
+  color: #dcc37e !important;
+  -webkit-text-fill-color: #dcc37e !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.88) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(244,230,192,.10),
+    inset 0 -1px 0 rgba(217,189,120,.10),
+    0 22px 58px rgba(0,0,0,.46),
+    0 0 26px rgba(217,189,120,.06) !important;
+  filter: saturate(.86) brightness(.92) contrast(1.03) !important;
+}
+
+html.egypt-worldcup-theme-live #Calculate h1,
+html.egypt-worldcup-theme-live #Calculate h2,
+html.egypt-worldcup-theme-live #Calculate h3,
+html.egypt-worldcup-theme-live #Calculate label,
+html.egypt-worldcup-theme-live #Calculate #Hhhh,
+html.egypt-worldcup-theme-live #Calculate #Poll1 {
+  color: #dcc37e !important;
+  -webkit-text-fill-color: #dcc37e !important;
+  text-shadow: 0 2px 10px rgba(0,0,0,.88), 0 0 12px rgba(217,189,120,.10) !important;
+}
+
+html.egypt-worldcup-theme-live #Calculate hr {
+  border-color: rgba(217,189,120,.28) !important;
+  background-color: rgba(217,189,120,.18) !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,.42), 0 0 12px rgba(217,189,120,.055) !important;
+}
+
+html.egypt-worldcup-theme-live #Calculate select,
+html.egypt-worldcup-theme-live #Calculate input,
+html.egypt-worldcup-theme-live #Calculate textarea,
+html.egypt-worldcup-theme-live #Calculate .selectt,
+html.egypt-worldcup-theme-live #Calculate .ino,
+html.egypt-worldcup-theme-live #Calculate #products,
+html.egypt-worldcup-theme-live #Calculate #balance,
+html.egypt-worldcup-theme-live #Calculate #priceWithoutTax,
+html.egypt-worldcup-theme-live #Calculate #priceWithTax,
+html.egypt-worldcup-theme-live #Calculate #nom1,
+html.egypt-worldcup-theme-live #Calculate #nom2 {
+  background:
+    linear-gradient(180deg, rgba(244,230,192,.070), rgba(244,230,192,.012) 42%),
+    linear-gradient(180deg, rgba(36,24,17,.90), rgba(10,8,7,.96) 58%, rgba(28,6,5,.88)) !important;
+  background-color: rgba(12,8,7,.96) !important;
+  color: #f2e3b7 !important;
+  -webkit-text-fill-color: #f2e3b7 !important;
+  border-color: rgba(217,189,120,.34) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.82) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(244,230,192,.12),
+    inset 0 -1px 0 rgba(0,0,0,.42),
+    0 8px 22px rgba(0,0,0,.30) !important;
+  filter: saturate(.88) brightness(.94) contrast(1.02) !important;
+}
+html.egypt-worldcup-theme-live #Calculate select:focus,
+html.egypt-worldcup-theme-live #Calculate input:focus,
+html.egypt-worldcup-theme-live #Calculate textarea:focus {
+  border-color: rgba(232,207,146,.52) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(244,230,192,.16),
+    0 0 0 2px rgba(217,189,120,.13),
+    0 10px 24px rgba(0,0,0,.34) !important;
+  filter: saturate(.92) brightness(.98) contrast(1.03) !important;
+}
+html.egypt-worldcup-theme-live #Calculate select option {
+  background-color: #140807 !important;
+  color: #f2e3b7 !important;
+  -webkit-text-fill-color: #f2e3b7 !important;
+}
+
+html.egypt-worldcup-theme-live #Calculate button,
+html.egypt-worldcup-theme-live #Calculate .service-btn,
+html.egypt-worldcup-theme-live #Calculate .discount-btn,
+html.egypt-worldcup-theme-live #Calculate .extra-btn,
+html.egypt-worldcup-theme-live #Calculate .op-btn,
+html.egypt-worldcup-theme-live #Calculate .add-btn,
+html.egypt-worldcup-theme-live #Calculate .vat-btn {
+  background:
+    linear-gradient(180deg, rgba(244,230,192,.075), rgba(244,230,192,0) 42%),
+    radial-gradient(120% 145% at 22% 0%, rgba(217,189,120,.070), rgba(217,189,120,0) 54%),
+    linear-gradient(180deg, rgba(83,13,12,.84), rgba(36,6,5,.94) 58%, rgba(8,6,5,.98)) !important;
+  background-color: rgba(28,6,5,.96) !important;
+  color: #f0dfad !important;
+  -webkit-text-fill-color: #f0dfad !important;
+  border-color: rgba(217,189,120,.30) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.94) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(244,230,192,.11),
+    inset 0 -1px 0 rgba(217,189,120,.08),
+    0 9px 22px rgba(0,0,0,.33) !important;
+  filter: saturate(.82) brightness(.90) contrast(1.02) !important;
+}
+
+html.egypt-worldcup-theme-live #Calculate button:hover,
+html.egypt-worldcup-theme-live #Calculate button:focus,
+html.egypt-worldcup-theme-live #Calculate .service-btn:hover,
+html.egypt-worldcup-theme-live #Calculate .discount-btn:hover,
+html.egypt-worldcup-theme-live #Calculate .extra-btn:hover,
+html.egypt-worldcup-theme-live #Calculate .op-btn:hover,
+html.egypt-worldcup-theme-live #Calculate .add-btn:hover,
+html.egypt-worldcup-theme-live #Calculate .vat-btn:hover {
+  background:
+    linear-gradient(180deg, rgba(244,230,192,.10), rgba(244,230,192,.010) 42%),
+    radial-gradient(120% 145% at 22% 0%, rgba(217,189,120,.12), rgba(217,189,120,0) 54%),
+    linear-gradient(180deg, rgba(96,17,15,.88), rgba(43,7,6,.96) 58%, rgba(9,7,6,.99)) !important;
+  border-color: rgba(232,207,146,.46) !important;
+  color: #fff0c8 !important;
+  -webkit-text-fill-color: #fff0c8 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(244,230,192,.16),
+    inset 0 -1px 0 rgba(217,189,120,.13),
+    0 11px 25px rgba(0,0,0,.38),
+    0 0 18px rgba(217,189,120,.075) !important;
+  filter: saturate(.88) brightness(.96) contrast(1.03) !important;
+}
+
+html.egypt-worldcup-theme-live #Calculate .service-btn.active,
+html.egypt-worldcup-theme-live #Calculate .discount-btn.active,
+html.egypt-worldcup-theme-live #Calculate .extra-btn.active,
+html.egypt-worldcup-theme-live #Calculate .op-btn.active,
+html.egypt-worldcup-theme-live #Calculate .add-btn.active,
+html.egypt-worldcup-theme-live #Calculate .vat-btn.active,
+html.egypt-worldcup-theme-live #Calculate button.active,
+html.egypt-worldcup-theme-live #Calculate [aria-pressed="true"] {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg, #f0dfad, #d4b66c 58%, #a9823e) !important;
+  background-color: #d4b66c !important;
+  color: #321707 !important;
+  -webkit-text-fill-color: #321707 !important;
+  border-color: rgba(255,241,201,.70) !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.32) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.38),
+    inset 0 -1px 0 rgba(91,48,16,.18),
+    0 11px 25px rgba(0,0,0,.38),
+    0 0 20px rgba(217,189,120,.13) !important;
+  filter: saturate(.86) brightness(.98) contrast(1.02) !important;
+}
+
+html.egypt-worldcup-theme-live #Calculate #reset1,
+html.egypt-worldcup-theme-live #Calculate #Buto,
+html.egypt-worldcup-theme-live #Calculate button[type="reset"] {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg, #f1dfad, #d2b369 58%, #a57d3a) !important;
+  background-color: #d2b369 !important;
+  color: #331706 !important;
+  -webkit-text-fill-color: #331706 !important;
+  border-color: rgba(255,240,198,.68) !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.32) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.38),
+    inset 0 -1px 0 rgba(91,48,16,.18),
+    0 10px 23px rgba(0,0,0,.36) !important;
+  filter: saturate(.84) brightness(.98) contrast(1.02) !important;
+}
+html.egypt-worldcup-theme-live #Calculate #reset1:hover,
+html.egypt-worldcup-theme-live #Calculate #Buto:hover,
+html.egypt-worldcup-theme-live #Calculate button[type="reset"]:hover,
+html.egypt-worldcup-theme-live #Calculate #reset1:focus,
+html.egypt-worldcup-theme-live #Calculate #Buto:focus,
+html.egypt-worldcup-theme-live #Calculate button[type="reset"]:focus {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.36), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg, #fff0c8, #dcc37e 58%, #ad8844) !important;
+  border-color: rgba(255,246,216,.82) !important;
+  color: #2d1405 !important;
+  -webkit-text-fill-color: #2d1405 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.48),
+    inset 0 -1px 0 rgba(91,48,16,.16),
+    0 12px 26px rgba(0,0,0,.40),
+    0 0 18px rgba(217,189,120,.15) !important;
+}
+/* ===== END Egypt Calculate comfort polish v18 ===== */
