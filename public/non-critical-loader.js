@@ -42,7 +42,7 @@
     if (loadLayoutFixes._done) return;
     loadLayoutFixes._done = true;
     [
-      './safe-customization-layer.js?v=header-flag-stable-v8'
+      './safe-customization-layer.js?v=header-tabs-normal-v9'
     ].forEach(function(src){
       importOnce(src, src);
     });
@@ -124,7 +124,7 @@
     // Keep them delayed so the first tool load stays light.
     [
       './online-users-count.js',
-      './eid-hud.js?v=egypt-main-flag-tabs-v15'
+      './eid-hud.js?v=egypt-main-tabs-normal-v16'
     ].forEach(function(src){
       importOnce(src, src);
     });
