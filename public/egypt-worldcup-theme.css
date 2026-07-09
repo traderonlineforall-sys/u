@@ -586,3 +586,135 @@ html.egypt-worldcup-theme-live .tab-utility-btn.is-reset:hover {
   box-shadow: inset 0 1px 0 rgba(255,255,255,.54), inset 0 -1px 0 rgba(96,54,18,.14), 0 12px 25px rgba(0,0,0,.42), 0 0 20px rgba(232,207,146,.18) !important;
 }
 /* ===== END Egypt luxury upper controls tone v13 ===== */
+
+/* ===== Egypt lower tool controls luxury tone v14 =====
+   Matches the lower SR tools, iReport links, concession mini-card, and square rocket button
+   to the Egypt theme. Visual-only: colors/backgrounds/borders/shadows/text effects only.
+*/
+html.egypt-worldcup-theme-live #myBtn {
+  background:
+    radial-gradient(120% 145% at 30% 0%, rgba(255,255,255,.20), rgba(255,255,255,0) 44%),
+    radial-gradient(130% 150% at 50% 115%, rgba(217,189,120,.14), rgba(217,189,120,0) 58%),
+    linear-gradient(180deg, rgba(72,7,8,.90), rgba(21,3,3,.96) 58%, rgba(5,5,5,.98)) !important;
+  background-color: rgba(16,3,3,.96) !important;
+  color: #f4e6c0 !important;
+  -webkit-text-fill-color: #f4e6c0 !important;
+  border: 1px solid rgba(217,189,120,.34) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.92), 0 0 10px rgba(217,189,120,.16) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(244,230,192,.16),
+    inset 0 -1px 0 rgba(217,189,120,.14),
+    0 14px 32px rgba(0,0,0,.48),
+    0 0 22px rgba(217,189,120,.10) !important;
+  filter: saturate(.92) brightness(.94) contrast(1.03) !important;
+}
+html.egypt-worldcup-theme-live #myBtn:hover,
+html.egypt-worldcup-theme-live #myBtn:focus {
+  background:
+    radial-gradient(120% 145% at 30% 0%, rgba(255,255,255,.26), rgba(255,255,255,0) 44%),
+    radial-gradient(130% 150% at 50% 115%, rgba(217,189,120,.20), rgba(217,189,120,0) 58%),
+    linear-gradient(180deg, rgba(92,9,11,.94), rgba(31,4,4,.97) 58%, rgba(6,6,6,.99)) !important;
+  border-color: rgba(232,207,146,.52) !important;
+  color: #fff0c8 !important;
+  -webkit-text-fill-color: #fff0c8 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(244,230,192,.22),
+    inset 0 -1px 0 rgba(217,189,120,.20),
+    0 16px 36px rgba(0,0,0,.52),
+    0 0 26px rgba(217,189,120,.16) !important;
+  filter: saturate(.96) brightness(.99) contrast(1.04) !important;
+}
+html.egypt-worldcup-theme-live #myBtn i,
+html.egypt-worldcup-theme-live #myBtn svg {
+  color: #f4e6c0 !important;
+  -webkit-text-fill-color: #f4e6c0 !important;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.84)) drop-shadow(0 0 7px rgba(217,189,120,.18)) !important;
+}
+
+html.egypt-worldcup-theme-live .ireportStyle {
+  color: #3e210c !important;
+  -webkit-text-fill-color: #3e210c !important;
+  background:
+    radial-gradient(120% 145% at 24% 0%, rgba(255,255,255,.42), rgba(255,255,255,0) 44%),
+    linear-gradient(180deg, #f2e2b5, #d7bd79 58%, #b7924e) !important;
+  background-color: #dfca92 !important;
+  border-color: rgba(255,239,196,.66) !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.32) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.42),
+    inset 0 -1px 0 rgba(74,38,13,.12),
+    0 10px 22px rgba(0,0,0,.34),
+    0 0 16px rgba(217,189,120,.10) !important;
+  filter: saturate(.86) brightness(.96) contrast(1.02) !important;
+}
+html.egypt-worldcup-theme-live .ireportStyle:hover,
+html.egypt-worldcup-theme-live .ireportStyle:focus {
+  color: #321807 !important;
+  -webkit-text-fill-color: #321807 !important;
+  background:
+    radial-gradient(120% 145% at 24% 0%, rgba(255,255,255,.50), rgba(255,255,255,0) 44%),
+    linear-gradient(180deg, #fff0c8, #dfc783 58%, #bd9951) !important;
+  border-color: rgba(255,247,216,.82) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.50),
+    inset 0 -1px 0 rgba(74,38,13,.13),
+    0 12px 25px rgba(0,0,0,.38),
+    0 0 20px rgba(232,207,146,.18) !important;
+}
+
+html.egypt-worldcup-theme-live #dddiv {
+  background:
+    linear-gradient(180deg, rgba(244,230,192,.085), rgba(244,230,192,.018) 38%),
+    radial-gradient(150% 125% at 16% 0%, rgba(217,189,120,.13), rgba(217,189,120,0) 48%),
+    radial-gradient(135% 135% at 100% 0%, rgba(96,8,10,.24), rgba(96,8,10,0) 56%),
+    linear-gradient(135deg, rgba(18,3,3,.92), rgba(48,7,7,.86) 55%, rgba(7,6,6,.95)) !important;
+  background-color: rgba(16,3,3,.93) !important;
+  border-color: rgba(217,189,120,.34) !important;
+  color: #d9bd78 !important;
+  -webkit-text-fill-color: #d9bd78 !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.88) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(244,230,192,.12),
+    inset 0 -1px 0 rgba(217,189,120,.12),
+    0 24px 58px rgba(0,0,0,.46),
+    0 0 26px rgba(217,189,120,.08) !important;
+  filter: saturate(.92) brightness(.94) contrast(1.03) !important;
+}
+html.egypt-worldcup-theme-live #dddiv #Hhh,
+html.egypt-worldcup-theme-live #dddiv #Pol {
+  color: #d9bd78 !important;
+  -webkit-text-fill-color: #d9bd78 !important;
+  text-shadow: 0 2px 10px rgba(0,0,0,.82), 0 0 14px rgba(217,189,120,.12) !important;
+}
+html.egypt-worldcup-theme-live #dddiv input,
+html.egypt-worldcup-theme-live #myDay,
+html.egypt-worldcup-theme-live #myG {
+  background:
+    radial-gradient(120% 140% at 22% 0%, rgba(244,230,192,.13), rgba(244,230,192,0) 42%),
+    linear-gradient(180deg, rgba(42,21,13,.88), rgba(9,7,7,.94) 58%, rgba(31,5,4,.86)) !important;
+  color: #f4e6c0 !important;
+  -webkit-text-fill-color: #f4e6c0 !important;
+  border-color: rgba(217,189,120,.30) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(244,230,192,.13),
+    0 10px 24px rgba(0,0,0,.34) !important;
+}
+html.egypt-worldcup-theme-live input[type="reset"] {
+  color: #3e210c !important;
+  -webkit-text-fill-color: #3e210c !important;
+  background:
+    radial-gradient(120% 140% at 25% 0%, rgba(255,255,255,.44), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg, #f5e7bf, #d9bd78 58%, #b7924b) !important;
+  background-color: #e4cf98 !important;
+  border-color: rgba(255,238,190,.68) !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.32) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.46), inset 0 -1px 0 rgba(96,54,18,.16), 0 10px 22px rgba(0,0,0,.34) !important;
+}
+html.egypt-worldcup-theme-live input[type="reset"]:hover,
+html.egypt-worldcup-theme-live input[type="reset"]:focus {
+  background:
+    radial-gradient(120% 140% at 25% 0%, rgba(255,255,255,.52), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg, #fff0c8, #e1c985 58%, #bd9a52) !important;
+  border-color: rgba(255,244,210,.80) !important;
+}
+/* ===== END Egypt lower tool controls luxury tone v14 ===== */
