@@ -4718,3 +4718,1282 @@ A:link {
   transform: none !important;
 }
 /* ===== STEP 6.2 SUPPORT STABLE PROFESSIONAL UI END ===== */
+
+
+/* === merged during GitHub cleanup: direct CSS files preserved inline === */
+
+/* --- BEGIN public/safe-tool-upgrade.css --- */
+/* === Safe Tool Upgrade: isolated UI additions (non-breaking) === */
+
+#tabs .tab-utility-btn {
+  flex: 0 0 auto;
+  min-width: 48px;
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(215,219,232,0.86));
+  color: rgba(10, 16, 28, 0.92);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.55),
+    0 10px 18px rgba(0,0,0,0.24);
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease,
+    filter .18s ease,
+    border-color .18s ease,
+    background .18s ease;
+  cursor: pointer;
+}
+
+#tabs .tab-utility-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+  border-color: rgba(255,255,255,0.34);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.66),
+    0 14px 24px rgba(0,0,0,0.28);
+}
+
+#tabs .tab-utility-btn:active {
+  transform: translateY(0) scale(0.99);
+}
+
+#tabs .tab-utility-btn:focus-visible {
+  outline: 2px solid rgba(255,255,255,0.55);
+  outline-offset: 2px;
+}
+
+#tabs .tab-utility-btn i {
+  font-size: 18px;
+  pointer-events: none;
+}
+
+/*
+ * UI/UX Enhancements (non-breaking)
+ *
+ * The following overrides improve the usability of the suggestions and messaging
+ * interfaces without altering any SR-specific content.  They darken the
+ * backgrounds for better contrast, enhance text legibility, remove arbitrary
+ * height restrictions, and introduce internal scrolling when necessary.  By
+ * placing these rules here (and loading this stylesheet after the main
+ * styles), we override defaults in a safe, isolated manner.
+ */
+
+/* Suggestions input: darker background, clear text, comfortable height */
+.suggestions-form textarea {
+  /* Darker, more professional panel for suggestion drafting */
+  background: rgba(24, 27, 37, 0.88);
+  color: rgba(255, 255, 255, 0.96);
+  border-color: rgba(255, 255, 255, 0.22);
+  /* Allow growing up to a larger height before scrolling */
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+/* Placeholder in suggestions input: slightly muted but readable */
+.suggestions-form textarea::placeholder {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* Support chat compose box: allow a taller input with internal scroll */
+.support-compose textarea {
+  max-height: 220px !important;
+  overflow-y: auto;
+}
+
+/* Admin announcement/envelope inputs: prevent endless growth */
+.admin-input {
+  max-height: 240px;
+  overflow-y: auto;
+  /* Keep the original ability to resize vertically if desired */
+  resize: vertical;
+}
+
+#Calculate {
+  position: relative;
+}
+
+.calc-smart-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 22px 0;
+}
+
+.calc-launch-btn {
+  width: 52px;
+  height: 52px;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.08)),
+    linear-gradient(180deg, rgba(31,41,55,0.9), rgba(17,24,39,0.88));
+  color: rgba(255,255,255,0.96);
+  box-shadow: 0 16px 30px rgba(0,0,0,0.32);
+  cursor: pointer;
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+
+.calc-launch-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: 0 20px 34px rgba(0,0,0,0.38);
+}
+
+.calc-launch-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.calc-launch-btn i {
+  font-size: 22px;
+  pointer-events: none;
+}
+
+.smart-calc-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(5, 10, 18, 0.56);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 10002;
+}
+
+.smart-calc-overlay.is-open {
+  display: flex;
+}
+
+.smart-calc-panel {
+  width: min(340px, calc(100vw - 28px));
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background:
+    linear-gradient(180deg, rgba(16,24,39,0.98), rgba(9,14,24,0.98));
+  box-shadow:
+    0 28px 60px rgba(0,0,0,0.48),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.96);
+  padding: 18px;
+}
+
+.smart-calc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.smart-calc-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font: 700 18px/1.2 "open-sans", "Segoe UI", Arial, sans-serif;
+}
+
+.smart-calc-title i {
+  font-size: 18px;
+}
+
+.smart-calc-close {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.92);
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.smart-calc-hint {
+  margin: 0 0 12px;
+  color: rgba(255,255,255,0.66);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.smart-calc-display {
+  width: 100%;
+  min-height: 64px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 18px;
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.98);
+  padding: 14px 16px;
+  box-sizing: border-box;
+  font: 700 22px/1.35 "open-sans", "Segoe UI", Arial, sans-serif;
+  letter-spacing: .2px;
+  text-align: left;
+  direction: ltr;
+  caret-color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+.smart-calc-display::placeholder {
+  color: rgba(255,255,255,0.32);
+}
+
+.smart-calc-display:focus {
+  outline: none;
+  border-color: rgba(255,255,255,0.22);
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.18);
+}
+
+.smart-calc-preview {
+  min-height: 24px;
+  margin: 10px 0 14px;
+  padding: 0 4px;
+  color: rgba(255,255,255,0.72);
+  font-size: 13px;
+  text-align: left;
+  direction: ltr;
+}
+
+.smart-calc-preview[data-state="ok"] {
+  color: #7dd3fc;
+}
+
+.smart-calc-preview[data-state="error"] {
+  color: #fda4af;
+}
+
+.smart-calc-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.smart-calc-action-btn,
+.smart-calc-btn {
+  border: 0;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: transform .14s ease, filter .14s ease, box-shadow .14s ease;
+}
+
+.smart-calc-action-btn {
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.92);
+  font: 600 13px/1.1 "open-sans", "Segoe UI", Arial, sans-serif;
+}
+
+.smart-calc-action-btn:hover,
+.smart-calc-btn:hover,
+.smart-calc-close:hover {
+  filter: brightness(1.08);
+}
+
+.smart-calc-action-btn:active,
+.smart-calc-btn:active,
+.smart-calc-close:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.smart-calc-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.smart-calc-btn {
+  min-height: 54px;
+  padding: 12px;
+  font: 700 18px/1 "open-sans", "Segoe UI", Arial, sans-serif;
+  color: rgba(255,255,255,0.98);
+  background: rgba(255,255,255,0.07);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+.smart-calc-btn.is-operator {
+  background: linear-gradient(180deg, rgba(91, 33, 182, 0.78), rgba(109, 40, 217, 0.72));
+}
+
+.smart-calc-btn.is-special {
+  background: linear-gradient(180deg, rgba(71, 85, 105, 0.82), rgba(51, 65, 85, 0.78));
+}
+
+.smart-calc-btn.is-equals {
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.90), rgba(22, 163, 74, 0.84));
+  grid-column: span 2;
+}
+
+.safe-tool-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%) translateY(18px);
+  opacity: 0;
+  pointer-events: none;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.92);
+  color: rgba(255,255,255,0.96);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 18px 42px rgba(0,0,0,0.38);
+  font: 600 14px/1.35 "open-sans", "Segoe UI", Arial, sans-serif;
+  z-index: 10003;
+  transition: opacity .18s ease, transform .18s ease;
+}
+
+.safe-tool-toast.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+@media (max-width: 1100px) {
+  .calc-smart-toolbar {
+    padding-right: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  #tabs .tab-utility-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+
+  .calc-smart-toolbar {
+    padding: 10px 12px 0;
+  }
+
+  .smart-calc-panel {
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .smart-calc-btn {
+    min-height: 50px;
+    font-size: 17px;
+  }
+}
+
+
+/* === Visual refresh v2 === */
+#tabs .tab-utility-btn.is-reset {
+  border-color: rgba(255,255,255,0.38);
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255,255,255,0.34), rgba(255,255,255,0) 34%),
+    linear-gradient(135deg, #ff8a00, #ff3d00 58%, #ff1744);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.34),
+    0 12px 26px rgba(255, 72, 0, 0.42),
+    0 0 0 1px rgba(255,255,255,0.08);
+}
+
+#tabs .tab-utility-btn.is-reset:hover {
+  filter: brightness(1.12) saturate(1.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.42),
+    0 16px 30px rgba(255, 72, 0, 0.5),
+    0 0 18px rgba(255, 102, 0, 0.22);
+}
+
+.calc-launch-btn {
+  width: 56px;
+  height: 56px;
+  border-color: rgba(255,255,255,0.28);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 28% 22%, rgba(255,255,255,0.38), rgba(255,255,255,0) 34%),
+    linear-gradient(135deg, #00c6ff, #0072ff 55%, #7c3aed);
+  color: #fff;
+  box-shadow:
+    0 18px 34px rgba(0, 102, 255, 0.34),
+    0 0 0 1px rgba(255,255,255,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.30);
+}
+
+.calc-launch-btn:hover {
+  filter: brightness(1.13) saturate(1.08);
+  box-shadow:
+    0 22px 38px rgba(0, 102, 255, 0.4),
+    0 0 22px rgba(0, 198, 255, 0.18),
+    inset 0 1px 0 rgba(255,255,255,0.36);
+}
+
+.calc-launch-btn i {
+  font-size: 24px;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.22));
+}
+
+.smart-calc-panel {
+  width: min(392px, calc(100vw - 24px));
+  padding: 14px;
+  border-radius: 22px;
+}
+
+.smart-calc-header {
+  margin-bottom: 8px;
+}
+
+.smart-calc-title {
+  gap: 8px;
+  font-size: 16px;
+}
+
+.smart-calc-hint {
+  margin-bottom: 8px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.smart-calc-display {
+  min-height: 50px;
+  padding: 10px 13px;
+  border-radius: 15px;
+  font-size: 18px;
+}
+
+.smart-calc-preview {
+  min-height: 18px;
+  margin: 7px 0 10px;
+  font-size: 12px;
+}
+
+.smart-calc-actions {
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.smart-calc-action-btn {
+  padding: 8px 10px;
+  border-radius: 13px;
+  font-size: 12px;
+}
+
+.smart-calc-grid {
+  gap: 8px;
+}
+
+.smart-calc-btn {
+  min-height: 42px;
+  padding: 8px;
+  border-radius: 13px;
+  font-size: 16px;
+}
+
+.smart-calc-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  font-size: 18px;
+}
+
+/* SR Sales Concession Calculate stabilizer.
+   The final correct position is the state after quotaSummaryCard becomes visible.
+   JS below measures that card and temporarily adjusts only #dddiv while the card is hidden. */
+#quotaSummaryCard[hidden] {
+  display: none !important;
+}
+
+#dddiv[data-ua07-concession-stabilized="hidden-summary"] {
+  position: relative !important;
+  transform: none !important;
+}
+
+
+/* --- END public/safe-tool-upgrade.css --- */
+
+/* --- BEGIN public/support-suggestions-luxury.css --- */
+/*
+  Step 5.2 - Luxury UI skin for Support + Suggestions
+  CSS-only, no API calls, no polling, no sorting, no database changes.
+*/
+:root{
+  --sr-lux-bg-0: rgba(5, 9, 18, .86);
+  --sr-lux-bg-1: rgba(12, 19, 35, .78);
+  --sr-lux-bg-2: rgba(20, 31, 53, .68);
+  --sr-lux-stroke: rgba(198, 220, 255, .18);
+  --sr-lux-stroke-strong: rgba(129, 219, 255, .34);
+  --sr-lux-text: rgba(245, 249, 255, .96);
+  --sr-lux-muted: rgba(214, 226, 245, .66);
+  --sr-lux-soft: rgba(114, 198, 255, .11);
+  --sr-lux-green: #60f29a;
+  --sr-lux-green-2: #2edb70;
+  --sr-lux-gold: #ffd36c;
+  --sr-lux-blue: #54b7ff;
+  --sr-lux-purple: #b68cff;
+  --sr-lux-red: #ff6b7a;
+  --sr-lux-radius-xl: 26px;
+  --sr-lux-radius-lg: 18px;
+  --sr-lux-radius-md: 14px;
+  --sr-lux-shadow: 0 24px 80px rgba(0,0,0,.48), 0 0 0 1px rgba(255,255,255,.07) inset;
+  --sr-lux-glow: 0 0 32px rgba(84,183,255,.15), 0 0 42px rgba(96,242,154,.08);
+}
+
+/* ===== Shared modal shell ===== */
+#supportChatOverlay,
+#supportNameOverlay,
+#suggestionsOverlay,
+.support-overlay,
+.suggestions-overlay{
+  background:
+    radial-gradient(circle at 18% 14%, rgba(84,183,255,.18), transparent 34%),
+    radial-gradient(circle at 82% 24%, rgba(96,242,154,.12), transparent 38%),
+    rgba(0,0,0,.62) !important;
+  backdrop-filter: blur(4px) saturate(1.05);
+  -webkit-backdrop-filter: blur(4px) saturate(1.05);
+}
+
+.support-chat,
+.support-modal,
+.support-chat-panel,
+.suggestions-panel,
+.suggestions-modal .suggestions-panel{
+  border-radius: var(--sr-lux-radius-xl) !important;
+  border: 1px solid var(--sr-lux-stroke) !important;
+  background:
+    linear-gradient(135deg, rgba(42,64,104,.48), rgba(9,16,29,.92) 42%, rgba(9,25,29,.82)),
+    radial-gradient(circle at 15% 0%, rgba(84,183,255,.16), transparent 34%),
+    radial-gradient(circle at 92% 18%, rgba(96,242,154,.12), transparent 35%) !important;
+  box-shadow: var(--sr-lux-shadow), var(--sr-lux-glow) !important;
+  color: var(--sr-lux-text) !important;
+  overflow: hidden !important;
+}
+
+.support-chat::before,
+.suggestions-panel::before{
+  content:"";
+  position:absolute;
+  inset:0 0 auto 0;
+  height:1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.62), transparent);
+  pointer-events:none;
+  opacity:.65;
+}
+
+.support-chat-header,
+.support-modal-header,
+.suggestions-header{
+  border-bottom: 1px solid rgba(255,255,255,.09) !important;
+  background:
+    linear-gradient(90deg, rgba(84,183,255,.10), rgba(96,242,154,.055), transparent) !important;
+  padding-bottom: 14px !important;
+}
+
+.support-chat-title,
+.support-modal-header h2,
+.suggestions-header h2{
+  color: var(--sr-lux-text) !important;
+  letter-spacing: .25px !important;
+  text-shadow: 0 2px 18px rgba(84,183,255,.20) !important;
+}
+
+.support-chat-subtitle,
+.support-subtitle,
+.suggestions-subtitle{
+  color: var(--sr-lux-muted) !important;
+}
+
+.support-close,
+.suggestions-close,
+#supportChatCloseBtn,
+#supportNameCloseBtn{
+  border-radius: 16px !important;
+  border: 1px solid rgba(255,255,255,.15) !important;
+  background: rgba(255,255,255,.08) !important;
+  color: var(--sr-lux-text) !important;
+  box-shadow: 0 12px 28px rgba(0,0,0,.28), 0 0 0 1px rgba(255,255,255,.04) inset !important;
+  transition: transform .16s ease, background .16s ease, border-color .16s ease !important;
+}
+.support-close:hover,
+.suggestions-close:hover,
+#supportChatCloseBtn:hover,
+#supportNameCloseBtn:hover{
+  transform: translateY(-1px) !important;
+  background: rgba(255,255,255,.13) !important;
+  border-color: rgba(255,255,255,.28) !important;
+}
+
+/* ===== Support layout ===== */
+.support-chat-body{
+  gap: 14px !important;
+}
+.support-users{
+  border-radius: 18px !important;
+  border: 1px solid rgba(255,255,255,.09) !important;
+  background: linear-gradient(180deg, rgba(8,13,25,.72), rgba(7,11,20,.58)) !important;
+  box-shadow: 0 14px 42px rgba(0,0,0,.24) inset !important;
+  padding: 12px 10px !important;
+}
+.support-users-title{
+  color: rgba(255,255,255,.78) !important;
+  font-size: 11px !important;
+  letter-spacing: 1.4px !important;
+  text-transform: uppercase !important;
+  padding: 4px 4px 8px !important;
+}
+.srux-mini-stats{
+  display:flex !important;
+  gap:8px !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  color: rgba(238,246,255,.80) !important;
+  font-size: 12px !important;
+  padding: 8px 8px 10px !important;
+  border-radius: 14px !important;
+  background: rgba(255,255,255,.045) !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  margin-bottom: 8px !important;
+}
+.srux-online-dot{
+  width:8px !important;
+  height:8px !important;
+  border-radius:50% !important;
+  background: var(--sr-lux-green) !important;
+  box-shadow: 0 0 14px rgba(96,242,154,.65) !important;
+  display:inline-block !important;
+  margin-right:5px !important;
+}
+.srux-toolbar,
+.srux-compact{
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 0 0 10px !important;
+}
+.srux-search,
+#sruxSupportSearch,
+#sruxSuggestionSearch{
+  width:100% !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(198,220,255,.16) !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.04)) !important;
+  color: var(--sr-lux-text) !important;
+  box-shadow: 0 10px 24px rgba(0,0,0,.20) inset !important;
+  outline: none !important;
+  height: 46px !important;
+}
+.srux-search::placeholder,
+#sruxSupportSearch::placeholder,
+#sruxSuggestionSearch::placeholder{
+  color: rgba(226,236,255,.46) !important;
+}
+.srux-search:focus,
+#sruxSupportSearch:focus,
+#sruxSuggestionSearch:focus{
+  border-color: rgba(84,183,255,.55) !important;
+  box-shadow: 0 0 0 3px rgba(84,183,255,.15), 0 10px 24px rgba(0,0,0,.20) inset !important;
+}
+
+#supportUsersList,
+.support-users-list{
+  padding-right: 5px !important;
+  scroll-behavior: smooth !important;
+}
+.support-user{
+  min-height: 44px !important;
+  border-radius: 15px !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.075), rgba(255,255,255,.035)),
+    color-mix(in srgb, var(--u, #54b7ff) 14%, transparent) !important;
+  box-shadow: 0 12px 24px rgba(0,0,0,.22), inset 3px 0 0 color-mix(in srgb, var(--u, #54b7ff) 80%, white 4%) !important;
+  color: var(--sr-lux-text) !important;
+  margin-bottom: 8px !important;
+  transition: transform .15s ease, filter .15s ease, border-color .15s ease, box-shadow .15s ease !important;
+}
+.support-user:hover{
+  transform: translateY(-1px) !important;
+  border-color: rgba(255,255,255,.22) !important;
+  filter: brightness(1.06) !important;
+}
+.support-user.is-online{
+  border-color: rgba(96,242,154,.28) !important;
+  box-shadow: 0 12px 26px rgba(0,0,0,.24), 0 0 0 1px rgba(96,242,154,.08) inset, inset 3px 0 0 var(--sr-lux-green) !important;
+}
+.support-user.me{
+  opacity: 1 !important;
+  background:
+    linear-gradient(135deg, rgba(96,242,154,.18), rgba(84,183,255,.09)),
+    color-mix(in srgb, var(--u, #54b7ff) 16%, transparent) !important;
+}
+.support-user-name{
+  color: rgba(255,255,255,.96) !important;
+  text-shadow: 0 1px 14px rgba(0,0,0,.25) !important;
+}
+.support-user-dot,
+.support-msg-dot,
+.suggestion-dot,
+.sug-reply-dot{
+  box-shadow: 0 0 0 4px rgba(255,255,255,.06), 0 0 18px color-mix(in srgb, var(--u, #54b7ff) 50%, transparent) !important;
+}
+.support-user-badge{
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  background: rgba(255,255,255,.08) !important;
+  color: rgba(255,255,255,.72) !important;
+  font-size: 10px !important;
+  letter-spacing: .7px !important;
+}
+.support-user.is-online .support-user-badge{
+  background: linear-gradient(180deg, #7bffad, #3be47b) !important;
+  color: #06120b !important;
+  border-color: rgba(255,255,255,.28) !important;
+  box-shadow: 0 0 18px rgba(96,242,154,.25) !important;
+}
+.support-user-unread.is-on{
+  background: linear-gradient(180deg, #ffdf82, #ff9d4d) !important;
+  color: #160d05 !important;
+  box-shadow: 0 0 18px rgba(255,211,108,.36) !important;
+}
+
+.support-messages{
+  border-radius: 18px !important;
+  border: 1px solid rgba(255,255,255,.085) !important;
+  background:
+    radial-gradient(circle at 85% 18%, rgba(96,242,154,.10), transparent 30%),
+    linear-gradient(180deg, rgba(5,9,18,.34), rgba(5,9,18,.58)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04) !important;
+}
+.support-messages-list{
+  padding: 14px !important;
+  scroll-behavior:smooth !important;
+}
+.support-msg{
+  border-radius: 19px !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--u, #54b7ff) 30%, rgba(12,18,32,.85)), rgba(8,14,25,.82)) !important;
+  box-shadow: 0 16px 34px rgba(0,0,0,.28), inset 4px 0 0 color-mix(in srgb, var(--u, #54b7ff) 78%, white 5%) !important;
+  backdrop-filter: none !important;
+}
+.support-msg.mine{
+  background:
+    linear-gradient(135deg, rgba(57,216,118,.24), rgba(10,45,34,.84)) !important;
+  border-color: rgba(96,242,154,.30) !important;
+  box-shadow: 0 16px 34px rgba(0,0,0,.26), inset 4px 0 0 var(--sr-lux-green) !important;
+}
+.support-msg-meta{
+  color: rgba(240,247,255,.72) !important;
+}
+.support-msg-name{
+  color: rgba(255,255,255,.96) !important;
+}
+.support-msg-time,
+.suggestion-when,
+.sug-reply-when{
+  color: rgba(230,239,255,.60) !important;
+  font-variant-numeric: tabular-nums !important;
+}
+.support-msg-text,
+.support-attach-line{
+  color: rgba(255,255,255,.94) !important;
+  line-height: 1.65 !important;
+}
+.support-compose{
+  border-top: 1px solid rgba(255,255,255,.08) !important;
+  background: linear-gradient(180deg, rgba(8,13,25,.18), rgba(5,9,18,.48)) !important;
+  padding: 14px !important;
+  gap: 10px !important;
+}
+.support-compose textarea,
+#supportMessageInput,
+.suggestions-form textarea,
+#suggestionInput,
+.sug-reply-compose textarea,
+.sug-reply-input{
+  border-radius: 18px !important;
+  border: 1px solid rgba(198,220,255,.17) !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.04)) !important;
+  color: var(--sr-lux-text) !important;
+  box-shadow: inset 0 10px 26px rgba(0,0,0,.22) !important;
+}
+.support-compose textarea:focus,
+#supportMessageInput:focus,
+.suggestions-form textarea:focus,
+#suggestionInput:focus,
+.sug-reply-compose textarea:focus,
+.sug-reply-input:focus{
+  border-color: rgba(96,242,154,.50) !important;
+  box-shadow: 0 0 0 3px rgba(96,242,154,.13), inset 0 10px 26px rgba(0,0,0,.22) !important;
+}
+.support-compose button,
+.suggestions-form button,
+.sug-reply-send,
+#supportSendBtn{
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: linear-gradient(135deg, #77f7a4, #36d66c 55%, #20bd5b) !important;
+  color: #041008 !important;
+  font-weight: 950 !important;
+  box-shadow: 0 14px 34px rgba(44, 220, 108, .25), inset 0 1px 0 rgba(255,255,255,.40) !important;
+  transition: transform .15s ease, filter .15s ease, box-shadow .15s ease !important;
+}
+.support-compose button:hover,
+.suggestions-form button:hover,
+.sug-reply-send:hover,
+#supportSendBtn:hover{
+  transform: translateY(-1px) !important;
+  filter: brightness(1.04) !important;
+  box-shadow: 0 18px 42px rgba(44, 220, 108, .34), inset 0 1px 0 rgba(255,255,255,.46) !important;
+}
+.support-icon-btn,
+#supportEmojiBtn,
+#supportAttachBtn{
+  border-radius: 16px !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  background: rgba(255,255,255,.07) !important;
+  color: var(--sr-lux-text) !important;
+}
+
+/* ===== Suggestions luxury polish ===== */
+.suggestions-panel{
+  position: relative !important;
+  padding: 22px !important;
+}
+.suggestions-form{
+  gap: 12px !important;
+}
+.suggestions-form button{
+  min-width: 150px !important;
+}
+.suggestions-meta-row{
+  color: var(--sr-lux-muted) !important;
+}
+#suggestionStatus[data-type="success"]{
+  color: var(--sr-lux-green) !important;
+}
+#suggestionStatus[data-type="error"]{
+  color: #ff8791 !important;
+}
+.suggestions-list{
+  border-radius: 20px !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  background:
+    linear-gradient(180deg, rgba(5,9,18,.52), rgba(5,9,18,.72)),
+    radial-gradient(circle at 90% 0%, rgba(96,242,154,.08), transparent 34%) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04) !important;
+  padding: 12px !important;
+}
+.suggestion-item{
+  border-radius: 20px !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  border-left: 4px solid color-mix(in srgb, var(--u, #54b7ff) 82%, white 6%) !important;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--u, #54b7ff) 12%, rgba(255,255,255,.06)), rgba(5,9,18,.62)),
+    radial-gradient(circle at 100% 20%, rgba(96,242,154,.07), transparent 26%) !important;
+  box-shadow: 0 16px 38px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.045) !important;
+  margin-bottom: 12px !important;
+  padding: 15px !important;
+  transition: transform .15s ease, border-color .15s ease, filter .15s ease !important;
+}
+.suggestion-item:hover{
+  transform: translateY(-1px) !important;
+  filter: brightness(1.035) !important;
+  border-color: rgba(255,255,255,.21) !important;
+}
+.suggestion-item.has-replies{
+  border-color: rgba(255,211,108,.32) !important;
+  box-shadow: 0 18px 42px rgba(0,0,0,.32), 0 0 34px rgba(255,211,108,.08), inset 0 1px 0 rgba(255,255,255,.045) !important;
+}
+.suggestion-meta,
+.sug-reply-meta{
+  color: rgba(232,241,255,.65) !important;
+}
+.suggestion-name,
+.sug-reply-name{
+  color: rgba(255,255,255,.94) !important;
+}
+.suggestion-text,
+.sug-reply-text{
+  color: rgba(255,255,255,.94) !important;
+  font-size: 14px !important;
+  line-height: 1.75 !important;
+}
+.sug-replies-toggle{
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,211,108,.24) !important;
+  background: linear-gradient(135deg, rgba(255,211,108,.18), rgba(255,255,255,.06)) !important;
+  color: rgba(255,247,224,.96) !important;
+  box-shadow: 0 12px 28px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+.sug-replies-badge{
+  background: linear-gradient(180deg, #ffecad, #ffc04c) !important;
+  color: #1a1004 !important;
+}
+.suggestion-replies{
+  border-radius: 18px !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  background: rgba(0,0,0,.20) !important;
+}
+.sug-reply-item{
+  border-radius: 16px !important;
+  background: rgba(255,255,255,.055) !important;
+}
+.srux-char-counter{
+  color: rgba(226,236,255,.58) !important;
+  font-variant-numeric: tabular-nums !important;
+}
+.srux-char-counter.is-warn{ color: var(--sr-lux-gold) !important; }
+.srux-char-counter.is-max{ color: #ff8b95 !important; }
+
+/* Toasts */
+.srux-toast-root{
+  z-index: 10050 !important;
+}
+.srux-toast{
+  border-radius: 18px !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  background:
+    linear-gradient(135deg, rgba(20,31,53,.96), rgba(7,12,23,.96)) !important;
+  color: rgba(255,255,255,.94) !important;
+  box-shadow: 0 18px 46px rgba(0,0,0,.42), 0 0 28px rgba(84,183,255,.12) !important;
+}
+.srux-toast[data-type="success"]{ border-color: rgba(96,242,154,.35) !important; }
+.srux-toast[data-type="error"]{ border-color: rgba(255,107,122,.36) !important; }
+.srux-toast[data-type="warn"]{ border-color: rgba(255,211,108,.38) !important; }
+
+/* Scrollbars */
+.support-users-list::-webkit-scrollbar,
+#supportUsersList::-webkit-scrollbar,
+.support-messages-list::-webkit-scrollbar,
+#supportMessagesList::-webkit-scrollbar,
+.suggestions-list::-webkit-scrollbar,
+.suggestions-modal::-webkit-scrollbar{
+  width: 10px !important;
+  height: 10px !important;
+}
+.support-users-list::-webkit-scrollbar-thumb,
+#supportUsersList::-webkit-scrollbar-thumb,
+.support-messages-list::-webkit-scrollbar-thumb,
+#supportMessagesList::-webkit-scrollbar-thumb,
+.suggestions-list::-webkit-scrollbar-thumb,
+.suggestions-modal::-webkit-scrollbar-thumb{
+  background: linear-gradient(180deg, rgba(84,183,255,.45), rgba(96,242,154,.32)) !important;
+  border-radius: 999px !important;
+  border: 2px solid rgba(5,9,18,.78) !important;
+}
+.support-users-list::-webkit-scrollbar-track,
+#supportUsersList::-webkit-scrollbar-track,
+.support-messages-list::-webkit-scrollbar-track,
+#supportMessagesList::-webkit-scrollbar-track,
+.suggestions-list::-webkit-scrollbar-track,
+.suggestions-modal::-webkit-scrollbar-track{
+  background: rgba(255,255,255,.035) !important;
+  border-radius: 999px !important;
+}
+
+@media (max-width: 760px){
+  .support-chat,
+  .support-modal,
+  .suggestions-panel{
+    border-radius: 20px !important;
+  }
+  .support-chat-body{
+    gap: 10px !important;
+  }
+  .support-users{
+    max-height: 220px !important;
+  }
+  .suggestions-panel{
+    padding: 16px !important;
+  }
+  .suggestions-form{
+    flex-direction: column !important;
+  }
+  .suggestions-form button{
+    width:100% !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .support-user,
+  .support-msg,
+  .suggestion-item,
+  .support-compose button,
+  .suggestions-form button{
+    transition: none !important;
+  }
+  .support-user:hover,
+  .suggestion-item:hover,
+  .support-compose button:hover,
+  .suggestions-form button:hover{
+    transform: none !important;
+  }
+}
+
+@supports not (color: color-mix(in srgb, red 10%, transparent)){
+  .support-user,
+  .support-msg,
+  .suggestion-item{
+    background: rgba(255,255,255,.08) !important;
+  }
+}
+
+/* --- END public/support-suggestions-luxury.css --- */
+
+/* --- BEGIN public/support-suggestions-pro-ux.css --- */
+/* Step 5 - Support & Suggestions Professional UX layer
+   Front-end only. No database/API calls. Safe to remove. */
+
+:root{
+  --srux-bg: rgba(10,14,24,.84);
+  --srux-bg-2: rgba(255,255,255,.075);
+  --srux-border: rgba(255,255,255,.16);
+  --srux-text: rgba(255,255,255,.93);
+  --srux-muted: rgba(255,255,255,.62);
+  --srux-good: #51d88a;
+  --srux-warn: #ffd166;
+  --srux-bad: #ff6b6b;
+  --srux-accent: #7aa7ff;
+}
+
+.srux-toolbar{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:10px 0;
+  padding:8px;
+  border:1px solid var(--srux-border);
+  border-radius:14px;
+  background:linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.045));
+  backdrop-filter: blur(10px);
+}
+
+.srux-toolbar.srux-compact{
+  margin:8px 0 10px;
+  padding:7px;
+}
+
+.srux-search{
+  flex:1;
+  min-width:0;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:12px;
+  padding:9px 11px;
+  outline:none;
+  color:var(--srux-text);
+  background:rgba(0,0,0,.18);
+  font:inherit;
+}
+
+.srux-search::placeholder{ color:rgba(255,255,255,.48); }
+.srux-search:focus{
+  border-color:rgba(122,167,255,.72);
+  box-shadow:0 0 0 3px rgba(122,167,255,.18);
+}
+
+.srux-select,
+.srux-pill{
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:999px;
+  padding:8px 10px;
+  color:var(--srux-text);
+  background:rgba(0,0,0,.18);
+  font:inherit;
+  white-space:nowrap;
+}
+
+.srux-select{ max-width:150px; }
+
+.srux-pill{
+  font-size:12px;
+  color:var(--srux-muted);
+  user-select:none;
+}
+
+.srux-mini-stats{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin:0 0 8px;
+  font-size:12px;
+  color:var(--srux-muted);
+}
+
+.srux-mini-stats strong{ color:var(--srux-text); font-weight:800; }
+.srux-online-dot{
+  width:8px;height:8px;border-radius:999px;display:inline-block;margin-inline-end:5px;
+  background:var(--srux-good);box-shadow:0 0 10px rgba(81,216,138,.75);
+}
+
+.srux-char-counter{
+  display:inline-flex;
+  align-items:center;
+  justify-content:flex-end;
+  min-width:58px;
+  font-size:11px;
+  color:var(--srux-muted);
+  padding-inline:4px;
+}
+.srux-char-counter.is-warn{ color:var(--srux-warn); }
+.srux-char-counter.is-max{ color:var(--srux-bad); font-weight:800; }
+
+.srux-hidden-by-filter{ display:none !important; }
+
+.srux-empty-filter,
+.srux-empty-state{
+  display:block;
+  padding:18px 14px;
+  margin:8px 0;
+  border:1px dashed rgba(255,255,255,.18);
+  border-radius:16px;
+  color:var(--srux-muted);
+  text-align:center;
+  background:rgba(255,255,255,.04);
+}
+
+.srux-toast-root{
+  position:fixed;
+  z-index:2147483000;
+  right:16px;
+  bottom:16px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  pointer-events:none;
+}
+
+.srux-toast{
+  pointer-events:auto;
+  max-width:min(360px, calc(100vw - 32px));
+  padding:12px 14px;
+  border-radius:16px;
+  color:var(--srux-text);
+  border:1px solid rgba(255,255,255,.18);
+  background:linear-gradient(180deg, rgba(16,22,36,.96), rgba(8,12,22,.95));
+  box-shadow:0 18px 50px rgba(0,0,0,.38);
+  transform:translateY(10px);
+  opacity:0;
+  transition:opacity .18s ease, transform .18s ease;
+  font-size:13px;
+  line-height:1.45;
+}
+.srux-toast.is-show{ opacity:1; transform:translateY(0); }
+.srux-toast[data-type="success"]{ border-color:rgba(81,216,138,.45); }
+.srux-toast[data-type="error"]{ border-color:rgba(255,107,107,.55); }
+.srux-toast[data-type="warn"]{ border-color:rgba(255,209,102,.55); }
+
+#supportUsersList .support-user{
+  transition:transform .16s ease, background .16s ease, border-color .16s ease, opacity .16s ease;
+}
+#supportUsersList .support-user:hover{ transform:translateY(-1px); }
+#supportUsersList .support-user.is-online{
+  border-color:rgba(81,216,138,.38) !important;
+  background:linear-gradient(90deg, rgba(81,216,138,.12), rgba(255,255,255,.045)) !important;
+}
+#supportUsersList .support-user.me{
+  position:relative;
+  box-shadow:inset 0 0 0 1px rgba(122,167,255,.34);
+}
+
+.support-presence-badge{
+  margin-inline-start:auto !important;
+  font-size:10px !important;
+  letter-spacing:.02em;
+  padding:3px 7px !important;
+  border-radius:999px !important;
+  border:1px solid rgba(255,255,255,.14) !important;
+  color:rgba(255,255,255,.72) !important;
+  background:rgba(255,255,255,.07) !important;
+}
+.support-presence-badge.is-online{
+  color:#062414 !important;
+  background:linear-gradient(180deg, #73efaa, #43d580) !important;
+  border-color:rgba(81,216,138,.65) !important;
+  font-weight:900;
+}
+
+#supportMessagesList .support-msg{
+  animation:srux-msg-in .18s ease both;
+}
+@keyframes srux-msg-in{
+  from{ opacity:.0; transform:translateY(6px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+
+#supportMessageInput,
+#suggestionInput,
+.sug-reply-input{
+  resize:none;
+  min-height:44px;
+  max-height:160px;
+  overflow:auto;
+}
+
+.suggestions-modal .srux-toolbar{
+  position:sticky;
+  top:0;
+  z-index:3;
+}
+
+.suggestion-item{
+  transition:transform .16s ease, opacity .16s ease, background .16s ease, border-color .16s ease;
+}
+.suggestion-item:hover{ transform:translateY(-1px); }
+.suggestion-item.srux-own-suggestion{
+  box-shadow:inset 0 0 0 1px rgba(122,167,255,.28);
+}
+.suggestion-item.srux-top-replies{
+  border-color:rgba(255,209,102,.35) !important;
+}
+
+.srux-suggestion-meta-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  margin-inline-start:6px;
+  padding:2px 7px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.07);
+  color:var(--srux-muted);
+  font-size:11px;
+}
+
+@media (max-width: 720px){
+  .srux-toolbar{ flex-wrap:wrap; }
+  .srux-search{ flex-basis:100%; }
+  .srux-select{ flex:1; max-width:none; }
+  .srux-toast-root{ right:10px; bottom:10px; }
+}
+
+/* --- END public/support-suggestions-pro-ux.css --- */
+
+/* --- BEGIN public/css/local-fonts.css --- */
+/* Local fonts for full offline usage */
+@font-face {
+  font-family: 'Open Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: url('../fonts/OpenSans-Regular.ttf') format('truetype');
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Open Sans';
+  font-style: italic;
+  font-weight: 400;
+  src: url('../fonts/OpenSans-Italic.ttf') format('truetype');
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Open Sans';
+  font-style: normal;
+  font-weight: 700;
+  src: url('../fonts/OpenSans-Bold.ttf') format('truetype');
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Open Sans';
+  font-style: italic;
+  font-weight: 700;
+  src: url('../fonts/OpenSans-BoldItalic.ttf') format('truetype');
+  font-display: swap;
+}
+
+/* --- END public/css/local-fonts.css --- */
