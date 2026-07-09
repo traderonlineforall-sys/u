@@ -2697,18 +2697,18 @@ html.ahly-premium-theme-live #searchResults a.highlight {
     0 7px 16px rgba(0,0,0,.30) !important;
 }
 
-/* ===== Ahly transparent menu choices v12 =====
-   Rebuilt from the Egypt transparent-menu base.
-   Visual layer only: removes menu choice shading/backgrounds so the Ahly
-   background remains visible. No layout, display, spacing, sizing,
+
+/* ===== Ahly transparent menu choices v13 - actual separate layer =====
+   This block mirrors the no-theme menu-choice transparency and overrides the
+   older inline Ahly V9 layer. Visual only: no layout, display, spacing, sizing,
    ordering, positioning, links, IDs, or tool logic are changed.
 */
-html.ahly-premium-theme-live .tabcontent .dropdown .dropbtn,
-html.ahly-premium-theme-live .tabcontent .navbar a,
-html.ahly-premium-theme-live .tabcontent #singlelink,
-html.ahly-premium-theme-live .dropdown .dropbtn,
-html.ahly-premium-theme-live .navbar a,
-html.ahly-premium-theme-live #singlelink {
+html.ahly-premium-theme-live body .tabcontent .dropdown .dropbtn,
+html.ahly-premium-theme-live body .tabcontent .navbar a,
+html.ahly-premium-theme-live body .tabcontent #singlelink,
+html.ahly-premium-theme-live body .dropdown .dropbtn,
+html.ahly-premium-theme-live body .navbar a,
+html.ahly-premium-theme-live body #singlelink {
   color: rgba(255, 235, 184, 0.98) !important;
   -webkit-text-fill-color: rgba(255, 235, 184, 0.98) !important;
   background: transparent !important;
@@ -2718,18 +2718,18 @@ html.ahly-premium-theme-live #singlelink {
   box-shadow: none !important;
   filter: none !important;
 }
-html.ahly-premium-theme-live .tabcontent .dropdown .dropbtn::before,
-html.ahly-premium-theme-live .tabcontent .dropdown .dropbtn::after,
-html.ahly-premium-theme-live .tabcontent .navbar a::before,
-html.ahly-premium-theme-live .tabcontent .navbar a::after,
-html.ahly-premium-theme-live .tabcontent #singlelink::before,
-html.ahly-premium-theme-live .tabcontent #singlelink::after,
-html.ahly-premium-theme-live .dropdown .dropbtn::before,
-html.ahly-premium-theme-live .dropdown .dropbtn::after,
-html.ahly-premium-theme-live .navbar a::before,
-html.ahly-premium-theme-live .navbar a::after,
-html.ahly-premium-theme-live #singlelink::before,
-html.ahly-premium-theme-live #singlelink::after {
+html.ahly-premium-theme-live body .tabcontent .dropdown .dropbtn::before,
+html.ahly-premium-theme-live body .tabcontent .dropdown .dropbtn::after,
+html.ahly-premium-theme-live body .tabcontent .navbar a::before,
+html.ahly-premium-theme-live body .tabcontent .navbar a::after,
+html.ahly-premium-theme-live body .tabcontent #singlelink::before,
+html.ahly-premium-theme-live body .tabcontent #singlelink::after,
+html.ahly-premium-theme-live body .dropdown .dropbtn::before,
+html.ahly-premium-theme-live body .dropdown .dropbtn::after,
+html.ahly-premium-theme-live body .navbar a::before,
+html.ahly-premium-theme-live body .navbar a::after,
+html.ahly-premium-theme-live body #singlelink::before,
+html.ahly-premium-theme-live body #singlelink::after {
   opacity: 0 !important;
   background: none !important;
   background-color: transparent !important;
@@ -2737,14 +2737,14 @@ html.ahly-premium-theme-live #singlelink::after {
   box-shadow: none !important;
   filter: none !important;
 }
-html.ahly-premium-theme-live .dropdown:hover .dropbtn,
-html.ahly-premium-theme-live .dropdown:focus-within .dropbtn,
-html.ahly-premium-theme-live .dropdown.open .dropbtn,
-html.ahly-premium-theme-live .dropdown.active .dropbtn,
-html.ahly-premium-theme-live .navbar a:hover,
-html.ahly-premium-theme-live .navbar a:focus,
-html.ahly-premium-theme-live #singlelink:hover,
-html.ahly-premium-theme-live #singlelink:focus {
+html.ahly-premium-theme-live body .dropdown:hover .dropbtn,
+html.ahly-premium-theme-live body .dropdown:focus-within .dropbtn,
+html.ahly-premium-theme-live body .dropdown.open .dropbtn,
+html.ahly-premium-theme-live body .dropdown.active .dropbtn,
+html.ahly-premium-theme-live body .navbar a:hover,
+html.ahly-premium-theme-live body .navbar a:focus,
+html.ahly-premium-theme-live body #singlelink:hover,
+html.ahly-premium-theme-live body #singlelink:focus {
   color: #fffdf1 !important;
   -webkit-text-fill-color: #fffdf1 !important;
   background: transparent !important;
@@ -2754,14 +2754,14 @@ html.ahly-premium-theme-live #singlelink:focus {
   box-shadow: none !important;
   filter: none !important;
 }
-html.ahly-premium-theme-live .sub-dropdown,
-html.ahly-premium-theme-live .sub-dropdown[style],
-html.ahly-premium-theme-live .dropdown-content a,
-html.ahly-premium-theme-live .sub-dropdown-content a,
-html.ahly-premium-theme-live .sub-dropdown > a,
-html.ahly-premium-theme-live #searchResults.search-results a,
-html.ahly-premium-theme-live #searchResults a,
-html.ahly-premium-theme-live .search-results a {
+html.ahly-premium-theme-live body .sub-dropdown,
+html.ahly-premium-theme-live body .sub-dropdown[style],
+html.ahly-premium-theme-live body .dropdown-content a,
+html.ahly-premium-theme-live body .sub-dropdown-content a,
+html.ahly-premium-theme-live body .sub-dropdown > a,
+html.ahly-premium-theme-live body #searchResults.search-results a,
+html.ahly-premium-theme-live body #searchResults a,
+html.ahly-premium-theme-live body .search-results a {
   color: rgba(255, 235, 184, 0.98) !important;
   -webkit-text-fill-color: rgba(255, 235, 184, 0.98) !important;
   background: transparent !important;
@@ -2771,22 +2771,22 @@ html.ahly-premium-theme-live .search-results a {
   box-shadow: none !important;
   filter: none !important;
 }
-html.ahly-premium-theme-live .sub-dropdown:hover,
-html.ahly-premium-theme-live .sub-dropdown:hover[style],
-html.ahly-premium-theme-live .dropdown-content a:hover,
-html.ahly-premium-theme-live .dropdown-content a:focus,
-html.ahly-premium-theme-live .sub-dropdown-content a:hover,
-html.ahly-premium-theme-live .sub-dropdown-content a:focus,
-html.ahly-premium-theme-live .sub-dropdown:hover > a,
-html.ahly-premium-theme-live #searchResults.search-results a:hover,
-html.ahly-premium-theme-live #searchResults a:hover,
-html.ahly-premium-theme-live #searchResults.search-results a:focus,
-html.ahly-premium-theme-live #searchResults a:focus,
-html.ahly-premium-theme-live #searchResults.search-results a.highlight,
-html.ahly-premium-theme-live #searchResults a.highlight,
-html.ahly-premium-theme-live .search-results a:hover,
-html.ahly-premium-theme-live .search-results a:focus,
-html.ahly-premium-theme-live .search-results a.highlight {
+html.ahly-premium-theme-live body .sub-dropdown:hover,
+html.ahly-premium-theme-live body .sub-dropdown:hover[style],
+html.ahly-premium-theme-live body .dropdown-content a:hover,
+html.ahly-premium-theme-live body .dropdown-content a:focus,
+html.ahly-premium-theme-live body .sub-dropdown-content a:hover,
+html.ahly-premium-theme-live body .sub-dropdown-content a:focus,
+html.ahly-premium-theme-live body .sub-dropdown:hover > a,
+html.ahly-premium-theme-live body #searchResults.search-results a:hover,
+html.ahly-premium-theme-live body #searchResults a:hover,
+html.ahly-premium-theme-live body #searchResults.search-results a:focus,
+html.ahly-premium-theme-live body #searchResults a:focus,
+html.ahly-premium-theme-live body #searchResults.search-results a.highlight,
+html.ahly-premium-theme-live body #searchResults a.highlight,
+html.ahly-premium-theme-live body .search-results a:hover,
+html.ahly-premium-theme-live body .search-results a:focus,
+html.ahly-premium-theme-live body .search-results a.highlight {
   color: #fffdf1 !important;
   -webkit-text-fill-color: #fffdf1 !important;
   background: transparent !important;
@@ -2796,4 +2796,4 @@ html.ahly-premium-theme-live .search-results a.highlight {
   box-shadow: none !important;
   filter: none !important;
 }
-/* ===== END transparent menu choices ===== */
+/* ===== END Ahly transparent menu choices v13 ===== */

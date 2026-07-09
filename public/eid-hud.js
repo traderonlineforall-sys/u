@@ -10,9 +10,9 @@ const LS_THEME_OFF = "sr_eid_theme_off";
 const LS_THEME_MODE = "sr_visual_theme_mode";
 const TOGGLE_BTN_ID = "EID_TOGGLE_BTN";
 const LEGACY_THEME_LINK_ID = "ua07LegacyThemeLink";
-const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy6-transparent-menu-redo";
+const LEGACY_THEME_HREF = "ua07-20-theme.css?v=ua07legacy7-transparent-menu-layer";
 const AHLY_THEME_LINK_ID = "ahlyPremiumThemeLink";
-const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahly-v12-transparent-menu-redo";
+const AHLY_THEME_HREF = "ahly-premium-theme.css?v=ahly-v13-transparent-menu-layer";
 const EGYPT_THEME_LINK_ID = "egyptWorldCupThemeLink";
 const EGYPT_THEME_HREF = "egypt-worldcup-theme.css?v=egyptwc-layer-v10";
 const THEME_EID = "eid";
@@ -187,6 +187,116 @@ function ensureToggleBaseStyle(){
   `;
   (document.head || document.documentElement).appendChild(style);
 }
+
+function ensureAhlyTransparentMenuLayer(){
+  if (document.getElementById('MNDO_AHLY_TRANSPARENT_MENU_LAYER')) return;
+  const css = `
+    /* Runtime visual-only override for the inline Ahly V9 layer in index.html.
+       It intentionally touches colors/background/border/shadow only. */
+    html.ahly-premium-theme-live body .tabcontent .dropdown .dropbtn,
+    html.ahly-premium-theme-live body .tabcontent .navbar a,
+    html.ahly-premium-theme-live body .tabcontent #singlelink,
+    html.ahly-premium-theme-live body .dropdown .dropbtn,
+    html.ahly-premium-theme-live body .navbar a,
+    html.ahly-premium-theme-live body #singlelink {
+      color: rgba(255, 235, 184, 0.98) !important;
+      -webkit-text-fill-color: rgba(255, 235, 184, 0.98) !important;
+      background: transparent !important;
+      background-color: transparent !important;
+      border-color: transparent !important;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.98), 0 0 8px rgba(145,0,0,0.34), 0 0 7px rgba(255,214,116,0.16) !important;
+      box-shadow: none !important;
+      filter: none !important;
+    }
+    html.ahly-premium-theme-live body .tabcontent .dropdown .dropbtn::before,
+    html.ahly-premium-theme-live body .tabcontent .dropdown .dropbtn::after,
+    html.ahly-premium-theme-live body .tabcontent .navbar a::before,
+    html.ahly-premium-theme-live body .tabcontent .navbar a::after,
+    html.ahly-premium-theme-live body .tabcontent #singlelink::before,
+    html.ahly-premium-theme-live body .tabcontent #singlelink::after,
+    html.ahly-premium-theme-live body .dropdown .dropbtn::before,
+    html.ahly-premium-theme-live body .dropdown .dropbtn::after,
+    html.ahly-premium-theme-live body .navbar a::before,
+    html.ahly-premium-theme-live body .navbar a::after,
+    html.ahly-premium-theme-live body #singlelink::before,
+    html.ahly-premium-theme-live body #singlelink::after {
+      opacity: 0 !important;
+      background: none !important;
+      background-color: transparent !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+      filter: none !important;
+    }
+    html.ahly-premium-theme-live body .dropdown:hover .dropbtn,
+    html.ahly-premium-theme-live body .dropdown:focus-within .dropbtn,
+    html.ahly-premium-theme-live body .dropdown.open .dropbtn,
+    html.ahly-premium-theme-live body .dropdown.active .dropbtn,
+    html.ahly-premium-theme-live body .navbar a:hover,
+    html.ahly-premium-theme-live body .navbar a:focus,
+    html.ahly-premium-theme-live body #singlelink:hover,
+    html.ahly-premium-theme-live body #singlelink:focus {
+      color: #fffdf1 !important;
+      -webkit-text-fill-color: #fffdf1 !important;
+      background: transparent !important;
+      background-color: transparent !important;
+      border-color: transparent !important;
+      text-shadow: 0 1px 2px rgba(0,0,0,1), 0 0 10px rgba(255,213,112,0.24), 0 0 14px rgba(205,0,0,0.18) !important;
+      box-shadow: none !important;
+      filter: none !important;
+    }
+    html.ahly-premium-theme-live body .sub-dropdown,
+    html.ahly-premium-theme-live body .sub-dropdown[style],
+    html.ahly-premium-theme-live body .dropdown-content a,
+    html.ahly-premium-theme-live body .sub-dropdown-content a,
+    html.ahly-premium-theme-live body .sub-dropdown > a,
+    html.ahly-premium-theme-live body #searchResults.search-results a,
+    html.ahly-premium-theme-live body #searchResults a,
+    html.ahly-premium-theme-live body .search-results a {
+      color: rgba(255, 235, 184, 0.98) !important;
+      -webkit-text-fill-color: rgba(255, 235, 184, 0.98) !important;
+      background: transparent !important;
+      background-color: transparent !important;
+      border-color: rgba(255,213,112,0.10) !important;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.96) !important;
+      box-shadow: none !important;
+      filter: none !important;
+    }
+    html.ahly-premium-theme-live body .sub-dropdown:hover,
+    html.ahly-premium-theme-live body .sub-dropdown:hover[style],
+    html.ahly-premium-theme-live body .dropdown-content a:hover,
+    html.ahly-premium-theme-live body .dropdown-content a:focus,
+    html.ahly-premium-theme-live body .sub-dropdown-content a:hover,
+    html.ahly-premium-theme-live body .sub-dropdown-content a:focus,
+    html.ahly-premium-theme-live body .sub-dropdown:hover > a,
+    html.ahly-premium-theme-live body #searchResults.search-results a:hover,
+    html.ahly-premium-theme-live body #searchResults a:hover,
+    html.ahly-premium-theme-live body #searchResults.search-results a:focus,
+    html.ahly-premium-theme-live body #searchResults a:focus,
+    html.ahly-premium-theme-live body #searchResults.search-results a.highlight,
+    html.ahly-premium-theme-live body #searchResults a.highlight,
+    html.ahly-premium-theme-live body .search-results a:hover,
+    html.ahly-premium-theme-live body .search-results a:focus,
+    html.ahly-premium-theme-live body .search-results a.highlight {
+      color: #fffdf1 !important;
+      -webkit-text-fill-color: #fffdf1 !important;
+      background: transparent !important;
+      background-color: transparent !important;
+      border-color: rgba(255,229,164,0.18) !important;
+      text-shadow: 0 1px 2px rgba(0,0,0,1), 0 0 10px rgba(255,213,112,0.20) !important;
+      box-shadow: none !important;
+      filter: none !important;
+    }
+  `;
+  const style = document.createElement('style');
+  style.id = 'MNDO_AHLY_TRANSPARENT_MENU_LAYER';
+  style.textContent = css;
+  try {
+    (document.body || document.documentElement).appendChild(style);
+  } catch {
+    try { (document.head || document.documentElement).appendChild(style); } catch {}
+  }
+}
+
 function ensureDecorLayer(){
   if (document.getElementById('EID_DECOR_LAYER')) return;
   const host = document.body || document.documentElement;
@@ -204,6 +314,7 @@ function ensureDecorLayer(){
 }
 function applyThemeState(){
   ensureDecorLayer();
+  ensureAhlyTransparentMenuLayer();
   const mode = getThemeMode();
   const eidLink = getThemeLink();
   const legacyLink = getLegacyThemeLink();
@@ -318,6 +429,7 @@ function fixUa07PointerEvents(logoEl){
 function boot(){
   ensureToggleBaseStyle();
   ensureDecorLayer();
+  ensureAhlyTransparentMenuLayer();
   applyThemeState();
   let tries = 0;
   const t = setInterval(function(){
