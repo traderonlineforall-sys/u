@@ -339,10 +339,11 @@ html.ua07-legacy-theme-live #supportChatToggle {
   }
 }
 
-/* ===== Zamalek transparent menu choices v5 =====
-   Same Egypt-layer correction: menu choices become text-only so the theme
-   background remains visible. Visual-only: no display, spacing, dimensions,
-   position, order, IDs, or tool logic are changed.
+/* ===== Zamalek transparent menu choices v12 =====
+   Rebuilt from the Egypt transparent-menu base.
+   Visual layer only: removes menu choice shading/backgrounds so the Zamalek
+   background remains visible. No layout, display, spacing, sizing,
+   ordering, positioning, links, IDs, or tool logic are changed.
 */
 html.ua07-legacy-theme-live .tabcontent .dropdown .dropbtn,
 html.ua07-legacy-theme-live .tabcontent .navbar a,
@@ -355,7 +356,7 @@ html.ua07-legacy-theme-live #singlelink {
   background: transparent !important;
   background-color: transparent !important;
   border-color: transparent !important;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.96), 0 0 8px rgba(18,12,56,0.65) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.98), 0 0 8px rgba(18,12,56,0.64), 0 0 7px rgba(255,255,255,0.12) !important;
   box-shadow: none !important;
   filter: none !important;
 }
@@ -391,7 +392,7 @@ html.ua07-legacy-theme-live #singlelink:focus {
   background: transparent !important;
   background-color: transparent !important;
   border-color: transparent !important;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.98), 0 0 10px rgba(255,255,255,0.22), 0 0 14px rgba(85,60,180,0.20) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,1), 0 0 10px rgba(255,255,255,0.22), 0 0 14px rgba(85,60,180,0.20) !important;
   box-shadow: none !important;
   filter: none !important;
 }
@@ -408,7 +409,7 @@ html.ua07-legacy-theme-live .search-results a {
   background: transparent !important;
   background-color: transparent !important;
   border-color: rgba(255,255,255,0.10) !important;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.95) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.96) !important;
   box-shadow: none !important;
   filter: none !important;
 }
@@ -433,7 +434,8 @@ html.ua07-legacy-theme-live .search-results a.highlight {
   background: transparent !important;
   background-color: transparent !important;
   border-color: rgba(255,255,255,0.18) !important;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.98), 0 0 10px rgba(255,255,255,0.20) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,1), 0 0 10px rgba(255,255,255,0.20) !important;
   box-shadow: none !important;
   filter: none !important;
 }
+/* ===== END transparent menu choices ===== */
