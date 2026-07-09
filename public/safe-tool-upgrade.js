@@ -1337,6 +1337,222 @@
     setTimeout(bindAll, 140);
   }
 
+  function installFinalSearchResultsLayerFix() {
+    var styleId = 'ua07-final-search-results-layer-fix';
+    var rafId = 0;
+    var observerBound = false;
+    var resizeObserver = null;
+
+    function getInput() {
+      return document.getElementById('searchInput')
+        || document.querySelector('input.search-input')
+        || document.querySelector('.search-container input')
+        || document.querySelector('input[type="search"]')
+        || document.querySelector('input[id*="search" i], input[class*="search" i]');
+    }
+
+    function getResults() {
+      return document.getElementById('searchResults') || document.querySelector('.search-results');
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function cssText() {
+      return [
+        '/* UA07 final search layer: loaded late on purpose to beat legacy inline/theme CSS safely. */',
+        '#searchResults.search-results,#searchResults{',
+        '  position: fixed !important;',
+        '  top: var(--ua07-search-results-top, 64px) !important;',
+        '  left: var(--ua07-search-results-left, 50%) !important;',
+        '  right: auto !important;',
+        '  width: var(--ua07-search-results-width, 400px) !important;',
+        '  min-width: min(320px, calc(100vw - 24px)) !important;',
+        '  max-width: calc(100vw - 24px) !important;',
+        '  max-height: var(--ua07-search-results-max-height, min(360px, calc(100vh - 92px))) !important;',
+        '  transform: none !important;',
+        '  margin: 0 !important;',
+        '  padding: 8px !important;',
+        '  box-sizing: border-box !important;',
+        '  overflow-y: auto !important;',
+        '  overflow-x: hidden !important;',
+        '  overscroll-behavior: contain !important;',
+        '  scrollbar-gutter: stable !important;',
+        '  opacity: 1 !important;',
+        '  visibility: visible;',
+        '  pointer-events: auto !important;',
+        '  z-index: 2147483647 !important;',
+        '  isolation: isolate !important;',
+        '  contain: layout paint !important;',
+        '  border-radius: 18px !important;',
+        '  border: 1px solid rgba(218,186,108,0.55) !important;',
+        '  color: rgba(255,241,205,0.98) !important;',
+        '  -webkit-text-fill-color: rgba(255,241,205,0.98) !important;',
+        '  background: linear-gradient(180deg, #18171c 0%, #08090d 100%) !important;',
+        '  background-color: #0d0d11 !important;',
+        '  box-shadow: 0 26px 58px rgba(0,0,0,0.68), inset 0 1px 0 rgba(255,255,255,0.08) !important;',
+        '  text-align: center !important;',
+        '}',
+        '#searchResults.search-results:empty,#searchResults:empty{',
+        '  display: none !important;',
+        '  padding: 0 !important;',
+        '  border-width: 0 !important;',
+        '}',
+        '#searchResults.search-results a,#searchResults a{',
+        '  position: relative !important;',
+        '  display: flex !important;',
+        '  align-items: center !important;',
+        '  justify-content: center !important;',
+        '  width: 100% !important;',
+        '  min-height: 38px !important;',
+        '  margin: 5px 0 !important;',
+        '  padding: 9px 14px !important;',
+        '  box-sizing: border-box !important;',
+        '  border-radius: 13px !important;',
+        '  border: 1px solid rgba(218,186,108,0.26) !important;',
+        '  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(0,0,0,0.30)) !important;',
+        '  color: rgba(255,241,205,0.98) !important;',
+        '  -webkit-text-fill-color: rgba(255,241,205,0.98) !important;',
+        '  font-weight: 800 !important;',
+        '  font-size: 14px !important;',
+        '  line-height: 1.35 !important;',
+        '  letter-spacing: 0 !important;',
+        '  text-align: center !important;',
+        '  text-decoration: none !important;',
+        '  text-shadow: 0 1px 2px rgba(0,0,0,0.78) !important;',
+        '  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06) !important;',
+        '  white-space: normal !important;',
+        '  overflow-wrap: anywhere !important;',
+        '  transform: none !important;',
+        '  opacity: 1 !important;',
+        '}',
+        '#searchResults.search-results a:hover,#searchResults.search-results a:focus,#searchResults a:hover,#searchResults a:focus{',
+        '  outline: none !important;',
+        '  color: #fff7d7 !important;',
+        '  -webkit-text-fill-color: #fff7d7 !important;',
+        '  border-color: rgba(245,213,139,0.68) !important;',
+        '  background: linear-gradient(180deg, rgba(117,28,22,0.96), rgba(30,8,6,0.98)) !important;',
+        '  box-shadow: 0 12px 26px rgba(0,0,0,0.36), inset 0 1px 0 rgba(255,255,255,0.10) !important;',
+        '  transform: none !important;',
+        '}',
+        '#searchResults::-webkit-scrollbar{ width: 8px !important; }',
+        '#searchResults::-webkit-scrollbar-track{ background: rgba(0,0,0,0.24) !important; border-radius: 999px !important; }',
+        '#searchResults::-webkit-scrollbar-thumb{ background: rgba(205,168,86,0.58) !important; border-radius: 999px !important; }',
+        '.search-container,.mndo-search-hk-anchor,.mndo-search-logo-row{ overflow: visible !important; }',
+        '.search-container{ position: relative !important; }'
+      ].join('\n');
+    }
+
+    function injectStyleLate() {
+      var previous = document.getElementById(styleId);
+      if (previous && previous.parentNode) previous.parentNode.removeChild(previous);
+
+      var style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = cssText();
+
+      /* Append to body when possible so this fix stays after the legacy inline theme blocks. */
+      (document.body || document.documentElement).appendChild(style);
+    }
+
+    function positionNow() {
+      rafId = 0;
+      var input = getInput();
+      var results = getResults();
+      if (!input || !results) return false;
+
+      var rect = input.getBoundingClientRect();
+      if (!rect.width || !rect.height) return false;
+
+      var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1366;
+      var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 768;
+      var sideGap = 12;
+      var bottomGap = 14;
+      var topGap = 8;
+      var availableWidth = Math.max(240, viewportWidth - (sideGap * 2));
+      var desiredWidth = clamp(Math.round(rect.width), Math.min(320, availableWidth), Math.min(520, availableWidth));
+      var left = Math.round(rect.left + ((rect.width - desiredWidth) / 2));
+      left = clamp(left, sideGap, Math.max(sideGap, viewportWidth - desiredWidth - sideGap));
+
+      var top = Math.round(rect.bottom + topGap);
+      var maxHeight = clamp(Math.round(viewportHeight - top - bottomGap), 150, 420);
+
+      results.style.setProperty('--ua07-search-results-left', left + 'px');
+      results.style.setProperty('--ua07-search-results-top', top + 'px');
+      results.style.setProperty('--ua07-search-results-width', desiredWidth + 'px');
+      results.style.setProperty('--ua07-search-results-max-height', maxHeight + 'px');
+      results.classList.add('ua07-final-search-results-layer');
+      return true;
+    }
+
+    function schedulePosition() {
+      if (rafId) return;
+      rafId = (window.requestAnimationFrame || function (cb) { return setTimeout(cb, 0); })(positionNow);
+    }
+
+    function bind() {
+      var input = getInput();
+      var results = getResults();
+      if (!input || !results) return false;
+
+      if (!input.dataset.ua07FinalSearchLayerBound) {
+        input.dataset.ua07FinalSearchLayerBound = '1';
+        ['focus', 'input', 'keyup', 'paste', 'click', 'change'].forEach(function (eventName) {
+          input.addEventListener(eventName, function () {
+            schedulePosition();
+            setTimeout(schedulePosition, 0);
+            setTimeout(schedulePosition, 60);
+          }, { passive: true });
+        });
+      }
+
+      if (!observerBound) {
+        observerBound = true;
+        window.addEventListener('resize', schedulePosition, { passive: true });
+        window.addEventListener('scroll', schedulePosition, { passive: true });
+        window.addEventListener('orientationchange', function () { setTimeout(schedulePosition, 80); }, { passive: true });
+
+        try {
+          var mutationObserver = new MutationObserver(function () {
+            injectStyleLate();
+            schedulePosition();
+          });
+          mutationObserver.observe(results, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class'] });
+        } catch (err) {}
+      }
+
+      if (window.ResizeObserver && !resizeObserver) {
+        try {
+          resizeObserver = new ResizeObserver(schedulePosition);
+          resizeObserver.observe(input);
+          var container = input.closest ? input.closest('.search-container') : null;
+          if (container) resizeObserver.observe(container);
+        } catch (err) {}
+      }
+
+      schedulePosition();
+      return true;
+    }
+
+    function boot() {
+      injectStyleLate();
+      bind();
+      schedulePosition();
+    }
+
+    boot();
+    setTimeout(boot, 0);
+    setTimeout(boot, 120);
+    setTimeout(boot, 450);
+    window.addEventListener('load', function () {
+      boot();
+      setTimeout(boot, 120);
+      setTimeout(boot, 500);
+    }, { once: true });
+  }
+
+
   // Register our enhancements on DOM ready.  Keep this separate from
   // other initializers to avoid coupling behaviours.
   onReady(function () {
@@ -1346,6 +1562,7 @@
     installEnvelopeEnhancements();
     installLandlineMirrorSync();
     installSearchResultsContrastFix();
+    installFinalSearchResultsLayerFix();
     installTopHeaderFastClickFix();
     installHeaderMicroUxV3();
     removeResubscribeTooltip();
