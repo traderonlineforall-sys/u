@@ -1916,3 +1916,117 @@ html.egypt-worldcup-theme-live #badgeSuggestions {
   box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 8px 18px rgba(0,0,0,.34) !important;
 }
 /* ===== END Egypt bottom action buttons premium calm finish v23 ===== */
+
+
+/* ===== Egypt iReport / Ticket Maker flag buttons v24 =====
+   Visual-only: upgrades the lower .ireportStyle tool buttons to an Egyptian-flag
+   split button: red top, white center with antique-gold text, black bottom.
+   No link logic, href, target, SR data, or layout scripts are touched. */
+html.egypt-worldcup-theme-live a.ireportStyle,
+html.egypt-worldcup-theme-live .ireportStyle {
+  position: relative !important;
+  isolation: isolate !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 32px !important;
+  padding: 7px 15px 8px !important;
+  margin: 4px 3px !important;
+  border-radius: 9px !important;
+  overflow: hidden !important;
+  vertical-align: middle !important;
+  white-space: nowrap !important;
+  text-decoration: none !important;
+  font-weight: 850 !important;
+  letter-spacing: .05px !important;
+  line-height: 1.08 !important;
+  color: #8a641c !important;
+  -webkit-text-fill-color: #8a641c !important;
+  text-shadow:
+    0 1px 0 rgba(255,255,255,.38),
+    0 0 10px rgba(138,100,28,.12) !important;
+  background:
+    linear-gradient(180deg,
+      #7c1b14 0%,
+      #5c100d 25%,
+      #f7efdd 25.5%,
+      #efe0bd 72%,
+      #15110e 72.5%,
+      #050505 100%) !important;
+  border: 1px solid rgba(214,177,92,.60) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 -1px 0 rgba(0,0,0,.64),
+    0 8px 18px rgba(0,0,0,.30),
+    0 0 0 1px rgba(90,18,12,.14) !important;
+  filter: saturate(.96) brightness(.98) contrast(1.02) !important;
+  transition: transform .13s ease, box-shadow .13s ease, filter .13s ease, border-color .13s ease !important;
+}
+
+html.egypt-worldcup-theme-live a.ireportStyle::before,
+html.egypt-worldcup-theme-live .ireportStyle::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: -1 !important;
+  pointer-events: none !important;
+  background:
+    radial-gradient(40px 18px at 50% 50%, rgba(214,177,92,.16), transparent 68%),
+    linear-gradient(90deg, rgba(255,255,255,.12), transparent 22%, transparent 78%, rgba(255,255,255,.08)) !important;
+  opacity: .82 !important;
+}
+
+html.egypt-worldcup-theme-live a.ireportStyle::after,
+html.egypt-worldcup-theme-live .ireportStyle::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  width: 4px !important;
+  height: 4px !important;
+  transform: translate(-50%, -50%) !important;
+  border-radius: 999px !important;
+  background: rgba(146,105,28,.70) !important;
+  box-shadow: 0 0 8px rgba(214,177,92,.28) !important;
+  pointer-events: none !important;
+  opacity: .45 !important;
+}
+
+html.egypt-worldcup-theme-live a.ireportStyle:hover,
+html.egypt-worldcup-theme-live .ireportStyle:hover,
+html.egypt-worldcup-theme-live a.ireportStyle:focus-visible,
+html.egypt-worldcup-theme-live .ireportStyle:focus-visible {
+  transform: translateY(-1px) !important;
+  color: #6d4a11 !important;
+  -webkit-text-fill-color: #6d4a11 !important;
+  border-color: rgba(238,205,132,.86) !important;
+  filter: saturate(1.03) brightness(1.04) contrast(1.04) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.30),
+    inset 0 -1px 0 rgba(0,0,0,.68),
+    0 11px 24px rgba(0,0,0,.36),
+    0 0 18px rgba(214,177,92,.13),
+    0 0 0 1px rgba(238,205,132,.10) !important;
+}
+
+html.egypt-worldcup-theme-live a.ireportStyle:active,
+html.egypt-worldcup-theme-live .ireportStyle:active {
+  transform: translateY(0) scale(.99) !important;
+  filter: saturate(.98) brightness(.95) !important;
+}
+
+/* Keep very long labels readable without becoming loud. */
+html.egypt-worldcup-theme-live a.ireportStyle[title],
+html.egypt-worldcup-theme-live .ireportStyle[title] {
+  max-width: 260px !important;
+}
+
+@media (max-width: 900px) {
+  html.egypt-worldcup-theme-live a.ireportStyle,
+  html.egypt-worldcup-theme-live .ireportStyle {
+    min-height: 31px !important;
+    padding-inline: 12px !important;
+    font-size: 13px !important;
+  }
+}
+/* ===== END Egypt iReport / Ticket Maker flag buttons v24 ===== */
