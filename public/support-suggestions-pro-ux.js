@@ -7,6 +7,7 @@
   const state = {
     supportSearch: "",
     suggestionSearch: "",
+    presenceSnapshot: window.__srPresenceSnapshot || null,
     toastLast: new Map(),
     observersStarted: false,
     applyTimer: 0
@@ -182,15 +183,24 @@
 
   function updateSupportStats(){
     const rows = $all("#supportUsersList .support-user");
-    const online = rows.filter((r) => r.classList.contains("is-online")).length;
+    const snapshot = state.presenceSnapshot || window.__srPresenceSnapshot || null;
+    const connected = snapshot?.status === "connected";
+    const onlineIds = new Set(snapshot?.onlineUserIds || []);
+    const online = connected && Number.isFinite(snapshot?.count) ? snapshot.count : null;
     const total = rows.length;
     const stats = $("#sruxSupportStats");
     if(stats){
-      stats.innerHTML = `<span><span class="srux-online-dot"></span><strong>${online}</strong> online</span><span><strong>${total}</strong> people</span>`;
+      const presenceText = connected
+        ? `<span><span class="srux-online-dot"></span><strong>${online}</strong> online</span>`
+        : snapshot?.status === "connecting"
+          ? `<span><span class="srux-online-dot is-connecting"></span><strong>…</strong> connecting</span>`
+          : `<span><span class="srux-online-dot is-unknown"></span><strong>—</strong> unknown</span>`;
+      stats.innerHTML = `${presenceText}<span><strong>${total}</strong> people</span>`;
     }
     rows.forEach((row) => {
       const name = clean($(".support-user-name", row)?.textContent);
-      const onlineText = row.classList.contains("is-online") ? "Online" : "Offline";
+      const id = clean(row.getAttribute("data-user-id"));
+      const onlineText = connected ? (id && onlineIds.has(id) ? "Online" : "Offline") : "Unknown";
       if(name) row.title = `${name} • ${onlineText}`;
     });
   }
@@ -342,7 +352,10 @@
 
     window.addEventListener("sr:suggestions-rendered", scheduleApply);
     window.addEventListener("sr:support-users-updated", scheduleApply);
-    window.addEventListener("sr:support-presence-updated", scheduleApply);
+    window.addEventListener("sr:presence-changed", (event) => {
+      state.presenceSnapshot = event.detail || window.__srPresenceSnapshot || null;
+      scheduleApply();
+    });
     window.addEventListener("sr:nickname-updated", scheduleApply);
   }
 

@@ -35,8 +35,12 @@
 
 #supportChatOverlay .support-chat{
   width:min(1080px, 98vw) !important;
-  height:min(720px, 92dvh) !important;
+  height:min(720px, 92vh) !important;
   border-radius:26px !important;
+}
+
+@supports (height:100dvh){
+  #supportChatOverlay .support-chat{ height:min(720px, 92dvh) !important; }
 }
 
 .support-chat-header{
@@ -286,7 +290,6 @@
   contain:layout style;
 }
 
-#supportMessageInput,
 #suggestionInput,
 .sug-reply-input{
   box-sizing:border-box !important;
@@ -421,7 +424,7 @@
 
 @media (max-width:760px){
   #supportChatOverlay{ padding:8px !important; }
-  #supportChatOverlay .support-chat{ width:100% !important; height:calc(100dvh - 16px) !important; border-radius:18px !important; }
+  #supportChatOverlay .support-chat{ width:100% !important; height:calc(100vh - 16px) !important; border-radius:18px !important; }
   .support-chat-body{ grid-template-columns:1fr !important; grid-template-rows:auto minmax(0, 1fr); }
   .support-users{ max-height:155px !important; border-right:0 !important; border-bottom:1px solid var(--sr-final-line); }
   #supportUsersList{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); }
@@ -439,6 +442,12 @@
   #suggestionsList{ min-height:180px; }
 }
 
+@supports (height:100dvh){
+  @media (max-width:760px){
+    #supportChatOverlay .support-chat{ height:calc(100dvh - 16px) !important; }
+  }
+}
+
 @media (hover:none){
   .support-msg-tools{ opacity:1; visibility:visible; transform:none; }
 }
@@ -449,7 +458,7 @@
 }
 
 
-/* Support viewport stability: newest messages stay visible and composing never resizes the chat. */
+/* One fixed Support composer contract; suggestions keep their independent auto-grow rules. */
 #supportChatOverlay .support-messages{
   display:grid !important;
   grid-template-rows:minmax(0, 1fr) auto auto auto !important;
@@ -494,7 +503,10 @@
 
 #supportChatOverlay #supportChatStatus{
   box-sizing:border-box !important;
+  height:30px !important;
   min-height:30px !important;
+  max-height:30px !important;
+  overflow:auto !important;
   flex:0 0 auto !important;
 }
 
@@ -505,4 +517,32 @@
     max-height:132px !important;
     align-items:end !important;
   }
+}
+
+#supportChatOverlay .support-presence-badge{
+  box-sizing:border-box;
+  min-width:72px;
+  justify-content:center;
+  flex:0 0 auto;
+}
+
+#supportChatOverlay .support-presence-badge.is-unknown{
+  color:rgba(235,241,255,.68) !important;
+  border-color:rgba(255,255,255,.14) !important;
+  background:rgba(255,255,255,.065) !important;
+}
+
+#supportChatOverlay .support-presence-badge.is-unknown::before{
+  background:#a7adbb !important;
+  box-shadow:0 0 0 2px rgba(167,173,187,.14) !important;
+}
+
+#sruxSupportStats .srux-online-dot.is-connecting{
+  background:var(--sr-final-gold) !important;
+  box-shadow:0 0 10px rgba(243,204,114,.62) !important;
+}
+
+#sruxSupportStats .srux-online-dot.is-unknown{
+  background:#a7adbb !important;
+  box-shadow:0 0 8px rgba(167,173,187,.38) !important;
 }

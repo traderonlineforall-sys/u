@@ -1,20 +1,16 @@
-import { supabase } from "./supabase-client.js";
-import { getStableUserId, getStoredUserName } from "./stable-user-identity.js";
+import { getStableUserId } from "./stable-user-identity.js";
 
 /*
- * Support visual presence + palette enhancer.
- * Scope: Support chat DOM only. No SR data, no header, no menus.
- * - Assigns every visible support user/message a fixed, strongly separated palette scheme.
- * - Adds Online/Offline badges using Supabase Realtime Presence.
+ * Support Presence/palette consumer.
+ *
+ * This module never opens a Realtime channel. It renders the single snapshot
+ * owned by online-users-count.js and reacts to explicit Support DOM updates.
  */
 
 const USER_ID = getStableUserId();
-function currentUserName(){ return getStoredUserName() || "User"; }
-const CHANNEL_NAME = "sr_tool_online";
 const SCHEME_COUNT = 12;
-const onlineIds = new Set([USER_ID]);
-let channel = null;
-let observer = null;
+let presenceSnapshot = window.__srPresenceSnapshot || null;
+let onlineIds = new Set(presenceSnapshot?.onlineUserIds || []);
 let scheduled = false;
 
 function hashText(value = "") {
@@ -46,10 +42,12 @@ function collectVisibleUserKeys() {
   });
 
   document.querySelectorAll("#supportMessagesList .support-msg").forEach((row) => {
+    const id = String(row.getAttribute("data-sender-id") || "").trim();
     const name = getCleanText(row.querySelector(".support-msg-name"));
-    if (name && !seen.has(name)) {
-      seen.add(name);
-      keys.push(name);
+    const key = id || name;
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      keys.push(key);
     }
   });
 
@@ -60,8 +58,6 @@ function buildSchemeMap() {
   const keys = collectVisibleUserKeys();
   const assigned = new Map();
   const used = new Set();
-
-  // Stable order by hash keeps the same visible users apart without depending on render order.
   keys.sort((a, b) => hashText(a) - hashText(b));
 
   for (const key of keys) {
@@ -74,26 +70,28 @@ function buildSchemeMap() {
     assigned.set(key, String(scheme));
     used.add(scheme);
   }
-
   return assigned;
 }
 
-function ensurePresenceBadge(anchor, isOnline) {
-  if (!anchor) return;
-  const parent = anchor.parentElement;
-  if (!parent) return;
+function presenceStateForUser(id) {
+  if (presenceSnapshot?.status !== "connected") return "unknown";
+  return id && onlineIds.has(id) ? "online" : "offline";
+}
 
-  let badge = parent.querySelector(":scope > .support-presence-badge");
+function ensurePresenceBadge(anchor, state) {
+  if (!anchor?.parentElement) return;
+  let badge = anchor.parentElement.querySelector(":scope > .support-presence-badge");
   if (!badge) {
     badge = document.createElement("span");
     badge.className = "support-presence-badge";
     anchor.insertAdjacentElement("afterend", badge);
   }
 
-  const text = isOnline ? "Online" : "Offline";
-  if(badge.textContent !== text) badge.textContent = text;
-  badge.classList.toggle("is-online", !!isOnline);
-  badge.classList.toggle("is-offline", !isOnline);
+  const text = state === "online" ? "Online" : state === "offline" ? "Offline" : "Unknown";
+  if (badge.textContent !== text) badge.textContent = text;
+  badge.classList.toggle("is-online", state === "online");
+  badge.classList.toggle("is-offline", state === "offline");
+  badge.classList.toggle("is-unknown", state === "unknown");
 }
 
 function getNameToIdMap() {
@@ -111,12 +109,11 @@ let sortingSupportUsers = false;
 function sortSupportUsersListByPresence() {
   const list = document.querySelector("#supportUsersList");
   if (!list || sortingSupportUsers) return;
-
   const rows = Array.from(list.querySelectorAll(".support-user"));
   if (rows.length < 2) return;
 
-  const originalOrder = rows.map((row) => row.getAttribute("data-user-id") || getCleanText(row.querySelector(".support-user-name")) || "").join("\n");
-
+  const rowKey = (row) => row.getAttribute("data-user-id") || getCleanText(row.querySelector(".support-user-name")) || "";
+  const originalOrder = rows.map(rowKey).join("\n");
   const normalizedName = (row) => getCleanText(row.querySelector(".support-user-name")).toLocaleLowerCase("ar-EG");
   const lastSeenValue = (row) => {
     const value = row.getAttribute("data-last-seen") || row.getAttribute("data-last-message-at") || row.getAttribute("data-created-at") || "";
@@ -127,14 +124,15 @@ function sortSupportUsersListByPresence() {
   const sorted = rows.slice().sort((a, b) => {
     const aId = String(a.getAttribute("data-user-id") || "").trim();
     const bId = String(b.getAttribute("data-user-id") || "").trim();
-
     const aMe = aId === USER_ID;
     const bMe = bId === USER_ID;
     if (aMe !== bMe) return aMe ? -1 : 1;
 
-    const aOnline = !!aId && onlineIds.has(aId);
-    const bOnline = !!bId && onlineIds.has(bId);
-    if (aOnline !== bOnline) return aOnline ? -1 : 1;
+    if (presenceSnapshot?.status === "connected") {
+      const aOnline = !!aId && onlineIds.has(aId);
+      const bOnline = !!bId && onlineIds.has(bId);
+      if (aOnline !== bOnline) return aOnline ? -1 : 1;
+    }
 
     const aUnread = !!a.querySelector(".support-user-unread:not(:empty)");
     const bUnread = !!b.querySelector(".support-user-unread:not(:empty)");
@@ -143,18 +141,15 @@ function sortSupportUsersListByPresence() {
     const aSeen = lastSeenValue(a);
     const bSeen = lastSeenValue(b);
     if (aSeen !== bSeen) return bSeen - aSeen;
-
     return normalizedName(a).localeCompare(normalizedName(b), "ar", { sensitivity: "base", numeric: true });
   });
 
-  const newOrder = sorted.map((row) => row.getAttribute("data-user-id") || getCleanText(row.querySelector(".support-user-name")) || "").join("\n");
-  if (newOrder === originalOrder) return;
-
+  if (sorted.map(rowKey).join("\n") === originalOrder) return;
   sortingSupportUsers = true;
   try {
-    const frag = document.createDocumentFragment();
-    sorted.forEach((row) => frag.appendChild(row));
-    list.appendChild(frag);
+    const fragment = document.createDocumentFragment();
+    sorted.forEach((row) => fragment.appendChild(row));
+    list.appendChild(fragment);
   } finally {
     sortingSupportUsers = false;
   }
@@ -170,13 +165,12 @@ function applySupportVisualState() {
     const name = getCleanText(row.querySelector(".support-user-name"));
     const key = id || name;
     const scheme = schemeMap.get(key) || schemeMap.get(name) || String(hashText(key || name) % SCHEME_COUNT);
-    if(row.getAttribute("data-bubble-scheme") !== scheme){
-      row.setAttribute("data-bubble-scheme", scheme);
-    }
-    const isOnline = !!id && onlineIds.has(id);
-    row.classList.toggle("is-online", isOnline);
-    row.classList.toggle("is-offline", !isOnline);
-    ensurePresenceBadge(row.querySelector(".support-user-name"), isOnline);
+    if (row.getAttribute("data-bubble-scheme") !== scheme) row.setAttribute("data-bubble-scheme", scheme);
+    const state = presenceStateForUser(id);
+    row.classList.toggle("is-online", state === "online");
+    row.classList.toggle("is-offline", state === "offline");
+    row.classList.toggle("is-presence-unknown", state === "unknown");
+    ensurePresenceBadge(row.querySelector(".support-user-name"), state);
   });
 
   document.querySelectorAll("#supportMessagesList .support-msg").forEach((row) => {
@@ -184,19 +178,15 @@ function applySupportVisualState() {
     const id = String(row.getAttribute("data-sender-id") || "").trim() || nameToId.get(name) || "";
     const key = id || name;
     const scheme = schemeMap.get(key) || schemeMap.get(name) || String(hashText(key || name) % SCHEME_COUNT);
-    if(row.getAttribute("data-bubble-scheme") !== scheme){
-      row.setAttribute("data-bubble-scheme", scheme);
-    }
-    const isOnline = id ? onlineIds.has(id) : false;
-    row.classList.toggle("is-online", isOnline);
-    row.classList.toggle("is-offline", !isOnline);
-    ensurePresenceBadge(row.querySelector(".support-msg-name"), isOnline);
+    if (row.getAttribute("data-bubble-scheme") !== scheme) row.setAttribute("data-bubble-scheme", scheme);
+    const state = presenceStateForUser(id);
+    row.classList.toggle("is-online", state === "online");
+    row.classList.toggle("is-offline", state === "offline");
+    row.classList.toggle("is-presence-unknown", state === "unknown");
+    ensurePresenceBadge(row.querySelector(".support-msg-name"), state);
   });
 
   sortSupportUsersListByPresence();
-  window.dispatchEvent(new CustomEvent("sr:support-presence-updated", {
-    detail:{ onlineIds:Array.from(onlineIds) }
-  }));
 }
 
 function scheduleApply() {
@@ -205,79 +195,21 @@ function scheduleApply() {
   requestAnimationFrame(applySupportVisualState);
 }
 
-function watchSupportDom() {
-  if (observer) return;
-  observer = new MutationObserver((mutations) => {
-    for (const m of mutations) {
-      if (m.type === "childList" || m.type === "attributes") {
-        scheduleApply();
-        return;
-      }
-    }
-  });
-  const users = document.getElementById("supportUsersList");
-  const messages = document.getElementById("supportMessagesList");
-  if(users) observer.observe(users, { childList:true, subtree:true });
-  if(messages) observer.observe(messages, { childList:true, subtree:true });
+function acceptPresenceSnapshot(snapshot) {
+  presenceSnapshot = snapshot || window.__srPresenceSnapshot || null;
+  onlineIds = new Set(presenceSnapshot?.onlineUserIds || []);
   scheduleApply();
 }
 
-function syncPresenceState() {
-  onlineIds.clear();
-  onlineIds.add(USER_ID);
-  try {
-    const state = channel?.presenceState?.() || {};
-    Object.values(state).forEach((entries) => {
-      (entries || []).forEach((entry) => {
-        const id = String(entry?.user_id || "").trim();
-        if (id) onlineIds.add(id);
-      });
-    });
-  } catch {}
-  scheduleApply();
+function init() {
+  window.addEventListener("sr:presence-changed", (event) => acceptPresenceSnapshot(event.detail));
+  window.addEventListener("sr:support-dom-changed", scheduleApply);
+  window.addEventListener("sr:nickname-updated", scheduleApply);
+  acceptPresenceSnapshot(window.__srPresenceSnapshot || null);
 }
-
-function startPresence() {
-  try {
-    channel = supabase.channel(CHANNEL_NAME, {
-      config: { presence: { key: USER_ID } }
-    });
-
-    channel
-      .on("presence", { event: "sync" }, syncPresenceState)
-      .on("presence", { event: "join" }, syncPresenceState)
-      .on("presence", { event: "leave" }, syncPresenceState)
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          channel.track({
-            user_id: USER_ID,
-            name: currentUserName(),
-            online_at: new Date().toISOString()
-          }).catch(() => {});
-          syncPresenceState();
-        }
-      });
-  } catch {
-    scheduleApply();
-  }
-}
-
-window.addEventListener("sr:nickname-updated", () => {
-  try {
-    channel?.track?.({ user_id: USER_ID, name: currentUserName(), online_at: new Date().toISOString() });
-  } catch {}
-});
-
-window.addEventListener("beforeunload", () => {
-  try { channel?.untrack?.(); } catch {}
-});
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", () => {
-    watchSupportDom();
-    startPresence();
-  }, { once: true });
+  document.addEventListener("DOMContentLoaded", init, { once: true });
 } else {
-  watchSupportDom();
-  startPresence();
+  init();
 }

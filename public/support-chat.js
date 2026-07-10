@@ -417,8 +417,71 @@ function setStatus(text, type = "info") {
   statusEl.textContent = text || "";
   statusEl.dataset.type = type;
 }
-function show(el) { el.style.display = "flex"; }
-function hide(el) { el.style.display = "none"; }
+function show(el) {
+  if (!el) return;
+  el.style.display = "flex";
+  el.setAttribute("aria-hidden", "false");
+}
+function hide(el) {
+  if (!el) return;
+  el.style.display = "none";
+  el.setAttribute("aria-hidden", "true");
+}
+
+let supportPageLock = null;
+
+function lockPageBehindSupport() {
+  if (supportPageLock || !document.body || !document.documentElement) return;
+  const body = document.body;
+  const root = document.documentElement;
+  const scrollX = window.scrollX || 0;
+  const scrollY = window.scrollY || window.pageYOffset || 0;
+  supportPageLock = {
+    scrollX,
+    scrollY,
+    body: {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      width: body.style.width,
+      overflow: body.style.overflow,
+    },
+    rootOverflow: root.style.overflow,
+  };
+  body.style.position = "fixed";
+  body.style.top = `${-scrollY}px`;
+  body.style.left = "0";
+  body.style.right = "0";
+  body.style.width = "100%";
+  body.style.overflow = "hidden";
+  root.style.overflow = "hidden";
+}
+
+function unlockPageBehindSupport() {
+  const saved = supportPageLock;
+  if (!saved || !document.body || !document.documentElement) return;
+  supportPageLock = null;
+  const body = document.body;
+  body.style.position = saved.body.position;
+  body.style.top = saved.body.top;
+  body.style.left = saved.body.left;
+  body.style.right = saved.body.right;
+  body.style.width = saved.body.width;
+  body.style.overflow = saved.body.overflow;
+  document.documentElement.style.overflow = saved.rootOverflow;
+  try { window.scrollTo({ left: saved.scrollX, top: saved.scrollY, behavior: "auto" }); }
+  catch { window.scrollTo(saved.scrollX, saved.scrollY); }
+}
+
+function focusMessageInput() {
+  if (!msgInput) return;
+  try {
+    msgInput.focus({ preventScroll: true });
+    return;
+  } catch {}
+  try { msgInput.focus(); } catch {}
+}
 
 // ---------- Emoji UI ----------
 const EMOJIS = [
@@ -440,7 +503,7 @@ function renderEmojiPopover(){
       const e = btn.getAttribute("data-emoji") || "";
       insertAtCursor(msgInput, e);
       closeEmojiPopover();
-      msgInput?.focus();
+      focusMessageInput();
     });
   });
 }
@@ -468,6 +531,7 @@ function insertAtCursor(input, text){
   input.value = v.slice(0, start) + text + v.slice(end);
   const p = start + text.length;
   try{ input.setSelectionRange(p, p); }catch{}
+  input.dispatchEvent(new Event("input", { bubbles:true }));
 }
 
 // Close emoji popover on outside click
@@ -647,15 +711,144 @@ function markRoomSeen(type, roomId){
 }
 
 let recentCache = [];
+let lastSupportUsersSignature = "";
+let lastSupportUnreadSignature = "";
 
 // ===== STEP 6.2 STABLE SUPPORT UI HELPERS START =====
 let lastSupportListSignature = "";
+let renderedSupportRoomKey = "";
 let loadUsersTimer = null;
 let seenFlushTimer = null;
-let supportBottomLockUntil = 0;
-let supportBottomSettleToken = 0;
-let supportResizeFrame = 0;
-let supportListResizeObserver = null;
+const pendingOptimisticRows = new Map();
+
+function createSupportScrollController(list, options = {}) {
+  const threshold = Math.max(4, Number(options.threshold) || 24);
+  const requestFrame = options.requestFrame || ((callback) => requestAnimationFrame(callback));
+  const cancelFrame = options.cancelFrame || ((id) => cancelAnimationFrame(id));
+  let userPinnedToBottom = true;
+  let pendingFrame = 0;
+  let pendingPolicy = null;
+
+  function distanceFromBottom() {
+    if (!list) return 0;
+    return Math.max(0, list.scrollHeight - list.clientHeight - list.scrollTop);
+  }
+
+  function refreshPinnedState() {
+    userPinnedToBottom = distanceFromBottom() <= threshold;
+    return userPinnedToBottom;
+  }
+
+  function rows() {
+    return Array.from(list?.querySelectorAll?.(".support-msg[data-support-msg-key]") || []);
+  }
+
+  function captureAnchor() {
+    if (!list) return null;
+    const listRect = list.getBoundingClientRect?.();
+    if (!listRect) return { scrollTop: list.scrollTop, candidates: [] };
+    const candidates = rows()
+      .filter((row) => row.getBoundingClientRect().bottom > listRect.top + 1)
+      .slice(0, 12)
+      .map((row) => ({
+        key: String(row.dataset.supportMsgKey || ""),
+        offset: row.getBoundingClientRect().top - listRect.top,
+      }))
+      .filter((entry) => entry.key);
+    return { scrollTop: list.scrollTop, candidates };
+  }
+
+  function findRowByKey(key) {
+    return rows().find((row) => String(row.dataset.supportMsgKey || "") === key) || null;
+  }
+
+  function writeScrollTop(value) {
+    if (!list) return;
+    const max = Math.max(0, list.scrollHeight - list.clientHeight);
+    list.scrollTop = Math.max(0, Math.min(max, Number(value) || 0));
+  }
+
+  function restoreAnchor(anchor) {
+    if (!list || !anchor) return;
+    const listRect = list.getBoundingClientRect?.();
+    if (listRect) {
+      for (const candidate of anchor.candidates || []) {
+        const row = findRowByKey(candidate.key);
+        if (!row) continue;
+        const nextOffset = row.getBoundingClientRect().top - listRect.top;
+        writeScrollTop(list.scrollTop + (nextOffset - candidate.offset));
+        return;
+      }
+    }
+    writeScrollTop(anchor.scrollTop);
+  }
+
+  function flushPendingPolicy() {
+    pendingFrame = 0;
+    const policy = pendingPolicy;
+    pendingPolicy = null;
+    if (!policy || !list) return;
+    if (policy.stickToBottom) writeScrollTop(list.scrollHeight);
+    else restoreAnchor(policy.anchor);
+    refreshPinnedState();
+  }
+
+  function mergePolicy(policy) {
+    if (!pendingPolicy) pendingPolicy = policy;
+    else if (policy.stickToBottom) pendingPolicy.stickToBottom = true;
+  }
+
+  function requestPolicyFrame() {
+    if (pendingFrame) return;
+    pendingFrame = requestFrame(flushPendingPolicy);
+  }
+
+  function mutate(mutator, { stickToBottom = false } = {}) {
+    const shouldStick = !!stickToBottom || userPinnedToBottom;
+    mergePolicy({
+      stickToBottom: shouldStick,
+      anchor: shouldStick ? null : captureAnchor(),
+    });
+    const result = mutator?.();
+    requestPolicyFrame();
+    return result;
+  }
+
+  function scrollToBottomOnce() {
+    mergePolicy({ stickToBottom: true, anchor: null });
+    requestPolicyFrame();
+  }
+
+  function dispose() {
+    if (pendingFrame) cancelFrame(pendingFrame);
+    pendingFrame = 0;
+    pendingPolicy = null;
+    list?.removeEventListener?.("scroll", refreshPinnedState);
+  }
+
+  list?.addEventListener?.("scroll", refreshPinnedState, { passive: true });
+  return {
+    mutate,
+    scrollToBottomOnce,
+    distanceFromBottom,
+    isPinnedToBottom: () => userPinnedToBottom,
+    refreshPinnedState,
+    dispose,
+  };
+}
+
+const supportScroll = createSupportScrollController(messagesList, { threshold: 24 });
+
+function notifySupportDomChanged(scope) {
+  try {
+    window.dispatchEvent(new CustomEvent("sr:support-dom-changed", { detail: { scope } }));
+    if (scope === "users") window.dispatchEvent(new CustomEvent("sr:support-users-updated"));
+  } catch {}
+}
+
+function activeSupportRoomKey() {
+  return `${String(activeRoom.type || "public")}:${String(activeRoom.room_id || "public")}`;
+}
 
 function supportMessageDomId(row) {
   const r = normalizeSupportRow(row || {});
@@ -671,6 +864,11 @@ function supportMessageFallbackKey(row) {
   ].join("|");
 }
 
+function supportMessageKey(row) {
+  const id = supportMessageDomId(row);
+  return id ? `id:${id}` : `fallback:${supportMessageFallbackKey(row)}`;
+}
+
 function supportRowSignature(row) {
   const r = normalizeSupportRow(row || {});
   return [
@@ -680,7 +878,6 @@ function supportRowSignature(row) {
     String(r.room_type || ""),
     String(r.room_id || ""),
     String(r.created_at || ""),
-    supportInteractionSignature(r.id),
   ].join("¦");
 }
 
@@ -712,118 +909,103 @@ function isSupportChatOpen() {
 }
 
 function supportDistanceFromBottom() {
-  if (!messagesList) return 0;
-  return Math.max(0, messagesList.scrollHeight - messagesList.clientHeight - messagesList.scrollTop);
+  return supportScroll.distanceFromBottom();
 }
 
-function isNearSupportBottom(px = 140) {
+function isNearSupportBottom(px = 24) {
   return supportDistanceFromBottom() <= px;
 }
 
-function writeSupportScrollTop(value) {
-  if (!messagesList) return;
-  try {
-    const max = Math.max(0, messagesList.scrollHeight - messagesList.clientHeight);
-    messagesList.scrollTop = Math.max(0, Math.min(max, Number(value) || 0));
-  } catch {}
+function createSupportMessageElement(row) {
+  const template = document.createElement("template");
+  template.innerHTML = renderSupportMessageRow(row).trim();
+  const element = template.content.firstElementChild;
+  if (element) {
+    element.dataset.supportRowSignature = supportRowSignature(row);
+    element.dataset.supportInteractionSignature = supportInteractionSignature(row?.id);
+  }
+  return element;
 }
 
-function smartSupportScroll(force = false) {
-  if (!messagesList) return;
-  if (!force && !isNearSupportBottom()) return;
-  const go = () => writeSupportScrollTop(messagesList.scrollHeight);
-  go();
-  requestAnimationFrame(go);
-}
-
-function cancelSupportBottomLock() {
-  supportBottomLockUntil = 0;
-  supportBottomSettleToken += 1;
-}
-
-function settleSupportAtBottom(duration = 850) {
-  if (!messagesList || !isSupportChatOpen()) return;
-  const token = ++supportBottomSettleToken;
-  supportBottomLockUntil = Date.now() + Math.max(250, Number(duration) || 850);
-  const checkpoints = [0, 24, 72, 150, 300, 520, Math.max(700, duration)];
-  checkpoints.forEach((delay) => {
-    setTimeout(() => {
-      if (token !== supportBottomSettleToken) return;
-      if (!isSupportChatOpen() || Date.now() > supportBottomLockUntil + 80) return;
-      smartSupportScroll(true);
-    }, delay);
-  });
-}
-
-function captureSupportScrollState() {
-  if (!messagesList) return null;
-  const listRect = messagesList.getBoundingClientRect?.();
-  let anchorId = "";
-  let anchorOffset = 0;
-  if (listRect) {
-    const rows = Array.from(messagesList.querySelectorAll(".support-msg[data-support-msg-id]"));
-    const anchor = rows.find((row) => row.getBoundingClientRect().bottom > listRect.top + 1);
-    if (anchor) {
-      anchorId = String(anchor.dataset.supportMsgId || "");
-      anchorOffset = anchor.getBoundingClientRect().top - listRect.top;
+function rowsWithPendingOptimistic(rows) {
+  const merged = [];
+  const seen = new Set();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const key = supportMessageKey(row);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(row);
+  }
+  for (const row of pendingOptimisticRows.values()) {
+    const key = supportMessageKey(row);
+    if (isRowInActiveRoom(row) && !seen.has(key)) {
+      seen.add(key);
+      merged.push(row);
     }
   }
-  return {
-    nearBottom: isNearSupportBottom(),
-    distanceFromBottom: supportDistanceFromBottom(),
-    anchorId,
-    anchorOffset,
-  };
-}
-
-function restoreSupportScrollState(state, forceBottom = false) {
-  if (!messagesList) return;
-  if (forceBottom || state?.nearBottom || Date.now() < supportBottomLockUntil) {
-    smartSupportScroll(true);
-    return;
-  }
-  requestAnimationFrame(() => {
-    if (!messagesList || !state) return;
-    if (state.anchorId) {
-      const anchor = Array.from(messagesList.querySelectorAll(".support-msg[data-support-msg-id]"))
-        .find((row) => String(row.dataset.supportMsgId || "") === state.anchorId);
-      const listRect = messagesList.getBoundingClientRect?.();
-      if (anchor && listRect) {
-        const nextOffset = anchor.getBoundingClientRect().top - listRect.top;
-        writeSupportScrollTop(messagesList.scrollTop + (nextOffset - state.anchorOffset));
-        return;
-      }
-    }
-    const max = Math.max(0, messagesList.scrollHeight - messagesList.clientHeight);
-    writeSupportScrollTop(max - state.distanceFromBottom);
-  });
-}
-
-function keepSupportScrollStable(mutator, opts = {}) {
-  if (!messagesList) {
-    mutator?.();
-    return;
-  }
-  const state = captureSupportScrollState();
-  mutator?.();
-  restoreSupportScrollState(state, !!opts.forceBottom);
+  return sortSupportRowsChronologically(merged);
 }
 
 function renderStableMessageList(rows, opts = {}) {
-  const orderedRows = sortSupportRowsChronologically(rows);
-  visibleMessageRows = orderedRows;
+  const orderedRows = rowsWithPendingOptimistic(rows);
   const signature = supportListSignature(orderedRows);
-  if (signature === lastSupportListSignature) {
-    bindDeleteButtons();
-    if (opts.forceBottom) settleSupportAtBottom(650);
+  const roomKey = activeSupportRoomKey();
+  const initialBottom = !!opts.initialBottom;
+  const requestedBottom = initialBottom || !!opts.stickToBottom;
+  if (signature === lastSupportListSignature && roomKey === renderedSupportRoomKey) {
+    visibleMessageRows = orderedRows;
+    if (initialBottom) supportScroll.scrollToBottomOnce();
     return false;
   }
-  keepSupportScrollStable(() => {
-    messagesList.innerHTML = orderedRows.map(renderSupportMessageRow).join("");
+
+  const previousKeys = new Set(
+    Array.from(messagesList.querySelectorAll(".support-msg[data-support-msg-key]"))
+      .map((element) => String(element.dataset.supportMsgKey || ""))
+  );
+  const ownNewMessage = orderedRows.some((row) => {
+    const senderId = String(row.sender_id || row.user_id || "");
+    return senderId === USER_ID && !previousKeys.has(supportMessageKey(row));
+  });
+
+  supportScroll.mutate(() => {
+    const existing = new Map(
+      Array.from(messagesList.querySelectorAll(".support-msg[data-support-msg-key]"))
+        .map((element) => [String(element.dataset.supportMsgKey || ""), element])
+    );
+    const desired = [];
+
+    for (const row of orderedRows) {
+      const key = supportMessageKey(row);
+      const rowSignature = supportRowSignature(row);
+      let element = existing.get(key) || null;
+      if (element && element.dataset.supportRowSignature !== rowSignature) {
+        const replacement = createSupportMessageElement(row);
+        if (replacement) {
+          element.replaceWith(replacement);
+          element = replacement;
+        }
+      }
+      if (!element) element = createSupportMessageElement(row);
+      if (!element) continue;
+      desired.push(element);
+      existing.delete(key);
+    }
+
+    messagesList.querySelectorAll(":scope > :not(.support-msg)").forEach((element) => element.remove());
+    let cursor = messagesList.firstElementChild;
+    for (const element of desired) {
+      if (element === cursor) cursor = cursor.nextElementSibling;
+      else messagesList.insertBefore(element, cursor || null);
+    }
+    existing.forEach((element) => element.remove());
+
+    visibleMessageRows = orderedRows;
     lastSupportListSignature = signature;
-  }, { forceBottom: !!opts.forceBottom });
+    renderedSupportRoomKey = roomKey;
+    notifySupportDomChanged("messages");
+  }, { stickToBottom: requestedBottom || ownNewMessage });
+
   bindDeleteButtons();
-  if (opts.forceBottom) settleSupportAtBottom(850);
   return true;
 }
 
@@ -872,9 +1054,6 @@ function dropRecentMessageById(id) {
   if (recentCache.length !== before) updateBadgesFromRecentCache();
 }
 
-function forceSupportMessagesBottom() {
-  smartSupportScroll(true);
-}
 // ===== STEP 6.2 STABLE SUPPORT UI HELPERS END =====
 
 function setFabBadge(el, count){
@@ -922,6 +1101,18 @@ function computeUnread(recentRows){
   return { publicCount, dmByOther, dmTotal, total: publicCount + dmTotal };
 }
 
+function notifyIfSupportUnreadChanged() {
+  const signature = Array.from(usersList?.querySelectorAll?.(".support-user") || [])
+    .map((row) => {
+      const badge = row.querySelector(".support-user-unread");
+      return `${row.getAttribute("data-user-id") || ""}:${badge?.textContent || ""}:${badge?.classList.contains("is-on") ? 1 : 0}`;
+    })
+    .join("|");
+  if (signature === lastSupportUnreadSignature) return;
+  lastSupportUnreadSignature = signature;
+  notifySupportDomChanged("users");
+}
+
 function updateBadgesFromRecentCache() {
   const { total, dmByOther, dmTotal } = computeUnread(recentCache);
 
@@ -941,6 +1132,7 @@ function updateBadgesFromRecentCache() {
       badge.classList.remove("is-on");
     });
 
+    notifyIfSupportUnreadChanged();
     return;
   }
 
@@ -977,6 +1169,7 @@ function updateBadgesFromRecentCache() {
       badge.classList.remove("is-on");
     }
   });
+  notifyIfSupportUnreadChanged();
 }
 
 function roomKeyForDm(otherUserId) {
@@ -1001,6 +1194,43 @@ function setRoomDm(other) {
   chatBackBtn.style.display = "inline-flex";
   markRoomSeen("dm", activeRoom.room_id);
   scheduleSeenFlush();
+}
+
+function renderSupportUsers(items) {
+  const normalized = Array.isArray(items) ? items : [];
+  const signature = normalized
+    .map((user) => `${String(user.sender_id || "")}¦${String(user.sender_name || "")}`)
+    .join("\n");
+
+  if (signature !== lastSupportUsersSignature) {
+    usersList.innerHTML = normalized
+      .map((user) => {
+        const isMe = user.sender_id === USER_ID;
+        const color = colorForUserId(user.sender_id);
+        return `
+          <button class="support-user ${isMe ? "me" : ""}" data-user-id="${escapeHtml(user.sender_id)}" type="button" style="--u:${escapeHtml(color)}">
+            <span class="support-user-dot" aria-hidden="true"></span>
+            <span class="support-user-name">${escapeHtml(user.sender_name || "User")}</span>
+            <span class="support-presence-badge is-unknown">Unknown</span>
+            ${isMe ? '<span class="support-user-badge">You</span>' : '<span class="support-user-unread" aria-hidden="true"></span>'}
+          </button>
+        `;
+      })
+      .join("");
+    lastSupportUsersSignature = signature;
+
+    usersList.querySelectorAll("button.support-user").forEach((button) => {
+      button.addEventListener("click", () => {
+        const userId = button.getAttribute("data-user-id");
+        if (!userId || userId === USER_ID) return;
+        const name = button.querySelector(".support-user-name")?.textContent || "User";
+        setRoomDm({ user_id: userId, sender_name: name });
+        refreshRoom({ initialBottom: true });
+      });
+    });
+    notifySupportDomChanged("users");
+  }
+  updateBadgesFromRecentCache();
 }
 
 // ---------- Data loading ----------
@@ -1049,31 +1279,7 @@ async function loadUsers() {
         const items = Array.from(map.entries()).map(([sender_id, sender_name]) => ({ sender_id, sender_name }));
         items.sort((x, y) => (x.sender_name || "").localeCompare(y.sender_name || ""));
 
-        usersList.innerHTML = items
-          .map((u) => {
-            const isMe = u.sender_id === USER_ID;
-            const col = colorForUserId(u.sender_id);
-            return `
-              <button class="support-user ${isMe ? "me" : ""}" data-user-id="${escapeHtml(u.sender_id)}" type="button" style="--u:${escapeHtml(col)}">
-                <span class="support-user-dot" aria-hidden="true"></span>
-                <span class="support-user-name">${escapeHtml(u.sender_name || "User")}</span>
-                ${isMe ? '<span class="support-user-badge">You</span>' : '<span class="support-user-unread" aria-hidden="true"></span>'}
-              </button>
-            `;
-          })
-          .join("");
-
-        updateBadgesFromRecentCache();
-
-        usersList.querySelectorAll("button.support-user").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const uid = btn.getAttribute("data-user-id");
-            if (!uid || uid === USER_ID) return;
-            const name = btn.querySelector(".support-user-name")?.textContent || "User";
-            setRoomDm({ user_id: uid, sender_name: name });
-            refreshRoom();
-          });
-        });
+        renderSupportUsers(items);
         return;
       }
     } catch (e) {
@@ -1092,31 +1298,7 @@ async function loadUsers() {
   const items = Array.from(seen.entries()).map(([sender_id, sender_name]) => ({ sender_id, sender_name }));
   items.sort((x, y) => (x.sender_name || "").localeCompare(y.sender_name || ""));
 
-  usersList.innerHTML = items
-    .map((u) => {
-      const isMe = u.sender_id === USER_ID;
-      const col = colorForUserId(u.sender_id);
-      return `
-        <button class="support-user ${isMe ? "me" : ""}" data-user-id="${escapeHtml(u.sender_id)}" type="button" style="--u:${escapeHtml(col)}">
-          <span class="support-user-dot" aria-hidden="true"></span>
-          <span class="support-user-name">${escapeHtml(u.sender_name || "User")}</span>
-          ${isMe ? '<span class="support-user-badge">You</span>' : '<span class="support-user-unread" aria-hidden="true"></span>'}
-        </button>
-      `;
-    })
-    .join("");
-
-  updateBadgesFromRecentCache();
-
-  usersList.querySelectorAll("button.support-user").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const uid = btn.getAttribute("data-user-id");
-      if (!uid || uid === USER_ID) return;
-      const name = btn.querySelector(".support-user-name")?.textContent || "User";
-      setRoomDm({ user_id: uid, sender_name: name });
-      refreshRoom();
-    });
-  });
+  renderSupportUsers(items);
 }
 
 function isExplicitDmRow(m) {
@@ -1145,11 +1327,13 @@ function renderSupportMessageRow(m) {
   const mine = senderId === USER_ID;
   const bundle = colorBundleForUserId(senderId || row.sender_name || "");
   const safeId = row.id == null ? "" : escapeHtml(String(row.id));
+  const safeKey = escapeHtml(supportMessageKey(row));
   return `
-      <div class="support-msg ${mine ? "mine" : ""}" data-support-msg-id="${safeId}" data-sender-id="${escapeHtml(senderId)}" tabindex="0" style="--u:${escapeHtml(bundle.accent)};--ubg:${escapeHtml(bundle.bg)};--uborder:${escapeHtml(bundle.border)}">
+      <div class="support-msg ${mine ? "mine" : ""}" data-support-msg-id="${safeId}" data-support-msg-key="${safeKey}" data-sender-id="${escapeHtml(senderId)}" tabindex="0" style="--u:${escapeHtml(bundle.accent)};--ubg:${escapeHtml(bundle.bg)};--uborder:${escapeHtml(bundle.border)}">
         <div class="support-msg-meta">
           <span class="support-msg-dot" aria-hidden="true"></span>
           <span class="support-msg-name">${escapeHtml(row.sender_name || "User")}</span>
+          <span class="support-presence-badge is-unknown">Unknown</span>
           <span class="support-msg-time">${escapeHtml(fmtTime(row.created_at))}</span>
           ${mine && safeId && !String(safeId).startsWith("local-") ? `<button class="support-del-btn" data-id="${safeId}" title="Delete">🗑️</button>` : ""}
         </div>
@@ -1167,28 +1351,46 @@ function findSupportMessageElById(id) {
 
 function removeSupportMessageById(id, opts = {}) {
   const el = findSupportMessageElById(id);
+  pendingOptimisticRows.delete(String(id || ""));
   if (!el || !el.parentNode) {
+    visibleMessageRows = visibleMessageRows.filter((row) => supportMessageDomId(row) !== String(id || ""));
+    lastSupportListSignature = supportListSignature(visibleMessageRows);
     dropRecentMessageById(id);
     return;
   }
-  keepSupportScrollStable(() => {
+  supportScroll.mutate(() => {
     el.parentNode.removeChild(el);
-    lastSupportListSignature = "";
+    visibleMessageRows = visibleMessageRows.filter((row) => supportMessageDomId(row) !== String(id || ""));
+    lastSupportListSignature = supportListSignature(visibleMessageRows);
+    renderedSupportRoomKey = activeSupportRoomKey();
     dropRecentMessageById(id);
-  }, { forceBottom: !!opts.forceBottom });
+    notifySupportDomChanged("messages");
+  }, { stickToBottom: !!opts.forceBottom });
 }
 
 function replaceSupportMessageById(id, row, opts = {}) {
   const el = findSupportMessageElById(id);
   if (!el || !row) return false;
   const r = normalizeSupportRow(row);
-  const forceBottom = !!opts.forceBottom || String(r.sender_id || r.user_id || "") === USER_ID;
-  keepSupportScrollStable(() => {
-    el.outerHTML = renderSupportMessageRow(r);
-    lastSupportListSignature = "";
+  const replacement = createSupportMessageElement(r);
+  if (!replacement) return false;
+  supportScroll.mutate(() => {
+    el.replaceWith(replacement);
+    pendingOptimisticRows.delete(String(id || ""));
+    let replaced = false;
+    visibleMessageRows = visibleMessageRows.map((current) => {
+      if (supportMessageDomId(current) !== String(id || "")) return current;
+      replaced = true;
+      return r;
+    });
+    if (!replaced) visibleMessageRows.push(r);
+    visibleMessageRows = sortSupportRowsChronologically(visibleMessageRows);
+    lastSupportListSignature = supportListSignature(visibleMessageRows);
+    renderedSupportRoomKey = activeSupportRoomKey();
     dropRecentMessageById(id);
     recentCache = [r, ...recentCache.filter((x) => supportRowSignature(x) !== supportRowSignature(r))].slice(0, 500);
-  }, { forceBottom });
+    notifySupportDomChanged("messages");
+  }, { stickToBottom: !!opts.forceBottom });
   bindDeleteButtons();
   if (isSupportChatOpen() && isRowInActiveRoom(r)) markRoomSeenAt(activeRoom.type, activeRoom.room_id, r.created_at || new Date().toISOString());
   else updateBadgesFromRecentCache();
@@ -1203,14 +1405,12 @@ function appendSupportMessage(m, opts = {}) {
     replaceSupportMessageById(id, row, opts);
     return;
   }
-  const forceBottom = !!opts.forceBottom || String(row.sender_id || row.user_id || "") === USER_ID;
-  keepSupportScrollStable(() => {
-    messagesList.querySelectorAll(".srux-empty-state").forEach((e) => e.remove());
-    messagesList.insertAdjacentHTML("beforeend", renderSupportMessageRow(row));
-    lastSupportListSignature = "";
-    recentCache = [row, ...recentCache.filter((x) => supportRowSignature(x) !== supportRowSignature(row))].slice(0, 500);
-  }, { forceBottom });
-  bindDeleteButtons();
+  const nextRows = visibleMessageRows.filter((current) => supportMessageKey(current) !== supportMessageKey(row));
+  nextRows.push(row);
+  renderStableMessageList(nextRows, {
+    stickToBottom: !!opts.forceBottom || String(row.sender_id || row.user_id || "") === USER_ID,
+  });
+  recentCache = [row, ...recentCache.filter((x) => supportRowSignature(x) !== supportRowSignature(row))].slice(0, 500);
   if (isSupportChatOpen() && isRowInActiveRoom(row)) markRoomSeenAt(activeRoom.type, activeRoom.room_id, row.created_at || new Date().toISOString());
   else updateBadgesFromRecentCache();
 }
@@ -1277,7 +1477,7 @@ async function loadMessages(opts = {}) {
     return;
   }
   messagesLoadInFlight = true;
-  const forceBottom = !!opts.forceBottom;
+  const initialBottom = !!opts.initialBottom;
   const requestedRoom = {
     type:String(activeRoom.type || "public"),
     room_id:String(activeRoom.room_id || "public"),
@@ -1293,15 +1493,19 @@ async function loadMessages(opts = {}) {
       requestedRoom.room_id !== String(activeRoom.room_id || "public")
     ) return;
 
+    if (payload.interactionsAvailable) {
+      supportInteractionsAvailable = true;
+      mergeSupportInteractions(payload.interactions);
+    }
     const rows = payload.rows;
     let visibleRows = rows.filter((m) => activeRoom.type === "public" ? isPublicRoomRow(m) : isRowInActiveRoom(m));
     if (activeRoom.type === "public" && !visibleRows.length && rows.length) {
       visibleRows = rows.filter((m) => !isExplicitDmRow(m));
     }
 
-    renderStableMessageList(visibleRows, { forceBottom });
+    renderStableMessageList(visibleRows, { initialBottom });
     markActiveRoomSeenFromRows(visibleRows);
-    refreshSupportInteractions(visibleRows, forceBottom).catch(()=>{});
+    refreshSupportInteractions(visibleRows, initialBottom).catch(()=>{});
     scheduleSeenFlush();
   } catch (apiErr) {
     console.error(apiErr);
@@ -1310,7 +1514,7 @@ async function loadMessages(opts = {}) {
     messagesLoadInFlight = false;
     if(messagesReloadQueued){
       messagesReloadQueued = false;
-      setTimeout(() => loadMessages({ forceBottom:false }).catch(()=>{}), 0);
+      queueMicrotask(() => loadMessages().catch(()=>{}));
     }
   }
 }
@@ -1351,11 +1555,7 @@ async function deleteOwnMessage(messageId, triggerBtn){
     if(!res.ok) throw new Error(data?.error || "Delete failed");
 
     if (row) {
-      keepSupportScrollStable(() => {
-        if (row.parentNode) row.parentNode.removeChild(row);
-        lastSupportListSignature = "";
-        dropRecentMessageById(messageId);
-      }, { forceBottom: isNearSupportBottom() });
+      removeSupportMessageById(messageId);
     } else {
       dropRecentMessageById(messageId);
     }
@@ -1380,7 +1580,7 @@ async function deleteOwnMessage(messageId, triggerBtn){
     const msg = String(err?.message || "");
     if (/not found/i.test(msg)) {
       setStatus("This message was already removed.", "info");
-      removeSupportMessageById(messageId, { forceBottom: isNearSupportBottom() });
+      removeSupportMessageById(messageId);
       scheduleSeenFlush();
       queueLoadUsers(200);
       return;
@@ -1459,8 +1659,28 @@ function optimisticallyToggleSupportReaction(messageId, reaction){
 }
 
 function refreshRenderedSupportInteractions(){
-  lastSupportListSignature = "";
-  renderStableMessageList(visibleMessageRows, { forceBottom:false });
+  const changes = [];
+  for (const row of visibleMessageRows) {
+    const element = findSupportMessageElById(row?.id);
+    if (!element) continue;
+    const signature = supportInteractionSignature(row?.id);
+    if (element.dataset.supportInteractionSignature === signature) continue;
+    changes.push({ row, element, signature });
+  }
+  if (!changes.length) return;
+
+  supportScroll.mutate(() => {
+    for (const change of changes) {
+      const current = change.element.querySelector(":scope > .support-msg-interactions");
+      const template = document.createElement("template");
+      template.innerHTML = renderSupportMessageInteractions(change.row).trim();
+      const next = template.content.firstElementChild;
+      if (current && next) current.replaceWith(next);
+      else if (current) current.remove();
+      else if (next) change.element.appendChild(next);
+      change.element.dataset.supportInteractionSignature = change.signature;
+    }
+  });
 }
 
 async function toggleSupportReaction(messageId, reaction){
@@ -1545,7 +1765,7 @@ function subscribeRoom() {
   // by the signed session identity.
   sub = setInterval(() => {
     if(!isSupportChatOpen()) return;
-    loadMessages({ forceBottom:false }).catch(()=>{});
+    loadMessages().catch(()=>{});
   }, 2200);
 }
 
@@ -1557,11 +1777,11 @@ function subscribeBackground(){
   }, 6000);
 }
 
-async function refreshRoom() {
+async function refreshRoom(opts = {}) {
   setStatus("");
   await Promise.allSettled([
     loadUsers(),
-    loadMessages({ forceBottom:true }),
+    loadMessages({ initialBottom: !!opts.initialBottom }),
   ]);
   scheduleSeenFlush();
   subscribeRoom();
@@ -1624,6 +1844,7 @@ async function sendMessage() {
 
   // Show the message inside the user's Support window immediately. This fixes
   // delayed/disabled realtime and old tables where the latest rows were not being loaded.
+  pendingOptimisticRows.set(localId, localRow);
   appendSupportMessage(localRow, { forceBottom: true });
   markRoomSeen(activeRoom.type, activeRoom.room_id);
   scheduleSeenFlush();
@@ -1664,11 +1885,15 @@ async function sendMessage() {
   if(attachInput) attachInput.value = "";
 
   const inserted = Array.isArray(insertedRows) && insertedRows[0] ? normalizeSupportRow(insertedRows[0]) : null;
-  if (inserted) replaceSupportMessageById(localId, inserted, { forceBottom: true });
+  if (inserted) replaceSupportMessageById(localId, inserted);
+  else {
+    pendingOptimisticRows.delete(localId);
+    loadMessages().catch(()=>{});
+  }
   setStatus("");
   scheduleSeenFlush();
   queueLoadUsers(160);
-  try { msgInput?.focus(); } catch {}
+  focusMessageInput();
 }
 
 // ---------- UI wiring ----------
@@ -1690,7 +1915,7 @@ async function openSupport() {
   upsertProfileName(name).catch(()=>{});
 
   show(chatOverlay);
-  settleSupportAtBottom(1100);
+  lockPageBehindSupport();
   if(messagesList && !messagesList.querySelector(".support-msg")){
     messagesList.innerHTML = '<div class="support-loading-state">Loading messages…</div>';
     lastSupportListSignature = "__loading__";
@@ -1699,15 +1924,14 @@ async function openSupport() {
     usersList.innerHTML = '<div class="support-loading-state">Loading people…</div>';
   }
   setRoomPublic();
-  await refreshRoom();
-  settleSupportAtBottom(900);
+  await refreshRoom({ initialBottom: true });
   scheduleSeenFlush();
 }
 
 function closeAll() {
-  cancelSupportBottomLock();
   hide(nameOverlay);
   hide(chatOverlay);
+  unlockPageBehindSupport();
   setStatus("");
 }
 
@@ -1728,7 +1952,7 @@ chatCloseBtn?.addEventListener("click", closeAll);
 
 chatBackBtn?.addEventListener("click", () => {
   setRoomPublic();
-  refreshRoom();
+  refreshRoom({ initialBottom: true });
 });
 
 // Close on overlay click
@@ -1746,9 +1970,12 @@ document.addEventListener("keydown", (e) => {
 });
 
 sendBtn?.addEventListener("click", sendMessage);
+let supportInputComposing = false;
+msgInput?.addEventListener("compositionstart", () => { supportInputComposing = true; });
+msgInput?.addEventListener("compositionend", () => { supportInputComposing = false; });
 msgInput?.addEventListener("keydown", (e) => {
   // Textarea UX: Enter sends, Shift+Enter inserts newline
-  if (e.key === "Enter" && !e.shiftKey) {
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing && !supportInputComposing) {
     e.preventDefault();
     sendMessage();
   }
@@ -1780,22 +2007,6 @@ window.addEventListener("storage", (e) => {
 });
 
 // ===== STEP 6.2 SUPPORT SEEN FLUSH EVENTS START =====
-if (messagesList && typeof ResizeObserver === "function") {
-  supportListResizeObserver = new ResizeObserver(() => {
-    if (!isSupportChatOpen()) return;
-    if (Date.now() >= supportBottomLockUntil && !isNearSupportBottom(6)) return;
-    if (supportResizeFrame) cancelAnimationFrame(supportResizeFrame);
-    supportResizeFrame = requestAnimationFrame(() => {
-      supportResizeFrame = 0;
-      smartSupportScroll(true);
-    });
-  });
-  supportListResizeObserver.observe(messagesList);
-}
-
-messagesList?.addEventListener("wheel", cancelSupportBottomLock, { passive: true });
-messagesList?.addEventListener("touchstart", cancelSupportBottomLock, { passive: true });
-
 messagesList?.addEventListener("scroll", () => {
   if (isNearSupportBottom(80)) scheduleSeenFlush();
   scheduleVisibleSupportReadScan();
@@ -1808,6 +2019,7 @@ chatOverlay?.addEventListener("pointerdown", () => {
 window.addEventListener("focus", () => {
   if (isSupportChatOpen()) scheduleSeenFlush();
 });
+window.addEventListener("pagehide", unlockPageBehindSupport);
 // ===== STEP 6.2 SUPPORT SEEN FLUSH EVENTS END =====
 
 // Initial status cleanup

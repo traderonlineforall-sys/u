@@ -1,0 +1,9 @@
+public/index.html - Bumped Support UX/loader cache versions so browsers request the refactored assets.
+public/non-critical-loader.js - Updated cache versions for the Presence owner/consumers, Support chat, and fixed layout CSS.
+public/online-users-count.js - Made this the only sr_tool_online Presence owner and header-counter consumer, with per-tab keys, confirmed tracking, reconnect states, and cleanup.
+public/presence-snapshot.js - Added the shared pure snapshot normalizer that deduplicates Presence metas by user_id.
+public/support-chat.js - Replaced competing scroll mechanisms with one anchored controller, keyed DOM reconciliation, localized optimistic/reaction/delete updates, IME-safe input, preventScroll focus, and page-scroll locking.
+public/support-presence-visual.js - Converted Support presence visuals into a consumer of the shared sr:presence-changed snapshot; removed its Realtime channel and DOM observer.
+public/support-suggestions-final-upgrade.css - Defined one fixed Support composer size, viewport fallbacks/dvh handling, stable status height, and unknown Presence styling.
+public/support-suggestions-pro-ux.js - Made Support online stats and row titles use the shared Presence snapshot instead of counting is-online DOM rows.
+tests/support-presence-scroll.test.cjs - Added Presence owner/dedupe/reconnect and Support scroll-anchor/invariant acceptance coverage.
