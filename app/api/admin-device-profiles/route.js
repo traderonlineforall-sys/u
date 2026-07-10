@@ -77,6 +77,21 @@ export async function POST(req){
     else return j({ error: String(err?.message || err || "Could not load device confidence data.") }, { status:500 });
   }
 
+  let trustedDevices = [];
+  let trustedDevicesAvailable = true;
+  try{
+    const resTrusted = await supabase
+      .from("support_device_identities")
+      .select("device_id,user_id,created_at,last_seen_at,revoked_at")
+      .order("last_seen_at", { ascending:false })
+      .limit(3000);
+    if(resTrusted.error) throw resTrusted.error;
+    trustedDevices = Array.isArray(resTrusted.data) ? resTrusted.data : [];
+  }catch(err){
+    if(isMissingTableOrColumn(err) || /support_device_identities/i.test(String(err?.message || ""))) trustedDevicesAvailable = false;
+    else return j({ error:String(err?.message || err || "Could not load trusted devices.") }, { status:500 });
+  }
+
   const byUser = new Map();
   for(const d of devices){
     const uid = String(d.user_id || "");
@@ -96,6 +111,17 @@ export async function POST(req){
     byUser.set(uid, cur);
   }
 
+  for(const d of trustedDevices){
+    const uid = String(d.user_id || "");
+    if(!uid) continue;
+    const cur = byUser.get(uid) || { active:0, revoked:0, best_confidence:0, last_seen_at:"", match_count:0, device_short:"", summary:null };
+    cur.trusted_active = Number(cur.trusted_active || 0) + (d.revoked_at ? 0 : 1);
+    cur.trusted_revoked = Number(cur.trusted_revoked || 0) + (d.revoked_at ? 1 : 0);
+    if(!cur.last_seen_at || String(d.last_seen_at || "") > cur.last_seen_at) cur.last_seen_at = d.last_seen_at || cur.last_seen_at;
+    if(!cur.device_short && !d.revoked_at) cur.device_short = String(d.device_id || "").slice(0, 12);
+    byUser.set(uid, cur);
+  }
+
   const rows = users.map((u)=>{
     const uid = String(u.user_id || "");
     const dev = byUser.get(uid) || { active:0, revoked:0, best_confidence:0, last_seen_at:"", match_count:0, device_short:"", summary:null };
@@ -109,5 +135,5 @@ export async function POST(req){
     };
   });
 
-  return j({ ok:true, rows, devices_available:devicesAvailable });
+  return j({ ok:true, rows, devices_available:devicesAvailable, trusted_devices_available:trustedDevicesAvailable });
 }

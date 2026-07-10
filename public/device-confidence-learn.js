@@ -1,13 +1,31 @@
 (function(){
   "use strict";
 
-  var LEARN_KEY = "sr_device_confidence_learned_v47";
+  var LEARN_KEY = "sr_trusted_device_identity_learned_v1";
   var ID_KEY = "sr_tool_user_id";
   var NAME_KEY = "sr_tool_user_name";
+  var DEVICE_SECRET_KEY = "sr_tool_device_instance_secret_v1";
   var LEARN_EVERY_MS = 1000 * 60 * 60 * 24 * 30;
 
   function localGet(k){ try { return localStorage.getItem(k) || ""; } catch { return ""; } }
   function localSet(k, v){ try { localStorage.setItem(k, v); } catch {} }
+  function createDeviceSecret(){
+    try{
+      var a=crypto.randomUUID?crypto.randomUUID():Math.random().toString(16).slice(2);
+      var bytes=new Uint8Array(24); crypto.getRandomValues(bytes);
+      return "dev_"+a+"_"+Array.from(bytes).map(function(x){return x.toString(16).padStart(2,"0");}).join("");
+    }catch{
+      return "dev_"+Date.now().toString(16)+"_"+Math.random().toString(16).slice(2)+Math.random().toString(16).slice(2);
+    }
+  }
+  function getStableDeviceSecret(){
+    var v=localGet(DEVICE_SECRET_KEY);
+    if(!/^dev_[a-zA-Z0-9_.:-]{20,}$/.test(v)){
+      v=createDeviceSecret();
+      localSet(DEVICE_SECRET_KEY,v);
+    }
+    return v;
+  }
   function cookieGet(name){
     try{
       var prefix = name + "=";
@@ -57,16 +75,16 @@
     var plugins=""; try{ plugins=Array.from(nav.plugins||[]).map(function(p){return p.name+":"+p.filename+":"+p.description;}).slice(0,50).join("|"); }catch{}
     var colorScheme=""; try{ colorScheme=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"; }catch{}
     var reducedMotion=""; try{ reducedMotion=matchMedia("(prefers-reduced-motion: reduce)").matches?"reduce":"no-preference"; }catch{}
-    return Promise.all([getCanvasHash(),getAudioHash(),getFontsHash(),getWebglInfo(),hashText(plugins),getClientHints(),getStorageInfo(),getKeyboardInfo(),getCapabilitiesInfo(),Promise.resolve(getNetworkInfo()),getBatteryInfo(),getMediaDevicesInfo()]).then(function(all){ return {
-      userAgent:nav.userAgent||"", language:nav.language||"", languages:Array.isArray(nav.languages)?nav.languages.slice(0,12):[], platform:nav.platform||"", vendor:nav.vendor||"", hardwareConcurrency:nav.hardwareConcurrency||"", deviceMemory:nav.deviceMemory||"", maxTouchPoints:nav.maxTouchPoints||"", cookieEnabled:nav.cookieEnabled, webdriver:!!nav.webdriver, doNotTrack:nav.doNotTrack||window.doNotTrack||"", timezone:tz, timezoneOffset:new Date().getTimezoneOffset(), colorScheme:colorScheme, reducedMotion:reducedMotion, intl:getIntlInfo(), screen:{ width:scr.width||"", height:scr.height||"", availWidth:scr.availWidth||"", availHeight:scr.availHeight||"", colorDepth:scr.colorDepth||"", pixelDepth:scr.pixelDepth||"", devicePixelRatio:window.devicePixelRatio||"", orientation:scr.orientation&&scr.orientation.type||"" }, viewport:{ innerWidth:window.innerWidth||"", innerHeight:window.innerHeight||"", outerWidth:window.outerWidth||"", outerHeight:window.outerHeight||"", clientWidth:document.documentElement&&document.documentElement.clientWidth||"", clientHeight:document.documentElement&&document.documentElement.clientHeight||"", visualWidth:vv.width||"", visualHeight:vv.height||"", visualScale:vv.scale||"" }, webgl:all[3]||{}, clientHints:all[5]||{}, mediaFeatures:getMediaFeatures(), storage:all[6]||{}, keyboard:all[7]||{}, capabilities:all[8]||{}, network:all[9]||{}, battery:all[10]||{}, mediaDevices:all[11]||{}, canvasHash:all[0]||"", audioHash:all[1]||"", fontsHash:all[2]||"", pluginsHash:all[4]||"" } });
+    return Promise.all([getCanvasHash(),getAudioHash(),getFontsHash(),getWebglInfo(),hashText(plugins),getClientHints(),getStorageInfo(),getKeyboardInfo(),getCapabilitiesInfo(),Promise.resolve(getNetworkInfo()),getBatteryInfo(),getMediaDevicesInfo(),hashText(getStableDeviceSecret())]).then(function(all){ return {
+      userAgent:nav.userAgent||"", language:nav.language||"", languages:Array.isArray(nav.languages)?nav.languages.slice(0,12):[], platform:nav.platform||"", vendor:nav.vendor||"", hardwareConcurrency:nav.hardwareConcurrency||"", deviceMemory:nav.deviceMemory||"", maxTouchPoints:nav.maxTouchPoints||"", cookieEnabled:nav.cookieEnabled, webdriver:!!nav.webdriver, doNotTrack:nav.doNotTrack||window.doNotTrack||"", timezone:tz, timezoneOffset:new Date().getTimezoneOffset(), colorScheme:colorScheme, reducedMotion:reducedMotion, intl:getIntlInfo(), screen:{ width:scr.width||"", height:scr.height||"", availWidth:scr.availWidth||"", availHeight:scr.availHeight||"", colorDepth:scr.colorDepth||"", pixelDepth:scr.pixelDepth||"", devicePixelRatio:window.devicePixelRatio||"", orientation:scr.orientation&&scr.orientation.type||"" }, viewport:{ innerWidth:window.innerWidth||"", innerHeight:window.innerHeight||"", outerWidth:window.outerWidth||"", outerHeight:window.outerHeight||"", clientWidth:document.documentElement&&document.documentElement.clientWidth||"", clientHeight:document.documentElement&&document.documentElement.clientHeight||"", visualWidth:vv.width||"", visualHeight:vv.height||"", visualScale:vv.scale||"" }, webgl:all[3]||{}, clientHints:all[5]||{}, mediaFeatures:getMediaFeatures(), storage:all[6]||{}, keyboard:all[7]||{}, capabilities:all[8]||{}, network:all[9]||{}, battery:all[10]||{}, mediaDevices:all[11]||{}, canvasHash:all[0]||"", audioHash:all[1]||"", fontsHash:all[2]||"", pluginsHash:all[4]||"", deviceInstanceHash:all[12]||"" } });
   }
   function maybeLearn(){
     if(shouldSkipPage()) return;
     var uid=localGet(ID_KEY)||cookieGet(ID_KEY); var name=cleanName(localGet(NAME_KEY)||cookieGet(NAME_KEY)); if(!uid||!name) return;
     var now=Date.now(), prior={}; try{ prior=JSON.parse(localGet(LEARN_KEY)||"{}"); }catch{}
-    var sig=uid+"|"+name+"|v47";
+    var sig=uid+"|"+name+"|trusted-v1";
     if(prior&&prior.sig===sig&&Number(prior.ts||0)&&(now-Number(prior.ts||0))<LEARN_EVERY_MS) return;
-    collectDeviceFingerprint().then(function(device_fingerprint){ return fetch("/api/device-confidence-learn",{ method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify({ device_fingerprint:device_fingerprint }) }); }).then(function(res){ if(res&&res.ok) localSet(LEARN_KEY, JSON.stringify({ sig:sig, ts:now })); }).catch(function(){});
+    collectDeviceFingerprint().then(function(device_fingerprint){ return fetch("/api/device-confidence-learn",{ method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify({ device_fingerprint:device_fingerprint }) }); }).then(function(res){ return res.json().catch(function(){return {};}).then(function(data){ if(res&&res.ok&&data&&data.trusted_device) localSet(LEARN_KEY, JSON.stringify({ sig:sig, ts:now })); }); }).catch(function(){});
   }
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", function(){ setTimeout(maybeLearn,900); }); else setTimeout(maybeLearn,900);
 })();

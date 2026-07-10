@@ -63,7 +63,7 @@ export async function POST(req){
 
   const body = await req.json().catch(()=> ({}));
   const action = String(body?.action || "list").trim();
-  const userId = normalizeUserId(body?.user_id);
+  const userId = normalizeUserId(sess.payload?.uid);
   const supabase = getServiceSupabase();
 
   try {
