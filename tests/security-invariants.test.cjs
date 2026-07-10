@@ -30,14 +30,23 @@ test("private support reads enforce room membership", () => {
   assert.match(src, /rows\.filter\(\(row\).*canAccessDm/s);
 });
 
-test("login uses exact trusted device identity and disables manual fuzzy choice", () => {
+test("login keeps exact trusted identity primary and protects smart nickname choice", () => {
   const login = read("app/api/login/route.js");
   const identity = read("lib/server/device-identity.js");
+  const recovery = read("lib/server/device-recovery.js");
   assert.match(login, /resolveTrustedDeviceIdentity/);
   assert.match(login, /registerTrustedDeviceIdentity/);
-  assert.doesNotMatch(login, /verifyDeviceNicknameChoice/);
+  assert.match(login, /verifyDeviceNicknameChoice/);
+  assert.match(login, /verifyDeviceRecoveryTicket/);
+  assert.match(login, /skip_smart_recovery/);
+  assert.match(login, /SMART_IDENTITY_MODE/);
+  assert.match(login, /recoveryMode !== "exact"/);
   assert.match(identity, /device_key_hash/);
   assert.match(identity, /timingSafeEqual/);
+  assert.match(recovery, /role:"device_recovery_choice"/);
+  assert.match(recovery, /recovery_binding_hash/);
+  assert.match(recovery, /RECOVERY_TICKET_MAX_AGE_MS/);
+  assert.doesNotMatch(login, /finalUserId\s*=\s*incomingUserId\s*;/);
 });
 
 test("database upgrade leaves no anonymous support message read policy", () => {
@@ -50,7 +59,38 @@ test("database upgrade leaves no anonymous support message read policy", () => {
 test("device confidence forwards browser-local instance into trusted key hashing", () => {
   const src = read("lib/server/device-confidence.js");
   assert.match(src, /const deviceInstance = sig\.deviceInstanceHash/);
-  assert.match(src, /return \{[^}]*deviceInstance[^}]*all \};/s);
+  assert.match(src, /deviceInstance[^;]+all,/s);
   assert.match(src, /device_key_hash:\s*parts\.deviceInstance\s*\?/);
 });
 
+
+
+test("smart recovery uses strict thresholds, grouped evidence and ambiguity checks", () => {
+  const src = read("lib/server/device-confidence.js");
+  assert.match(src, /DEVICE_AUTO_RECOVERY_THRESHOLD = 94/);
+  assert.match(src, /DEVICE_MANUAL_RECOVERY_THRESHOLD = 78/);
+  assert.match(src, /DEVICE_AMBIGUITY_GAP = 12/);
+  assert.match(src, /DEVICE_AUTO_TRUSTED_MATCH_COUNT = 3/);
+  assert.match(src, /DEVICE_AUTO_SINGLE_OBSERVATION_THRESHOLD = 97/);
+  assert.match(src, /hasTrustedSingleHistory/);
+  assert.match(src, /stable_contradictions/);
+  assert.match(src, /aggregateByUser/);
+  assert.match(src, /hardware_profile_hash/);
+  assert.match(src, /rendering_profile_hash/);
+  assert.match(src, /recovery_binding_hash/);
+});
+
+test("login UI never sends a suggested user id directly", () => {
+  const page = read("app/login/page.js");
+  assert.match(page, /recovery_choice_id/);
+  assert.match(page, /recovery_ticket/);
+  assert.match(page, /ولا واحدة منهم/);
+  assert.doesNotMatch(page, /selected_user_id/);
+});
+
+test("smart identity SQL adds only server-side hashed profile columns", () => {
+  const sql = read("SUPABASE_SMART_DEVICE_IDENTITY_V2.sql");
+  assert.match(sql, /hardware_profile_hash/);
+  assert.match(sql, /browser_family_hash/);
+  assert.doesNotMatch(sql, /mac_address|serial_number|machine_guid/i);
+});

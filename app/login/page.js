@@ -6,6 +6,7 @@ const ID_KEY = "sr_tool_user_id";
 const NAME_KEY = "sr_tool_user_name";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 5;
 const DEVICE_SECRET_KEY = "sr_tool_device_instance_secret_v1";
+let memoryDeviceSecret = "";
 
 function safeLocalGet(key){ try { return localStorage.getItem(key) || ""; } catch { return ""; } }
 function safeLocalSet(key, value){ try { localStorage.setItem(key, value); } catch {} }
@@ -44,10 +45,16 @@ function createDeviceSecret(){
 function getStableDeviceSecret(){
   let v = "";
   try { v = localStorage.getItem(DEVICE_SECRET_KEY) || ""; } catch {}
+  if(!v){
+    try { v = sessionStorage.getItem(DEVICE_SECRET_KEY) || ""; } catch {}
+  }
+  if(!v) v = memoryDeviceSecret;
   if(!/^dev_[a-zA-Z0-9_.:-]{20,}$/.test(String(v || ""))){
     v = createDeviceSecret();
-    try { localStorage.setItem(DEVICE_SECRET_KEY, v); } catch {}
   }
+  memoryDeviceSecret = v;
+  try { localStorage.setItem(DEVICE_SECRET_KEY, v); } catch {}
+  try { sessionStorage.setItem(DEVICE_SECRET_KEY, v); } catch {}
   return v;
 }
 function getStableUserId(){
@@ -451,6 +458,10 @@ export default function LoginPage() {
   const [agreed, setAgreed] = useState(false);
   const [agreeHint, setAgreeHint] = useState("");
   const [nicknamePromptReason, setNicknamePromptReason] = useState("");
+  const [recoverySuggestions, setRecoverySuggestions] = useState([]);
+  const [recoveryTicket, setRecoveryTicket] = useState("");
+  const [selectedRecoveryChoice, setSelectedRecoveryChoice] = useState("");
+  const [skipSmartRecovery, setSkipSmartRecovery] = useState(false);
 
   useEffect(() => {
     const uid = getStableUserId();
@@ -467,7 +478,13 @@ export default function LoginPage() {
 
   const nickErr = useMemo(() => (nicknameRequired && cleanNickname(nickname)) ? nicknameError(nickname) : "", [nickname, nicknameRequired]);
   const hasNicknameChoice = cleanNickname(nickname);
-  const canSubmit = useMemo(() => username.trim() && password && (!nicknameRequired || (!!hasNicknameChoice && !nickErr)), [username, password, nicknameRequired, hasNicknameChoice, nickErr]);
+  const hasRecoveryChoices = recoverySuggestions.length > 0 && !!recoveryTicket;
+  const canSubmit = useMemo(() => (
+    username.trim()
+    && password
+    && (!nicknameRequired || (!!hasNicknameChoice && !nickErr))
+    && (!hasRecoveryChoices || !!selectedRecoveryChoice)
+  ), [username, password, nicknameRequired, hasNicknameChoice, nickErr, hasRecoveryChoices, selectedRecoveryChoice]);
   const canProceed = useMemo(() => canSubmit && agreed, [canSubmit, agreed]);
 
   async function onSubmit(e) {
@@ -481,6 +498,10 @@ export default function LoginPage() {
     }
     if (nicknameRequired && cleanNickname(nickname) && nickErr) {
       setErr(nickErr);
+      return;
+    }
+    if (hasRecoveryChoices && !selectedRecoveryChoice) {
+      setErr("اختر كنيتك من النتائج المقترحة أو اضغط «ولا واحدة منهم».");
       return;
     }
 
@@ -499,17 +520,33 @@ export default function LoginPage() {
           user_id: uid,
           nickname: chosenNickname,
           nickname_from_storage: !!(!nicknameRequired && storedNickname),
+          recovery_ticket: recoveryTicket,
+          recovery_choice_id: selectedRecoveryChoice,
+          skip_smart_recovery: skipSmartRecovery,
           device_fingerprint,
         }),
       });
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        if (data?.nickname_selection_required && Array.isArray(data?.nickname_suggestions)) {
+          setRecoverySuggestions(data.nickname_suggestions.slice(0, 3));
+          setRecoveryTicket(String(data.recovery_ticket || ""));
+          setSelectedRecoveryChoice("");
+          setSkipSmartRecovery(false);
+          setNicknameRequired(false);
+          setNicknamePromptReason("");
+          setErr("");
+          return;
+        }
         if (data?.nickname_required) {
+          setRecoverySuggestions([]);
+          setRecoveryTicket("");
+          setSelectedRecoveryChoice("");
           setNicknameRequired(true);
           setNicknamePromptReason(data?.nickname_taken
             ? "الكنية دي مرتبطة بجهاز موثوق آخر. اختار كنية مختلفة أو اطلب من الأدمن Reset."
-            : "هذه أول مرة لهذا الجهاز أو قام الأدمن بطلب إعادة اختيار الكنية. اكتب كنية خيالية فقط.");
+            : "لم نجد تطابقًا آمنًا لهذا الجهاز. اكتب كنية خيالية جديدة فقط.");
           if(!data?.nickname_taken) setNickname("");
           setStoredNicknameState("");
           try { localStorage.removeItem(NAME_KEY); } catch {}
@@ -568,7 +605,58 @@ export default function LoginPage() {
             />
           </label>
 
-          {nicknameRequired ? (
+          {hasRecoveryChoices ? (
+            <div style={styles.nicknameBox} dir="rtl">
+              <div style={styles.suggestionsTitle}>وجدنا أكثر من كنية محتملة لهذا الجهاز</div>
+              <div style={styles.nicknameHint}>
+                اختر كنيتك فقط. النسب للمساعدة وليست دليلًا منفردًا، وسيعيد السيرفر التحقق قبل الدخول.
+              </div>
+              <div style={styles.suggestionsBox}>
+                {recoverySuggestions.map((item) => {
+                  const active = selectedRecoveryChoice === item.choice_id;
+                  return (
+                    <button
+                      key={item.choice_id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedRecoveryChoice(item.choice_id);
+                        setErr("");
+                      }}
+                      style={{
+                        ...styles.suggestionBtn,
+                        ...(active ? styles.suggestionBtnActive : null),
+                      }}
+                    >
+                      <span>{item.display_name}</span>
+                      <span style={styles.confidenceBadge}>توافق {Number(item.confidence || 0)}%</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                type="button"
+                style={styles.noneOfTheseBtn}
+                onClick={() => {
+                  setRecoverySuggestions([]);
+                  setRecoveryTicket("");
+                  setSelectedRecoveryChoice("");
+                  setSkipSmartRecovery(true);
+                  setNicknameRequired(true);
+                  setNickname("");
+                  setStoredNicknameState("");
+                  setNicknamePromptReason("لم تكن أي كنية مقترحة تخصك. اكتب كنية خيالية جديدة لهذا الجهاز.");
+                  setErr("");
+                  try { localStorage.removeItem(NAME_KEY); } catch {}
+                  try { document.cookie = `${NAME_KEY}=; path=/; max-age=0; samesite=lax`; } catch {}
+                }}
+              >
+                ولا واحدة منهم — تسجيل جهاز جديد
+              </button>
+              <div style={styles.suggestionsHint}>
+                لن يتم ربط الكنية المختارة إلا إذا ظلت درجة التطابق الآمنة كافية عند التحقق الثاني.
+              </div>
+            </div>
+          ) : nicknameRequired ? (
             <div style={styles.nicknameBox} dir="rtl">
               <label style={styles.nicknameLabel}>
                 كنيتك داخل التول <span style={styles.required}>*</span>
@@ -610,7 +698,7 @@ export default function LoginPage() {
               ...((!canProceed || busy) ? styles.btnDisabled : null),
               ...(busy ? styles.btnBusy : null),
             }}>
-            {busy ? "Signing in…" : "Sign in"}
+            {busy ? "Signing in…" : (hasRecoveryChoices ? "تأكيد الكنية والدخول" : "Sign in")}
           </button>
 
           <div style={styles.consentBox} dir="rtl">
@@ -726,6 +814,25 @@ const styles = {
   suggestionBtnActive: {
     border: "1px solid rgba(34,197,94,0.6)",
     background: "rgba(34,197,94,0.20)",
+  },
+  confidenceBadge: {
+    minWidth: 46,
+    textAlign: "center",
+    borderRadius: 999,
+    padding: "4px 8px",
+    background: "rgba(15,23,42,0.55)",
+    border: "1px solid rgba(255,255,255,0.13)",
+    fontSize: 12,
+  },
+  noneOfTheseBtn: {
+    width: "100%",
+    borderRadius: 12,
+    border: "1px dashed rgba(255,255,255,0.22)",
+    background: "rgba(0,0,0,0.16)",
+    color: "white",
+    padding: "10px 12px",
+    cursor: "pointer",
+    fontWeight: 700,
   },
   suggestionsHint: { fontSize: 12, lineHeight: 1.5, opacity: 0.78 },
   required: { color: "#fca5a5" },
