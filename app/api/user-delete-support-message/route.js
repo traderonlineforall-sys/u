@@ -14,13 +14,13 @@ export async function POST(req){
 
   const body = await req.json().catch(()=> ({}));
   const id = Number(body?.id);
-  const user_id = String(sess.payload?.uid || "").trim();
+  const user_id = String(body?.user_id || "").trim();
 
   if(!Number.isFinite(id) || id <= 0) {
     return j({ error: "Missing or invalid message id." }, { status: 400 });
   }
   if(!user_id) {
-    return j({ error: "Missing authenticated user identity." }, { status: 401 });
+    return j({ error: "Missing user id." }, { status: 400 });
   }
 
   try {

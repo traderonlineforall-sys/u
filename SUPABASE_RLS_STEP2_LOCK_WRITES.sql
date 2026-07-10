@@ -85,14 +85,13 @@ begin
   end if;
 end $$;
 
--- Support messages: all reads and writes go through authenticated server APIs.
+-- Support messages: browser reads/realtime stay public for current UI; inserts now go through /api/support-message.
 do $$
 begin
   if to_regclass('public.support_messages') is not null then
     execute 'alter table public.support_messages enable row level security';
     execute 'drop policy if exists "sr read support_messages" on public.support_messages';
-    execute 'drop policy if exists "Allow public read support_messages" on public.support_messages';
-    execute 'drop policy if exists "support_messages_select" on public.support_messages';
+    execute 'create policy "sr read support_messages" on public.support_messages for select to anon, authenticated using (true)';
     execute 'drop policy if exists "sr insert support_messages legacy" on public.support_messages';
     execute 'drop policy if exists "sr update support_messages legacy" on public.support_messages';
     execute 'drop policy if exists "sr delete support_messages legacy" on public.support_messages';

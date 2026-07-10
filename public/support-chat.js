@@ -183,12 +183,7 @@ function redirectToNicknameLogin() {
 
 // ---------- Helpers ----------
 function escapeHtml(s = "") {
-  return String(s == null ? "" : s)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
+  return String(s == null ? "" : s).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
 // Convert URLs in plain text to safe clickable links.
@@ -772,8 +767,27 @@ async function loadUsers() {
     recentRows = await fetchSupportMessagesApi({ mode: "recent", limit: "500" });
     recentCache = recentRows;
   } catch (apiErr) {
-    console.warn("authenticated support recent load failed", apiErr);
-    recentCache = [];
+    try {
+      const selects = [
+        "sender_id, sender_name, user_id, room_type, room_id, created_at",
+        "sender_id, sender_name, user_id, created_at",
+        "user_id, sender_name, created_at",
+        "user_id, name, created_at",
+      ];
+      for (const columns of selects) {
+        const res = await supabase
+          .from("support_messages")
+          .select(columns)
+          .order("created_at", { ascending: false })
+          .limit(500);
+        if (!res.error && Array.isArray(res.data)) {
+          recentRows = res.data.map(normalizeSupportRow);
+          recentCache = recentRows;
+          break;
+        }
+        if (!isMissingColumnError(res.error)) break;
+      }
+    } catch {}
   }
 
   // Preferred source: `support_users` profiles (allows admin to delete names)
@@ -983,9 +997,24 @@ async function loadMessages(opts = {}) {
       limit: "300",
     });
   } catch (apiErr) {
-    console.error(apiErr);
-    setStatus(`Could not load messages. Please contact ${ADMIN_NAME}.`, "error");
-    return;
+    let query = supabase
+      .from("support_messages")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(300);
+
+    if (activeRoom.type !== "public") {
+      query = query.eq("room_type", activeRoom.type).eq("room_id", activeRoom.room_id);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error(error);
+      setStatus(`Could not load messages. Please contact ${ADMIN_NAME}.`, "error");
+      return;
+    }
+    rows = (data || []).map(normalizeSupportRow).reverse();
   }
 
   let visibleRows = rows.filter((m) => activeRoom.type === "public" ? isPublicRoomRow(m) : isRowInActiveRoom(m));
@@ -1086,25 +1115,79 @@ function bindDeleteButtons(){
 
 function subscribeRoom() {
   if (sub) {
-    try { clearInterval(sub); } catch {}
+    try { supabase.removeChannel(sub); } catch {}
     sub = null;
   }
 
-  // Private support rows are no longer exposed through anonymous Supabase
-  // Realtime. Poll the authenticated API instead so every response is filtered
-  // by the signed session identity.
-  sub = setInterval(() => {
-    if(!isSupportChatOpen()) return;
-    loadMessages({ forceBottom:false }).catch(()=>{});
-  }, 4000);
+  sub = supabase
+    .channel(`support_changes`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "support_messages" }, (payload) => {
+      const eventType = String(payload?.eventType || "").toUpperCase();
+      const newRowRaw = payload?.new || {};
+      const oldRowRaw = payload?.old || {};
+
+      if (eventType === "DELETE") {
+        const oldRow = normalizeSupportRow(oldRowRaw);
+        const oldId = supportMessageDomId(oldRow);
+        if (oldId) dropRecentMessageById(oldId);
+        if (isRowInActiveRoom(oldRow) && oldId) {
+          removeSupportMessageById(oldId, { forceBottom: isNearSupportBottom() });
+        }
+        scheduleSeenFlush();
+        queueLoadUsers(220);
+        return;
+      }
+
+      const row = normalizeSupportRow(Object.keys(newRowRaw).length ? newRowRaw : oldRowRaw);
+      if (eventType === "INSERT" && row && Object.keys(row).length) {
+        recentCache = [row, ...recentCache.filter((r) => supportRowSignature(r) !== supportRowSignature(row))].slice(0, 500);
+      }
+
+      if (isRowInActiveRoom(row)) {
+        const id = supportMessageDomId(row);
+        if (id && findSupportMessageElById(id)) {
+          replaceSupportMessageById(id, row, { forceBottom: String(row.sender_id || row.user_id || "") === USER_ID });
+        } else {
+          appendSupportMessage(row, { forceBottom: String(row.sender_id || row.user_id || "") === USER_ID || isNearSupportBottom() });
+        }
+        markRoomSeenAt(activeRoom.type, activeRoom.room_id, row.created_at || new Date().toISOString());
+        scheduleSeenFlush();
+      } else {
+        updateBadgesFromRecentCache();
+      }
+      queueLoadUsers(220);
+    })
+    .subscribe();
 }
 
 // Background listener to keep unread badges updated even when the Support modal is closed.
 function subscribeBackground(){
   if(bgSub) return;
-  bgSub = setInterval(() => {
-    loadUsers().catch(()=>{});
-  }, 8000);
+  bgSub = supabase
+    .channel("support_unread")
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "support_messages" }, (payload)=>{
+      const row = normalizeSupportRow(payload?.new || {});
+      const isChatOpen = isSupportChatOpen();
+      const isActiveOpenRoom = isChatOpen && isRowInActiveRoom(row);
+
+      if(row && Object.keys(row).length){
+        recentCache = [row, ...recentCache.filter((r) => supportRowSignature(r) !== supportRowSignature(row))].slice(0, 500);
+      }
+
+      if(isActiveOpenRoom){
+        markRoomSeenAt(activeRoom.type, activeRoom.room_id, row.created_at || new Date().toISOString());
+        scheduleSeenFlush();
+      } else {
+        try {
+          const fromId = row?.sender_id || row?.user_id || "";
+          if(fromId && fromId !== USER_ID) playSoftNotification();
+        } catch {}
+        updateBadgesFromRecentCache();
+      }
+
+      if(isChatOpen) queueLoadUsers(260);
+    })
+    .subscribe();
 }
 
 async function refreshRoom() {

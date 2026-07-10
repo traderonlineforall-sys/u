@@ -3,7 +3,6 @@ import { enforceSameOrigin, requireUserSession, noStore } from "../../../lib/ser
 import { getServiceSupabase } from "../../../lib/server/admin.js";
 import { buildDeviceConfidence, recordDeviceNickname } from "../../../lib/server/device-confidence.js";
 import { cleanNickname, normalizeUserId, getNicknameProfile } from "../../../lib/server/nickname.js";
-import { makeTrustedDeviceToken, registerTrustedDeviceIdentity, setTrustedDeviceCookie } from "../../../lib/server/device-identity.js";
 
 export const runtime = "nodejs";
 
@@ -29,8 +28,8 @@ export async function POST(req){
   try{ body = await req.json(); }catch{}
 
   const payload = sess.payload || {};
-  let userId = normalizeUserId(payload.uid || "");
-  let displayName = cleanNickname(payload.name || "");
+  let userId = normalizeUserId(payload.uid || body.user_id || "");
+  let displayName = cleanNickname(payload.name || body.display_name || "");
 
   if(!userId){
     return j({ ok:false, error:"Missing authenticated user identity." }, { status:400 });
@@ -54,25 +53,10 @@ export async function POST(req){
     return j({ ok:true, learned:false, reason:"fingerprint_unavailable" });
   }
 
-  const trusted = await registerTrustedDeviceIdentity(supabase, userId, displayName, fp);
-  if(!trusted?.ok){
-    return j({ ok:false, error:trusted?.error || "Could not register trusted device." }, { status:trusted?.status || 500 });
-  }
-
   const saved = await recordDeviceNickname(supabase, userId, displayName, fp, 110);
   if(!saved?.ok){
     return j({ ok:false, error:saved?.error || "Could not learn device." }, { status:500 });
   }
 
-  const res = j({
-    ok:true,
-    learned:true,
-    trusted_device:!!trusted.device_id,
-    missing_table:!!(saved.missing_table || trusted.missing_table),
-    user_id:userId,
-    display_name:displayName,
-  });
-  if(!trusted.device_id) return res;
-  const token = await makeTrustedDeviceToken({ device_id:trusted.device_id, user_id:userId });
-  return setTrustedDeviceCookie(res, token);
+  return j({ ok:true, learned:true, missing_table:!!saved.missing_table, user_id:userId, display_name:displayName });
 }

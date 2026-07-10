@@ -62,14 +62,7 @@ function renderUrgentArabicVoiceOptions(selected=""){
 
 function show(el){ el.style.display = "flex"; }
 function hide(el){ el.style.display = "none"; }
-function escapeHtml(s=""){
-  return String(s)
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#39;");
-}
+function escapeHtml(s=""){ return s.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
 function fmtTime(ts){ try { return new Date(ts).toLocaleString(); } catch { return ""; } }
 function setAuthStatus(t, type="info"){ authStatus.textContent=t||""; authStatus.dataset.type=type; }
 function setAdminStatus(t, type="info"){ adminStatus.textContent=t||""; adminStatus.dataset.type=type; }
@@ -263,11 +256,13 @@ tabSuggestions.querySelectorAll("button[data-action='delete-block-suggestion']")
 }
 
 async function refreshSupport(){
-  let data = [];
-  try {
-    const out = await apiAdmin("/api/admin-support-messages", {});
-    data = Array.isArray(out?.rows) ? out.rows : [];
-  } catch (error) {
+  const { data, error } = await supabase
+    .from("support_messages")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(300);
+
+  if (error) {
     tabSupport.innerHTML = `<div class="admin-empty">Could not load chat messages. Please contact ${ADMIN_NAME}.</div>`;
     return;
   }
@@ -343,7 +338,6 @@ async function refreshSupport(){
           const conf = Number(dev.best_confidence || 0);
           const confLabel = conf ? `${conf}%` : "not learned yet";
           const activeDevices = Number(dev.active || 0);
-          const trustedDevices = Number(dev.trusted_active || 0);
           const lastSeen = dev.last_seen_at ? fmtTime(dev.last_seen_at) : "not seen yet";
           const details = [
             summary.platform || "",
@@ -365,7 +359,7 @@ async function refreshSupport(){
                   ${reset ? '<span style="margin-inline-start:8px;opacity:.8;">reset pending</span>' : ''}
                 </div>
                 <div class="admin-row-text" style="opacity:.82;font-size:12px;line-height:1.55;">
-                  Trusted identity: <b>${trustedDevices > 0 ? "Yes" : "No"}</b> • Trusted devices: ${escapeHtml(String(trustedDevices))} • Legacy confidence: ${escapeHtml(confLabel)} • Legacy devices: ${escapeHtml(String(activeDevices))} • Last seen: ${escapeHtml(lastSeen)}
+                  Device confidence: <b>${escapeHtml(confLabel)}</b> • Active devices: ${escapeHtml(String(activeDevices))} • Last seen: ${escapeHtml(lastSeen)}
                   ${dev.device_short ? ` • Signature: ${escapeHtml(dev.device_short)}` : ""}
                   ${details ? `<br>${escapeHtml(details)}` : ""}
                 </div>

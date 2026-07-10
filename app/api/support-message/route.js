@@ -150,14 +150,15 @@ export async function POST(req){
 
   const body = await req.json().catch(() => ({}));
   const payload = body?.payload && typeof body.payload === "object" ? body.payload : body;
-  const sender_id = normalizeUserId(sess.payload?.uid);
-  const user_id = sender_id;
+  const sender_id = normalizeUserId(payload?.sender_id || payload?.user_id);
+  const user_id = normalizeUserId(payload?.user_id || payload?.sender_id);
   const requested_sender_name = cleanNickname(payload?.sender_name || payload?.display_name || "");
   const message = cleanText(payload?.message, 5000);
   const room_type = normalizeRoomType(payload?.room_type);
   const room_id = normalizeRoomId(payload?.room_id, room_type, sender_id);
 
-  if(!sender_id) return j({ error: "Missing authenticated user identity." }, { status: 401 });
+  if(!sender_id || !user_id) return j({ error: "Missing sender id." }, { status: 400 });
+  if(sender_id !== user_id) return j({ error: "Sender mismatch." }, { status: 400 });
   if(!message) return j({ error: "Missing message." }, { status: 400 });
   if(!room_id) return j({ error: "Invalid room." }, { status: 400 });
 

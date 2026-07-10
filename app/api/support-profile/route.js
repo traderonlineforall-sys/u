@@ -15,10 +15,10 @@ export async function POST(req){
   if(!sess.ok) return j({ error: sess.error }, { status: sess.status || 401 });
 
   const body = await req.json().catch(() => ({}));
-  const user_id = normalizeUserId(sess.payload?.uid);
+  const user_id = normalizeUserId(body?.user_id || sess.payload?.uid);
   const requestedName = cleanNickname(body?.display_name || body?.nickname || "");
 
-  if(!user_id) return j({ error: "Missing authenticated user identity." }, { status: 401 });
+  if(!user_id) return j({ error: "Missing user id." }, { status: 400 });
 
   try {
     const supabase = getServiceSupabase();
