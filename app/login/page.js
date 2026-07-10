@@ -607,9 +607,9 @@ export default function LoginPage() {
 
           {hasRecoveryChoices ? (
             <div style={styles.nicknameBox} dir="rtl">
-              <div style={styles.suggestionsTitle}>وجدنا أكثر من كنية محتملة لهذا الجهاز</div>
+              <div style={styles.suggestionsTitle}>تعذر التعرف التلقائي بدرجة أمان كافية</div>
               <div style={styles.nicknameHint}>
-                اختر كنيتك فقط. النسب للمساعدة وليست دليلًا منفردًا، وسيعيد السيرفر التحقق قبل الدخول.
+                اختر كنيتك فقط من النتائج الأقرب. الرقم هو درجة تشابه من 100 وليس نسبة ضمان، وسيعيد السيرفر التحقق قبل الدخول.
               </div>
               <div style={styles.suggestionsBox}>
                 {recoverySuggestions.map((item) => {
@@ -628,7 +628,9 @@ export default function LoginPage() {
                       }}
                     >
                       <span>{item.display_name}</span>
-                      <span style={styles.confidenceBadge}>توافق {Number(item.confidence || 0)}%</span>
+                      <span style={styles.confidenceBadge}>
+                        {item.evidence_level === "strong" ? "قوي" : "مرجح"} · {Number(item.confidence || 0)}/100
+                      </span>
                     </button>
                   );
                 })}
@@ -678,7 +680,7 @@ export default function LoginPage() {
             </div>
           ) : (
             <div style={styles.nicknameRecovering} dir="rtl">
-              سيتم التعرف على جهازك الموثوق واستعادة كنيتك بالمفتاح الخاص به. لن يتم اختيار كنية بناءً على تشابه الـIP أو المتصفح.
+              سيحاول النظام أولًا مفتاح الجهاز الموثوق، ثم مطابقة ذكية متعددة الإشارات. لن يعتمد على الـIP وحده، ولن يختار كنية تلقائيًا عند وجود نتائج متقاربة.
             </div>
           )}
 

@@ -92,11 +92,6 @@ function clearFailures(request, username) {
   loginFailures.delete(failureKey(request, username));
 }
 
-function smartIdentityMode(){
-  const mode = String(process.env.SMART_IDENTITY_MODE || "smart").trim().toLowerCase();
-  return ["smart", "suggestions", "exact"].includes(mode) ? mode : "smart";
-}
-
 export async function POST(request) {
   const sameOrigin = enforceSameOrigin(request);
   if(!sameOrigin.ok){
@@ -125,7 +120,6 @@ export async function POST(request) {
   const recoveryTicket = String(body.recovery_ticket || "");
   const recoveryChoiceId = String(body.recovery_choice_id || "");
   const skipSmartRecovery = body.skip_smart_recovery === true;
-  const recoveryMode = smartIdentityMode();
   const deviceFingerprint = buildDeviceConfidence(request, body.device_fingerprint || {}, SESSION_SECRET);
 
   if(isLimited(request, username)){
@@ -185,7 +179,12 @@ export async function POST(request) {
         return noStore(NextResponse.json({ error:ticket.error }, { status:ticket.status || 409 }));
       }
 
-      const confirmed = await verifyDeviceNicknameChoice(supabase, deviceFingerprint, ticket.user_id);
+      const confirmed = await verifyDeviceNicknameChoice(
+        supabase,
+        deviceFingerprint,
+        ticket.user_id,
+        { minScore:ticket.minimum_score }
+      );
       if(!confirmed.ok){
         return noStore(NextResponse.json({ error:confirmed.error || "Could not verify the selected nickname." }, { status:500 }));
       }
@@ -208,13 +207,13 @@ export async function POST(request) {
     // 3) Strict automatic smart recovery. It aggregates historical observations
     // per user, normalizes evidence by browser capabilities, penalizes stable
     // contradictions and refuses close/ambiguous candidates.
-    if(!finalUserId && !recoveryTicket && !skipSmartRecovery && recoveryMode !== "exact"){
+    if(!finalUserId && !recoveryTicket && !skipSmartRecovery){
       const smart = await findDeviceNicknameMatch(supabase, deviceFingerprint);
       if(!smart.ok){
         return noStore(NextResponse.json({ error:smart.error || "Could not verify existing device." }, { status:500 }));
       }
 
-      if(smart.matched && recoveryMode === "smart"){
+      if(smart.matched){
         finalUserId = smart.user_id;
         displayName = smart.display_name;
         recoveredByDevice = true;
@@ -232,7 +231,7 @@ export async function POST(request) {
             nickname_selection_required:true,
             recovery_ticket:recovery.token,
             nickname_suggestions:recovery.choices,
-            recovery_reason:smart.reason || (recoveryMode === "suggestions" ? "manual_confirmation_mode" : "confirmation_required"),
+            recovery_reason:smart.reason || "confirmation_required",
           }, { status:409 }));
         }
       }

@@ -39,13 +39,12 @@ test("login keeps exact trusted identity primary and protects smart nickname cho
   assert.match(login, /verifyDeviceNicknameChoice/);
   assert.match(login, /verifyDeviceRecoveryTicket/);
   assert.match(login, /skip_smart_recovery/);
-  assert.match(login, /SMART_IDENTITY_MODE/);
-  assert.match(login, /recoveryMode !== "exact"/);
   assert.match(identity, /device_key_hash/);
   assert.match(identity, /timingSafeEqual/);
   assert.match(recovery, /role:"device_recovery_choice"/);
   assert.match(recovery, /recovery_binding_hash/);
   assert.match(recovery, /RECOVERY_TICKET_MAX_AGE_MS/);
+  assert.match(recovery, /minimum_score/);
   assert.doesNotMatch(login, /finalUserId\s*=\s*incomingUserId\s*;/);
 });
 
@@ -67,12 +66,12 @@ test("device confidence forwards browser-local instance into trusted key hashing
 
 test("smart recovery uses strict thresholds, grouped evidence and ambiguity checks", () => {
   const src = read("lib/server/device-confidence.js");
-  assert.match(src, /DEVICE_AUTO_RECOVERY_THRESHOLD = 94/);
-  assert.match(src, /DEVICE_MANUAL_RECOVERY_THRESHOLD = 78/);
-  assert.match(src, /DEVICE_AMBIGUITY_GAP = 12/);
-  assert.match(src, /DEVICE_AUTO_TRUSTED_MATCH_COUNT = 3/);
-  assert.match(src, /DEVICE_AUTO_SINGLE_OBSERVATION_THRESHOLD = 97/);
-  assert.match(src, /hasTrustedSingleHistory/);
+  assert.match(src, /DEVICE_AUTO_RECOVERY_THRESHOLD = 95/);
+  assert.match(src, /DEVICE_MANUAL_RECOVERY_THRESHOLD = 80/);
+  assert.match(src, /DEVICE_AMBIGUITY_GAP = 14/);
+  assert.match(src, /DEVICE_AUTO_MIN_EVIDENCE_WEIGHT = 64/);
+  assert.match(src, /DEVICE_MANUAL_MIN_EVIDENCE_WEIGHT = 52/);
+  assert.match(src, /DEVICE_AUTO_MAX_STABLE_CONTRADICTIONS = 0/);
   assert.match(src, /stable_contradictions/);
   assert.match(src, /aggregateByUser/);
   assert.match(src, /hardware_profile_hash/);
