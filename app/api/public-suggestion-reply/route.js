@@ -73,12 +73,12 @@ export async function POST(req){
   const body = await req.json().catch(() => ({}));
   const suggestion_id = normalizeId(body?.suggestion_id);
   const text = cleanText(body?.text, 1200);
-  const user_id = normalizeUserId(body?.user_id);
+  const user_id = normalizeUserId(sess.payload?.uid);
   const requestedName = cleanNickname(body?.name || body?.display_name || "");
 
   if(!suggestion_id) return j({ error: "Missing suggestion id." }, { status: 400 });
   if(!text) return j({ error: "Missing reply text." }, { status: 400 });
-  if(!user_id) return j({ error: "Missing user id." }, { status: 400 });
+  if(!user_id) return j({ error: "Missing authenticated user identity." }, { status: 401 });
 
   try {
     const supabase = getServiceSupabase();

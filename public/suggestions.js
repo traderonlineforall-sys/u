@@ -331,6 +331,7 @@ async function addSuggestion() {
   }
 
   elInput.value = "";
+  elInput.dispatchEvent(new Event("input", { bubbles:true }));
   setStatus("Added ✅", "success");
   // If realtime is not available for some reason, reload as fallback
   await loadSuggestions();
@@ -458,6 +459,7 @@ async function renderRepliesPanel(suggestionId, box, btn){
       }
       if(!apiRes.ok || !apiData?.ok) throw new Error(apiData?.error || "Could not post reply.");
       input.value = "";
+      input.dispatchEvent(new Event("input", { bubbles:true }));
       await renderRepliesPanel(suggestionId, box, btn);
     }catch(e){
       console.error(e);

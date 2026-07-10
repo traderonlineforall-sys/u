@@ -6,6 +6,7 @@ const ID_KEY = "sr_tool_user_id";
 const NAME_KEY = "sr_tool_user_name";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 5;
 const DEVICE_SECRET_KEY = "sr_tool_device_instance_secret_v1";
+let memoryDeviceSecret = "";
 
 function safeLocalGet(key){ try { return localStorage.getItem(key) || ""; } catch { return ""; } }
 function safeLocalSet(key, value){ try { localStorage.setItem(key, value); } catch {} }
@@ -44,10 +45,16 @@ function createDeviceSecret(){
 function getStableDeviceSecret(){
   let v = "";
   try { v = localStorage.getItem(DEVICE_SECRET_KEY) || ""; } catch {}
+  if(!v){
+    try { v = sessionStorage.getItem(DEVICE_SECRET_KEY) || ""; } catch {}
+  }
+  if(!v) v = memoryDeviceSecret;
   if(!/^dev_[a-zA-Z0-9_.:-]{20,}$/.test(String(v || ""))){
     v = createDeviceSecret();
-    try { localStorage.setItem(DEVICE_SECRET_KEY, v); } catch {}
   }
+  memoryDeviceSecret = v;
+  try { localStorage.setItem(DEVICE_SECRET_KEY, v); } catch {}
+  try { sessionStorage.setItem(DEVICE_SECRET_KEY, v); } catch {}
   return v;
 }
 function getStableUserId(){
@@ -73,35 +80,6 @@ function setStoredNickname(name){
   safeLocalSet(NAME_KEY, v);
   safeSessionSet(NAME_KEY, v);
   safeCookieSet(NAME_KEY, v);
-}
-
-function suggestionScore(item){
-  const n = Number(item?.score || 0);
-  return Number.isFinite(n) ? n : 0;
-}
-function rankedRecoverySuggestions(list){
-  return (Array.isArray(list) ? list : [])
-    .filter((x)=>x && x.user_id)
-    .map((x)=>({ ...x, score: suggestionScore(x) }))
-    .sort((a,b)=>b.score - a.score);
-}
-function isTopRecoverySuggestion(item, list){
-  const ranked = rankedRecoverySuggestions(list);
-  return !!item?.user_id && ranked[0]?.user_id === item.user_id;
-}
-function isFirstTwoRecoverySuggestion(item, list){
-  const ranked = rankedRecoverySuggestions(list).slice(0, 2);
-  return !!item?.user_id && ranked.some((x)=>x.user_id === item.user_id);
-}
-function canSelectRecoverySuggestion(item, list){
-  return isFirstTwoRecoverySuggestion(item, list) && !item?.is_online;
-}
-function recoverySuggestionText(item, list){
-  const score = Math.round(suggestionScore(item));
-  if(item?.is_online) return `${score}% تطابق - هذه الكنية نشطة الآن`;
-  if(!isFirstTwoRecoverySuggestion(item, list)) return `${score}% تطابق - خارج أول اختيارين`;
-  if(score >= 105) return `${score}% تطابق - كان يجب الدخول تلقائيًا`;
-  return `${score}% تطابق - يمكنك اختيارها`;
 }
 
 function nicknameError(value){
@@ -480,8 +458,10 @@ export default function LoginPage() {
   const [agreed, setAgreed] = useState(false);
   const [agreeHint, setAgreeHint] = useState("");
   const [nicknamePromptReason, setNicknamePromptReason] = useState("");
-  const [nicknameSuggestions, setNicknameSuggestions] = useState([]);
-  const [selectedRecoveryUserId, setSelectedRecoveryUserId] = useState("");
+  const [recoverySuggestions, setRecoverySuggestions] = useState([]);
+  const [recoveryTicket, setRecoveryTicket] = useState("");
+  const [selectedRecoveryChoice, setSelectedRecoveryChoice] = useState("");
+  const [skipSmartRecovery, setSkipSmartRecovery] = useState(false);
 
   useEffect(() => {
     const uid = getStableUserId();
@@ -491,14 +471,20 @@ export default function LoginPage() {
     setStoredNicknameState(nick);
     setNickname(nick || "");
     // لا نعرض خانة الكنية افتراضيًا.
-    // لو الجهاز متعلّم، السيرفر سيستعيد الكنية تلقائيًا حتى بعد Clear Cookies.
+    // لو الجهاز موثوق، السيرفر سيستعيد الكنية بالمفتاح العشوائي الدقيق.
     // لو السيرفر احتاج كنية فعلًا، سيرجع nickname_required ونظهر الخانة وقتها فقط.
     setNicknameRequired(forcedNickname);
   }, []);
 
   const nickErr = useMemo(() => (nicknameRequired && cleanNickname(nickname)) ? nicknameError(nickname) : "", [nickname, nicknameRequired]);
-  const hasNicknameChoice = selectedRecoveryUserId || cleanNickname(nickname);
-  const canSubmit = useMemo(() => username.trim() && password && (!nicknameRequired || (!!hasNicknameChoice && !nickErr)), [username, password, nicknameRequired, hasNicknameChoice, nickErr]);
+  const hasNicknameChoice = cleanNickname(nickname);
+  const hasRecoveryChoices = recoverySuggestions.length > 0 && !!recoveryTicket;
+  const canSubmit = useMemo(() => (
+    username.trim()
+    && password
+    && (!nicknameRequired || (!!hasNicknameChoice && !nickErr))
+    && (!hasRecoveryChoices || !!selectedRecoveryChoice)
+  ), [username, password, nicknameRequired, hasNicknameChoice, nickErr, hasRecoveryChoices, selectedRecoveryChoice]);
   const canProceed = useMemo(() => canSubmit && agreed, [canSubmit, agreed]);
 
   async function onSubmit(e) {
@@ -510,13 +496,17 @@ export default function LoginPage() {
       setAgreeHint("يرجى وضع علامة ✓ للموافقة قبل تسجيل الدخول.");
       return;
     }
-    if (nicknameRequired && !selectedRecoveryUserId && cleanNickname(nickname) && nickErr) {
+    if (nicknameRequired && cleanNickname(nickname) && nickErr) {
       setErr(nickErr);
+      return;
+    }
+    if (hasRecoveryChoices && !selectedRecoveryChoice) {
+      setErr("اختر كنيتك من النتائج المقترحة أو اضغط «ولا واحدة منهم».");
       return;
     }
 
     const uid = userId || getStableUserId();
-    const chosenNickname = selectedRecoveryUserId ? "" : cleanNickname(nicknameRequired ? nickname : (storedNickname || nickname));
+    const chosenNickname = cleanNickname(nicknameRequired ? nickname : (storedNickname || nickname));
 
     setBusy(true);
     try {
@@ -529,26 +519,34 @@ export default function LoginPage() {
           password,
           user_id: uid,
           nickname: chosenNickname,
-          recovery_user_id: selectedRecoveryUserId || "",
           nickname_from_storage: !!(!nicknameRequired && storedNickname),
+          recovery_ticket: recoveryTicket,
+          recovery_choice_id: selectedRecoveryChoice,
+          skip_smart_recovery: skipSmartRecovery,
           device_fingerprint,
         }),
       });
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        if (data?.nickname_selection_required && Array.isArray(data?.nickname_suggestions)) {
+          setRecoverySuggestions(data.nickname_suggestions.slice(0, 3));
+          setRecoveryTicket(String(data.recovery_ticket || ""));
+          setSelectedRecoveryChoice("");
+          setSkipSmartRecovery(false);
+          setNicknameRequired(false);
+          setNicknamePromptReason("");
+          setErr("");
+          return;
+        }
         if (data?.nickname_required) {
-          const suggestions = Array.isArray(data?.nickname_suggestions) ? data.nickname_suggestions.slice(0, 2) : [];
+          setRecoverySuggestions([]);
+          setRecoveryTicket("");
+          setSelectedRecoveryChoice("");
           setNicknameRequired(true);
-          setNicknameSuggestions(suggestions);
-          setSelectedRecoveryUserId("");
           setNicknamePromptReason(data?.nickname_taken
-            ? "الكنية دي مستخدمة بالفعل. اختار كنية مختلفة."
-            : suggestions.length
-              ? "الجهاز قريب من كنية محفوظة. اختار كنيتك من أول كنيتين ظاهرين أو اكتب كنية جديدة."
-              : data?.device_confidence?.best_score
-                ? `لم أجد ثقة كافية لاستعادة كنيتك تلقائيًا. اكتب كنية خيالية جديدة. أقرب تطابق: ${data.device_confidence.best_score}%`
-                : "هذه أول مرة لهذا الجهاز أو قام الأدمن بطلب إعادة اختيار الكنية. اكتب كنية خيالية فقط.");
+            ? "الكنية دي مرتبطة بجهاز موثوق آخر. اختار كنية مختلفة أو اطلب من الأدمن Reset."
+            : "لم نجد تطابقًا آمنًا لهذا الجهاز. اكتب كنية خيالية جديدة فقط.");
           if(!data?.nickname_taken) setNickname("");
           setStoredNicknameState("");
           try { localStorage.removeItem(NAME_KEY); } catch {}
@@ -607,16 +605,66 @@ export default function LoginPage() {
             />
           </label>
 
-          {nicknameRequired ? (
+          {hasRecoveryChoices ? (
+            <div style={styles.nicknameBox} dir="rtl">
+              <div style={styles.suggestionsTitle}>تعذر التعرف التلقائي بدرجة أمان كافية</div>
+              <div style={styles.nicknameHint}>
+                اختر كنيتك فقط من النتائج الأقرب. الرقم هو درجة تشابه من 100 وليس نسبة ضمان، وسيعيد السيرفر التحقق قبل الدخول.
+              </div>
+              <div style={styles.suggestionsBox}>
+                {recoverySuggestions.map((item) => {
+                  const active = selectedRecoveryChoice === item.choice_id;
+                  return (
+                    <button
+                      key={item.choice_id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedRecoveryChoice(item.choice_id);
+                        setErr("");
+                      }}
+                      style={{
+                        ...styles.suggestionBtn,
+                        ...(active ? styles.suggestionBtnActive : null),
+                      }}
+                    >
+                      <span>{item.display_name}</span>
+                      <span style={styles.confidenceBadge}>
+                        {item.evidence_level === "strong" ? "قوي" : "مرجح"} · {Number(item.confidence || 0)}/100
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                type="button"
+                style={styles.noneOfTheseBtn}
+                onClick={() => {
+                  setRecoverySuggestions([]);
+                  setRecoveryTicket("");
+                  setSelectedRecoveryChoice("");
+                  setSkipSmartRecovery(true);
+                  setNicknameRequired(true);
+                  setNickname("");
+                  setStoredNicknameState("");
+                  setNicknamePromptReason("لم تكن أي كنية مقترحة تخصك. اكتب كنية خيالية جديدة لهذا الجهاز.");
+                  setErr("");
+                  try { localStorage.removeItem(NAME_KEY); } catch {}
+                  try { document.cookie = `${NAME_KEY}=; path=/; max-age=0; samesite=lax`; } catch {}
+                }}
+              >
+                ولا واحدة منهم — تسجيل جهاز جديد
+              </button>
+              <div style={styles.suggestionsHint}>
+                لن يتم ربط الكنية المختارة إلا إذا ظلت درجة التطابق الآمنة كافية عند التحقق الثاني.
+              </div>
+            </div>
+          ) : nicknameRequired ? (
             <div style={styles.nicknameBox} dir="rtl">
               <label style={styles.nicknameLabel}>
                 كنيتك داخل التول <span style={styles.required}>*</span>
                 <input
                   value={nickname}
-                  onChange={(e) => {
-                    setNickname(e.target.value);
-                    setSelectedRecoveryUserId("");
-                  }}
+                  onChange={(e) => setNickname(e.target.value)}
                   autoComplete="off"
                   maxLength={40}
                   style={{ ...styles.input, ...styles.nicknameInput }}
@@ -624,43 +672,6 @@ export default function LoginPage() {
                 />
               </label>
               <div style={styles.nicknameHint}>{nicknamePromptReason || "اكتب كنية خيالية فقط ولا تكتب اسمك الحقيقي. لن تظهر هذه الخانة مرة أخرى إلا إذا كان الجهاز جديدًا أو قام الأدمن بعمل Reset nickname."}</div>
-              {nicknameSuggestions.length ? (
-                <div style={styles.suggestionsBox}>
-                  <div style={styles.suggestionsTitle}>هل دي كنيتك؟</div>
-                  {nicknameSuggestions.map((item) => (
-                    <button
-                      key={item.user_id}
-                      type="button"
-                      onClick={() => {
-                        if(item?.is_online){
-                          setSelectedRecoveryUserId("");
-                          setErr("الكنية دي نشطة/أونلاين الآن. لحماية المستخدمين لا تختارها. اكتب كنية جديدة أو اطلب من الأدمن المساعدة.");
-                          return;
-                        }
-                        if(!canSelectRecoverySuggestion(item, nicknameSuggestions)){
-                          setSelectedRecoveryUserId("");
-                          setErr("اختار كنيتك من أول كنيتين ظاهرين في التطابق فقط، أو اكتب كنية جديدة.");
-                          return;
-                        }
-                        setSelectedRecoveryUserId(item.user_id);
-                        setNickname("");
-                        setErr("");
-                      }}
-                      style={{
-                        ...styles.suggestionBtn,
-                        ...(selectedRecoveryUserId === item.user_id ? styles.suggestionBtnActive : null),
-                        opacity: canSelectRecoverySuggestion(item, nicknameSuggestions) ? 1 : 0.66,
-                        cursor: canSelectRecoverySuggestion(item, nicknameSuggestions) ? "pointer" : "not-allowed",
-                      }}
-                    >
-                      <span>{item.display_name}</span>
-                      <small>{recoverySuggestionText(item, nicknameSuggestions)}</small>
-                    </button>
-                  ))}
-                  <div style={styles.suggestionsHint}>لو التطابق أقل من 105% تقدر تختار كنيتك من أول كنيتين ظاهرين فقط. لو التطابق 105% أو أعلى الدخول يتم تلقائيًا بدون اختيار كنية.</div>
-                </div>
-              ) : null}
-              {selectedRecoveryUserId ? <div style={styles.nicknameHint}>تم اختيار كنية من المقترحات. اضغط Sign in للمتابعة.</div> : null}
               {nickErr ? <div style={styles.nickError}>{nickErr}</div> : null}
             </div>
           ) : storedNickname ? (
@@ -669,7 +680,7 @@ export default function LoginPage() {
             </div>
           ) : (
             <div style={styles.nicknameRecovering} dir="rtl">
-              سيتم استعادة كنيتك تلقائيًا من الجهاز إن كانت مسجلة. لن نطلب كنية جديدة إلا عند الحاجة.
+              سيحاول النظام أولًا مفتاح الجهاز الموثوق، ثم مطابقة ذكية متعددة الإشارات. لن يعتمد على الـIP وحده، ولن يختار كنية تلقائيًا عند وجود نتائج متقاربة.
             </div>
           )}
 
@@ -689,7 +700,7 @@ export default function LoginPage() {
               ...((!canProceed || busy) ? styles.btnDisabled : null),
               ...(busy ? styles.btnBusy : null),
             }}>
-            {busy ? "Signing in…" : "Sign in"}
+            {busy ? "Signing in…" : (hasRecoveryChoices ? "تأكيد الكنية والدخول" : "Sign in")}
           </button>
 
           <div style={styles.consentBox} dir="rtl">
@@ -805,6 +816,25 @@ const styles = {
   suggestionBtnActive: {
     border: "1px solid rgba(34,197,94,0.6)",
     background: "rgba(34,197,94,0.20)",
+  },
+  confidenceBadge: {
+    minWidth: 46,
+    textAlign: "center",
+    borderRadius: 999,
+    padding: "4px 8px",
+    background: "rgba(15,23,42,0.55)",
+    border: "1px solid rgba(255,255,255,0.13)",
+    fontSize: 12,
+  },
+  noneOfTheseBtn: {
+    width: "100%",
+    borderRadius: 12,
+    border: "1px dashed rgba(255,255,255,0.22)",
+    background: "rgba(0,0,0,0.16)",
+    color: "white",
+    padding: "10px 12px",
+    cursor: "pointer",
+    fontWeight: 700,
   },
   suggestionsHint: { fontSize: 12, lineHeight: 1.5, opacity: 0.78 },
   required: { color: "#fca5a5" },

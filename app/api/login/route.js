@@ -1,13 +1,29 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 import { getCookieName, signSession } from "../../../lib/session.js";
 import { enforceSameOrigin, noStore } from "../../../lib/server/auth.js";
 import { getServiceSupabase } from "../../../lib/server/admin.js";
 import { ensureNicknameForUser, getNicknameProfile, normalizeUserId, cleanNickname } from "../../../lib/server/nickname.js";
-import { buildDeviceConfidence, findDeviceNicknameMatch, verifyDeviceNicknameChoice, recordDeviceNickname, touchDeviceNickname } from "../../../lib/server/device-confidence.js";
+import {
+  buildDeviceConfidence,
+  findDeviceNicknameMatch,
+  recordDeviceNickname,
+  verifyDeviceNicknameChoice,
+} from "../../../lib/server/device-confidence.js";
+import {
+  makeTrustedDeviceToken,
+  registerTrustedDeviceIdentity,
+  resolveTrustedDeviceIdentity,
+  setTrustedDeviceCookie,
+} from "../../../lib/server/device-identity.js";
+import {
+  createDeviceRecoveryTicket,
+  verifyDeviceRecoveryTicket,
+} from "../../../lib/server/device-recovery.js";
 
 export const runtime = "nodejs";
 
-const MAX_LOGIN_BODY_BYTES = 16384;
+const MAX_LOGIN_BODY_BYTES = 32768;
 const LOGIN_WINDOW_MS = 10 * 60 * 1000;
 const LOGIN_MAX_FAILURES = 10;
 const LOGIN_FAILURE_CACHE_LIMIT = 512;
@@ -76,197 +92,224 @@ function clearFailures(request, username) {
   loginFailures.delete(failureKey(request, username));
 }
 
-function normalizeSuggestionScore(x) {
-  const n = Number(x?.score || 0);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function sortRecoverySuggestions(list) {
-  return (Array.isArray(list) ? list : [])
-    .filter((x)=>x && x.user_id && x.display_name)
-    .map((x)=>({ ...x, score: normalizeSuggestionScore(x) }))
-    .sort((x,y)=> y.score - x.score || String(y.last_seen_at || "").localeCompare(String(x.last_seen_at || "")));
-}
-
-function chooseHighConfidenceAutoSuggestion(list) {
-  const ranked = sortRecoverySuggestions(list);
-  const best = ranked[0] || null;
-  if(!best || best.score < 105) return null;
-  return best;
-}
-
 export async function POST(request) {
-  const so = enforceSameOrigin(request);
-  if(!so.ok){
-    return noStore(NextResponse.json({ error: so.error }, { status: so.status || 403 }));
+  const sameOrigin = enforceSameOrigin(request);
+  if(!sameOrigin.ok){
+    return noStore(NextResponse.json({ error:sameOrigin.error }, { status:sameOrigin.status || 403 }));
   }
 
   const contentLength = Number(request.headers.get("content-length") || 0);
-  if (Number.isFinite(contentLength) && contentLength > MAX_LOGIN_BODY_BYTES) {
-    return noStore(NextResponse.json({ error: "Request body too large" }, { status: 413 }));
+  if(Number.isFinite(contentLength) && contentLength > MAX_LOGIN_BODY_BYTES){
+    return noStore(NextResponse.json({ error:"Request body too large" }, { status:413 }));
   }
 
   const BASIC_USER = process.env.BASIC_AUTH_USER || "";
   const BASIC_PASS = process.env.BASIC_AUTH_PASS || "";
   const SESSION_SECRET = process.env.SESSION_SECRET || "";
-
-  if (!SESSION_SECRET) {
-    return noStore(NextResponse.json(
-      { error: "Server not configured (missing SESSION_SECRET)." },
-      { status: 500 }
-    ));
+  if(!SESSION_SECRET){
+    return noStore(NextResponse.json({ error:"Server not configured (missing SESSION_SECRET)." }, { status:500 }));
   }
 
   let body = {};
-  try {
-    body = await request.json();
-  } catch {
-    // ignore
-  }
+  try { body = await request.json(); } catch {}
 
-  const username = (body.username || "").toString();
-  const password = (body.password || "").toString();
-  const incoming_user_id = normalizeUserId(body.user_id);
+  const username = String(body.username || "");
+  const password = String(body.password || "");
+  const incomingUserId = normalizeUserId(body.user_id);
   const requestedNickname = cleanNickname(body.nickname || body.display_name || "");
-  const selectedRecoveryUserId = normalizeUserId(body.recovery_user_id || body.selected_recovery_user_id || "");
+  const recoveryTicket = String(body.recovery_ticket || "");
+  const recoveryChoiceId = String(body.recovery_choice_id || "");
+  const skipSmartRecovery = body.skip_smart_recovery === true;
   const deviceFingerprint = buildDeviceConfidence(request, body.device_fingerprint || {}, SESSION_SECRET);
 
-  if (isLimited(request, username)) {
-    await new Promise((r)=>setTimeout(r, 500));
-    return noStore(NextResponse.json({ error: "Too many login attempts. Try again later." }, { status: 429 }));
+  if(isLimited(request, username)){
+    await new Promise((resolve)=>setTimeout(resolve, 500));
+    return noStore(NextResponse.json({ error:"Too many login attempts. Try again later." }, { status:429 }));
   }
 
-  const ok = timingSafeEqual(username, BASIC_USER) && timingSafeEqual(password, BASIC_PASS);
-
-  if (!ok) {
+  const credentialsOk = timingSafeEqual(username, BASIC_USER) && timingSafeEqual(password, BASIC_PASS);
+  if(!credentialsOk){
     noteFailure(request, username);
-    // small constant delay to slow brute-force attempts
-    await new Promise((r)=>setTimeout(r, 350));
-    return noStore(NextResponse.json({ error: "Invalid credentials" }, { status: 401 }));
+    await new Promise((resolve)=>setTimeout(resolve, 350));
+    return noStore(NextResponse.json({ error:"Invalid credentials" }, { status:401 }));
   }
-
   clearFailures(request, username);
 
-  if (!incoming_user_id) {
-    return noStore(NextResponse.json({ error: "Missing browser identity. Refresh the login page and try again." }, { status: 400 }));
+  if(!deviceFingerprint?.ok){
+    return noStore(NextResponse.json({ error:deviceFingerprint?.error || "Could not build device identity." }, { status:500 }));
   }
 
-  let finalUserId = incoming_user_id;
+  let finalUserId = "";
   let displayName = "";
   let recoveredByDevice = false;
-  let deviceConfidence = 0;
+  let trustedDevice = null;
+  let identityMethod = "new_device_registration";
+  let recoveryConfidence = 0;
 
   try {
     const supabase = getServiceSupabase();
 
-    // Step 4.3: always try device-confidence recovery first. This prevents a user
-    // on the same confident device from changing nickname simply by clearing cookies.
-    const match = await findDeviceNicknameMatch(supabase, deviceFingerprint, { threshold: 105, suggestionThreshold: 1, maxSuggestions: 2 });
-    if(!match.ok){
-      return noStore(NextResponse.json({ error: match.error || "Could not verify device nickname." }, { status: 500 }));
+    // 1) Strongest proof: signed HttpOnly trusted-device cookie plus the exact
+    // random browser key. This path never uses fuzzy fingerprint matching.
+    const trusted = await resolveTrustedDeviceIdentity(request, supabase, deviceFingerprint);
+    if(!trusted.ok){
+      return noStore(NextResponse.json({ error:trusted.error || "Could not verify trusted device." }, { status:trusted.status || 500 }));
+    }
+    if(trusted.matched){
+      finalUserId = trusted.user_id;
+      displayName = trusted.display_name;
+      recoveredByDevice = true;
+      trustedDevice = trusted;
+      identityMethod = "trusted_device_key";
+      recoveryConfidence = 100;
     }
 
-    if(match.matched){
-      finalUserId = match.user_id;
-      displayName = match.display_name;
+    // 2) User-confirmed smart recovery. The browser never sends a user_id as
+    // proof: it sends an opaque choice id inside a short-lived signed ticket,
+    // and the server re-runs the fingerprint ranking before accepting it.
+    if(!finalUserId && recoveryTicket && recoveryChoiceId){
+      const ticket = await verifyDeviceRecoveryTicket(
+        recoveryTicket,
+        recoveryChoiceId,
+        deviceFingerprint,
+        SESSION_SECRET
+      );
+      if(!ticket.ok){
+        await new Promise((resolve)=>setTimeout(resolve, 250));
+        return noStore(NextResponse.json({ error:ticket.error }, { status:ticket.status || 409 }));
+      }
+
+      const confirmed = await verifyDeviceNicknameChoice(
+        supabase,
+        deviceFingerprint,
+        ticket.user_id,
+        { minScore:ticket.minimum_score }
+      );
+      if(!confirmed.ok){
+        return noStore(NextResponse.json({ error:confirmed.error || "Could not verify the selected nickname." }, { status:500 }));
+      }
+      if(!confirmed.matched){
+        await new Promise((resolve)=>setTimeout(resolve, 250));
+        return noStore(NextResponse.json({
+          error:"درجة تطابق الجهاز لا تكفي لاستخدام هذه الكنية بأمان. اختر «ليست كنيتي» وسجّل كجهاز جديد.",
+          recovery_rejected:true,
+          recovery_reason:confirmed.reason || "low_confidence",
+        }, { status:409 }));
+      }
+
+      finalUserId = confirmed.user_id;
+      displayName = confirmed.display_name;
       recoveredByDevice = true;
-      deviceConfidence = Number(match.confidence_score || 0);
-      await touchDeviceNickname(supabase, match.device_hash);
-    } else {
-      const autoRecoveryChoice = chooseHighConfidenceAutoSuggestion(match.suggestions || []);
-      if(!selectedRecoveryUserId && !requestedNickname && autoRecoveryChoice){
-        finalUserId = autoRecoveryChoice.user_id;
-        displayName = autoRecoveryChoice.display_name;
+      identityMethod = confirmed.recovery_method || "smart_suggestion_v2";
+      recoveryConfidence = Number(confirmed.confidence_score || 0);
+    }
+
+    // 3) Strict automatic smart recovery. It aggregates historical observations
+    // per user, normalizes evidence by browser capabilities, penalizes stable
+    // contradictions and refuses close/ambiguous candidates.
+    if(!finalUserId && !recoveryTicket && !skipSmartRecovery){
+      const smart = await findDeviceNicknameMatch(supabase, deviceFingerprint);
+      if(!smart.ok){
+        return noStore(NextResponse.json({ error:smart.error || "Could not verify existing device." }, { status:500 }));
+      }
+
+      if(smart.matched){
+        finalUserId = smart.user_id;
+        displayName = smart.display_name;
         recoveredByDevice = true;
-        deviceConfidence = Number(autoRecoveryChoice.score || 0);
-        await touchDeviceNickname(supabase, match.device_hash || deviceFingerprint.device_hash);
-      } else if(selectedRecoveryUserId){
-        const choice = await verifyDeviceNicknameChoice(supabase, deviceFingerprint, selectedRecoveryUserId, { minScore: 1, suggestionThreshold: 1, maxSuggestions: 2, selectableTopN: 2, autoThreshold: 105 });
-        if(!choice.ok){
-          return noStore(NextResponse.json({ error: choice.error || "Could not verify selected nickname." }, { status: 500 }));
-        }
-        if(choice.matched){
-          finalUserId = choice.user_id;
-          displayName = choice.display_name;
-          recoveredByDevice = true;
-          deviceConfidence = Number(choice.confidence_score || 0);
-          await touchDeviceNickname(supabase, choice.device_hash);
-        } else {
-          const reason = choice.reason || match.reason || "choice_not_confident";
-          const msg = reason === "choice_not_in_top_two"
-            ? "اختار كنيتك من أول كنيتين ظاهرين في مقترحات التطابق فقط، أو اكتب كنية جديدة."
-            : reason === "choice_score_too_low"
-              ? "التطابق مع الكنية المختارة ضعيف جدًا ولا يمكن تأكيده. اكتب كنية جديدة أو اطلب من الأدمن المساعدة."
-              : "لم أستطع تأكيد الكنية المختارة لهذا الجهاز. اختار من أول كنيتين ظاهرين أو اكتب كنية جديدة.";
+        identityMethod = smart.recovery_method || "smart_fingerprint_v2";
+        recoveryConfidence = Number(smart.confidence_score || 0);
+      }else if(Array.isArray(smart.suggestions) && smart.suggestions.length){
+        const recovery = await createDeviceRecoveryTicket(
+          deviceFingerprint,
+          smart.suggestions,
+          SESSION_SECRET
+        );
+        if(recovery.ok){
           return noStore(NextResponse.json({
-            error: msg,
-            nickname_required: true,
-            recovery_rejected: true,
-            nickname_suggestions: choice.suggestions || match.suggestions || [],
-            device_confidence: {
-              matched:false,
-              reason,
-              best_score: match.best_score || choice.best_score || 0,
-              selected_score: choice.selected_score || 0,
-              manual_threshold: choice.manual_threshold || 1,
-              ambiguous: !!(choice.ambiguous || match.ambiguous),
-            },
-            user_id: finalUserId,
-          }, { status: 409 }));
+            error:"تعذر التأكد تلقائيًا بنسبة آمنة. اختر كنيتك من النتائج الأقرب.",
+            nickname_selection_required:true,
+            recovery_ticket:recovery.token,
+            nickname_suggestions:recovery.choices,
+            recovery_reason:smart.reason || "confirmation_required",
+          }, { status:409 }));
         }
-      } else {
-        if(body.nickname_from_storage){
-          const profile = await getNicknameProfile(supabase, finalUserId);
-          if(profile?.ok && profile.reset_required){
-            return noStore(NextResponse.json({
-              error: "الأدمن طلب إعادة اختيار الكنية. اكتب كنية خيالية جديدة.",
-              nickname_required: true,
-              user_id: finalUserId,
-            }, { status: 409 }));
-          }
-        }
-        const nicknameResult = await ensureNicknameForUser(supabase, finalUserId, requestedNickname);
-        if (!nicknameResult?.ok) {
-          return noStore(NextResponse.json({
-            error: nicknameResult?.error || "Nickname is required.",
-            nickname_required: !!nicknameResult?.nickname_required,
-            nickname_taken: !!nicknameResult?.nickname_taken,
-            nickname_suggestions: match.suggestions || [],
-            device_confidence: { matched:false, reason: match.reason || "nickname_required", best_score: match.best_score || 0, ambiguous: !!match.ambiguous, threshold: match.threshold || undefined },
-            user_id: finalUserId,
-          }, { status: nicknameResult?.status || 409 }));
-        }
-        displayName = nicknameResult.display_name || "";
-        await recordDeviceNickname(supabase, finalUserId, displayName, deviceFingerprint, 110);
       }
     }
+
+    // 4) Truly new device/user. A browser-provided user_id is never allowed to
+    // claim an existing profile. It is reused only when no database profile owns it.
+    if(!finalUserId){
+      let candidateUserId = incomingUserId;
+      if(candidateUserId){
+        const candidateProfile = await getNicknameProfile(supabase, candidateUserId);
+        if(!candidateProfile?.ok || candidateProfile.exists) candidateUserId = "";
+      }
+      finalUserId = candidateUserId || `uid_${randomUUID()}`;
+
+      const nicknameResult = await ensureNicknameForUser(supabase, finalUserId, requestedNickname);
+      if(!nicknameResult?.ok){
+        return noStore(NextResponse.json({
+          error:nicknameResult?.error || "Nickname is required.",
+          nickname_required:true,
+          nickname_taken:!!nicknameResult?.nickname_taken,
+          nickname_suggestions:[],
+          trusted_device_required:true,
+        }, { status:nicknameResult?.status || 409 }));
+      }
+      displayName = nicknameResult.display_name || "";
+      identityMethod = "new_device_registration";
+      recoveryConfidence = 100;
+    }
+
+    const registered = await registerTrustedDeviceIdentity(supabase, finalUserId, displayName, deviceFingerprint);
+    if(!registered.ok){
+      return noStore(NextResponse.json({ error:registered.error || "Could not register trusted device." }, { status:registered.status || 500 }));
+    }
+    if(!registered.missing_table) trustedDevice = registered;
+
+    // Learn only after the identity is exact, automatically high-confidence, or
+    // explicitly confirmed through a signed candidate ticket.
+    await recordDeviceNickname(
+      supabase,
+      finalUserId,
+      displayName,
+      deviceFingerprint,
+      Math.max(78, Math.min(100, Number(recoveryConfidence || 100)))
+    );
   } catch (err) {
-    return noStore(NextResponse.json(
-      { error: String(err?.message || err || "Could not verify nickname.") },
-      { status: 500 }
-    ));
+    return noStore(NextResponse.json({ error:String(err?.message || err || "Could not verify nickname.") }, { status:500 }));
   }
 
-  const expMs = Date.now() + 12 * 60 * 60 * 1000; // 12 hours
-  const token = await signSession({ u: username, uid: finalUserId, name: displayName, exp: expMs }, SESSION_SECRET);
+  const expMs = Date.now() + 12 * 60 * 60 * 1000;
+  const token = await signSession({ u:username, uid:finalUserId, name:displayName, exp:expMs }, SESSION_SECRET);
 
-  const res = noStore(NextResponse.json({
-    ok: true,
-    user_id: finalUserId,
-    display_name: displayName,
-    recovered_by_device: recoveredByDevice,
-    device_confidence_score: deviceConfidence,
+  let trustedDeviceToken = "";
+  if(trustedDevice?.device_id){
+    trustedDeviceToken = await makeTrustedDeviceToken({
+      device_id:trustedDevice.device_id,
+      user_id:finalUserId,
+    });
+  }
+
+  const response = noStore(NextResponse.json({
+    ok:true,
+    user_id:finalUserId,
+    display_name:displayName,
+    recovered_by_device:recoveredByDevice,
+    identity_method:identityMethod,
+    recovery_confidence:Math.round(Number(recoveryConfidence || 0)),
   }));
 
-  res.cookies.set({
-    name: getCookieName(),
-    value: token,
-    httpOnly: true,
-    secure: true,
-    sameSite: "strict",
-    path: "/",
-    maxAge: 12 * 60 * 60,
+  response.cookies.set({
+    name:getCookieName(),
+    value:token,
+    httpOnly:true,
+    secure:true,
+    sameSite:"strict",
+    path:"/",
+    maxAge:12 * 60 * 60,
   });
 
-  return res;
+  return setTrustedDeviceCookie(response, trustedDeviceToken);
 }

@@ -659,3 +659,138 @@
 
   window.addEventListener('load', injectCss, { once: true, passive: true });
 }());
+
+(function () {
+  'use strict';
+
+  /*
+   * UA07 V15: top-and-bottom scroll handoff for internal menus.
+   *
+   * Some menu panels intentionally have their own scrollbar so nested menus stay usable.
+   * When the user reaches the END of a menu panel and keeps scrolling down,
+   * this safely forwards the extra downward scroll to the main page.
+   * When the user reaches the START of a menu panel and keeps scrolling up,
+   * this safely forwards the extra upward scroll to the main page.
+   *
+   * It does NOT change menu layout, theme styling, links, or submenu behavior.
+   */
+
+  var MENU_SCROLL_SELECTOR = [
+    '.dropdown-content',
+    '.sub-dropdown-content',
+    '.ltMenu',
+    '#searchResults.search-results',
+    '.search-results'
+  ].join(',');
+
+  var EDGE_TOLERANCE = 2;
+  var touchState = null;
+
+  function getMainScroller() {
+    return document.scrollingElement || document.documentElement || document.body;
+  }
+
+  function canPageScrollDown() {
+    var root = getMainScroller();
+    if (!root) return false;
+    return (root.scrollTop + root.clientHeight) < (root.scrollHeight - EDGE_TOLERANCE);
+  }
+
+  function canPageScrollUp() {
+    var root = getMainScroller();
+    if (!root) return false;
+    return root.scrollTop > EDGE_TOLERANCE;
+  }
+
+  function isScrollableMenu(el) {
+    if (!el || el.nodeType !== 1) return false;
+    if (el.hidden) return false;
+    return (el.scrollHeight - el.clientHeight) > EDGE_TOLERANCE;
+  }
+
+  function findScrollableMenu(target) {
+    var el = target && target.closest ? target.closest(MENU_SCROLL_SELECTOR) : null;
+    return isScrollableMenu(el) ? el : null;
+  }
+
+  function isAtMenuBottom(el) {
+    if (!el) return false;
+    return (el.scrollTop + el.clientHeight) >= (el.scrollHeight - EDGE_TOLERANCE);
+  }
+
+  function isAtMenuTop(el) {
+    if (!el) return false;
+    return el.scrollTop <= EDGE_TOLERANCE;
+  }
+
+  function forwardToPage(amount) {
+    if (!amount) return false;
+
+    if (amount > 0 && !canPageScrollDown()) return false;
+    if (amount < 0 && !canPageScrollUp()) return false;
+
+    window.scrollBy({ top: amount, left: 0, behavior: 'auto' });
+    return true;
+  }
+
+  function shouldHandOff(menu, amount) {
+    if (!menu || !amount) return false;
+    if (amount > 0) return isAtMenuBottom(menu);
+    if (amount < 0) return isAtMenuTop(menu);
+    return false;
+  }
+
+  function onWheel(e) {
+    if (!e || e.defaultPrevented || !e.deltaY) return;
+
+    var menu = findScrollableMenu(e.target);
+    if (!shouldHandOff(menu, e.deltaY)) return;
+
+    if (forwardToPage(e.deltaY)) {
+      e.preventDefault();
+    }
+  }
+
+  function onTouchStart(e) {
+    if (!e || !e.touches || e.touches.length !== 1) {
+      touchState = null;
+      return;
+    }
+
+    var menu = findScrollableMenu(e.target);
+    if (!menu) {
+      touchState = null;
+      return;
+    }
+
+    touchState = {
+      menu: menu,
+      lastY: e.touches[0].clientY
+    };
+  }
+
+  function onTouchMove(e) {
+    if (!touchState || !e || !e.touches || e.touches.length !== 1) return;
+
+    var currentY = e.touches[0].clientY;
+    var amount = touchState.lastY - currentY; // positive scrolls page down, negative scrolls page up
+    touchState.lastY = currentY;
+
+    if (!amount) return;
+    if (!isScrollableMenu(touchState.menu) || !shouldHandOff(touchState.menu, amount)) return;
+
+    if (forwardToPage(amount)) {
+      e.preventDefault();
+    }
+  }
+
+  function onTouchEnd() {
+    touchState = null;
+  }
+
+  document.addEventListener('wheel', onWheel, { capture: true, passive: false });
+  document.addEventListener('touchstart', onTouchStart, { capture: true, passive: true });
+  document.addEventListener('touchmove', onTouchMove, { capture: true, passive: false });
+  document.addEventListener('touchend', onTouchEnd, { capture: true, passive: true });
+  document.addEventListener('touchcancel', onTouchEnd, { capture: true, passive: true });
+}());

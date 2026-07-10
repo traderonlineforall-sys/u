@@ -92,7 +92,7 @@ export async function POST(req){
   if(!sess.ok) return j({ error: sess.error }, { status: sess.status || 401 });
   const body = await req.json().catch(() => ({}));
   const action = String(body?.action || "list").trim();
-  const userId = normalizeUserId(body?.user_id);
+  const userId = normalizeUserId(sess.payload?.uid);
   const supabase = getServiceSupabase();
   try {
     if (action === "list") {

@@ -49,7 +49,7 @@
   }
 
   function loadSupportThenOpen(){
-    importOnce('support-chat', './support-chat.js?v=step62-support-stable-notification').then(function(){
+    importOnce('support-chat', './support-chat.js?v=20260710-final-support-upgrade').then(function(){
       try {
         if (typeof window.__srOpenSupportChat === 'function') {
           window.__srOpenSupportChat();
@@ -123,7 +123,6 @@
     // These are non-critical and can consume realtime/browser resources.
     // Keep them delayed so the first tool load stays light.
     [
-      './online-users-count.js',
       './eid-hud.js?v=egypt-main-tabs-normal-v16'
     ].forEach(function(src){
       importOnce(src, src);
@@ -144,7 +143,9 @@
 
     // Premium visual skin for Suggestions + Support only (CSS merged for GitHub file-count cleanup).
     injectMergedNonCriticalStyles();
-    importOnce('support-presence-visual', './support-presence-visual.js?v=20260506-presence1');
+    safeStyle('./support-suggestions-final-upgrade.css?v=20260710-final1');
+    importOnce('online-users-count', './online-users-count.js?v=20260710-fast-presence');
+    importOnce('support-presence-visual', './support-presence-visual.js?v=20260710-fast-presence');
 
     // Urgent admin voice selection controller must load before the auto-activation helper.
     importOnce('urgent-voice-selection', './urgent-voice-selection-control.js?v=20260511-natural-voice1')

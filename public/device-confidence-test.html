@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>اختبار تثبيت الكنية على الجهاز</title>
+  <style>
+    body{font-family:Tahoma,Arial,sans-serif;background:#0f172a;color:#e5e7eb;margin:0;padding:24px;line-height:1.7}
+    .card{max-width:900px;margin:auto;background:#111827;border:1px solid #334155;border-radius:18px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.28)}
+    h1{margin-top:0;font-size:24px}.muted{color:#94a3b8}.ok{color:#86efac}.bad{color:#fca5a5}.warn{color:#fde68a}
+    button{border:0;border-radius:12px;padding:12px 16px;margin:6px;cursor:pointer;background:#2563eb;color:white;font-weight:700}
+    button.secondary{background:#334155} pre{white-space:pre-wrap;direction:ltr;text-align:left;background:#020617;border:1px solid #334155;padding:14px;border-radius:12px;overflow:auto;max-height:460px}
+    code{background:#020617;padding:2px 6px;border-radius:6px}.row{display:flex;gap:8px;flex-wrap:wrap}.pill{display:inline-block;padding:4px 9px;border-radius:999px;background:#1f2937;margin:3px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>اختبار تثبيت الكنية على هذا الجهاز</h1>
+    <p class="muted">افتح هذه الصفحة بعد تسجيل الدخول. لا تحتاج Developer Tools.</p>
+    <div class="row">
+      <button id="statusBtn">1) فحص الحالة الحالية</button>
+      <button id="learnBtn">2) تعلّم هذا الجهاز الآن</button>
+      <button id="againBtn" class="secondary">3) فحص بعد التعلم</button>
+    </div>
+    <p id="summary" class="warn">اضغط فحص الحالة الحالية.</p>
+    <div>
+      <span class="pill">بعد نجاح التعلم لازم يظهر Active devices = 1</span>
+      <span class="pill">بعدها فقط جرّب Clear Cookies</span>
+    </div>
+    <pre id="out">جاهز...</pre>
+  </div>
+  <script src="./device-confidence-learn.js?v=step433"></script>
+  <script>
+    const out = document.getElementById('out');
+    const summary = document.getElementById('summary');
+    function show(obj){ out.textContent = JSON.stringify(obj, null, 2); }
+    function msg(text, cls){ summary.className = cls || ''; summary.textContent = text; }
+    async function status(){
+      msg('جاري فحص الحالة...', 'warn');
+      const r = await fetch('/api/device-confidence-me', { credentials:'same-origin' });
+      const data = await r.json().catch(()=>({}));
+      show({ status:r.status, ok:r.ok, data });
+      if(!r.ok) return msg('فشل الفحص: ' + (data.error || r.status), 'bad');
+      if(!data.devices_available) return msg('جدول الأجهزة غير موجود. شغّل SQL Step 4.3 أولًا.', 'bad');
+      if(Number(data.active_devices || 0) > 0) return msg('تمام: الجهاز متعلم. Active devices = ' + data.active_devices, 'ok');
+      return msg('لسه الجهاز غير متعلم. اضغط تعلّم هذا الجهاز الآن.', 'warn');
+    }
+    async function learn(){
+      msg('جاري تعلم الجهاز...', 'warn');
+      if(!window.SR_DEVICE_CONFIDENCE || !window.SR_DEVICE_CONFIDENCE.learnNow){
+        show({ error:'device-confidence-learn.js not loaded' });
+        return msg('سكريبت التعلم لم يتحمل.', 'bad');
+      }
+      const result = await window.SR_DEVICE_CONFIDENCE.learnNow({ manual:true }).catch(e=>({ ok:false, error:String(e && e.message || e) }));
+      show(result);
+      if(result && result.ok && result.data && result.data.learned){
+        msg('تم تعلم الجهاز بنجاح. افتح الأدمن أو اضغط فحص بعد التعلم.', 'ok');
+      }else{
+        const d = result && result.data || {};
+        msg('لم يتم التعلم: ' + (d.reason || d.error || result.error || 'unknown'), 'bad');
+      }
+    }
+    document.getElementById('statusBtn').onclick = status;
+    document.getElementById('learnBtn').onclick = learn;
+    document.getElementById('againBtn').onclick = status;
+    setTimeout(status, 500);
+  </script>
+</body>
+</html>

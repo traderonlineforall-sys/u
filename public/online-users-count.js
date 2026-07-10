@@ -26,7 +26,7 @@ function ensureCountPill() {
     // Requested UX: a green "lamp" indicator + the online count.
     pill.innerHTML = `
       <span class="ua07-online-lamp" aria-hidden="true"></span>
-      <span class="ua07-online-num" aria-hidden="true">0</span>
+      <span class="ua07-online-num" aria-hidden="true">1</span>
     `;
     pill.title = "Online";
     pill.style.cssText = [
@@ -77,7 +77,7 @@ function ensureCountPill() {
 function countPresenceState(state) {
   // state is an object keyed by presence keys.
   try {
-    return Object.keys(state || {}).length;
+    return Math.max(1, Object.keys(state || {}).length);
   } catch {
     return 0;
   }
@@ -92,11 +92,11 @@ function buildOnlineTitle(state){
       const label = String(metas?.[0]?.display_name || metas?.[0]?.alias || aliasForUserId(key) || "User").trim();
       names.push(label);
     }
+    if(!names.length) names.push(getStablePresenceLabel());
     const n = names.length;
     const max = 12;
     const shown = names.slice(0, max);
     const extra = n - shown.length;
-    if(n <= 0) return "Online: 0";
     let t = `Online: ${n}`;
     t += `\n${shown.join(", ")}`;
     if(extra > 0) t += `\n+${extra} more`;
@@ -125,6 +125,8 @@ async function startPresence() {
   if (!supabase) return;
   const pill = ensureCountPill();
   if (!pill) return;
+  setCount(pill, 1);
+  pill.title = "Online: 1 · Connecting…";
 
   const channel = supabase.channel("sr_tool_online", {
     config: {
@@ -171,6 +173,11 @@ async function startPresence() {
   channel.subscribe(async (status) => {
     if (status === "SUBSCRIBED") {
       await trackCurrentName();
+      const state = channel.presenceState();
+      setCount(pill, Math.max(1, countPresenceState(state)));
+      setTitle(pill, state);
+    } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+      pill.title = "Online count is reconnecting…";
     }
   });
 }
@@ -184,7 +191,7 @@ function init() {
       startPresence().catch(()=>{});
       return;
     }
-    if (tries < 80) setTimeout(tick, 200);
+    if (tries < 40) setTimeout(tick, 100);
   };
   tick();
 }
