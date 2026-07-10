@@ -10,7 +10,7 @@ import { getStableUserId, getStoredUserName } from "./stable-user-identity.js";
 
 const USER_ID = getStableUserId();
 function currentUserName(){ return getStoredUserName() || "User"; }
-const CHANNEL_NAME = "sr_support_online_presence_v1";
+const CHANNEL_NAME = "sr_tool_online";
 const SCHEME_COUNT = 12;
 const onlineIds = new Set([USER_ID]);
 let channel = null;
@@ -90,7 +90,8 @@ function ensurePresenceBadge(anchor, isOnline) {
     anchor.insertAdjacentElement("afterend", badge);
   }
 
-  badge.textContent = isOnline ? "Online" : "Offline";
+  const text = isOnline ? "Online" : "Offline";
+  if(badge.textContent !== text) badge.textContent = text;
   badge.classList.toggle("is-online", !!isOnline);
   badge.classList.toggle("is-offline", !isOnline);
 }
@@ -169,7 +170,9 @@ function applySupportVisualState() {
     const name = getCleanText(row.querySelector(".support-user-name"));
     const key = id || name;
     const scheme = schemeMap.get(key) || schemeMap.get(name) || String(hashText(key || name) % SCHEME_COUNT);
-    row.setAttribute("data-bubble-scheme", scheme);
+    if(row.getAttribute("data-bubble-scheme") !== scheme){
+      row.setAttribute("data-bubble-scheme", scheme);
+    }
     const isOnline = !!id && onlineIds.has(id);
     row.classList.toggle("is-online", isOnline);
     row.classList.toggle("is-offline", !isOnline);
@@ -178,10 +181,12 @@ function applySupportVisualState() {
 
   document.querySelectorAll("#supportMessagesList .support-msg").forEach((row) => {
     const name = getCleanText(row.querySelector(".support-msg-name"));
-    const id = nameToId.get(name) || "";
+    const id = String(row.getAttribute("data-sender-id") || "").trim() || nameToId.get(name) || "";
     const key = id || name;
     const scheme = schemeMap.get(key) || schemeMap.get(name) || String(hashText(key || name) % SCHEME_COUNT);
-    row.setAttribute("data-bubble-scheme", scheme);
+    if(row.getAttribute("data-bubble-scheme") !== scheme){
+      row.setAttribute("data-bubble-scheme", scheme);
+    }
     const isOnline = id ? onlineIds.has(id) : false;
     row.classList.toggle("is-online", isOnline);
     row.classList.toggle("is-offline", !isOnline);
@@ -189,6 +194,9 @@ function applySupportVisualState() {
   });
 
   sortSupportUsersListByPresence();
+  window.dispatchEvent(new CustomEvent("sr:support-presence-updated", {
+    detail:{ onlineIds:Array.from(onlineIds) }
+  }));
 }
 
 function scheduleApply() {
@@ -207,12 +215,10 @@ function watchSupportDom() {
       }
     }
   });
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ["class", "style"]
-  });
+  const users = document.getElementById("supportUsersList");
+  const messages = document.getElementById("supportMessagesList");
+  if(users) observer.observe(users, { childList:true, subtree:true });
+  if(messages) observer.observe(messages, { childList:true, subtree:true });
   scheduleApply();
 }
 

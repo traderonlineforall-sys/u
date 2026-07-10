@@ -236,7 +236,106 @@ async function fetchSupportMessagesApi(params){
   });
   const data = await res.json().catch(() => ({}));
   if(!res.ok || !data?.ok) throw new Error(data?.error || "Could not load support messages.");
-  return Array.isArray(data.rows) ? data.rows.map(normalizeSupportRow) : [];
+  return {
+    rows: Array.isArray(data.rows) ? data.rows.map(normalizeSupportRow) : [],
+    interactions: data?.interactions && typeof data.interactions === "object" ? data.interactions : {},
+    interactionsAvailable: data?.interactions_available === true,
+  };
+}
+
+const SUPPORT_REACTIONS = [
+  ["like", "👍", "Like"],
+  ["love", "❤️", "Love"],
+  ["laugh", "😂", "Laugh"],
+  ["angry", "😡", "Angry"],
+  ["sad", "😢", "Sad"],
+  ["dislike", "👎", "Dislike"],
+];
+let supportInteractions = Object.create(null);
+let supportInteractionsAvailable = false;
+let visibleMessageRows = [];
+const reportedReadIds = new Set();
+const pendingReadIds = new Set();
+let readReceiptTimer = null;
+let readVisibilityFrame = 0;
+
+function emptySupportInteraction(){
+  return {
+    reactions: {
+      counts:{ like:0, love:0, laugh:0, angry:0, sad:0, dislike:0 },
+      users:{ like:[], love:[], laugh:[], angry:[], sad:[], dislike:[] },
+      mine:"",
+    },
+    readers:[],
+    read_count:0,
+  };
+}
+
+function interactionForMessage(id){
+  return supportInteractions[String(id || "")] || emptySupportInteraction();
+}
+
+function supportInteractionSignature(id){
+  if(!supportInteractionsAvailable || !id) return "";
+  try { return JSON.stringify(interactionForMessage(id)); }
+  catch { return ""; }
+}
+
+function mergeSupportInteractions(next){
+  if(!next || typeof next !== "object") return;
+  for(const [id, value] of Object.entries(next)){
+    supportInteractions[String(id)] = value;
+  }
+}
+
+async function postSupportInteraction(body){
+  const res = await fetch("/api/support-message-interactions", {
+    method:"POST",
+    credentials:"same-origin",
+    headers:{ "content-type":"application/json" },
+    body:JSON.stringify(body || {}),
+  });
+  const data = await res.json().catch(() => ({}));
+  if(!res.ok) throw new Error(data?.error || "Support interaction failed.");
+  if(data?.available === false){
+    supportInteractionsAvailable = false;
+    return data;
+  }
+  supportInteractionsAvailable = true;
+  mergeSupportInteractions(data?.interactions);
+  return data;
+}
+
+let interactionsLoadInFlight = false;
+let lastInteractionsLoadAt = 0;
+
+async function refreshSupportInteractions(rows, force = false){
+  const ids = (rows || [])
+    .map((row) => Number(row?.id))
+    .filter((id) => Number.isSafeInteger(id) && id > 0)
+    .slice(0, 300);
+  if(!ids.length || interactionsLoadInFlight) return;
+  const now = Date.now();
+  if(!force && now - lastInteractionsLoadAt < 3500) return;
+  lastInteractionsLoadAt = now;
+  interactionsLoadInFlight = true;
+  try{
+    const before = JSON.stringify(supportInteractions);
+    const result = await postSupportInteraction({ action:"list", message_ids:ids });
+    if(result?.available === false){
+      supportInteractions = Object.create(null);
+    }else{
+      supportInteractions = Object.assign(Object.create(null), result?.interactions || {});
+      queueSupportReadReceipts(rows);
+    }
+    if(before !== JSON.stringify(supportInteractions)){
+      refreshRenderedSupportInteractions();
+    }
+  }catch(error){
+    console.warn("support interactions refresh failed", error);
+  }finally{
+    interactionsLoadInFlight = false;
+  }
 }
 
 function renderMessageHtml(m) {
@@ -260,6 +359,57 @@ function renderMessageHtml(m) {
   }
   return `<div class="support-msg-text">${linkifyText(text)}</div>`;
 }
+
+function renderSupportReactionSummary(messageId){
+  const current = interactionForMessage(messageId)?.reactions || {};
+  const counts = current.counts || {};
+  const users = current.users || {};
+  const mine = String(current.mine || "");
+  return SUPPORT_REACTIONS
+    .filter(([key]) => Number(counts[key] || 0) > 0)
+    .map(([key, icon, label]) => {
+      const names = Array.isArray(users[key]) ? users[key].slice(0, 20) : [];
+      const title = names.length ? names.join(", ") : label;
+      return `<button type="button" class="support-reaction-badge ${mine === key ? "mine" : ""}" data-message-id="${escapeHtml(messageId)}" data-reaction="${escapeHtml(key)}" title="${escapeHtml(title)}" aria-label="${escapeHtml(label)}: ${Number(counts[key] || 0)}"><span aria-hidden="true">${icon}</span><span>${Number(counts[key] || 0)}</span></button>`;
+    })
+    .join("");
+}
+
+function renderSupportReaders(messageId){
+  const readers = Array.isArray(interactionForMessage(messageId)?.readers)
+    ? interactionForMessage(messageId).readers
+    : [];
+  if(!readers.length){
+    return `<div class="support-readers-empty">No readers yet.</div>`;
+  }
+  return readers.map((reader) => {
+    const when = reader?.read_at ? fmtTime(reader.read_at) : "";
+    return `<div class="support-reader" title="${escapeHtml(when)}"><span>${escapeHtml(reader?.name || "User")}</span></div>`;
+  }).join("");
+}
+
+function renderSupportMessageInteractions(row){
+  const id = row?.id == null ? "" : String(row.id);
+  if(!supportInteractionsAvailable || !id || id.startsWith("local-")) return "";
+  const current = interactionForMessage(id);
+  const count = Number(current?.read_count || current?.readers?.length || 0);
+  return `
+    <div class="support-msg-interactions">
+      <div class="support-reaction-summary">${renderSupportReactionSummary(id)}</div>
+      <div class="support-msg-tools">
+        <button type="button" class="support-msg-action support-react-open" data-message-id="${escapeHtml(id)}" title="React" aria-label="React to message">☺</button>
+        <button type="button" class="support-msg-action support-readers-open" data-message-id="${escapeHtml(id)}" title="Show readers" aria-label="Show readers">
+          <span aria-hidden="true">◉</span><span>${count}</span>
+        </button>
+        <div class="support-readers-popover" hidden>
+          <div class="support-readers-title">Read by ${count}</div>
+          ${renderSupportReaders(id)}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function fmtTime(ts) {
   try { return new Date(ts).toLocaleString(); } catch { return ""; }
 }
@@ -526,6 +676,7 @@ function supportRowSignature(row) {
     String(r.room_type || ""),
     String(r.room_id || ""),
     String(r.created_at || ""),
+    supportInteractionSignature(r.id),
   ].join("¦");
 }
 
@@ -573,6 +724,7 @@ function keepSupportScrollStable(mutator, opts = {}) {
 
 function renderStableMessageList(rows, opts = {}) {
   const visibleRows = Array.isArray(rows) ? rows : [];
+  visibleMessageRows = visibleRows;
   const signature = supportListSignature(visibleRows);
   if (signature === lastSupportListSignature) {
     bindDeleteButtons();
@@ -769,7 +921,8 @@ async function loadUsers() {
   // This is separate from the user list source.
   let recentRows = [];
   try {
-    recentRows = await fetchSupportMessagesApi({ mode: "recent", limit: "500" });
+    const recentPayload = await fetchSupportMessagesApi({ mode: "recent", limit: "500" });
+    recentRows = recentPayload.rows;
     recentCache = recentRows;
   } catch (apiErr) {
     console.warn("authenticated support recent load failed", apiErr);
@@ -905,7 +1058,7 @@ function renderSupportMessageRow(m) {
   const bundle = colorBundleForUserId(senderId || row.sender_name || "");
   const safeId = row.id == null ? "" : escapeHtml(String(row.id));
   return `
-      <div class="support-msg ${mine ? "mine" : ""}" data-support-msg-id="${safeId}" style="--u:${escapeHtml(bundle.accent)};--ubg:${escapeHtml(bundle.bg)};--uborder:${escapeHtml(bundle.border)}">
+      <div class="support-msg ${mine ? "mine" : ""}" data-support-msg-id="${safeId}" data-sender-id="${escapeHtml(senderId)}" tabindex="0" style="--u:${escapeHtml(bundle.accent)};--ubg:${escapeHtml(bundle.bg)};--uborder:${escapeHtml(bundle.border)}">
         <div class="support-msg-meta">
           <span class="support-msg-dot" aria-hidden="true"></span>
           <span class="support-msg-name">${escapeHtml(row.sender_name || "User")}</span>
@@ -913,6 +1066,7 @@ function renderSupportMessageRow(m) {
           ${mine && safeId && !String(safeId).startsWith("local-") ? `<button class="support-del-btn" data-id="${safeId}" title="Delete">🗑️</button>` : ""}
         </div>
         ${renderMessageHtml(row)}
+        ${renderSupportMessageInteractions(row)}
       </div>
     `;
 }
@@ -973,29 +1127,104 @@ function appendSupportMessage(m, opts = {}) {
   else updateBadgesFromRecentCache();
 }
 
+function queueSupportReadReceipts(rows){
+  if(!supportInteractionsAvailable) return;
+  const listRect = messagesList?.getBoundingClientRect?.();
+  const messageElements = new Map(
+    Array.from(messagesList?.querySelectorAll?.(".support-msg[data-support-msg-id]") || [])
+      .map((el) => [String(el.dataset.supportMsgId || ""), el])
+  );
+  for(const raw of rows || []){
+    const row = normalizeSupportRow(raw);
+    const id = Number(row.id);
+    const senderId = String(row.sender_id || row.user_id || "");
+    if(!Number.isSafeInteger(id) || id <= 0 || senderId === USER_ID || reportedReadIds.has(id)) continue;
+    const messageEl = messageElements.get(String(id));
+    const messageRect = messageEl?.getBoundingClientRect?.();
+    if(listRect && messageRect){
+      const visibleHeight = Math.min(listRect.bottom, messageRect.bottom) - Math.max(listRect.top, messageRect.top);
+      const threshold = Math.min(24, Math.max(8, messageRect.height * .35));
+      if(visibleHeight < threshold) continue;
+    }
+    reportedReadIds.add(id);
+    pendingReadIds.add(id);
+  }
+  if(!pendingReadIds.size || readReceiptTimer) return;
+  readReceiptTimer = setTimeout(flushSupportReadReceipts, 180);
+}
+
+function scheduleVisibleSupportReadScan(){
+  if(readVisibilityFrame || !supportInteractionsAvailable) return;
+  readVisibilityFrame = requestAnimationFrame(() => {
+    readVisibilityFrame = 0;
+    queueSupportReadReceipts(visibleMessageRows);
+  });
+}
+
+async function flushSupportReadReceipts(){
+  if(readReceiptTimer){
+    clearTimeout(readReceiptTimer);
+    readReceiptTimer = null;
+  }
+  const ids = Array.from(pendingReadIds).slice(0, 300);
+  ids.forEach((id) => pendingReadIds.delete(id));
+  if(!ids.length || !supportInteractionsAvailable) return;
+  try{
+    await postSupportInteraction({ action:"read", message_ids:ids });
+  }catch(error){
+    ids.forEach((id) => reportedReadIds.delete(id));
+    console.warn("support read receipt failed", error);
+  }
+  if(pendingReadIds.size && !readReceiptTimer){
+    readReceiptTimer = setTimeout(flushSupportReadReceipts, 300);
+  }
+}
+
+let messagesLoadInFlight = false;
+let messagesReloadQueued = false;
+
 async function loadMessages(opts = {}) {
+  if(messagesLoadInFlight){
+    messagesReloadQueued = true;
+    return;
+  }
+  messagesLoadInFlight = true;
   const forceBottom = !!opts.forceBottom;
-  let rows = [];
+  const requestedRoom = {
+    type:String(activeRoom.type || "public"),
+    room_id:String(activeRoom.room_id || "public"),
+  };
   try {
-    rows = await fetchSupportMessagesApi({
-      room_type: activeRoom.type,
-      room_id: activeRoom.room_id,
+    const payload = await fetchSupportMessagesApi({
+      room_type: requestedRoom.type,
+      room_id: requestedRoom.room_id,
       limit: "300",
     });
+    if(
+      requestedRoom.type !== String(activeRoom.type || "public") ||
+      requestedRoom.room_id !== String(activeRoom.room_id || "public")
+    ) return;
+
+    const rows = payload.rows;
+    let visibleRows = rows.filter((m) => activeRoom.type === "public" ? isPublicRoomRow(m) : isRowInActiveRoom(m));
+    if (activeRoom.type === "public" && !visibleRows.length && rows.length) {
+      visibleRows = rows.filter((m) => !isExplicitDmRow(m));
+    }
+
+    renderStableMessageList(visibleRows, { forceBottom });
+    markActiveRoomSeenFromRows(visibleRows);
+    refreshSupportInteractions(visibleRows, forceBottom).catch(()=>{});
+    scheduleSeenFlush();
   } catch (apiErr) {
     console.error(apiErr);
     setStatus(`Could not load messages. Please contact ${ADMIN_NAME}.`, "error");
-    return;
+  } finally {
+    messagesLoadInFlight = false;
+    if(messagesReloadQueued){
+      messagesReloadQueued = false;
+      setTimeout(() => loadMessages({ forceBottom:false }).catch(()=>{}), 0);
+    }
   }
-
-  let visibleRows = rows.filter((m) => activeRoom.type === "public" ? isPublicRoomRow(m) : isRowInActiveRoom(m));
-  if (activeRoom.type === "public" && !visibleRows.length && rows.length) {
-    visibleRows = rows.filter((m) => !isExplicitDmRow(m));
-  }
-
-  renderStableMessageList(visibleRows, { forceBottom });
-  markActiveRoomSeenFromRows(visibleRows);
-  scheduleSeenFlush();
 }
 
 
@@ -1084,6 +1313,139 @@ function bindDeleteButtons(){
   });
 }
 
+const busySupportReactions = new Set();
+
+function closeSupportReactionMenu(){
+  const menu = document.getElementById("supportReactionMenu");
+  if(menu) menu.hidden = true;
+}
+
+function closeSupportReaderPopovers(except = null){
+  messagesList?.querySelectorAll(".support-readers-popover").forEach((popover) => {
+    if(popover !== except) popover.hidden = true;
+  });
+}
+
+function ensureSupportReactionMenu(){
+  let menu = document.getElementById("supportReactionMenu");
+  if(menu) return menu;
+  menu = document.createElement("div");
+  menu.id = "supportReactionMenu";
+  menu.hidden = true;
+  menu.setAttribute("role", "menu");
+  document.body.appendChild(menu);
+  return menu;
+}
+
+function openSupportReactionMenu(button, messageId){
+  if(!button || !messageId || !supportInteractionsAvailable) return;
+  closeSupportReaderPopovers();
+  const menu = ensureSupportReactionMenu();
+  const mine = String(interactionForMessage(messageId)?.reactions?.mine || "");
+  menu.dataset.messageId = String(messageId);
+  menu.innerHTML = SUPPORT_REACTIONS.map(([key, icon, label]) =>
+    `<button type="button" class="${mine === key ? "active" : ""}" data-reaction="${escapeHtml(key)}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">${icon}</button>`
+  ).join("");
+  menu.hidden = false;
+  const rect = button.getBoundingClientRect();
+  const width = Math.min(270, window.innerWidth - 16);
+  menu.style.left = `${Math.max(8, Math.min(window.innerWidth - width - 8, rect.left - 100))}px`;
+  menu.style.top = `${Math.max(8, rect.top - 52)}px`;
+}
+
+function optimisticallyToggleSupportReaction(messageId, reaction){
+  const id = String(messageId);
+  const current = interactionForMessage(id);
+  const next = JSON.parse(JSON.stringify(current));
+  const reactions = next.reactions || emptySupportInteraction().reactions;
+  const previousMine = String(reactions.mine || "");
+  if(previousMine && Number(reactions.counts?.[previousMine] || 0) > 0){
+    reactions.counts[previousMine] -= 1;
+  }
+  reactions.mine = previousMine === reaction ? "" : reaction;
+  if(reactions.mine){
+    reactions.counts[reactions.mine] = Number(reactions.counts?.[reactions.mine] || 0) + 1;
+  }
+  next.reactions = reactions;
+  supportInteractions[id] = next;
+}
+
+function refreshRenderedSupportInteractions(){
+  lastSupportListSignature = "";
+  renderStableMessageList(visibleMessageRows, { forceBottom:false });
+}
+
+async function toggleSupportReaction(messageId, reaction){
+  const id = String(messageId || "");
+  const key = String(reaction || "");
+  if(!id || !key || busySupportReactions.has(id) || !supportInteractionsAvailable) return;
+  busySupportReactions.add(id);
+  const previous = supportInteractions[id] ? JSON.parse(JSON.stringify(supportInteractions[id])) : emptySupportInteraction();
+  optimisticallyToggleSupportReaction(id, key);
+  refreshRenderedSupportInteractions();
+  closeSupportReactionMenu();
+  try{
+    const result = await postSupportInteraction({ action:"toggle", message_id:Number(id), reaction:key });
+    if(result?.available === false){
+      supportInteractions = Object.create(null);
+    }
+  }catch(error){
+    supportInteractions[id] = previous;
+    setStatus("Could not save the reaction.", "error");
+  }finally{
+    busySupportReactions.delete(id);
+    refreshRenderedSupportInteractions();
+  }
+}
+
+messagesList?.addEventListener("click", (event) => {
+  const reactionBadge = event.target?.closest?.("button.support-reaction-badge");
+  if(reactionBadge){
+    event.preventDefault();
+    event.stopPropagation();
+    toggleSupportReaction(reactionBadge.dataset.messageId, reactionBadge.dataset.reaction);
+    return;
+  }
+
+  const reactionOpen = event.target?.closest?.("button.support-react-open");
+  if(reactionOpen){
+    event.preventDefault();
+    event.stopPropagation();
+    openSupportReactionMenu(reactionOpen, reactionOpen.dataset.messageId);
+    return;
+  }
+
+  const readersOpen = event.target?.closest?.("button.support-readers-open");
+  if(readersOpen){
+    event.preventDefault();
+    event.stopPropagation();
+    closeSupportReactionMenu();
+    const popover = readersOpen.parentElement?.querySelector?.(".support-readers-popover");
+    if(!popover) return;
+    const willOpen = popover.hidden;
+    closeSupportReaderPopovers(popover);
+    popover.hidden = !willOpen;
+  }
+});
+
+document.addEventListener("click", (event) => {
+  const menuChoice = event.target?.closest?.("#supportReactionMenu button[data-reaction]");
+  if(menuChoice){
+    event.preventDefault();
+    event.stopPropagation();
+    const menu = menuChoice.closest("#supportReactionMenu");
+    toggleSupportReaction(menu?.dataset?.messageId, menuChoice.dataset.reaction);
+    return;
+  }
+  if(!event.target?.closest?.("#supportReactionMenu,.support-msg-tools")){
+    closeSupportReactionMenu();
+    closeSupportReaderPopovers();
+  }
+}, true);
+
+window.addEventListener("scroll", closeSupportReactionMenu, true);
+window.addEventListener("resize", closeSupportReactionMenu);
+
 function subscribeRoom() {
   if (sub) {
     try { clearInterval(sub); } catch {}
@@ -1096,7 +1458,7 @@ function subscribeRoom() {
   sub = setInterval(() => {
     if(!isSupportChatOpen()) return;
     loadMessages({ forceBottom:false }).catch(()=>{});
-  }, 4000);
+  }, 2200);
 }
 
 // Background listener to keep unread badges updated even when the Support modal is closed.
@@ -1104,14 +1466,15 @@ function subscribeBackground(){
   if(bgSub) return;
   bgSub = setInterval(() => {
     loadUsers().catch(()=>{});
-  }, 8000);
+  }, 6000);
 }
 
 async function refreshRoom() {
   setStatus("");
-  await loadUsers();
-  scheduleSeenFlush();
-  await loadMessages({ forceBottom: true });
+  await Promise.allSettled([
+    loadUsers(),
+    loadMessages({ forceBottom:true }),
+  ]);
   scheduleSeenFlush();
   subscribeRoom();
 }
@@ -1208,6 +1571,7 @@ async function sendMessage() {
   }
 
   msgInput.value = "";
+  msgInput.dispatchEvent(new Event("input", { bubbles:true }));
   setSelectedFile(null);
   if(attachInput) attachInput.value = "";
 
@@ -1238,6 +1602,13 @@ async function openSupport() {
   upsertProfileName(name).catch(()=>{});
 
   show(chatOverlay);
+  if(messagesList && !messagesList.querySelector(".support-msg")){
+    messagesList.innerHTML = '<div class="support-loading-state">Loading messages…</div>';
+    lastSupportListSignature = "__loading__";
+  }
+  if(usersList && !usersList.querySelector(".support-user")){
+    usersList.innerHTML = '<div class="support-loading-state">Loading people…</div>';
+  }
   setRoomPublic();
   await refreshRoom();
   scheduleSeenFlush();
@@ -1320,6 +1691,7 @@ window.addEventListener("storage", (e) => {
 // ===== STEP 6.2 SUPPORT SEEN FLUSH EVENTS START =====
 messagesList?.addEventListener("scroll", () => {
   if (isNearSupportBottom(80)) scheduleSeenFlush();
+  scheduleVisibleSupportReadScan();
 }, { passive: true });
 
 chatOverlay?.addEventListener("pointerdown", () => {

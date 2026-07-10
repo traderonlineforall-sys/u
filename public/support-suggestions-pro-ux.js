@@ -85,12 +85,30 @@
   function addAutoGrow(textarea){
     if(!textarea || textarea.dataset.sruxGrow === "1") return;
     textarea.dataset.sruxGrow = "1";
-    const grow = () => {
+    if(window.CSS?.supports?.("field-sizing", "content")){
+      textarea.style.setProperty("field-sizing", "content");
       textarea.style.height = "auto";
-      textarea.style.height = Math.min(160, Math.max(44, textarea.scrollHeight)) + "px";
+      return;
+    }
+
+    let frame = 0;
+    let lastHeight = 0;
+    const grow = () => {
+      frame = 0;
+      const previous = lastHeight || Math.round(textarea.getBoundingClientRect().height) || 44;
+      textarea.style.height = "1px";
+      const next = Math.min(160, Math.max(44, textarea.scrollHeight));
+      lastHeight = next;
+      textarea.style.height = next + "px";
+      textarea.style.overflowY = next >= 160 ? "auto" : "hidden";
+      if(Math.abs(previous - next) < 1) textarea.style.height = previous + "px";
     };
-    ["input", "change", "paste", "keyup"].forEach((ev) => textarea.addEventListener(ev, grow));
-    setTimeout(grow, 0);
+    const scheduleGrow = () => {
+      if(frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(grow);
+    };
+    textarea.addEventListener("input", scheduleGrow, { passive:true });
+    setTimeout(scheduleGrow, 0);
   }
 
   function ensureCounter(input, max){
@@ -106,11 +124,7 @@
       counter.classList.toggle("is-max", !!limit && len >= limit);
     };
     const parent = input.parentElement;
-    if(parent && parent.classList.contains("support-compose")){
-      parent.insertBefore(counter, input.nextSibling);
-    } else if(parent){
-      parent.appendChild(counter);
-    }
+    if(parent) parent.appendChild(counter);
     input.addEventListener("input", update);
     update();
   }
@@ -312,20 +326,13 @@
     if(state.observersStarted) return;
     state.observersStarted = true;
 
-    const rootObserver = new MutationObserver(() => {
-      observeIfExists("#suggestionsList", { childList:true, subtree:false });
-      observeIfExists("#supportUsersList", { childList:true, subtree:true, attributes:true, attributeFilter:["class"] });
-      observeIfExists("#supportMessagesList", { childList:true, subtree:false });
-      scheduleApply();
-    });
-    rootObserver.observe(D.body, { childList:true, subtree:true });
-
-    observeIfExists("#suggestionsList", { childList:true, subtree:false });
+    observeIfExists("#suggestionsList", { childList:true, subtree:true });
     observeIfExists("#supportUsersList", { childList:true, subtree:true, attributes:true, attributeFilter:["class"] });
-    observeIfExists("#supportMessagesList", { childList:true, subtree:false });
+    observeIfExists("#supportMessagesList", { childList:true, subtree:true });
 
     window.addEventListener("sr:suggestions-rendered", scheduleApply);
     window.addEventListener("sr:support-users-updated", scheduleApply);
+    window.addEventListener("sr:support-presence-updated", scheduleApply);
     window.addEventListener("sr:nickname-updated", scheduleApply);
   }
 
