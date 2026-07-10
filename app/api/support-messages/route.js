@@ -21,6 +21,22 @@ function normalizeText(value, fallback = ""){
   return String(value == null ? fallback : value);
 }
 
+function normalizeUserId(value){
+  const s = String(value || "").trim().slice(0, 160);
+  return /^[a-zA-Z0-9_.:\-]{8,160}$/.test(s) ? s : "";
+}
+
+function dmParticipants(roomId){
+  const parts = String(roomId || "").split("__");
+  if(parts.length !== 2) return [];
+  const ids = parts.map(normalizeUserId);
+  return ids.every(Boolean) && ids[0] !== ids[1] ? ids : [];
+}
+
+function canAccessDm(roomId, userId){
+  return dmParticipants(roomId).includes(userId);
+}
+
 function isMissingTableOrColumn(error){
   const msg = String(error?.message || "");
   const details = String(error?.details || "");
@@ -108,6 +124,8 @@ async function selectRows(supabase, { roomType, roomId, limit, recentOnly }){
 export async function GET(req){
   const sess = await requireUserSession(req);
   if(!sess.ok) return j({ error: sess.error }, { status: sess.status || 401 });
+  const userId = normalizeUserId(sess.payload?.uid);
+  if(!userId) return j({ error:"Missing authenticated user identity." }, { status:401 });
 
   const url = new URL(req.url);
   const mode = String(url.searchParams.get("mode") || "messages");
@@ -117,6 +135,9 @@ export async function GET(req){
 
   if(mode !== "recent" && roomType === "dm" && !roomId){
     return j({ error: "Missing room id." }, { status: 400 });
+  }
+  if(mode !== "recent" && roomType === "dm" && !canAccessDm(roomId, userId)){
+    return j({ error:"You are not a participant in this private room." }, { status:403 });
   }
 
   try{
@@ -128,7 +149,10 @@ export async function GET(req){
       recentOnly: mode === "recent",
     });
     if(error) return j({ error: error.message || "Could not load support messages." }, { status: 500 });
-    return j({ ok: true, rows });
+    const visibleRows = mode === "recent"
+      ? rows.filter((row) => isPublicLikeRow(row) || canAccessDm(row?.room_id, userId))
+      : rows;
+    return j({ ok: true, rows:visibleRows });
   }catch(err){
     return j({ error: String(err?.message || err || "Could not load support messages.") }, { status: 500 });
   }
