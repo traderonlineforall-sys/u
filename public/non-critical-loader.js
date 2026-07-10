@@ -49,7 +49,7 @@
   }
 
   function loadSupportThenOpen(){
-    importOnce('support-chat', './support-chat.js?v=20260710-final-support-upgrade').then(function(){
+    importOnce('support-chat', './support-chat.js?v=20260710-support-scroll-stable2').then(function(){
       try {
         if (typeof window.__srOpenSupportChat === 'function') {
           window.__srOpenSupportChat();
@@ -143,7 +143,7 @@
 
     // Premium visual skin for Suggestions + Support only (CSS merged for GitHub file-count cleanup).
     injectMergedNonCriticalStyles();
-    safeStyle('./support-suggestions-final-upgrade.css?v=20260710-final1');
+    safeStyle('./support-suggestions-final-upgrade.css?v=20260710-support-scroll-stable2');
     importOnce('online-users-count', './online-users-count.js?v=20260710-fast-presence');
     importOnce('support-presence-visual', './support-presence-visual.js?v=20260710-fast-presence');
 

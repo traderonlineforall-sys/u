@@ -82,6 +82,15 @@
     ["#suggestionStatus", "#supportChatStatus", "#adminStatus", "#adminAuthStatus"].forEach((sel) => watchStatusNode($(sel)));
   }
 
+  function stabilizeSupportComposer(textarea){
+    if(!textarea || textarea.dataset.sruxComposerStable === "1") return;
+    textarea.dataset.sruxComposerStable = "1";
+    textarea.dataset.sruxGrow = "fixed";
+    textarea.style.removeProperty("field-sizing");
+    textarea.style.removeProperty("height");
+    textarea.style.overflowY = "auto";
+  }
+
   function addAutoGrow(textarea){
     if(!textarea || textarea.dataset.sruxGrow === "1") return;
     textarea.dataset.sruxGrow = "1";
@@ -130,7 +139,8 @@
   }
 
   function enhanceTextareas(){
-    ["#supportMessageInput", "#suggestionInput", ".sug-reply-input"].forEach((sel) => $all(sel).forEach(addAutoGrow));
+    stabilizeSupportComposer($("#supportMessageInput"));
+    ["#suggestionInput", ".sug-reply-input"].forEach((sel) => $all(sel).forEach(addAutoGrow));
     ensureCounter($("#supportMessageInput"), 5000);
     ensureCounter($("#suggestionInput"), 1200);
     $all(".sug-reply-input").forEach((el) => ensureCounter(el, 1200));

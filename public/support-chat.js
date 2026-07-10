@@ -652,6 +652,10 @@ let recentCache = [];
 let lastSupportListSignature = "";
 let loadUsersTimer = null;
 let seenFlushTimer = null;
+let supportBottomLockUntil = 0;
+let supportBottomSettleToken = 0;
+let supportResizeFrame = 0;
+let supportListResizeObserver = null;
 
 function supportMessageDomId(row) {
   const r = normalizeSupportRow(row || {});
@@ -684,24 +688,115 @@ function supportListSignature(rows) {
   return (rows || []).map(supportRowSignature).join("\n");
 }
 
+function supportRowTime(row) {
+  const value = Date.parse(normalizeSupportRow(row || {}).created_at || "");
+  return Number.isFinite(value) ? value : 0;
+}
+
+function sortSupportRowsChronologically(rows) {
+  return (Array.isArray(rows) ? rows : [])
+    .map((row, index) => ({ row: normalizeSupportRow(row), index }))
+    .sort((a, b) => {
+      const byTime = supportRowTime(a.row) - supportRowTime(b.row);
+      if (byTime) return byTime;
+      const aId = Number(a.row.id);
+      const bId = Number(b.row.id);
+      if (Number.isFinite(aId) && Number.isFinite(bId) && aId !== bId) return aId - bId;
+      return a.index - b.index;
+    })
+    .map((entry) => entry.row);
+}
+
 function isSupportChatOpen() {
   return !!chatOverlay && chatOverlay.style.display !== "none";
 }
 
+function supportDistanceFromBottom() {
+  if (!messagesList) return 0;
+  return Math.max(0, messagesList.scrollHeight - messagesList.clientHeight - messagesList.scrollTop);
+}
+
 function isNearSupportBottom(px = 140) {
-  if (!messagesList) return true;
-  const distance = messagesList.scrollHeight - messagesList.clientHeight - messagesList.scrollTop;
-  return distance <= px;
+  return supportDistanceFromBottom() <= px;
+}
+
+function writeSupportScrollTop(value) {
+  if (!messagesList) return;
+  try {
+    const max = Math.max(0, messagesList.scrollHeight - messagesList.clientHeight);
+    messagesList.scrollTop = Math.max(0, Math.min(max, Number(value) || 0));
+  } catch {}
 }
 
 function smartSupportScroll(force = false) {
   if (!messagesList) return;
   if (!force && !isNearSupportBottom()) return;
-  const go = () => {
-    try { messagesList.scrollTop = messagesList.scrollHeight; } catch {}
-  };
+  const go = () => writeSupportScrollTop(messagesList.scrollHeight);
   go();
   requestAnimationFrame(go);
+}
+
+function cancelSupportBottomLock() {
+  supportBottomLockUntil = 0;
+  supportBottomSettleToken += 1;
+}
+
+function settleSupportAtBottom(duration = 850) {
+  if (!messagesList || !isSupportChatOpen()) return;
+  const token = ++supportBottomSettleToken;
+  supportBottomLockUntil = Date.now() + Math.max(250, Number(duration) || 850);
+  const checkpoints = [0, 24, 72, 150, 300, 520, Math.max(700, duration)];
+  checkpoints.forEach((delay) => {
+    setTimeout(() => {
+      if (token !== supportBottomSettleToken) return;
+      if (!isSupportChatOpen() || Date.now() > supportBottomLockUntil + 80) return;
+      smartSupportScroll(true);
+    }, delay);
+  });
+}
+
+function captureSupportScrollState() {
+  if (!messagesList) return null;
+  const listRect = messagesList.getBoundingClientRect?.();
+  let anchorId = "";
+  let anchorOffset = 0;
+  if (listRect) {
+    const rows = Array.from(messagesList.querySelectorAll(".support-msg[data-support-msg-id]"));
+    const anchor = rows.find((row) => row.getBoundingClientRect().bottom > listRect.top + 1);
+    if (anchor) {
+      anchorId = String(anchor.dataset.supportMsgId || "");
+      anchorOffset = anchor.getBoundingClientRect().top - listRect.top;
+    }
+  }
+  return {
+    nearBottom: isNearSupportBottom(),
+    distanceFromBottom: supportDistanceFromBottom(),
+    anchorId,
+    anchorOffset,
+  };
+}
+
+function restoreSupportScrollState(state, forceBottom = false) {
+  if (!messagesList) return;
+  if (forceBottom || state?.nearBottom || Date.now() < supportBottomLockUntil) {
+    smartSupportScroll(true);
+    return;
+  }
+  requestAnimationFrame(() => {
+    if (!messagesList || !state) return;
+    if (state.anchorId) {
+      const anchor = Array.from(messagesList.querySelectorAll(".support-msg[data-support-msg-id]"))
+        .find((row) => String(row.dataset.supportMsgId || "") === state.anchorId);
+      const listRect = messagesList.getBoundingClientRect?.();
+      if (anchor && listRect) {
+        const nextOffset = anchor.getBoundingClientRect().top - listRect.top;
+        writeSupportScrollTop(messagesList.scrollTop + (nextOffset - state.anchorOffset));
+        return;
+      }
+    }
+    const max = Math.max(0, messagesList.scrollHeight - messagesList.clientHeight);
+    writeSupportScrollTop(max - state.distanceFromBottom);
+  });
 }
 
 function keepSupportScrollStable(mutator, opts = {}) {
@@ -709,33 +804,26 @@ function keepSupportScrollStable(mutator, opts = {}) {
     mutator?.();
     return;
   }
-  const forceBottom = !!opts.forceBottom;
-  const wasNearBottom = forceBottom || isNearSupportBottom();
-  const bottomOffset = messagesList.scrollHeight - messagesList.scrollTop;
+  const state = captureSupportScrollState();
   mutator?.();
-  if (wasNearBottom) {
-    smartSupportScroll(true);
-  } else {
-    requestAnimationFrame(() => {
-      try { messagesList.scrollTop = Math.max(0, messagesList.scrollHeight - bottomOffset); } catch {}
-    });
-  }
+  restoreSupportScrollState(state, !!opts.forceBottom);
 }
 
 function renderStableMessageList(rows, opts = {}) {
-  const visibleRows = Array.isArray(rows) ? rows : [];
-  visibleMessageRows = visibleRows;
-  const signature = supportListSignature(visibleRows);
+  const orderedRows = sortSupportRowsChronologically(rows);
+  visibleMessageRows = orderedRows;
+  const signature = supportListSignature(orderedRows);
   if (signature === lastSupportListSignature) {
     bindDeleteButtons();
-    if (opts.forceBottom) smartSupportScroll(true);
+    if (opts.forceBottom) settleSupportAtBottom(650);
     return false;
   }
   keepSupportScrollStable(() => {
-    messagesList.innerHTML = visibleRows.map(renderSupportMessageRow).join("");
+    messagesList.innerHTML = orderedRows.map(renderSupportMessageRow).join("");
     lastSupportListSignature = signature;
   }, { forceBottom: !!opts.forceBottom });
   bindDeleteButtons();
+  if (opts.forceBottom) settleSupportAtBottom(850);
   return true;
 }
 
@@ -1602,6 +1690,7 @@ async function openSupport() {
   upsertProfileName(name).catch(()=>{});
 
   show(chatOverlay);
+  settleSupportAtBottom(1100);
   if(messagesList && !messagesList.querySelector(".support-msg")){
     messagesList.innerHTML = '<div class="support-loading-state">Loading messages…</div>';
     lastSupportListSignature = "__loading__";
@@ -1611,10 +1700,12 @@ async function openSupport() {
   }
   setRoomPublic();
   await refreshRoom();
+  settleSupportAtBottom(900);
   scheduleSeenFlush();
 }
 
 function closeAll() {
+  cancelSupportBottomLock();
   hide(nameOverlay);
   hide(chatOverlay);
   setStatus("");
@@ -1689,6 +1780,22 @@ window.addEventListener("storage", (e) => {
 });
 
 // ===== STEP 6.2 SUPPORT SEEN FLUSH EVENTS START =====
+if (messagesList && typeof ResizeObserver === "function") {
+  supportListResizeObserver = new ResizeObserver(() => {
+    if (!isSupportChatOpen()) return;
+    if (Date.now() >= supportBottomLockUntil && !isNearSupportBottom(6)) return;
+    if (supportResizeFrame) cancelAnimationFrame(supportResizeFrame);
+    supportResizeFrame = requestAnimationFrame(() => {
+      supportResizeFrame = 0;
+      smartSupportScroll(true);
+    });
+  });
+  supportListResizeObserver.observe(messagesList);
+}
+
+messagesList?.addEventListener("wheel", cancelSupportBottomLock, { passive: true });
+messagesList?.addEventListener("touchstart", cancelSupportBottomLock, { passive: true });
+
 messagesList?.addEventListener("scroll", () => {
   if (isNearSupportBottom(80)) scheduleSeenFlush();
   scheduleVisibleSupportReadScan();

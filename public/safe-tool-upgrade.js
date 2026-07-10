@@ -735,28 +735,17 @@
     autoGrow();
   }
 
-  // Adjust the size behaviour of the support message box and admin envelope
-  // input.  These fields should not grow indefinitely; they adopt a
-  // similar height limit to the suggestions input and enable internal
-  // scrolling for overflow.
+  // Keep the Support composer viewport fixed and cap the admin envelope.
+  // A fixed Support composer prevents the message history from jumping
+  // while text is entered or deleted.
   function installEnvelopeEnhancements() {
-    // Support chat message input
+    // Support chat uses a fixed-height composer. Keeping its viewport stable
+    // prevents the message list from jumping while the user types or deletes text.
     var msgInput = document.getElementById("supportMessageInput");
     if (msgInput) {
-      var maxMsgHeight = 220;
-      var autoGrowMsg = function () {
-        msgInput.style.height = "auto";
-        var h = msgInput.scrollHeight;
-        if (h > maxMsgHeight) {
-          h = maxMsgHeight;
-          msgInput.style.overflowY = "auto";
-        } else {
-          msgInput.style.overflowY = "hidden";
-        }
-        msgInput.style.height = h + "px";
-      };
-      msgInput.addEventListener("input", autoGrowMsg);
-      autoGrowMsg();
+      msgInput.setAttribute("data-sr-stable-composer", "1");
+      msgInput.style.removeProperty("height");
+      msgInput.style.overflowY = "auto";
     }
     // Admin envelope input (announcement panel)
     var envInput = document.getElementById("adminAnnouncementEnvelopeInput");

@@ -447,3 +447,62 @@
   #supportChatOverlay *,
   #suggestionsOverlay *{ animation-duration:.001ms !important; transition-duration:.001ms !important; scroll-behavior:auto !important; }
 }
+
+
+/* Support viewport stability: newest messages stay visible and composing never resizes the chat. */
+#supportChatOverlay .support-messages{
+  display:grid !important;
+  grid-template-rows:minmax(0, 1fr) auto auto auto !important;
+  min-height:0 !important;
+  overflow:hidden !important;
+}
+
+#supportChatOverlay #supportMessagesList{
+  min-height:0 !important;
+  overflow-x:hidden !important;
+  overflow-y:auto !important;
+  scroll-behavior:auto !important;
+  scrollbar-gutter:stable;
+  overscroll-behavior:contain;
+  overflow-anchor:none !important;
+  contain:layout style;
+}
+
+#supportChatOverlay .support-compose{
+  box-sizing:border-box !important;
+  height:84px !important;
+  min-height:84px !important;
+  max-height:84px !important;
+  align-items:center !important;
+}
+
+#supportChatOverlay #supportMessageInput{
+  box-sizing:border-box !important;
+  field-sizing:fixed !important;
+  height:56px !important;
+  min-height:56px !important;
+  max-height:56px !important;
+  overflow-x:hidden !important;
+  overflow-y:auto !important;
+  resize:none !important;
+  line-height:1.45 !important;
+}
+
+#supportChatOverlay #supportAttachPreview{
+  flex:0 0 auto !important;
+}
+
+#supportChatOverlay #supportChatStatus{
+  box-sizing:border-box !important;
+  min-height:30px !important;
+  flex:0 0 auto !important;
+}
+
+@media (max-width:760px){
+  #supportChatOverlay .support-compose{
+    height:132px !important;
+    min-height:132px !important;
+    max-height:132px !important;
+    align-items:end !important;
+  }
+}
