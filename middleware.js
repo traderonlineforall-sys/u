@@ -79,7 +79,13 @@ export async function middleware(request) {
   }
 
   const result = await verifySession(token, secret);
-  if (result.ok) {
+  if (
+    result.ok &&
+    result.payload?.role === "user" &&
+    Number(result.payload?.session_version || 0) === 2 &&
+    typeof result.payload?.uid === "string" &&
+    typeof result.payload?.sid === "string"
+  ) {
     return applySecurityHeaders(NextResponse.next());
   }
 

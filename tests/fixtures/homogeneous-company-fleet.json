@@ -1,0 +1,56 @@
+{
+  "shared_profile": {
+    "hardware": "company-model-a",
+    "windows_image": "corp-win11-24h2-v7",
+    "browser": "managed-chromium",
+    "fonts": "corporate-default",
+    "gpu_canvas": "integrated-standard",
+    "screen": "1920x1080",
+    "nat": "shared-office-egress"
+  },
+  "devices": [
+    { "user": "user-00000001", "credential": "credential-01" },
+    { "user": "user-00000002", "credential": "credential-02" },
+    { "user": "user-00000003", "credential": "credential-03" },
+    { "user": "user-00000004", "credential": "credential-04" },
+    { "user": "user-00000005", "credential": "credential-05" },
+    { "user": "user-00000006", "credential": "credential-06" },
+    { "user": "user-00000007", "credential": "credential-07" },
+    { "user": "user-00000008", "credential": "credential-08" },
+    { "user": "user-00000009", "credential": "credential-09" },
+    { "user": "user-00000010", "credential": "credential-10" }
+  ],
+  "storage_scenarios": [
+    {
+      "name": "session cookie deleted",
+      "input": { "verifiedCredential": true },
+      "expected_decision": "AUTO_LOGIN_VERIFIED"
+    },
+    {
+      "name": "local storage deleted but HttpOnly credential remains",
+      "input": { "verifiedCredential": true, "newDevice": true },
+      "expected_decision": "AUTO_LOGIN_VERIFIED"
+    },
+    {
+      "name": "trusted cookie deleted but browser-local secret remains",
+      "input": { "credentialContinuation": true },
+      "expected_decision": "AUTO_LOGIN_RECOVERED"
+    },
+    {
+      "name": "only homogeneous fleet signals remain",
+      "input": { "mode": "verified_only", "suggestionCount": 3 },
+      "expected_decision": "SELECTION_REQUIRED"
+    },
+    {
+      "name": "all site data deleted",
+      "input": { "newDevice": true, "suggestionCount": 0 },
+      "expected_decision": "NEW_DEVICE"
+    },
+    {
+      "name": "private mode without prior secrets",
+      "input": { "newDevice": true, "suggestionCount": 0 },
+      "expected_decision": "NEW_DEVICE"
+    }
+  ],
+  "clone_limit": "A traditional web application cannot prove which browser is physical-original after the complete exportable credential and browser profile are copied."
+}

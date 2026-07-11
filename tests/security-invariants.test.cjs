@@ -30,7 +30,7 @@ test("private support reads enforce room membership", () => {
   assert.match(src, /rows\.filter\(\(row\).*canAccessDm/s);
 });
 
-test("login keeps exact trusted identity primary and protects smart nickname choice", () => {
+test("login uses server-bound credentials and one-time opaque recovery choices", () => {
   const login = read("app/api/login/route.js");
   const identity = read("lib/server/device-identity.js");
   const recovery = read("lib/server/device-recovery.js");
@@ -38,14 +38,17 @@ test("login keeps exact trusted identity primary and protects smart nickname cho
   assert.match(login, /registerTrustedDeviceIdentity/);
   assert.match(login, /verifyDeviceNicknameChoice/);
   assert.match(login, /verifyDeviceRecoveryTicket/);
-  assert.match(login, /skip_smart_recovery/);
+  assert.match(login, /consumeDeviceRecoveryTicket/);
+  assert.match(login, /FORBIDDEN_IDENTITY_FIELDS/);
   assert.match(identity, /device_key_hash/);
   assert.match(identity, /timingSafeEqual/);
-  assert.match(recovery, /role:"device_recovery_choice"/);
-  assert.match(recovery, /recovery_binding_hash/);
+  assert.match(identity, /DEVICE_CREDENTIAL_PEPPER/);
+  assert.match(identity, /previous_secret_hash/);
+  assert.match(recovery, /role:\s*"device_recovery_ticket"/);
+  assert.match(recovery, /support_device_recovery_tickets/);
   assert.match(recovery, /RECOVERY_TICKET_MAX_AGE_MS/);
   assert.match(recovery, /minimum_score/);
-  assert.doesNotMatch(login, /finalUserId\s*=\s*incomingUserId\s*;/);
+  assert.doesNotMatch(login, /incomingUserId|requestedNickname/);
 });
 
 test("database upgrade leaves no anonymous support message read policy", () => {
@@ -85,6 +88,8 @@ test("login UI never sends a suggested user id directly", () => {
   assert.match(page, /recovery_ticket/);
   assert.match(page, /ولا واحدة منهم/);
   assert.doesNotMatch(page, /selected_user_id/);
+  assert.doesNotMatch(page, /value=\{nickname\}|placeholder="مثال: عقرب الصحراء"/);
+  assert.doesNotMatch(page, /confidenceBadge[^}]*confidence/s);
 });
 
 test("smart identity SQL adds only server-side hashed profile columns", () => {

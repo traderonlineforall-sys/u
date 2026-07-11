@@ -2,8 +2,6 @@
   "use strict";
 
   var LEARN_KEY = "sr_trusted_device_identity_learned_v1";
-  var ID_KEY = "sr_tool_user_id";
-  var NAME_KEY = "sr_tool_user_name";
   var DEVICE_SECRET_KEY = "sr_tool_device_instance_secret_v1";
   var LEARN_EVERY_MS = 1000 * 60 * 60 * 24 * 30;
 
@@ -11,11 +9,11 @@
   function localSet(k, v){ try { localStorage.setItem(k, v); } catch {} }
   function createDeviceSecret(){
     try{
-      var a=crypto.randomUUID?crypto.randomUUID():Math.random().toString(16).slice(2);
-      var bytes=new Uint8Array(24); crypto.getRandomValues(bytes);
-      return "dev_"+a+"_"+Array.from(bytes).map(function(x){return x.toString(16).padStart(2,"0");}).join("");
+      if(!window.crypto || typeof crypto.getRandomValues!=="function") return "";
+      var bytes=new Uint8Array(32); crypto.getRandomValues(bytes);
+      return "dev_v2_"+Array.from(bytes).map(function(x){return x.toString(16).padStart(2,"0");}).join("");
     }catch{
-      return "dev_"+Date.now().toString(16)+"_"+Math.random().toString(16).slice(2)+Math.random().toString(16).slice(2);
+      return "";
     }
   }
   function getStableDeviceSecret(){
@@ -26,25 +24,15 @@
     }
     return v;
   }
-  function cookieGet(name){
-    try{
-      var prefix = name + "=";
-      var parts = String(document.cookie || "").split(/;\s*/);
-      for(var i=0;i<parts.length;i++) if(parts[i].indexOf(prefix) === 0) return decodeURIComponent(parts[i].slice(prefix.length));
-    }catch{}
-    return "";
-  }
-  function cleanName(v){ return String(v || "").replace(/\u0000/g, "").replace(/[\r\n\t]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 40); }
   function shouldSkipPage(){ var p = String(location.pathname || ""); return p === "/login" || p === "/logout" || p.indexOf("/api/") === 0; }
-  function fallbackHash(s){ s=String(s||""); var h=2166136261; for(var i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0).toString(16).padStart(8,"0"); }
   function hashText(input){
     var s = String(input || "");
     if(window.crypto && crypto.subtle && window.TextEncoder){
       return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)).then(function(buf){
         return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,"0"); }).join("");
-      }).catch(function(){ return fallbackHash(s); });
+      }).catch(function(){ return ""; });
     }
-    return Promise.resolve(fallbackHash(s));
+    return Promise.resolve("");
   }
   function bucketNumber(value, bucket){ var n=Number(value||0); if(!isFinite(n)||n<=0) return ""; var b=Number(bucket||1); return String(Math.round(n/b)*b); }
   function getCanvasHash(){
@@ -80,9 +68,10 @@
   }
   function maybeLearn(){
     if(shouldSkipPage()) return;
-    var uid=localGet(ID_KEY)||cookieGet(ID_KEY); var name=cleanName(localGet(NAME_KEY)||cookieGet(NAME_KEY)); if(!uid||!name) return;
     var now=Date.now(), prior={}; try{ prior=JSON.parse(localGet(LEARN_KEY)||"{}"); }catch{}
-    var sig=uid+"|"+name+"|trusted-v1";
+    // Presentation names and browser user ids are never identity evidence.
+    // The API derives the owner exclusively from the signed server session.
+    var sig="session-provenance-v2";
     if(prior&&prior.sig===sig&&Number(prior.ts||0)&&(now-Number(prior.ts||0))<LEARN_EVERY_MS) return;
     collectDeviceFingerprint().then(function(device_fingerprint){ return fetch("/api/device-confidence-learn",{ method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify({ device_fingerprint:device_fingerprint }) }); }).then(function(res){ return res.json().catch(function(){return {};}).then(function(data){ if(res&&res.ok&&data&&data.trusted_device) localSet(LEARN_KEY, JSON.stringify({ sig:sig, ts:now })); }); }).catch(function(){});
   }

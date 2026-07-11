@@ -150,7 +150,8 @@ async function upsertProfileName(name) {
       method: "POST",
       credentials: "same-origin",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ user_id: USER_ID, display_name: safe }),
+      // Presentation values are never sent as identity or profile-write proof.
+      body: JSON.stringify({}),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data?.error) throw new Error(data?.error || "support profile update failed");
@@ -178,7 +179,7 @@ async function ensureNicknameReady() {
 
 function redirectToNicknameLogin() {
   try { requireNicknameLogin(); }
-  catch { location.href = "/login?nickname=1"; }
+  catch { location.href = "/login"; }
 }
 
 // ---------- Helpers ----------

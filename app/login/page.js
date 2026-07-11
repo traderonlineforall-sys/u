@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 const ID_KEY = "sr_tool_user_id";
 const NAME_KEY = "sr_tool_user_name";
@@ -8,38 +8,20 @@ const COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 5;
 const DEVICE_SECRET_KEY = "sr_tool_device_instance_secret_v1";
 let memoryDeviceSecret = "";
 
-function safeLocalGet(key){ try { return localStorage.getItem(key) || ""; } catch { return ""; } }
 function safeLocalSet(key, value){ try { localStorage.setItem(key, value); } catch {} }
 function safeSessionSet(key, value){ try { sessionStorage.setItem(key, value); } catch {} }
-function safeCookieGet(name){
-  try {
-    const prefix = `${name}=`;
-    for (const part of String(document.cookie || "").split(/;\s*/)) {
-      if (part.startsWith(prefix)) return decodeURIComponent(part.slice(prefix.length));
-    }
-  } catch {}
-  return "";
-}
 function safeCookieSet(name, value){
   try { document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${COOKIE_MAX_AGE}; samesite=lax`; } catch {}
 }
-function normalizeId(value){
-  const s = String(value || "").trim();
-  return /^[a-zA-Z0-9_.:-]{12,}$/.test(s) ? s : "";
-}
-function createUserId(){
-  try { if (crypto?.randomUUID) return `uid_${crypto.randomUUID()}`; } catch {}
-  return `uid_${Date.now().toString(16)}_${Math.random().toString(16).slice(2)}`;
-}
 function createDeviceSecret(){
   try {
-    const a = crypto?.randomUUID ? crypto.randomUUID() : Math.random().toString(16).slice(2);
-    const bytes = new Uint8Array(16);
-    crypto?.getRandomValues?.(bytes);
-    const b = Array.from(bytes).map((x)=>x.toString(16).padStart(2,"0")).join("");
-    return `dev_${a}_${b}_${Date.now().toString(16)}`;
+    if(typeof crypto?.getRandomValues !== "function") return "";
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    const secret = Array.from(bytes).map((x)=>x.toString(16).padStart(2,"0")).join("");
+    return `dev_v2_${secret}`;
   } catch {
-    return `dev_${Date.now().toString(16)}_${Math.random().toString(16).slice(2)}_${Math.random().toString(16).slice(2)}`;
+    return "";
   }
 }
 function getStableDeviceSecret(){
@@ -57,14 +39,6 @@ function getStableDeviceSecret(){
   try { sessionStorage.setItem(DEVICE_SECRET_KEY, v); } catch {}
   return v;
 }
-function getStableUserId(){
-  let id = normalizeId(safeLocalGet(ID_KEY)) || normalizeId(safeCookieGet(ID_KEY));
-  if(!id) id = createUserId();
-  safeLocalSet(ID_KEY, id);
-  safeSessionSet(ID_KEY, id);
-  safeCookieSet(ID_KEY, id);
-  return id;
-}
 function cleanNickname(value){
   return String(value || "")
     .replace(/\u0000/g, "")
@@ -73,36 +47,29 @@ function cleanNickname(value){
     .trim()
     .slice(0, 40);
 }
-function getStoredNickname(){ return cleanNickname(safeLocalGet(NAME_KEY) || safeCookieGet(NAME_KEY)); }
-function setStoredNickname(name){
-  const v = cleanNickname(name);
-  if(!v) return;
-  safeLocalSet(NAME_KEY, v);
-  safeSessionSet(NAME_KEY, v);
-  safeCookieSet(NAME_KEY, v);
+function storePresentationIdentity(profile){
+  const userId = String(profile?.user_id || "").trim();
+  const displayName = cleanNickname(profile?.display_name || "");
+  if(userId){
+    safeLocalSet(ID_KEY, userId);
+    safeSessionSet(ID_KEY, userId);
+    safeCookieSet(ID_KEY, userId);
+  }
+  if(displayName){
+    safeLocalSet(NAME_KEY, displayName);
+    safeSessionSet(NAME_KEY, displayName);
+    safeCookieSet(NAME_KEY, displayName);
+  }
 }
-
-function nicknameError(value){
-  const v = cleanNickname(value);
-  if(v.length < 2) return "اكتب كنية خيالية من حرفين على الأقل.";
-  if(/[<>\\{}[\]`]/.test(v)) return "الكنية تحتوي على رموز غير مسموحة.";
-  if(/@/.test(v) || /https?:\/\//i.test(v)) return "لا تكتب بريد إلكتروني أو رابط. اكتب كنية خيالية فقط.";
-  if(/\+?\d[\d\s().-]{7,}/.test(v)) return "لا تكتب رقم تليفون. اكتب كنية خيالية فقط.";
-  return "";
-}
-
-
 
 async function sha256Hex(value){
   try{
+    if(!crypto?.subtle) return "";
     const bytes = new TextEncoder().encode(String(value || ""));
     const buf = await crypto.subtle.digest("SHA-256", bytes);
     return Array.from(new Uint8Array(buf)).map((b)=>b.toString(16).padStart(2,"0")).join("");
   }catch{
-    let h = 2166136261;
-    const str = String(value || "");
-    for(let i=0; i<str.length; i+=1){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
-    return (h >>> 0).toString(16);
+    return "";
   }
 }
 
@@ -449,42 +416,21 @@ async function collectDeviceFingerprint(){
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [nickname, setNickname] = useState("");
-  const [storedNickname, setStoredNicknameState] = useState("");
-  const [userId, setUserId] = useState("");
-  const [nicknameRequired, setNicknameRequired] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [agreeHint, setAgreeHint] = useState("");
-  const [nicknamePromptReason, setNicknamePromptReason] = useState("");
   const [recoverySuggestions, setRecoverySuggestions] = useState([]);
   const [recoveryTicket, setRecoveryTicket] = useState("");
   const [selectedRecoveryChoice, setSelectedRecoveryChoice] = useState("");
-  const [skipSmartRecovery, setSkipSmartRecovery] = useState(false);
+  const [identityUnavailable, setIdentityUnavailable] = useState(false);
 
-  useEffect(() => {
-    const uid = getStableUserId();
-    const nick = getStoredNickname();
-    const forcedNickname = new URLSearchParams(window.location.search).has("nickname");
-    setUserId(uid);
-    setStoredNicknameState(nick);
-    setNickname(nick || "");
-    // لا نعرض خانة الكنية افتراضيًا.
-    // لو الجهاز موثوق، السيرفر سيستعيد الكنية بالمفتاح العشوائي الدقيق.
-    // لو السيرفر احتاج كنية فعلًا، سيرجع nickname_required ونظهر الخانة وقتها فقط.
-    setNicknameRequired(forcedNickname);
-  }, []);
-
-  const nickErr = useMemo(() => (nicknameRequired && cleanNickname(nickname)) ? nicknameError(nickname) : "", [nickname, nicknameRequired]);
-  const hasNicknameChoice = cleanNickname(nickname);
-  const hasRecoveryChoices = recoverySuggestions.length > 0 && !!recoveryTicket;
+  const hasRecoveryChoices = recoverySuggestions.length >= 2 && !!recoveryTicket;
   const canSubmit = useMemo(() => (
     username.trim()
     && password
-    && (!nicknameRequired || (!!hasNicknameChoice && !nickErr))
     && (!hasRecoveryChoices || !!selectedRecoveryChoice)
-  ), [username, password, nicknameRequired, hasNicknameChoice, nickErr, hasRecoveryChoices, selectedRecoveryChoice]);
+  ), [username, password, hasRecoveryChoices, selectedRecoveryChoice]);
   const canProceed = useMemo(() => canSubmit && agreed, [canSubmit, agreed]);
 
   async function onSubmit(e) {
@@ -496,71 +442,63 @@ export default function LoginPage() {
       setAgreeHint("يرجى وضع علامة ✓ للموافقة قبل تسجيل الدخول.");
       return;
     }
-    if (nicknameRequired && cleanNickname(nickname) && nickErr) {
-      setErr(nickErr);
-      return;
-    }
     if (hasRecoveryChoices && !selectedRecoveryChoice) {
       setErr("اختر كنيتك من النتائج المقترحة أو اضغط «ولا واحدة منهم».");
       return;
     }
 
-    const uid = userId || getStableUserId();
-    const chosenNickname = cleanNickname(nicknameRequired ? nickname : (storedNickname || nickname));
-
     setBusy(true);
     try {
       const device_fingerprint = await collectDeviceFingerprint();
+      const requestBody = { username, password, device_fingerprint };
+      if (recoveryTicket && selectedRecoveryChoice) {
+        requestBody.recovery_ticket = recoveryTicket;
+        requestBody.recovery_choice_id = selectedRecoveryChoice;
+      }
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          username,
-          password,
-          user_id: uid,
-          nickname: chosenNickname,
-          nickname_from_storage: !!(!nicknameRequired && storedNickname),
-          recovery_ticket: recoveryTicket,
-          recovery_choice_id: selectedRecoveryChoice,
-          skip_smart_recovery: skipSmartRecovery,
-          device_fingerprint,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        if (data?.nickname_selection_required && Array.isArray(data?.nickname_suggestions)) {
-          setRecoverySuggestions(data.nickname_suggestions.slice(0, 3));
+        if (
+          data?.nickname_selection_required &&
+          Array.isArray(data?.nickname_suggestions) &&
+          data.nickname_suggestions.length >= 2
+        ) {
+          setRecoverySuggestions(data.nickname_suggestions.slice(0, 3).map((item) => ({
+            choice_id: String(item?.choice_id || ""),
+            display_name: cleanNickname(item?.display_name || ""),
+          })).filter((item) => item.choice_id && item.display_name));
           setRecoveryTicket(String(data.recovery_ticket || ""));
           setSelectedRecoveryChoice("");
-          setSkipSmartRecovery(false);
-          setNicknameRequired(false);
-          setNicknamePromptReason("");
+          setIdentityUnavailable(false);
           setErr("");
           return;
         }
-        if (data?.nickname_required) {
+        if (data?.identity_verification_required) {
           setRecoverySuggestions([]);
           setRecoveryTicket("");
           setSelectedRecoveryChoice("");
-          setNicknameRequired(true);
-          setNicknamePromptReason(data?.nickname_taken
-            ? "الكنية دي مرتبطة بجهاز موثوق آخر. اختار كنية مختلفة أو اطلب من الأدمن Reset."
-            : "لم نجد تطابقًا آمنًا لهذا الجهاز. اكتب كنية خيالية جديدة فقط.");
-          if(!data?.nickname_taken) setNickname("");
-          setStoredNicknameState("");
-          try { localStorage.removeItem(NAME_KEY); } catch {}
-          try { document.cookie = `${NAME_KEY}=; path=/; max-age=0; samesite=lax`; } catch {}
+          setIdentityUnavailable(true);
         }
         throw new Error(data?.error || "Login failed");
       }
 
-      if (data?.user_id) {
-        safeLocalSet(ID_KEY, data.user_id);
-        safeSessionSet(ID_KEY, data.user_id);
-        safeCookieSet(ID_KEY, data.user_id);
-      }
-      if (data?.display_name) setStoredNickname(data.display_name);
+      // Login/recovery responses intentionally contain no internal user id.
+      // After the signed session exists, a separate authenticated profile read
+      // synchronizes legacy presentation-only storage for the static tool.
+      storePresentationIdentity({ display_name: data?.display_name });
+      try {
+        const profileResponse = await fetch("/api/support-profile", {
+          method: "GET",
+          credentials: "same-origin",
+          cache: "no-store",
+        });
+        if (profileResponse.ok) storePresentationIdentity(await profileResponse.json());
+      } catch {}
 
       window.location.replace("/");
     } catch (e2) {
@@ -609,7 +547,7 @@ export default function LoginPage() {
             <div style={styles.nicknameBox} dir="rtl">
               <div style={styles.suggestionsTitle}>تعذر التعرف التلقائي بدرجة أمان كافية</div>
               <div style={styles.nicknameHint}>
-                اختر كنيتك فقط من النتائج الأقرب. الرقم هو درجة تشابه من 100 وليس نسبة ضمان، وسيعيد السيرفر التحقق قبل الدخول.
+                اختر كنيتك فقط من النتائج القليلة الأقرب. لا تُعرض درجات أو تفاصيل داخلية، وسيعيد الخادم التحقق قبل إنشاء الجلسة.
               </div>
               <div style={styles.suggestionsBox}>
                 {recoverySuggestions.map((item) => {
@@ -628,9 +566,6 @@ export default function LoginPage() {
                       }}
                     >
                       <span>{item.display_name}</span>
-                      <span style={styles.confidenceBadge}>
-                        {item.evidence_level === "strong" ? "قوي" : "مرجح"} · {Number(item.confidence || 0)}/100
-                      </span>
                     </button>
                   );
                 })}
@@ -642,45 +577,23 @@ export default function LoginPage() {
                   setRecoverySuggestions([]);
                   setRecoveryTicket("");
                   setSelectedRecoveryChoice("");
-                  setSkipSmartRecovery(true);
-                  setNicknameRequired(true);
-                  setNickname("");
-                  setStoredNicknameState("");
-                  setNicknamePromptReason("لم تكن أي كنية مقترحة تخصك. اكتب كنية خيالية جديدة لهذا الجهاز.");
-                  setErr("");
-                  try { localStorage.removeItem(NAME_KEY); } catch {}
-                  try { document.cookie = `${NAME_KEY}=; path=/; max-age=0; samesite=lax`; } catch {}
+                  setIdentityUnavailable(true);
+                  setErr("لن يخمّن النظام حسابًا آخر. تواصل مع المسؤول لربط هذا الجهاز بأمان.");
                 }}
               >
-                ولا واحدة منهم — تسجيل جهاز جديد
+                ولا واحدة منهم
               </button>
               <div style={styles.suggestionsHint}>
                 لن يتم ربط الكنية المختارة إلا إذا ظلت درجة التطابق الآمنة كافية عند التحقق الثاني.
               </div>
             </div>
-          ) : nicknameRequired ? (
-            <div style={styles.nicknameBox} dir="rtl">
-              <label style={styles.nicknameLabel}>
-                كنيتك داخل التول <span style={styles.required}>*</span>
-                <input
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
-                  autoComplete="off"
-                  maxLength={40}
-                  style={{ ...styles.input, ...styles.nicknameInput }}
-                  placeholder="مثال: عقرب الصحراء"
-                />
-              </label>
-              <div style={styles.nicknameHint}>{nicknamePromptReason || "اكتب كنية خيالية فقط ولا تكتب اسمك الحقيقي. لن تظهر هذه الخانة مرة أخرى إلا إذا كان الجهاز جديدًا أو قام الأدمن بعمل Reset nickname."}</div>
-              {nickErr ? <div style={styles.nickError}>{nickErr}</div> : null}
-            </div>
-          ) : storedNickname ? (
-            <div style={styles.nicknameSaved} dir="rtl">
-              كنيتك الحالية داخل التول: <b>{storedNickname}</b>
+          ) : identityUnavailable ? (
+            <div style={styles.identityUnavailable} dir="rtl">
+              لا توجد أدلة كافية لفتح حساب بأمان. لن يُطلب منك كتابة كنية ولن يختار النظام مستخدمًا عشوائيًا.
             </div>
           ) : (
             <div style={styles.nicknameRecovering} dir="rtl">
-              سيحاول النظام أولًا مفتاح الجهاز الموثوق، ثم مطابقة ذكية متعددة الإشارات. لن يعتمد على الـIP وحده، ولن يختار كنية تلقائيًا عند وجود نتائج متقاربة.
+              بعد التحقق من اسم المستخدم وكلمة المرور، سيحدد الخادم صاحب الجهاز من Credential موثوقة. مواصفات الجهاز وIP لا تُستخدم وحدها لفتح أي حساب.
             </div>
           )}
 
@@ -779,16 +692,7 @@ const styles = {
     border: "1px solid rgba(34,197,94,0.35)",
     background: "linear-gradient(135deg, rgba(34,197,94,0.13), rgba(59,130,246,0.09))",
   },
-  nicknameLabel: { display: "grid", gap: 7, fontSize: 13, fontWeight: 800 },
-  nicknameInput: { textAlign: "right", fontWeight: 700, letterSpacing: 0 },
   nicknameHint: { fontSize: 12, lineHeight: 1.5, opacity: 0.86 },
-  nicknameSaved: {
-    padding: "10px 12px",
-    borderRadius: 12,
-    background: "rgba(34,197,94,0.12)",
-    border: "1px solid rgba(34,197,94,0.22)",
-    fontSize: 13,
-  },
   nicknameRecovering: {
     padding: "10px 12px",
     borderRadius: 12,
@@ -796,6 +700,14 @@ const styles = {
     border: "1px solid rgba(59,130,246,0.22)",
     fontSize: 13,
     lineHeight: 1.5,
+  },
+  identityUnavailable: {
+    padding: "10px 12px",
+    borderRadius: 12,
+    background: "rgba(245,158,11,0.12)",
+    border: "1px solid rgba(245,158,11,0.3)",
+    fontSize: 13,
+    lineHeight: 1.6,
   },
   suggestionsBox: { display: "grid", gap: 8, marginTop: 4 },
   suggestionsTitle: { fontSize: 12, fontWeight: 800, opacity: 0.9 },
@@ -817,15 +729,6 @@ const styles = {
     border: "1px solid rgba(34,197,94,0.6)",
     background: "rgba(34,197,94,0.20)",
   },
-  confidenceBadge: {
-    minWidth: 46,
-    textAlign: "center",
-    borderRadius: 999,
-    padding: "4px 8px",
-    background: "rgba(15,23,42,0.55)",
-    border: "1px solid rgba(255,255,255,0.13)",
-    fontSize: 12,
-  },
   noneOfTheseBtn: {
     width: "100%",
     borderRadius: 12,
@@ -837,8 +740,6 @@ const styles = {
     fontWeight: 700,
   },
   suggestionsHint: { fontSize: 12, lineHeight: 1.5, opacity: 0.78 },
-  required: { color: "#fca5a5" },
-  nickError: { fontSize: 12, color: "#fecaca" },
   btn: {
     height: 44,
     borderRadius: 12,

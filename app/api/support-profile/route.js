@@ -1,37 +1,37 @@
 import { NextResponse } from "next/server";
 import { enforceSameOrigin, requireUserSession, noStore } from "../../../lib/server/auth.js";
 import { getServiceSupabase } from "../../../lib/server/admin.js";
-import { ensureNicknameForUser, normalizeUserId, cleanNickname } from "../../../lib/server/nickname.js";
+import { getNicknameProfile, normalizeUserId } from "../../../lib/server/nickname.js";
 
-function j(body, init){
+function j(body, init) {
   return noStore(NextResponse.json(body, init));
 }
 
-export async function POST(req){
-  const same = enforceSameOrigin(req);
-  if(!same.ok) return j({ error: same.error }, { status: same.status || 403 });
-
+async function currentProfile(req) {
   const sess = await requireUserSession(req);
-  if(!sess.ok) return j({ error: sess.error }, { status: sess.status || 401 });
+  if (!sess.ok) return j({ error: sess.error }, { status: sess.status || 401 });
+  const userId = normalizeUserId(sess.payload?.uid);
+  if (!userId) return j({ error: "Not authenticated." }, { status: 401 });
 
-  const body = await req.json().catch(() => ({}));
-  const user_id = normalizeUserId(sess.payload?.uid);
-  const requestedName = cleanNickname(body?.display_name || body?.nickname || "");
-
-  if(!user_id) return j({ error: "Missing authenticated user identity." }, { status: 401 });
-
-  try {
-    const supabase = getServiceSupabase();
-    const out = await ensureNicknameForUser(supabase, user_id, requestedName);
-    if(!out.ok){
-      return j({
-        error: out.error || "Nickname is required.",
-        nickname_required: !!out.nickname_required,
-        user_id,
-      }, { status: out.status || 409 });
-    }
-    return j({ ok: true, user_id, display_name: out.display_name || requestedName });
-  } catch (err) {
-    return j({ error: String(err?.message || err || "Profile update failed.") }, { status: 500 });
+  const profile = await getNicknameProfile(getServiceSupabase(), userId);
+  if (!profile?.ok || !profile.exists || profile.active === false || profile.reset_required || !profile.display_name) {
+    return j({ error: "Active user profile is required." }, { status: 409 });
   }
+
+  // This compatibility endpoint is available only after an authenticated
+  // session exists. Its server-derived actor id is never accepted as login or
+  // ownership evidence by any write route.
+  return j({ ok: true, user_id: userId, display_name: profile.display_name });
+}
+
+export async function GET(req) {
+  return currentProfile(req);
+}
+
+export async function POST(req) {
+  const same = enforceSameOrigin(req);
+  if (!same.ok) return j({ error: same.error }, { status: same.status || 403 });
+  // Nicknames are managed in the database/admin workflow. Browser input can no
+  // longer create, replace, or reset identity presentation data.
+  return currentProfile(req);
 }

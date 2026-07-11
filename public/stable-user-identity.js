@@ -132,9 +132,9 @@ export function requireNicknameLogin(){
   try { clearStoredUserName(); } catch {}
   try {
     const next = `${location.pathname || "/"}${location.search || ""}`;
-    location.href = `/login?nickname=1&next=${encodeURIComponent(next)}`;
+    location.href = `/login?next=${encodeURIComponent(next)}`;
   } catch {
-    location.href = "/login?nickname=1";
+    location.href = "/login";
   }
 }
 

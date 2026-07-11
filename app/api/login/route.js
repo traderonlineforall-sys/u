@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { getCookieName, signSession } from "../../../lib/session.js";
 import { enforceSameOrigin, noStore } from "../../../lib/server/auth.js";
 import { getServiceSupabase } from "../../../lib/server/admin.js";
-import { ensureNicknameForUser, getNicknameProfile, normalizeUserId, cleanNickname } from "../../../lib/server/nickname.js";
+import { getNicknameProfile } from "../../../lib/server/nickname.js";
 import {
   buildDeviceConfidence,
   findDeviceNicknameMatch,
@@ -11,25 +11,48 @@ import {
   verifyDeviceNicknameChoice,
 } from "../../../lib/server/device-confidence.js";
 import {
-  makeTrustedDeviceToken,
+  checkDeviceOwnerConflict,
+  finalizeTrustedDeviceCredential,
   registerTrustedDeviceIdentity,
   resolveTrustedDeviceIdentity,
   setTrustedDeviceCookie,
 } from "../../../lib/server/device-identity.js";
 import {
+  clearRecoveryAttemptCookie,
+  consumeDeviceRecoveryTicket,
   createDeviceRecoveryTicket,
+  setRecoveryAttemptCookie,
   verifyDeviceRecoveryTicket,
 } from "../../../lib/server/device-recovery.js";
+import {
+  decideDeviceIdentity,
+  DEVICE_DECISIONS,
+  getDeviceIdentityMode,
+  recoveredAutoLoginEnabled,
+} from "../../../lib/server/device-policy.js";
+import {
+  logDeviceDecision,
+  markDeviceDecisionExecuted,
+  newDecisionId,
+} from "../../../lib/server/device-audit.js";
+import { takeRateLimit } from "../../../lib/server/rate-limit.js";
+import { registerUserSession, revokeUserSession } from "../../../lib/server/session-registry.js";
 
 export const runtime = "nodejs";
 
 const MAX_LOGIN_BODY_BYTES = 32768;
-const LOGIN_WINDOW_MS = 10 * 60 * 1000;
-const LOGIN_MAX_FAILURES = 10;
-const LOGIN_FAILURE_CACHE_LIMIT = 512;
+const SESSION_MAX_AGE_SECONDS = 12 * 60 * 60;
+const SESSION_MAX_AGE_MS = SESSION_MAX_AGE_SECONDS * 1000;
 const textEncoder = new TextEncoder();
-const loginFailures = globalThis.__srLoginFailures || new Map();
-globalThis.__srLoginFailures = loginFailures;
+const FORBIDDEN_IDENTITY_FIELDS = new Set([
+  "user_id",
+  "primary_user_id",
+  "nickname",
+  "display_name",
+  "device_id",
+  "device_hash",
+  "confidence_score",
+]);
 
 function timingSafeEqual(a, b) {
   const aa = textEncoder.encode(String(a || ""));
@@ -43,273 +66,405 @@ function timingSafeEqual(a, b) {
 function clientIp(request) {
   const cfIp = request.headers.get("cf-connecting-ip");
   const realIp = request.headers.get("x-real-ip");
-  const xf = request.headers.get("x-forwarded-for");
-  return cfIp || realIp || (xf ? xf.split(",")[0].trim() : "") || "unknown";
+  const forwarded = request.headers.get("x-forwarded-for");
+  return String(cfIp || realIp || (forwarded ? forwarded.split(",")[0].trim() : "") || "unknown").slice(0, 96);
 }
 
-function cleanupFailures(now) {
-  if (loginFailures.size < LOGIN_FAILURE_CACHE_LIMIT) return;
-  for (const [key, record] of loginFailures) {
-    if (!record || now - record.firstAt > LOGIN_WINDOW_MS) loginFailures.delete(key);
+function j(body, init) {
+  return noStore(NextResponse.json(body, init));
+}
+
+function genericIdentityFailure(status = 409) {
+  return j({
+    error: "تعذر التحقق من هوية هذا الجهاز بأمان. تواصل مع المسؤول لربط الجهاز أو مراجعته.",
+    identity_verification_required: true,
+  }, { status });
+}
+
+async function completeLogin({
+  supabase,
+  username,
+  userId,
+  displayName,
+  deviceId,
+  ownerState,
+  credentialAction,
+  decisionType,
+  decisionSource,
+  assurance,
+  canStrengthen,
+  parentDecisionId,
+  automatic = true,
+  fingerprint,
+}) {
+  const decisionId = newDecisionId();
+  const evidenceGroups = assurance === "verified_credential"
+    ? ["http_only_credential", "server_owner_binding"]
+    : assurance === "verified_selection_enrollment"
+      ? ["signed_one_time_selection", "server_recomputed_shortlist", "server_owner_conflict_check"]
+      : ["browser_local_secret", "server_owner_binding"];
+  const audit = await logDeviceDecision(supabase, {
+    decision_id: decisionId,
+    device_id: deviceId,
+    user_id: userId,
+    decision_type: decisionType,
+    decision_source: decisionSource,
+    truth_level: ownerState || "verified_device",
+    evidence_groups: evidenceGroups,
+    evidence_lineage: { parent: parentDecisionId || null, assurance },
+    parent_decision_id: parentDecisionId,
+    automatic,
+    executed: false,
+    can_strengthen: canStrengthen,
+  });
+  if (!audit.ok) return j({ error: "Could not create authenticated session." }, { status: 503 });
+
+  const sessionId = randomUUID();
+  const expiresAt = Date.now() + SESSION_MAX_AGE_MS;
+  let sessionToken;
+  try {
+    sessionToken = await signSession({
+      role: "user",
+      session_version: 2,
+      u: username,
+      uid: userId,
+      name: displayName,
+      sid: sessionId,
+      assurance,
+      decision_id: decisionId,
+      can_strengthen: canStrengthen,
+      iat: Date.now(),
+      exp: expiresAt,
+    }, process.env.SESSION_SECRET || "");
+  } catch {
+    return j({ error: "Could not create authenticated session." }, { status: 503 });
   }
-  while (loginFailures.size > LOGIN_FAILURE_CACHE_LIMIT) {
-    const oldestKey = loginFailures.keys().next().value;
-    if (!oldestKey) break;
-    loginFailures.delete(oldestKey);
+  const registeredSession = await registerUserSession(supabase, {
+    session_id: sessionId,
+    user_id: userId,
+    decision_id: decisionId,
+    assurance,
+    expires_at: expiresAt,
+  });
+  if (!registeredSession.ok) {
+    return j({ error: registeredSession.error || "Could not create authenticated session." }, { status: registeredSession.status || 503 });
   }
-}
 
-function failureKey(request, username) {
-  return `${clientIp(request)}:${String(username || "").slice(0, 80)}`;
-}
-
-function isLimited(request, username) {
-  const now = Date.now();
-  cleanupFailures(now);
-  const key = failureKey(request, username);
-  const record = loginFailures.get(key);
-  if (!record) return false;
-  if (now - record.firstAt > LOGIN_WINDOW_MS) {
-    loginFailures.delete(key);
-    return false;
+  const finalizedAudit = await markDeviceDecisionExecuted(supabase, decisionId);
+  if (!finalizedAudit.ok) {
+    await revokeUserSession(supabase, { sid: sessionId, uid: userId });
+    return j({ error: "Could not create authenticated session." }, { status: 503 });
   }
-  return record.count >= LOGIN_MAX_FAILURES;
-}
 
-function noteFailure(request, username) {
-  const now = Date.now();
-  const key = failureKey(request, username);
-  const current = loginFailures.get(key);
-  if (!current || now - current.firstAt > LOGIN_WINDOW_MS) {
-    loginFailures.set(key, { firstAt: now, count: 1 });
-    return;
+  const credential = await finalizeTrustedDeviceCredential(supabase, credentialAction, fingerprint);
+  if (!credential.ok) {
+    await revokeUserSession(supabase, { sid: sessionId, uid: userId });
+    return j({ error: credential.error || "Could not finalize device credential." }, { status: credential.status || 503 });
   }
-  current.count += 1;
-  current.lastAt = now;
-}
 
-function clearFailures(request, username) {
-  loginFailures.delete(failureKey(request, username));
+  await recordDeviceNickname(supabase, userId, displayName, fingerprint, 100, {
+    device_id: deviceId,
+    decision_id: decisionId,
+    source: assurance === "verified_credential"
+      ? "verified_device_credential"
+      : assurance === "credential_continuation"
+        ? "verified_local_device_secret"
+        : "verified_selection_enrollment",
+    truth_level: ownerState,
+    canStrengthen,
+    evidence_groups: evidenceGroups,
+    evidence_lineage: { decision_id: decisionId, source: decisionSource },
+  });
+
+  let response = j({ ok: true, display_name: displayName });
+  response.cookies.set({
+    name: getCookieName(),
+    value: sessionToken,
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict",
+    path: "/",
+    maxAge: SESSION_MAX_AGE_SECONDS,
+  });
+  response = clearRecoveryAttemptCookie(response);
+  return setTrustedDeviceCookie(response, credential.token);
 }
 
 export async function POST(request) {
   const sameOrigin = enforceSameOrigin(request);
-  if(!sameOrigin.ok){
-    return noStore(NextResponse.json({ error:sameOrigin.error }, { status:sameOrigin.status || 403 }));
-  }
+  if (!sameOrigin.ok) return j({ error: sameOrigin.error }, { status: sameOrigin.status || 403 });
 
   const contentLength = Number(request.headers.get("content-length") || 0);
-  if(Number.isFinite(contentLength) && contentLength > MAX_LOGIN_BODY_BYTES){
-    return noStore(NextResponse.json({ error:"Request body too large" }, { status:413 }));
+  if (Number.isFinite(contentLength) && contentLength > MAX_LOGIN_BODY_BYTES) {
+    return j({ error: "Request body too large" }, { status: 413 });
   }
 
-  const BASIC_USER = process.env.BASIC_AUTH_USER || "";
-  const BASIC_PASS = process.env.BASIC_AUTH_PASS || "";
-  const SESSION_SECRET = process.env.SESSION_SECRET || "";
-  if(!SESSION_SECRET){
-    return noStore(NextResponse.json({ error:"Server not configured (missing SESSION_SECRET)." }, { status:500 }));
+  const basicUser = process.env.BASIC_AUTH_USER || "";
+  const basicPass = process.env.BASIC_AUTH_PASS || "";
+  const sessionSecret = process.env.SESSION_SECRET || "";
+  if (!basicUser || !basicPass || sessionSecret.length < 32) {
+    return j({ error: "Server authentication is not configured." }, { status: 503 });
   }
 
   let body = {};
-  try { body = await request.json(); } catch {}
-
-  const username = String(body.username || "");
-  const password = String(body.password || "");
-  const incomingUserId = normalizeUserId(body.user_id);
-  const requestedNickname = cleanNickname(body.nickname || body.display_name || "");
-  const recoveryTicket = String(body.recovery_ticket || "");
-  const recoveryChoiceId = String(body.recovery_choice_id || "");
-  const skipSmartRecovery = body.skip_smart_recovery === true;
-  const deviceFingerprint = buildDeviceConfidence(request, body.device_fingerprint || {}, SESSION_SECRET);
-
-  if(isLimited(request, username)){
-    await new Promise((resolve)=>setTimeout(resolve, 500));
-    return noStore(NextResponse.json({ error:"Too many login attempts. Try again later." }, { status:429 }));
-  }
-
-  const credentialsOk = timingSafeEqual(username, BASIC_USER) && timingSafeEqual(password, BASIC_PASS);
-  if(!credentialsOk){
-    noteFailure(request, username);
-    await new Promise((resolve)=>setTimeout(resolve, 350));
-    return noStore(NextResponse.json({ error:"Invalid credentials" }, { status:401 }));
-  }
-  clearFailures(request, username);
-
-  if(!deviceFingerprint?.ok){
-    return noStore(NextResponse.json({ error:deviceFingerprint?.error || "Could not build device identity." }, { status:500 }));
-  }
-
-  let finalUserId = "";
-  let displayName = "";
-  let recoveredByDevice = false;
-  let trustedDevice = null;
-  let identityMethod = "new_device_registration";
-  let recoveryConfidence = 0;
-
   try {
-    const supabase = getServiceSupabase();
-
-    // 1) Strongest proof: signed HttpOnly trusted-device cookie plus the exact
-    // random browser key. This path never uses fuzzy fingerprint matching.
-    const trusted = await resolveTrustedDeviceIdentity(request, supabase, deviceFingerprint);
-    if(!trusted.ok){
-      return noStore(NextResponse.json({ error:trusted.error || "Could not verify trusted device." }, { status:trusted.status || 500 }));
+    const rawBody = await request.text();
+    if (textEncoder.encode(rawBody).byteLength > MAX_LOGIN_BODY_BYTES) {
+      return j({ error: "Request body too large" }, { status: 413 });
     }
-    if(trusted.matched){
-      finalUserId = trusted.user_id;
-      displayName = trusted.display_name;
-      recoveredByDevice = true;
-      trustedDevice = trusted;
-      identityMethod = "trusted_device_key";
-      recoveryConfidence = 100;
-    }
-
-    // 2) User-confirmed smart recovery. The browser never sends a user_id as
-    // proof: it sends an opaque choice id inside a short-lived signed ticket,
-    // and the server re-runs the fingerprint ranking before accepting it.
-    if(!finalUserId && recoveryTicket && recoveryChoiceId){
-      const ticket = await verifyDeviceRecoveryTicket(
-        recoveryTicket,
-        recoveryChoiceId,
-        deviceFingerprint,
-        SESSION_SECRET
-      );
-      if(!ticket.ok){
-        await new Promise((resolve)=>setTimeout(resolve, 250));
-        return noStore(NextResponse.json({ error:ticket.error }, { status:ticket.status || 409 }));
-      }
-
-      const confirmed = await verifyDeviceNicknameChoice(
-        supabase,
-        deviceFingerprint,
-        ticket.user_id,
-        { minScore:ticket.minimum_score }
-      );
-      if(!confirmed.ok){
-        return noStore(NextResponse.json({ error:confirmed.error || "Could not verify the selected nickname." }, { status:500 }));
-      }
-      if(!confirmed.matched){
-        await new Promise((resolve)=>setTimeout(resolve, 250));
-        return noStore(NextResponse.json({
-          error:"درجة تطابق الجهاز لا تكفي لاستخدام هذه الكنية بأمان. اختر «ليست كنيتي» وسجّل كجهاز جديد.",
-          recovery_rejected:true,
-          recovery_reason:confirmed.reason || "low_confidence",
-        }, { status:409 }));
-      }
-
-      finalUserId = confirmed.user_id;
-      displayName = confirmed.display_name;
-      recoveredByDevice = true;
-      identityMethod = confirmed.recovery_method || "smart_suggestion_v2";
-      recoveryConfidence = Number(confirmed.confidence_score || 0);
-    }
-
-    // 3) Strict automatic smart recovery. It aggregates historical observations
-    // per user, normalizes evidence by browser capabilities, penalizes stable
-    // contradictions and refuses close/ambiguous candidates.
-    if(!finalUserId && !recoveryTicket && !skipSmartRecovery){
-      const smart = await findDeviceNicknameMatch(supabase, deviceFingerprint);
-      if(!smart.ok){
-        return noStore(NextResponse.json({ error:smart.error || "Could not verify existing device." }, { status:500 }));
-      }
-
-      if(smart.matched){
-        finalUserId = smart.user_id;
-        displayName = smart.display_name;
-        recoveredByDevice = true;
-        identityMethod = smart.recovery_method || "smart_fingerprint_v2";
-        recoveryConfidence = Number(smart.confidence_score || 0);
-      }else if(Array.isArray(smart.suggestions) && smart.suggestions.length){
-        const recovery = await createDeviceRecoveryTicket(
-          deviceFingerprint,
-          smart.suggestions,
-          SESSION_SECRET
-        );
-        if(recovery.ok){
-          return noStore(NextResponse.json({
-            error:"تعذر التأكد تلقائيًا بنسبة آمنة. اختر كنيتك من النتائج الأقرب.",
-            nickname_selection_required:true,
-            recovery_ticket:recovery.token,
-            nickname_suggestions:recovery.choices,
-            recovery_reason:smart.reason || "confirmation_required",
-          }, { status:409 }));
-        }
-      }
-    }
-
-    // 4) Truly new device/user. A browser-provided user_id is never allowed to
-    // claim an existing profile. It is reused only when no database profile owns it.
-    if(!finalUserId){
-      let candidateUserId = incomingUserId;
-      if(candidateUserId){
-        const candidateProfile = await getNicknameProfile(supabase, candidateUserId);
-        if(!candidateProfile?.ok || candidateProfile.exists) candidateUserId = "";
-      }
-      finalUserId = candidateUserId || `uid_${randomUUID()}`;
-
-      const nicknameResult = await ensureNicknameForUser(supabase, finalUserId, requestedNickname);
-      if(!nicknameResult?.ok){
-        return noStore(NextResponse.json({
-          error:nicknameResult?.error || "Nickname is required.",
-          nickname_required:true,
-          nickname_taken:!!nicknameResult?.nickname_taken,
-          nickname_suggestions:[],
-          trusted_device_required:true,
-        }, { status:nicknameResult?.status || 409 }));
-      }
-      displayName = nicknameResult.display_name || "";
-      identityMethod = "new_device_registration";
-      recoveryConfidence = 100;
-    }
-
-    const registered = await registerTrustedDeviceIdentity(supabase, finalUserId, displayName, deviceFingerprint);
-    if(!registered.ok){
-      return noStore(NextResponse.json({ error:registered.error || "Could not register trusted device." }, { status:registered.status || 500 }));
-    }
-    if(!registered.missing_table) trustedDevice = registered;
-
-    // Learn only after the identity is exact, automatically high-confidence, or
-    // explicitly confirmed through a signed candidate ticket.
-    await recordDeviceNickname(
-      supabase,
-      finalUserId,
-      displayName,
-      deviceFingerprint,
-      Math.max(78, Math.min(100, Number(recoveryConfidence || 100)))
-    );
-  } catch (err) {
-    return noStore(NextResponse.json({ error:String(err?.message || err || "Could not verify nickname.") }, { status:500 }));
+    body = JSON.parse(rawBody);
+  } catch {
+    return j({ error: "Invalid login request." }, { status: 400 });
+  }
+  if (!body || typeof body !== "object" || Array.isArray(body)) return j({ error: "Invalid login request." }, { status: 400 });
+  if (Object.keys(body).some((key) => FORBIDDEN_IDENTITY_FIELDS.has(key))) {
+    return j({ error: "Invalid login request." }, { status: 400 });
   }
 
-  const expMs = Date.now() + 12 * 60 * 60 * 1000;
-  const token = await signSession({ u:username, uid:finalUserId, name:displayName, exp:expMs }, SESSION_SECRET);
+  const username = String(body.username || "").slice(0, 160);
+  const password = String(body.password || "").slice(0, 512);
+  const recoveryTicket = String(body.recovery_ticket || "").slice(0, 4096);
+  const recoveryChoiceId = String(body.recovery_choice_id || "").slice(0, 80);
+  const rawFingerprint = body.device_fingerprint && typeof body.device_fingerprint === "object"
+    ? body.device_fingerprint
+    : {};
 
-  let trustedDeviceToken = "";
-  if(trustedDevice?.device_id){
-    trustedDeviceToken = await makeTrustedDeviceToken({
-      device_id:trustedDevice.device_id,
-      user_id:finalUserId,
+  let supabase;
+  try { supabase = getServiceSupabase(); }
+  catch { return j({ error: "Server authentication is not configured." }, { status: 503 }); }
+
+  const ipLimit = await takeRateLimit(supabase, {
+    scope: "login_ip",
+    keyParts: [clientIp(request)],
+    limit: 30,
+    windowSeconds: 10 * 60,
+  });
+  if (!ipLimit.ok) return j({ error: ipLimit.error }, { status: ipLimit.status || 503 });
+  if (!ipLimit.allowed) {
+    const response = j({ error: "Too many login attempts. Try again later." }, { status: 429 });
+    response.headers.set("Retry-After", String(ipLimit.retry_after_seconds));
+    return response;
+  }
+
+  const loginLimit = await takeRateLimit(supabase, {
+    scope: "login_credentials",
+    keyParts: [clientIp(request), username.toLowerCase()],
+    limit: 10,
+    windowSeconds: 10 * 60,
+  });
+  if (!loginLimit.ok) return j({ error: loginLimit.error }, { status: loginLimit.status || 503 });
+  if (!loginLimit.allowed) {
+    const response = j({ error: "Too many login attempts. Try again later." }, { status: 429 });
+    response.headers.set("Retry-After", String(loginLimit.retry_after_seconds));
+    return response;
+  }
+
+  const credentialsOk = timingSafeEqual(username, basicUser) && timingSafeEqual(password, basicPass);
+  if (!credentialsOk) {
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    return j({ error: "Invalid credentials" }, { status: 401 });
+  }
+
+  const fingerprint = buildDeviceConfidence(request, rawFingerprint, sessionSecret);
+  if (!fingerprint?.ok) return j({ error: "Could not verify device context." }, { status: 503 });
+
+  const mode = getDeviceIdentityMode();
+  const resolved = await resolveTrustedDeviceIdentity(request, supabase, fingerprint);
+  if (!resolved.ok) return j({ error: resolved.error || "Could not verify device identity." }, { status: resolved.status || 503 });
+  if (resolved.conflict || resolved.rejected) {
+    await logDeviceDecision(supabase, {
+      decision_type: resolved.conflict ? DEVICE_DECISIONS.CONFLICTED : DEVICE_DECISIONS.REJECTED,
+      decision_source: resolved.source || "device_credential_validation",
+      conflict: resolved.conflict === true,
+      rejection_code: resolved.reason || "identity_rejected",
+      executed: false,
+      can_strengthen: false,
+    });
+    return genericIdentityFailure(resolved.conflict ? 409 : 403);
+  }
+
+  if (resolved.matched) {
+    const policy = decideDeviceIdentity({
+      mode,
+      verifiedCredential: resolved.assurance === "verified_credential",
+      credentialContinuation: resolved.assurance === "credential_continuation",
+      ownerState: resolved.owner_state,
+    });
+    if (!policy.execute) return genericIdentityFailure();
+    return completeLogin({
+      supabase,
+      username,
+      userId: resolved.user_id,
+      displayName: resolved.display_name,
+      deviceId: resolved.device_id,
+      ownerState: resolved.owner_state,
+      credentialAction: resolved.credential_action,
+      decisionType: policy.decision,
+      decisionSource: resolved.source || "device_credential",
+      assurance: resolved.assurance,
+      canStrengthen: policy.canStrengthen && resolved.context_changed !== true,
+      fingerprint,
     });
   }
 
-  const response = noStore(NextResponse.json({
-    ok:true,
-    user_id:finalUserId,
-    display_name:displayName,
-    recovered_by_device:recoveredByDevice,
-    identity_method:identityMethod,
-    recovery_confidence:Math.round(Number(recoveryConfidence || 0)),
-  }));
+  if (recoveryTicket || recoveryChoiceId) {
+    if (!recoveryTicket || !recoveryChoiceId) return genericIdentityFailure();
+    const choiceLimit = await takeRateLimit(supabase, {
+      scope: "device_recovery_choice",
+      keyParts: [clientIp(request), recoveryTicket.slice(0, 96)],
+      limit: 5,
+      windowSeconds: 10 * 60,
+    });
+    if (!choiceLimit.ok) return j({ error: choiceLimit.error }, { status: choiceLimit.status || 503 });
+    if (!choiceLimit.allowed) return genericIdentityFailure(429);
 
-  response.cookies.set({
-    name:getCookieName(),
-    value:token,
-    httpOnly:true,
-    secure:true,
-    sameSite:"strict",
-    path:"/",
-    maxAge:12 * 60 * 60,
+    const ticket = await verifyDeviceRecoveryTicket(
+      request,
+      supabase,
+      recoveryTicket,
+      recoveryChoiceId,
+      fingerprint,
+      sessionSecret
+    );
+    if (!ticket.ok) return genericIdentityFailure(ticket.status || 409);
+
+    const confirmed = await verifyDeviceNicknameChoice(supabase, fingerprint, ticket.user_id, {
+      minScore: ticket.minimum_score,
+    });
+    if (!confirmed.ok || !confirmed.matched) return genericIdentityFailure(409);
+
+    const ownerCheck = await checkDeviceOwnerConflict(supabase, fingerprint, ticket.user_id);
+    if (!ownerCheck.ok) return j({ error: ownerCheck.error || "Could not verify device owner." }, { status: ownerCheck.status || 503 });
+    if (ownerCheck.conflict || ownerCheck.rejected) return genericIdentityFailure(409);
+
+    const profile = await getNicknameProfile(supabase, ticket.user_id);
+    if (!profile?.ok || profile.supportsReset === false || !profile.exists || profile.active === false || profile.reset_required || !profile.display_name) {
+      return genericIdentityFailure(409);
+    }
+
+    // Consumption is atomic and happens only after candidate recomputation and
+    // owner-conflict checks. Concurrent replay can succeed exactly once.
+    const consumed = await consumeDeviceRecoveryTicket(supabase, ticket);
+    if (!consumed.ok) return genericIdentityFailure(consumed.status || 409);
+
+    const enrolled = await registerTrustedDeviceIdentity(
+      supabase,
+      consumed.user_id,
+      profile.display_name,
+      fingerprint,
+      { owner_state: "enrolled_from_verified_selection", source: "verified_selection_ticket" }
+    );
+    if (!enrolled.ok) {
+      if (enrolled.conflict || enrolled.rejected) return genericIdentityFailure(enrolled.status || 409);
+      return j({ error: enrolled.error || "Could not enroll device." }, { status: enrolled.status || 503 });
+    }
+    return completeLogin({
+      supabase,
+      username,
+      userId: consumed.user_id,
+      displayName: profile.display_name,
+      deviceId: enrolled.device_id,
+      ownerState: enrolled.owner_state,
+      credentialAction: { type: "issue", device_id: enrolled.device_id },
+      decisionType: DEVICE_DECISIONS.AUTO_LOGIN_VERIFIED,
+      decisionSource: ticket.context_changed
+        ? "verified_selection_enrollment_context_changed"
+        : "verified_selection_enrollment",
+      assurance: "verified_selection_enrollment",
+      canStrengthen: false,
+      parentDecisionId: ticket.parent_decision_id,
+      automatic: false,
+      fingerprint,
+    });
+  }
+
+  // Probabilistic signals are evaluated for short-listing and shadow metrics.
+  // They are not permitted to override a missing credential in a homogeneous
+  // fleet. Current web capabilities expose zero independent non-exportable
+  // credential groups, so probabilistic auto-login remains safely unavailable.
+  const smart = await findDeviceNicknameMatch(supabase, fingerprint, {
+    allowAutoLogin: mode === "full" && recoveredAutoLoginEnabled(),
+    independentCredentialGroups: 0,
+    hasConfirmedHistory: false,
+    circularEvidence: false,
+  });
+  if (!smart.ok) return j({ error: "Could not evaluate device identity." }, { status: 503 });
+
+  const suggestions = Array.isArray(smart.suggestions) ? smart.suggestions.slice(0, 3) : [];
+  const policy = decideDeviceIdentity({
+    mode,
+    recoveredAutoEnabled: recoveredAutoLoginEnabled(),
+    probabilisticCandidate: smart.matched === true,
+    independentCredentialGroups: 0,
+    recoveryScore: smart.best_score,
+    recoveryMargin: smart.ambiguity_gap,
+    stableContradictions: smart.stable_contradictions,
+    hasConfirmedHistory: false,
+    circularEvidence: false,
+    suggestionCount: suggestions.length,
+    newDevice: resolved.new_device === true,
   });
 
-  return setTrustedDeviceCookie(response, trustedDeviceToken);
+  if (policy.decision === DEVICE_DECISIONS.SELECTION_REQUIRED) {
+    const ticketLimit = await takeRateLimit(supabase, {
+      scope: "device_recovery_ticket",
+      keyParts: [clientIp(request), fingerprint.recovery_binding_hash],
+      limit: 5,
+      windowSeconds: 10 * 60,
+    });
+    if (!ticketLimit.ok) return j({ error: ticketLimit.error }, { status: ticketLimit.status || 503 });
+    if (!ticketLimit.allowed) return genericIdentityFailure(429);
+
+    const shortlistDecisionId = newDecisionId();
+    const shortlistAudit = await logDeviceDecision(supabase, {
+      decision_id: shortlistDecisionId,
+      decision_type: DEVICE_DECISIONS.SELECTION_REQUIRED,
+      decision_source: "probabilistic_shortlist",
+      truth_level: "unverified_candidate",
+      evidence_groups: ["fleet_characteristics"],
+      evidence_lineage: { source: "legacy_device_observations", may_strengthen: false },
+      automatic: true,
+      executed: false,
+      can_strengthen: false,
+      evidence_group_count: smart.strong_groups,
+      score_margin: smart.ambiguity_gap,
+    });
+    if (!shortlistAudit.ok) return j({ error: "Could not record device identity decision." }, { status: 503 });
+
+    const recovery = await createDeviceRecoveryTicket(
+      supabase,
+      fingerprint,
+      suggestions,
+      sessionSecret,
+      { parentDecisionId: shortlistDecisionId }
+    );
+    if (!recovery.ok) return genericIdentityFailure(recovery.status || 409);
+    const finalizedShortlist = await markDeviceDecisionExecuted(supabase, shortlistDecisionId);
+    if (!finalizedShortlist.ok) {
+      return j({ error: "Could not finalize device identity decision." }, { status: 503 });
+    }
+    let response = j({
+      nickname_selection_required: true,
+      recovery_ticket: recovery.token,
+      nickname_suggestions: recovery.choices,
+    }, { status: 409 });
+    response = setRecoveryAttemptCookie(response, recovery.attempt_token);
+    return response;
+  }
+
+  await logDeviceDecision(supabase, {
+    decision_type: policy.decision,
+    decision_source: "device_identity_policy",
+    truth_level: "insufficient_evidence",
+    evidence_groups: suggestions.length ? ["fleet_characteristics"] : [],
+    evidence_lineage: { source: smart.reason || resolved.reason || "none", may_strengthen: false },
+    automatic: true,
+    executed: false,
+    can_strengthen: false,
+    shadow_only: mode === "shadow",
+    rejection_code: smart.reason || resolved.reason || "insufficient_evidence",
+    evidence_group_count: smart.strong_groups,
+    score_margin: smart.ambiguity_gap,
+  });
+  return genericIdentityFailure(409);
 }
