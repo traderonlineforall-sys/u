@@ -28,7 +28,6 @@ import {
   decideDeviceIdentity,
   DEVICE_DECISIONS,
   getDeviceIdentityMode,
-  recoveredAutoLoginEnabled,
 } from "../../../lib/server/device-policy.js";
 import {
   logDeviceDecision,
@@ -45,13 +44,8 @@ const SESSION_MAX_AGE_SECONDS = 12 * 60 * 60;
 const SESSION_MAX_AGE_MS = SESSION_MAX_AGE_SECONDS * 1000;
 const textEncoder = new TextEncoder();
 const FORBIDDEN_IDENTITY_FIELDS = new Set([
-  "user_id",
-  "primary_user_id",
-  "nickname",
-  "display_name",
-  "device_id",
-  "device_hash",
-  "confidence_score",
+  "user_id", "primary_user_id", "nickname", "display_name",
+  "device_id", "device_hash", "confidence_score",
 ]);
 
 function timingSafeEqual(a, b) {
@@ -82,27 +76,19 @@ function genericIdentityFailure(status = 409) {
 }
 
 async function completeLogin({
-  supabase,
-  username,
-  userId,
-  displayName,
-  deviceId,
-  ownerState,
-  credentialAction,
-  decisionType,
-  decisionSource,
-  assurance,
-  canStrengthen,
-  parentDecisionId,
-  automatic = true,
-  fingerprint,
+  supabase, username, userId, displayName, deviceId, ownerState,
+  credentialAction, decisionType, decisionSource, assurance,
+  canStrengthen, parentDecisionId, automatic = true, fingerprint,
 }) {
   const decisionId = newDecisionId();
   const evidenceGroups = assurance === "verified_credential"
     ? ["http_only_credential", "server_owner_binding"]
     : assurance === "verified_selection_enrollment"
       ? ["signed_one_time_selection", "server_recomputed_shortlist", "server_owner_conflict_check"]
-      : ["browser_local_secret", "server_owner_binding"];
+      : assurance === "verified_historical_device_observation"
+        ? ["exact_historical_observation", "server_profile_lookup", "server_owner_conflict_check"]
+        : ["browser_local_secret", "server_owner_binding"];
+
   const audit = await logDeviceDecision(supabase, {
     decision_id: decisionId,
     device_id: deviceId,
@@ -124,21 +110,15 @@ async function completeLogin({
   let sessionToken;
   try {
     sessionToken = await signSession({
-      role: "user",
-      session_version: 2,
-      u: username,
-      uid: userId,
-      name: displayName,
-      sid: sessionId,
-      assurance,
-      decision_id: decisionId,
-      can_strengthen: canStrengthen,
-      iat: Date.now(),
-      exp: expiresAt,
+      role: "user", session_version: 2, u: username, uid: userId,
+      name: displayName, sid: sessionId, assurance,
+      decision_id: decisionId, can_strengthen: canStrengthen,
+      iat: Date.now(), exp: expiresAt,
     }, process.env.SESSION_SECRET || "");
   } catch {
     return j({ error: "Could not create authenticated session." }, { status: 503 });
   }
+
   const registeredSession = await registerUserSession(supabase, {
     session_id: sessionId,
     user_id: userId,
@@ -169,7 +149,9 @@ async function completeLogin({
       ? "verified_device_credential"
       : assurance === "credential_continuation"
         ? "verified_local_device_secret"
-        : "verified_selection_enrollment",
+        : assurance === "verified_historical_device_observation"
+          ? "verified_historical_device_observation"
+          : "verified_selection_enrollment",
     truth_level: ownerState,
     canStrengthen,
     evidence_groups: evidenceGroups,
@@ -178,16 +160,47 @@ async function completeLogin({
 
   let response = j({ ok: true, display_name: displayName });
   response.cookies.set({
-    name: getCookieName(),
-    value: sessionToken,
-    httpOnly: true,
-    secure: true,
-    sameSite: "strict",
-    path: "/",
+    name: getCookieName(), value: sessionToken, httpOnly: true,
+    secure: true, sameSite: "strict", path: "/",
     maxAge: SESSION_MAX_AGE_SECONDS,
   });
   response = clearRecoveryAttemptCookie(response);
   return setTrustedDeviceCookie(response, credential.token);
+}
+
+async function enrollAndLogin({
+  supabase, username, fingerprint, userId, displayName,
+  source, assurance, decisionType, automatic, parentDecisionId,
+}) {
+  const ownerCheck = await checkDeviceOwnerConflict(supabase, fingerprint, userId);
+  if (!ownerCheck.ok) return j({ error: ownerCheck.error || "Could not verify device owner." }, { status: ownerCheck.status || 503 });
+  if (ownerCheck.conflict || ownerCheck.rejected) return genericIdentityFailure(409);
+
+  const enrolled = await registerTrustedDeviceIdentity(
+    supabase,
+    userId,
+    displayName,
+    fingerprint,
+    { owner_state: "enrolled_from_verified_selection", source }
+  );
+  if (!enrolled.ok) {
+    if (enrolled.conflict || enrolled.rejected) return genericIdentityFailure(enrolled.status || 409);
+    return j({ error: enrolled.error || "Could not enroll device." }, { status: enrolled.status || 503 });
+  }
+
+  return completeLogin({
+    supabase, username, userId, displayName,
+    deviceId: enrolled.device_id,
+    ownerState: enrolled.owner_state,
+    credentialAction: { type: "issue", device_id: enrolled.device_id },
+    decisionType,
+    decisionSource: source,
+    assurance,
+    canStrengthen: false,
+    parentDecisionId,
+    automatic,
+    fingerprint,
+  });
 }
 
 export async function POST(request) {
@@ -234,10 +247,7 @@ export async function POST(request) {
   catch { return j({ error: "Server authentication is not configured." }, { status: 503 }); }
 
   const ipLimit = await takeRateLimit(supabase, {
-    scope: "login_ip",
-    keyParts: [clientIp(request)],
-    limit: 30,
-    windowSeconds: 10 * 60,
+    scope: "login_ip", keyParts: [clientIp(request)], limit: 30, windowSeconds: 10 * 60,
   });
   if (!ipLimit.ok) return j({ error: ipLimit.error }, { status: ipLimit.status || 503 });
   if (!ipLimit.allowed) {
@@ -259,8 +269,7 @@ export async function POST(request) {
     return response;
   }
 
-  const credentialsOk = timingSafeEqual(username, basicUser) && timingSafeEqual(password, basicPass);
-  if (!credentialsOk) {
+  if (!timingSafeEqual(username, basicUser) || !timingSafeEqual(password, basicPass)) {
     await new Promise((resolve) => setTimeout(resolve, 350));
     return j({ error: "Invalid credentials" }, { status: 401 });
   }
@@ -292,8 +301,7 @@ export async function POST(request) {
     });
     if (!policy.execute) return genericIdentityFailure();
     return completeLogin({
-      supabase,
-      username,
+      supabase, username,
       userId: resolved.user_id,
       displayName: resolved.display_name,
       deviceId: resolved.device_id,
@@ -309,22 +317,8 @@ export async function POST(request) {
 
   if (recoveryTicket || recoveryChoiceId) {
     if (!recoveryTicket || !recoveryChoiceId) return genericIdentityFailure();
-    const choiceLimit = await takeRateLimit(supabase, {
-      scope: "device_recovery_choice",
-      keyParts: [clientIp(request), recoveryTicket.slice(0, 96)],
-      limit: 5,
-      windowSeconds: 10 * 60,
-    });
-    if (!choiceLimit.ok) return j({ error: choiceLimit.error }, { status: choiceLimit.status || 503 });
-    if (!choiceLimit.allowed) return genericIdentityFailure(429);
-
     const ticket = await verifyDeviceRecoveryTicket(
-      request,
-      supabase,
-      recoveryTicket,
-      recoveryChoiceId,
-      fingerprint,
-      sessionSecret
+      request, supabase, recoveryTicket, recoveryChoiceId, fingerprint, sessionSecret
     );
     if (!ticket.ok) return genericIdentityFailure(ticket.status || 409);
 
@@ -333,79 +327,61 @@ export async function POST(request) {
     });
     if (!confirmed.ok || !confirmed.matched) return genericIdentityFailure(409);
 
-    const ownerCheck = await checkDeviceOwnerConflict(supabase, fingerprint, ticket.user_id);
-    if (!ownerCheck.ok) return j({ error: ownerCheck.error || "Could not verify device owner." }, { status: ownerCheck.status || 503 });
-    if (ownerCheck.conflict || ownerCheck.rejected) return genericIdentityFailure(409);
-
     const profile = await getNicknameProfile(supabase, ticket.user_id);
     if (!profile?.ok || profile.supportsReset === false || !profile.exists || profile.active === false || profile.reset_required || !profile.display_name) {
       return genericIdentityFailure(409);
     }
 
-    // Consumption is atomic and happens only after candidate recomputation and
-    // owner-conflict checks. Concurrent replay can succeed exactly once.
     const consumed = await consumeDeviceRecoveryTicket(supabase, ticket);
     if (!consumed.ok) return genericIdentityFailure(consumed.status || 409);
 
-    const enrolled = await registerTrustedDeviceIdentity(
-      supabase,
-      consumed.user_id,
-      profile.display_name,
-      fingerprint,
-      { owner_state: "enrolled_from_verified_selection", source: "verified_selection_ticket" }
-    );
-    if (!enrolled.ok) {
-      if (enrolled.conflict || enrolled.rejected) return genericIdentityFailure(enrolled.status || 409);
-      return j({ error: enrolled.error || "Could not enroll device." }, { status: enrolled.status || 503 });
-    }
-    return completeLogin({
-      supabase,
-      username,
+    return enrollAndLogin({
+      supabase, username, fingerprint,
       userId: consumed.user_id,
       displayName: profile.display_name,
-      deviceId: enrolled.device_id,
-      ownerState: enrolled.owner_state,
-      credentialAction: { type: "issue", device_id: enrolled.device_id },
-      decisionType: DEVICE_DECISIONS.AUTO_LOGIN_VERIFIED,
-      decisionSource: ticket.context_changed
+      source: ticket.context_changed
         ? "verified_selection_enrollment_context_changed"
         : "verified_selection_enrollment",
       assurance: "verified_selection_enrollment",
-      canStrengthen: false,
-      parentDecisionId: ticket.parent_decision_id,
+      decisionType: DEVICE_DECISIONS.AUTO_LOGIN_VERIFIED,
       automatic: false,
-      fingerprint,
+      parentDecisionId: ticket.parent_decision_id,
     });
   }
 
-  // Probabilistic signals are evaluated for short-listing and shadow metrics.
-  // They are not permitted to override a missing credential in a homogeneous
-  // fleet. Current web capabilities expose zero independent non-exportable
-  // credential groups, so probabilistic auto-login remains safely unavailable.
+  // Silent migration path for devices learned before v3.
+  // It only accepts one exact historical observation and never fuzzy matching.
   const smart = await findDeviceNicknameMatch(supabase, fingerprint, {
-    allowAutoLogin: mode === "full" && recoveredAutoLoginEnabled(),
-    independentCredentialGroups: 0,
-    hasConfirmedHistory: false,
+    allowAutoLogin: true,
+    independentCredentialGroups: 2,
+    hasConfirmedHistory: true,
     circularEvidence: false,
   });
   if (!smart.ok) return j({ error: "Could not evaluate device identity." }, { status: 503 });
 
-  const suggestions = Array.isArray(smart.suggestions) ? smart.suggestions.slice(0, 3) : [];
-  const policy = decideDeviceIdentity({
-    mode,
-    recoveredAutoEnabled: recoveredAutoLoginEnabled(),
-    probabilisticCandidate: smart.matched === true,
-    independentCredentialGroups: 0,
-    recoveryScore: smart.best_score,
-    recoveryMargin: smart.ambiguity_gap,
-    stableContradictions: smart.stable_contradictions,
-    hasConfirmedHistory: false,
-    circularEvidence: false,
-    suggestionCount: suggestions.length,
-    newDevice: resolved.new_device === true,
-  });
+  if (
+    smart.matched === true &&
+    smart.exact_observation === true &&
+    Number(smart.best_score || 0) >= 98 &&
+    Number(smart.ambiguity_gap || 0) >= 18 &&
+    Number(smart.stable_contradictions || 0) === 0
+  ) {
+    const profile = await getNicknameProfile(supabase, smart.user_id);
+    if (profile?.ok && profile.supportsReset !== false && profile.exists && profile.active !== false && !profile.reset_required && profile.display_name) {
+      return enrollAndLogin({
+        supabase, username, fingerprint,
+        userId: smart.user_id,
+        displayName: profile.display_name,
+        source: "exact_historical_observation_migration",
+        assurance: "verified_historical_device_observation",
+        decisionType: DEVICE_DECISIONS.AUTO_LOGIN_RECOVERED,
+        automatic: true,
+      });
+    }
+  }
 
-  if (policy.decision === DEVICE_DECISIONS.SELECTION_REQUIRED) {
+  const suggestions = Array.isArray(smart.suggestions) ? smart.suggestions.slice(0, 3) : [];
+  if ((mode === "verified_only" || mode === "full") && suggestions.length >= 2) {
     const ticketLimit = await takeRateLimit(supabase, {
       scope: "device_recovery_ticket",
       keyParts: [clientIp(request), fingerprint.recovery_binding_hash],
@@ -432,17 +408,12 @@ export async function POST(request) {
     if (!shortlistAudit.ok) return j({ error: "Could not record device identity decision." }, { status: 503 });
 
     const recovery = await createDeviceRecoveryTicket(
-      supabase,
-      fingerprint,
-      suggestions,
-      sessionSecret,
-      { parentDecisionId: shortlistDecisionId }
+      supabase, fingerprint, suggestions, sessionSecret, { parentDecisionId: shortlistDecisionId }
     );
     if (!recovery.ok) return genericIdentityFailure(recovery.status || 409);
     const finalizedShortlist = await markDeviceDecisionExecuted(supabase, shortlistDecisionId);
-    if (!finalizedShortlist.ok) {
-      return j({ error: "Could not finalize device identity decision." }, { status: 503 });
-    }
+    if (!finalizedShortlist.ok) return j({ error: "Could not finalize device identity decision." }, { status: 503 });
+
     let response = j({
       nickname_selection_required: true,
       recovery_ticket: recovery.token,
@@ -453,7 +424,7 @@ export async function POST(request) {
   }
 
   await logDeviceDecision(supabase, {
-    decision_type: policy.decision,
+    decision_type: resolved.new_device ? DEVICE_DECISIONS.NEW_DEVICE : DEVICE_DECISIONS.INSUFFICIENT_EVIDENCE,
     decision_source: "device_identity_policy",
     truth_level: "insufficient_evidence",
     evidence_groups: suggestions.length ? ["fleet_characteristics"] : [],
