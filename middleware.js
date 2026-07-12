@@ -12,6 +12,7 @@ export const config = {
 const PUBLIC_PATHS = new Set([
   "/login",
   "/api/login",
+  "/api/login-fixed",
   "/api/logout",
 ]);
 
@@ -61,6 +62,13 @@ export async function middleware(request) {
     if (!ip || !allow.includes(ip)) {
       return applySecurityHeaders(new NextResponse("Forbidden", { status: 403 }));
     }
+  }
+
+  // Keep the public URL unchanged while the server executes the fixed login route.
+  if (pathname === "/api/login") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/api/login-fixed";
+    return applySecurityHeaders(NextResponse.rewrite(url));
   }
 
   // Public paths must remain reachable without a session.
