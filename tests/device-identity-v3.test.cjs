@@ -316,6 +316,17 @@ test("first enrollment learns a storage-independent profile for cookie-cleared r
   assert.match(login, /minSupportingObservations: 1/);
 });
 
+test("valid login and recovery retries do not consume the credential-failure limit", () => {
+  const login = read("app/api/login/route.js");
+  const credentialCheck = login.indexOf("const credentialsOk =");
+  const failureLimiter = login.indexOf('scope: "login_credentials"');
+  const invalidBranch = login.indexOf("if (!credentialsOk)");
+  assert.ok(credentialCheck > 0 && invalidBranch > credentialCheck && failureLimiter > invalidBranch);
+  assert.match(login, /scope: "login_ip"[^\n]+limit: 120/);
+  assert.match(login, /scope: "device_recovery_ticket"[\s\S]{0,150}limit: 20/);
+  assert.match(login, /scope: "new_device_registration"[\s\S]{0,150}limit: 20/);
+});
+
 test("migration protects sensitive tables with RLS and server-only grants", () => {
   const sql = read("SUPABASE_PRIMARY_DEVICE_OWNER_IDENTITY_V3.sql");
   for (const table of [

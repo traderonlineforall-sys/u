@@ -253,7 +253,7 @@ export async function POST(request) {
   catch { return j({ error: "Server authentication is not configured." }, { status: 503 }); }
 
   const ipLimit = await takeRateLimit(supabase, {
-    scope: "login_ip", keyParts: [clientIp(request)], limit: 30, windowSeconds: 10 * 60,
+    scope: "login_ip", keyParts: [clientIp(request)], limit: 120, windowSeconds: 10 * 60,
   });
   if (!ipLimit.ok) return j({ error: ipLimit.error }, { status: ipLimit.status || 503 });
   if (!ipLimit.allowed) {
@@ -262,20 +262,22 @@ export async function POST(request) {
     return response;
   }
 
-  const loginLimit = await takeRateLimit(supabase, {
-    scope: "login_credentials",
-    keyParts: [clientIp(request), username.toLowerCase()],
-    limit: 10,
-    windowSeconds: 10 * 60,
-  });
-  if (!loginLimit.ok) return j({ error: loginLimit.error }, { status: loginLimit.status || 503 });
-  if (!loginLimit.allowed) {
-    const response = j({ error: "Too many login attempts. Try again later." }, { status: 429 });
-    response.headers.set("Retry-After", String(loginLimit.retry_after_seconds));
-    return response;
-  }
-
-  if (!timingSafeEqual(username, basicUser) || !timingSafeEqual(password, basicPass)) {
+  const credentialsOk = timingSafeEqual(username, basicUser) && timingSafeEqual(password, basicPass);
+  if (!credentialsOk) {
+    // Count credential failures only. Successful logins, recovery retries and
+    // cookie-clear tests must not lock a valid user out after ten requests.
+    const loginLimit = await takeRateLimit(supabase, {
+      scope: "login_credentials",
+      keyParts: [clientIp(request), username.toLowerCase()],
+      limit: 10,
+      windowSeconds: 10 * 60,
+    });
+    if (!loginLimit.ok) return j({ error: loginLimit.error }, { status: loginLimit.status || 503 });
+    if (!loginLimit.allowed) {
+      const response = j({ error: "محاولات دخول خاطئة كثيرة. حاول مرة أخرى لاحقًا." }, { status: 429 });
+      response.headers.set("Retry-After", String(loginLimit.retry_after_seconds));
+      return response;
+    }
     await new Promise((resolve) => setTimeout(resolve, 350));
     return j({ error: "Invalid credentials" }, { status: 401 });
   }
@@ -395,7 +397,7 @@ export async function POST(request) {
     const ticketLimit = await takeRateLimit(supabase, {
       scope: "device_recovery_ticket",
       keyParts: [clientIp(request), fingerprint.recovery_binding_hash],
-      limit: 5,
+      limit: 20,
       windowSeconds: 10 * 60,
     });
     if (!ticketLimit.ok) return j({ error: ticketLimit.error }, { status: ticketLimit.status || 503 });
@@ -451,7 +453,7 @@ export async function POST(request) {
   const registrationLimit = await takeRateLimit(supabase, {
     scope: "new_device_registration",
     keyParts: [clientIp(request), fingerprint.recovery_binding_hash],
-    limit: 5,
+    limit: 20,
     windowSeconds: 60 * 60,
   });
   if (!registrationLimit.ok) return j({ error: registrationLimit.error }, { status: registrationLimit.status || 503 });
