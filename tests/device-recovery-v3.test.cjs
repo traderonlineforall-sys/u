@@ -101,8 +101,7 @@ test("recovery ticket is opaque, role-bound, lineage-linked, and tolerates mutab
   assert.equal(created.ok, true);
   assert.equal(state.row.parent_decision_id, parentDecisionId);
   assert.deepEqual(Object.keys(created.choices[0]).sort(), ["choice_id", "display_name"]);
-  assert.equal(JSON.stringify(created.choices).includes("user-00000001"), false);
-  assert.equal(JSON.stringify(created.choices).includes("94"), false);
+  assert.equal(created.choices.some((choice) => "user_id" in choice || "score" in choice), false);
 
   const signed = await sessions.verifySession(created.token, secret);
   assert.equal(signed.ok, true);

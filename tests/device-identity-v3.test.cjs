@@ -114,8 +114,10 @@ test("login payload and response do not expose or accept internal identity", () 
   assert.match(route, /j\(\{ ok: true, display_name: displayName \}\)/);
   assert.doesNotMatch(route, /j\(\{\s*ok:\s*true,\s*user_id/s);
   assert.match(page, /const requestBody = \{ username, password, device_fingerprint \}/);
+  assert.match(page, /requestBody\.new_nickname = cleanNickname\(newNickname\)/);
+  assert.match(page, /requestBody\.register_new_device = true/);
   assert.doesNotMatch(page, /requestBody\.(?:user_id|primary_user_id|nickname|display_name)/);
-  assert.doesNotMatch(page, /value=\{nickname\}|name=["']nickname["']/);
+  assert.doesNotMatch(page, /requestBody\.(?:user_id|primary_user_id|display_name)/);
   assert.match(deviceMe, /display_name: profile\.display_name/);
   assert.doesNotMatch(deviceMe, /confidence_score|signal_summary|device_hash|user_id\s*:/);
 });
@@ -136,6 +138,7 @@ test("recovery ticket keeps ids and scores server-side and is consumed atomicall
   assert.match(recovery, /const MIN_CHOICES = 1/);
   assert.match(read("app/api/login/route.js"), /suggestions\.length >= 1/);
   assert.match(read("app/login/page.js"), /data\.nickname_suggestions\.length >= 1/);
+  assert.match(read("app/login/page.js"), /recoverySuggestions\.length >= 1/);
   assert.match(sql, /for update/);
   assert.match(sql, /used_at is null/);
   assert.match(sql, /foreign key \(parent_decision_id\)[\s\S]+references public\.support_device_identity_decisions/);
@@ -243,6 +246,26 @@ test("login enforces actual request size and browser secrets require Web Crypto"
   assert.doesNotMatch(page, /return `dev_\$\{Date\.now[\s\S]{0,180}Math\.random/);
   assert.match(learner, /new Uint8Array\(32\)/);
   assert.doesNotMatch(learner, /Math\.random|fallbackHash/);
+});
+
+test("login UI cannot wait forever on fingerprint or network requests", () => {
+  const page = read("app/login/page.js");
+  assert.match(page, /function settleWithin\(/);
+  assert.match(page, /async function fetchWithTimeout\(/);
+  assert.match(page, /fetchWithTimeout\("\/api\/login"[\s\S]{0,260}, 25000\)/);
+  assert.match(page, /fetchWithTimeout\("\/api\/support-profile"[\s\S]{0,220}, 3000\)/);
+});
+
+test("a first login can register a new nickname without claiming an existing user id", () => {
+  const login = read("app/api/login/route.js");
+  const page = read("app/login/page.js");
+  assert.match(login, /const newUserId = `uid_\$\{randomUUID\(\)\}`/);
+  assert.match(login, /ensureNicknameForUser\(supabase, newUserId, newNickname\)/);
+  assert.match(login, /source: "first_login_nickname_registration"/);
+  assert.match(login, /nickname_registration_required: true/);
+  assert.match(page, /nicknameRegistrationRequired/);
+  assert.match(page, /حفظ الكنية والدخول/);
+  assert.doesNotMatch(login, /normalizeUserId\(body\.(?:user_id|primary_user_id)/);
 });
 
 test("migration protects sensitive tables with RLS and server-only grants", () => {

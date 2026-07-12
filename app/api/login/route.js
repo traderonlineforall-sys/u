@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { getCookieName, signSession } from "../../../lib/session.js";
 import { enforceSameOrigin, noStore } from "../../../lib/server/auth.js";
 import { getServiceSupabase } from "../../../lib/server/admin.js";
-import { getNicknameProfile } from "../../../lib/server/nickname.js";
+import { ensureNicknameForUser, getNicknameProfile } from "../../../lib/server/nickname.js";
 import {
   buildDeviceConfidence,
   findDeviceNicknameMatch,
@@ -238,6 +238,8 @@ export async function POST(request) {
   const password = String(body.password || "").slice(0, 512);
   const recoveryTicket = String(body.recovery_ticket || "").slice(0, 4096);
   const recoveryChoiceId = String(body.recovery_choice_id || "").slice(0, 80);
+  const newNickname = String(body.new_nickname || "").slice(0, 160);
+  const registerNewDevice = body.register_new_device === true;
   const rawFingerprint = body.device_fingerprint && typeof body.device_fingerprint === "object"
     ? body.device_fingerprint
     : {};
@@ -381,7 +383,7 @@ export async function POST(request) {
   }
 
   const suggestions = Array.isArray(smart.suggestions) ? smart.suggestions.slice(0, 3) : [];
-  if ((mode === "verified_only" || mode === "full") && suggestions.length >= 1) {
+  if ((mode === "verified_only" || mode === "full") && suggestions.length >= 1 && !registerNewDevice) {
     const ticketLimit = await takeRateLimit(supabase, {
       scope: "device_recovery_ticket",
       keyParts: [clientIp(request), fingerprint.recovery_binding_hash],
@@ -423,19 +425,54 @@ export async function POST(request) {
     return response;
   }
 
-  await logDeviceDecision(supabase, {
-    decision_type: resolved.new_device ? DEVICE_DECISIONS.NEW_DEVICE : DEVICE_DECISIONS.INSUFFICIENT_EVIDENCE,
-    decision_source: "device_identity_policy",
-    truth_level: "insufficient_evidence",
-    evidence_groups: suggestions.length ? ["fleet_characteristics"] : [],
-    evidence_lineage: { source: smart.reason || resolved.reason || "none", may_strengthen: false },
-    automatic: true,
-    executed: false,
-    can_strengthen: false,
-    shadow_only: mode === "shadow",
-    rejection_code: smart.reason || resolved.reason || "insufficient_evidence",
-    evidence_group_count: smart.strong_groups,
-    score_margin: smart.ambiguity_gap,
+  // First login for a genuinely unbound device. The browser may propose only
+  // a new presentation nickname; it can never provide a user id or claim an
+  // existing profile. The server creates the id and binds it to this device.
+  if (!registerNewDevice || !newNickname) {
+    return j({
+      error: "اكتب كنية جديدة لربط هذا الجهاز في أول دخول.",
+      nickname_registration_required: true,
+    }, { status: 409 });
+  }
+
+  const registrationLimit = await takeRateLimit(supabase, {
+    scope: "new_device_registration",
+    keyParts: [clientIp(request), fingerprint.recovery_binding_hash],
+    limit: 5,
+    windowSeconds: 60 * 60,
   });
-  return genericIdentityFailure(409);
+  if (!registrationLimit.ok) return j({ error: registrationLimit.error }, { status: registrationLimit.status || 503 });
+  if (!registrationLimit.allowed) {
+    return j({ error: "تمت محاولات تسجيل أجهزة جديدة كثيرة. حاول لاحقًا." }, { status: 429 });
+  }
+
+  const newUserId = `uid_${randomUUID()}`;
+  const nickname = await ensureNicknameForUser(supabase, newUserId, newNickname);
+  if (!nickname.ok) {
+    return j({
+      error: nickname.error || "تعذر حفظ الكنية الجديدة.",
+      nickname_registration_required: true,
+      nickname_taken: nickname.nickname_taken === true,
+    }, { status: nickname.status || 409 });
+  }
+  if (nickname.compatibility || !nickname.display_name) {
+    return j({ error: "يجب تطبيق تحديث قاعدة بيانات الكنيات قبل تسجيل أول جهاز." }, { status: 503 });
+  }
+
+  const firstLogin = await enrollAndLogin({
+    supabase, username, fingerprint,
+    userId: newUserId,
+    displayName: nickname.display_name,
+    source: "first_login_nickname_registration",
+    assurance: "verified_new_device_registration",
+    decisionType: DEVICE_DECISIONS.NEW_DEVICE,
+    automatic: false,
+  });
+  if (!firstLogin.ok) {
+    // The id was generated in this request, so cleanup cannot affect an
+    // existing account. It prevents a failed enrollment reserving a nickname.
+    try { await supabase.from("support_users").delete().eq("user_id", newUserId); } catch {}
+  }
+  return firstLogin;
+
 }

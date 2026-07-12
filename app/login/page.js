@@ -47,6 +47,14 @@ function cleanNickname(value){
     .trim()
     .slice(0, 40);
 }
+function nicknameError(value){
+  const nickname = cleanNickname(value);
+  if(nickname.length < 2) return "اكتب كنية من حرفين على الأقل.";
+  if(/[<>\\{}[\]`]/.test(nickname)) return "الكنية تحتوي على رموز غير مسموحة.";
+  if(/@/.test(nickname) || /https?:\/\//i.test(nickname)) return "لا تكتب بريدًا إلكترونيًا أو رابطًا.";
+  if(/\+?\d[\d\s().-]{7,}/.test(nickname)) return "لا تكتب رقم تليفون داخل الكنية.";
+  return "";
+}
 function storePresentationIdentity(profile){
   const userId = String(profile?.user_id || "").trim();
   const displayName = cleanNickname(profile?.display_name || "");
@@ -59,6 +67,35 @@ function storePresentationIdentity(profile){
     safeLocalSet(NAME_KEY, displayName);
     safeSessionSet(NAME_KEY, displayName);
     safeCookieSet(NAME_KEY, displayName);
+  }
+}
+
+function settleWithin(task, fallback, timeoutMs = 4000){
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (value) => {
+      if(settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(value);
+    };
+    const timer = setTimeout(() => finish(fallback), timeoutMs);
+    Promise.resolve(task).then(finish, () => finish(fallback));
+  });
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 20000){
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try{
+    return await fetch(url, { ...options, signal: controller.signal });
+  }catch(error){
+    if(error?.name === "AbortError") {
+      throw new Error("انتهت مهلة الاتصال بالخادم. حاول مرة أخرى.");
+    }
+    throw error;
+  }finally{
+    clearTimeout(timer);
   }
 }
 
@@ -341,20 +378,20 @@ async function collectDeviceFingerprint(){
   const colorScheme = (()=>{ try { return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; } catch { return ""; } })();
   const reducedMotion = (()=>{ try { return matchMedia("(prefers-reduced-motion: reduce)").matches ? "reduce" : "no-preference"; } catch { return ""; } })();
   const vv = window.visualViewport || {};
-  const deviceInstanceHash = await sha256Hex(getStableDeviceSecret());
+  const deviceInstanceHash = await settleWithin(sha256Hex(getStableDeviceSecret()), "");
   const [canvasHash, audioHash, fontsHash, webgl, pluginsHash, clientHints, storage, keyboard, capabilities, network, battery, mediaDevices] = await Promise.all([
-    getCanvasHash(),
-    getAudioHash(),
-    getFontsHash(),
-    getWebglInfo(),
-    sha256Hex(plugins),
-    getClientHints(),
-    getStorageInfo(),
-    getKeyboardInfo(),
-    getCapabilitiesInfo(),
-    Promise.resolve(getNetworkInfo()),
-    getBatteryInfo(),
-    getMediaDevicesInfo(),
+    settleWithin(getCanvasHash(), ""),
+    settleWithin(getAudioHash(), ""),
+    settleWithin(getFontsHash(), ""),
+    settleWithin(getWebglInfo(), {}),
+    settleWithin(sha256Hex(plugins), ""),
+    settleWithin(getClientHints(), {}),
+    settleWithin(getStorageInfo(), {}),
+    settleWithin(getKeyboardInfo(), { layoutAvailable:false, layoutHash:"" }),
+    settleWithin(getCapabilitiesInfo(), {}),
+    settleWithin(Promise.resolve(getNetworkInfo()), {}),
+    settleWithin(getBatteryInfo(), { supported:false }),
+    settleWithin(getMediaDevicesInfo(), { supported:false }),
   ]);
   return {
     userAgent: nav.userAgent || "",
@@ -424,13 +461,17 @@ export default function LoginPage() {
   const [recoveryTicket, setRecoveryTicket] = useState("");
   const [selectedRecoveryChoice, setSelectedRecoveryChoice] = useState("");
   const [identityUnavailable, setIdentityUnavailable] = useState(false);
+  const [nicknameRegistrationRequired, setNicknameRegistrationRequired] = useState(false);
+  const [newNickname, setNewNickname] = useState("");
 
-  const hasRecoveryChoices = recoverySuggestions.length >= 2 && !!recoveryTicket;
+  const hasRecoveryChoices = recoverySuggestions.length >= 1 && !!recoveryTicket;
+  const newNicknameError = nicknameRegistrationRequired ? nicknameError(newNickname) : "";
   const canSubmit = useMemo(() => (
     username.trim()
     && password
     && (!hasRecoveryChoices || !!selectedRecoveryChoice)
-  ), [username, password, hasRecoveryChoices, selectedRecoveryChoice]);
+    && (!nicknameRegistrationRequired || !newNicknameError)
+  ), [username, password, hasRecoveryChoices, selectedRecoveryChoice, nicknameRegistrationRequired, newNicknameError]);
   const canProceed = useMemo(() => canSubmit && agreed, [canSubmit, agreed]);
 
   async function onSubmit(e) {
@@ -446,6 +487,10 @@ export default function LoginPage() {
       setErr("اختر كنيتك من النتائج المقترحة أو اضغط «ولا واحدة منهم».");
       return;
     }
+    if (nicknameRegistrationRequired && newNicknameError) {
+      setErr(newNicknameError);
+      return;
+    }
 
     setBusy(true);
     try {
@@ -455,11 +500,15 @@ export default function LoginPage() {
         requestBody.recovery_ticket = recoveryTicket;
         requestBody.recovery_choice_id = selectedRecoveryChoice;
       }
-      const res = await fetch("/api/login", {
+      if (nicknameRegistrationRequired) {
+        requestBody.new_nickname = cleanNickname(newNickname);
+        requestBody.register_new_device = true;
+      }
+      const res = await fetchWithTimeout("/api/login", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(requestBody),
-      });
+      }, 25000);
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -475,7 +524,17 @@ export default function LoginPage() {
           setRecoveryTicket(String(data.recovery_ticket || ""));
           setSelectedRecoveryChoice("");
           setIdentityUnavailable(false);
+          setNicknameRegistrationRequired(false);
           setErr("");
+          return;
+        }
+        if (data?.nickname_registration_required) {
+          setRecoverySuggestions([]);
+          setRecoveryTicket("");
+          setSelectedRecoveryChoice("");
+          setIdentityUnavailable(false);
+          setNicknameRegistrationRequired(true);
+          setErr(data?.nickname_taken ? (data?.error || "الكنية مستخدمة بالفعل.") : "");
           return;
         }
         if (data?.identity_verification_required) {
@@ -483,6 +542,7 @@ export default function LoginPage() {
           setRecoveryTicket("");
           setSelectedRecoveryChoice("");
           setIdentityUnavailable(true);
+          setNicknameRegistrationRequired(false);
         }
         throw new Error(data?.error || "Login failed");
       }
@@ -492,11 +552,11 @@ export default function LoginPage() {
       // synchronizes legacy presentation-only storage for the static tool.
       storePresentationIdentity({ display_name: data?.display_name });
       try {
-        const profileResponse = await fetch("/api/support-profile", {
+        const profileResponse = await fetchWithTimeout("/api/support-profile", {
           method: "GET",
           credentials: "same-origin",
           cache: "no-store",
-        });
+        }, 3000);
         if (profileResponse.ok) storePresentationIdentity(await profileResponse.json());
       } catch {}
 
@@ -577,15 +637,38 @@ export default function LoginPage() {
                   setRecoverySuggestions([]);
                   setRecoveryTicket("");
                   setSelectedRecoveryChoice("");
-                  setIdentityUnavailable(true);
-                  setErr("لن يخمّن النظام حسابًا آخر. تواصل مع المسؤول لربط هذا الجهاز بأمان.");
+                  setIdentityUnavailable(false);
+                  setNicknameRegistrationRequired(true);
+                  setNewNickname("");
+                  setErr("");
                 }}
               >
-                ولا واحدة منهم
+                ولا واحدة منهم — تسجيل كنية جديدة
               </button>
               <div style={styles.suggestionsHint}>
                 لن يتم ربط الكنية المختارة إلا إذا ظلت درجة التطابق الآمنة كافية عند التحقق الثاني.
               </div>
+            </div>
+          ) : nicknameRegistrationRequired ? (
+            <div style={styles.nicknameBox} dir="rtl">
+              <label style={styles.nicknameLabel}>
+                اكتب كنيتك الجديدة لأول دخول
+                <input
+                  value={newNickname}
+                  onChange={(e) => {
+                    setNewNickname(e.target.value);
+                    setErr("");
+                  }}
+                  autoComplete="off"
+                  maxLength={40}
+                  style={{ ...styles.input, ...styles.nicknameInput }}
+                  placeholder="مثال: عقرب الصحراء"
+                />
+              </label>
+              <div style={styles.nicknameHint}>
+                ستُربط هذه الكنية بهذا الجهاز. في مرات الدخول التالية سيتعرف عليها تلقائيًا ولن يطلب كتابتها.
+              </div>
+              {newNicknameError ? <div style={styles.nickError}>{newNicknameError}</div> : null}
             </div>
           ) : identityUnavailable ? (
             <div style={styles.identityUnavailable} dir="rtl">
@@ -613,7 +696,11 @@ export default function LoginPage() {
               ...((!canProceed || busy) ? styles.btnDisabled : null),
               ...(busy ? styles.btnBusy : null),
             }}>
-            {busy ? "Signing in…" : (hasRecoveryChoices ? "تأكيد الكنية والدخول" : "Sign in")}
+            {busy ? "Signing in…" : (hasRecoveryChoices
+              ? "تأكيد الكنية والدخول"
+              : nicknameRegistrationRequired
+                ? "حفظ الكنية والدخول"
+                : "Sign in")}
           </button>
 
           <div style={styles.consentBox} dir="rtl">
@@ -693,6 +780,9 @@ const styles = {
     background: "linear-gradient(135deg, rgba(34,197,94,0.13), rgba(59,130,246,0.09))",
   },
   nicknameHint: { fontSize: 12, lineHeight: 1.5, opacity: 0.86 },
+  nicknameLabel: { display: "grid", gap: 7, fontSize: 13, fontWeight: 800 },
+  nicknameInput: { textAlign: "right", fontWeight: 700 },
+  nickError: { fontSize: 12, color: "#fecaca" },
   nicknameRecovering: {
     padding: "10px 12px",
     borderRadius: 12,

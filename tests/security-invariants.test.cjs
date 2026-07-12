@@ -88,7 +88,8 @@ test("login UI never sends a suggested user id directly", () => {
   assert.match(page, /recovery_ticket/);
   assert.match(page, /ولا واحدة منهم/);
   assert.doesNotMatch(page, /selected_user_id/);
-  assert.doesNotMatch(page, /value=\{nickname\}|placeholder="مثال: عقرب الصحراء"/);
+  assert.match(page, /requestBody\.new_nickname = cleanNickname\(newNickname\)/);
+  assert.doesNotMatch(page, /requestBody\.(?:user_id|primary_user_id|selected_user_id|display_name)/);
   assert.doesNotMatch(page, /confidenceBadge[^}]*confidence/s);
 });
 
