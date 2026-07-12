@@ -151,9 +151,13 @@ async function completeLogin({
         ? "verified_local_device_secret"
         : assurance === "verified_historical_device_observation"
           ? "verified_historical_device_observation"
-          : "verified_selection_enrollment",
+          : assurance === "verified_new_device_registration"
+            ? "verified_new_device_registration"
+            : "verified_selection_enrollment",
     truth_level: ownerState,
     canStrengthen,
+    learnFingerprint: assurance === "verified_new_device_registration" ||
+      assurance === "verified_selection_enrollment",
     evidence_groups: evidenceGroups,
     evidence_lineage: { decision_id: decisionId, source: decisionSource },
   });
@@ -359,6 +363,7 @@ export async function POST(request) {
     independentCredentialGroups: 2,
     hasConfirmedHistory: true,
     circularEvidence: false,
+    minSupportingObservations: 1,
   });
   if (!smart.ok) return j({ error: "Could not evaluate device identity." }, { status: 503 });
 

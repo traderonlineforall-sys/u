@@ -304,6 +304,18 @@ test("stale or expired credentials fall back to device-key recovery and then fir
   assert.match(login, /if \(!recovery\.ok\)[\s\S]{0,240}nickname_registration_required: true/);
 });
 
+test("first enrollment learns a storage-independent profile for cookie-cleared recovery", () => {
+  const confidence = read("lib/server/device-confidence.js");
+  const login = read("app/api/login/route.js");
+  assert.match(confidence, /const canLearnFingerprint =/);
+  assert.match(confidence, /"verified_new_device_registration"/);
+  assert.match(confidence, /"verified_selection_enrollment"/);
+  assert.match(confidence, /confirmed_device_binding/);
+  assert.match(confidence, /options\.minSupportingObservations/);
+  assert.match(login, /learnFingerprint: assurance === "verified_new_device_registration"/);
+  assert.match(login, /minSupportingObservations: 1/);
+});
+
 test("migration protects sensitive tables with RLS and server-only grants", () => {
   const sql = read("SUPABASE_PRIMARY_DEVICE_OWNER_IDENTITY_V3.sql");
   for (const table of [
