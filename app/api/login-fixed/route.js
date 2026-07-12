@@ -232,7 +232,6 @@ export async function POST(request) {
   const profile = await getNicknameProfile(supabase, confirmed.user_id);
   if (
     !profile?.ok ||
-    profile.supportsReset === false ||
     !profile.exists ||
     profile.active === false ||
     profile.reset_required ||

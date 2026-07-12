@@ -330,7 +330,7 @@ export async function POST(request) {
     if (!confirmed.ok || !confirmed.matched) return genericIdentityFailure(409);
 
     const profile = await getNicknameProfile(supabase, ticket.user_id);
-    if (!profile?.ok || profile.supportsReset === false || !profile.exists || profile.active === false || profile.reset_required || !profile.display_name) {
+    if (!profile?.ok || !profile.exists || profile.active === false || profile.reset_required || !profile.display_name) {
       return genericIdentityFailure(409);
     }
 

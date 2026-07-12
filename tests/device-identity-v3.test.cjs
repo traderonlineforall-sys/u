@@ -268,6 +268,18 @@ test("a first login can register a new nickname without claiming an existing use
   assert.doesNotMatch(login, /normalizeUserId\(body\.(?:user_id|primary_user_id)/);
 });
 
+test("legacy support_users schema does not block first or automatic login", () => {
+  const sessions = read("lib/server/session-registry.js");
+  const identity = read("lib/server/device-identity.js");
+  const confidence = read("lib/server/device-confidence.js");
+  const login = read("app/api/login/route.js");
+  assert.doesNotMatch(sessions, /User account-status migration is required/);
+  assert.doesNotMatch(identity, /User account-status migration is required/);
+  assert.doesNotMatch(confidence, /profile\.supportsReset === false/);
+  assert.doesNotMatch(login, /profile\.supportsReset === false/);
+  assert.match(sessions, /support_users tables have no account-status\/reset columns/);
+});
+
 test("migration protects sensitive tables with RLS and server-only grants", () => {
   const sql = read("SUPABASE_PRIMARY_DEVICE_OWNER_IDENTITY_V3.sql");
   for (const table of [
