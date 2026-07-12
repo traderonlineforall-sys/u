@@ -277,7 +277,19 @@ test("legacy support_users schema does not block first or automatic login", () =
   assert.doesNotMatch(identity, /User account-status migration is required/);
   assert.doesNotMatch(confidence, /profile\.supportsReset === false/);
   assert.doesNotMatch(login, /profile\.supportsReset === false/);
+  assert.doesNotMatch(login, /profile\.supportsReset !== false/);
   assert.match(sessions, /support_users tables have no account-status\/reset columns/);
+});
+
+test("strong unambiguous historical devices upgrade silently before choices", () => {
+  const login = read("app/api/login/route.js");
+  const autoBranch = login.indexOf("smart.matched === true");
+  const choiceBranch = login.indexOf("suggestions.length >= 1");
+  assert.ok(autoBranch > 0 && choiceBranch > autoBranch);
+  assert.match(login, /Number\(smart\.best_score \|\| 0\) >= 95/);
+  assert.match(login, /Number\(smart\.ambiguity_gap \|\| 0\) >= 14/);
+  assert.match(login, /strong_historical_device_migration/);
+  assert.doesNotMatch(login, /smart\.exact_observation === true\s*&&/);
 });
 
 test("migration protects sensitive tables with RLS and server-only grants", () => {

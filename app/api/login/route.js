@@ -351,8 +351,9 @@ export async function POST(request) {
     });
   }
 
-  // Silent migration path for devices learned before v3.
-  // It only accepts one exact historical observation and never fuzzy matching.
+  // Silent migration path for devices learned before v3. Exact observations
+  // and high-confidence, unambiguous historical matches are upgraded once to
+  // a server-bound credential; later logins use that credential directly.
   const smart = await findDeviceNicknameMatch(supabase, fingerprint, {
     allowAutoLogin: true,
     independentCredentialGroups: 2,
@@ -363,18 +364,20 @@ export async function POST(request) {
 
   if (
     smart.matched === true &&
-    smart.exact_observation === true &&
-    Number(smart.best_score || 0) >= 98 &&
-    Number(smart.ambiguity_gap || 0) >= 18 &&
+    Number(smart.best_score || 0) >= 95 &&
+    Number(smart.ambiguity_gap || 0) >= 14 &&
     Number(smart.stable_contradictions || 0) === 0
   ) {
     const profile = await getNicknameProfile(supabase, smart.user_id);
-    if (profile?.ok && profile.supportsReset !== false && profile.exists && profile.active !== false && !profile.reset_required && profile.display_name) {
+    if (profile?.ok && profile.exists && profile.active !== false && !profile.reset_required && profile.display_name) {
+      const exactHistorical = smart.exact_observation === true;
       return enrollAndLogin({
         supabase, username, fingerprint,
         userId: smart.user_id,
         displayName: profile.display_name,
-        source: "exact_historical_observation_migration",
+        source: exactHistorical
+          ? "exact_historical_observation_migration"
+          : "strong_historical_device_migration",
         assurance: "verified_historical_device_observation",
         decisionType: DEVICE_DECISIONS.AUTO_LOGIN_RECOVERED,
         automatic: true,
