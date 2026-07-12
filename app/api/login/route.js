@@ -415,7 +415,12 @@ export async function POST(request) {
     const recovery = await createDeviceRecoveryTicket(
       supabase, fingerprint, suggestions, sessionSecret, { parentDecisionId: shortlistDecisionId }
     );
-    if (!recovery.ok) return genericIdentityFailure(recovery.status || 409);
+    if (!recovery.ok) {
+      return j({
+        error: "تعذر استرجاع ربط قديم لهذا الجهاز. اكتب كنية جديدة لإكمال أول دخول.",
+        nickname_registration_required: true,
+      }, { status: 409 });
+    }
     const finalizedShortlist = await markDeviceDecisionExecuted(supabase, shortlistDecisionId);
     if (!finalizedShortlist.ok) return j({ error: "Could not finalize device identity decision." }, { status: 503 });
 

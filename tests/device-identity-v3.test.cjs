@@ -292,6 +292,18 @@ test("strong unambiguous historical devices upgrade silently before choices", ()
   assert.doesNotMatch(login, /smart\.exact_observation === true\s*&&/);
 });
 
+test("stale or expired credentials fall back to device-key recovery and then first login", () => {
+  const identity = read("lib/server/device-identity.js");
+  const login = read("app/api/login/route.js");
+  assert.match(identity, /recoverableStaleCredential/);
+  assert.match(identity, /"credential_not_found"/);
+  assert.match(identity, /"credential_expired"/);
+  assert.match(identity, /"credential_device_missing"/);
+  assert.match(identity, /"credential_invalid_or_replayed"/);
+  assert.match(identity, /Continue[\s\S]{0,180}browser key/);
+  assert.match(login, /if \(!recovery\.ok\)[\s\S]{0,240}nickname_registration_required: true/);
+});
+
 test("migration protects sensitive tables with RLS and server-only grants", () => {
   const sql = read("SUPABASE_PRIMARY_DEVICE_OWNER_IDENTITY_V3.sql");
   for (const table of [

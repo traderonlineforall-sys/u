@@ -77,7 +77,9 @@ test("session signing rejects tampering and preserves explicit token roles", asy
 
   assert.equal((await verifySession(user, secret)).payload.role, "user");
   assert.equal((await verifySession(recovery, secret)).payload.role, "device_recovery_ticket");
-  assert.equal((await verifySession(`${user.slice(0, -1)}x`, secret)).ok, false);
+  const [signedPayload, signedMac] = user.split(".");
+  const changedMac = `${signedMac[0] === "A" ? "B" : "A"}${signedMac.slice(1)}`;
+  assert.equal((await verifySession(`${signedPayload}.${changedMac}`, secret)).ok, false);
   assert.equal((await verifySession(await signSession({ role: "user", exp: Date.now() - 1 }, secret), secret)).reason, "expired");
 });
 
