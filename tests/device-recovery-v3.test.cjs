@@ -138,6 +138,23 @@ test("recovery ticket is opaque, role-bound, lineage-linked, and tolerates mutab
   assert.equal(modifiedChoice.ok, false);
 });
 
+test("one strong device owner can be confirmed without typing a nickname", async () => {
+  const recovery = await recoveryModule();
+  const { state, supabase } = recoveryStore();
+  const secret = "test-recovery-secret-that-is-long-enough";
+  const created = await recovery.createDeviceRecoveryTicket(
+    supabase,
+    { recovery_binding_hash: "one-owner-device" },
+    [{ user_id: "user-00000001", display_name: "Alpha", score: 96 }],
+    secret
+  );
+
+  assert.equal(created.ok, true);
+  assert.equal(created.choices.length, 1);
+  assert.deepEqual(Object.keys(created.choices[0]).sort(), ["choice_id", "display_name"]);
+  assert.equal(state.row.choices[0].user_id, "user-00000001");
+});
+
 test("homogeneous fleet and storage-loss fixture follows conservative policy", async () => {
   const fixture = JSON.parse(read("tests/fixtures/homogeneous-company-fleet.json"));
   const source = read("lib/server/device-policy.js");

@@ -381,7 +381,7 @@ export async function POST(request) {
   }
 
   const suggestions = Array.isArray(smart.suggestions) ? smart.suggestions.slice(0, 3) : [];
-  if ((mode === "verified_only" || mode === "full") && suggestions.length >= 2) {
+  if ((mode === "verified_only" || mode === "full") && suggestions.length >= 1) {
     const ticketLimit = await takeRateLimit(supabase, {
       scope: "device_recovery_ticket",
       keyParts: [clientIp(request), fingerprint.recovery_binding_hash],

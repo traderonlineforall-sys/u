@@ -466,7 +466,7 @@ export default function LoginPage() {
         if (
           data?.nickname_selection_required &&
           Array.isArray(data?.nickname_suggestions) &&
-          data.nickname_suggestions.length >= 2
+          data.nickname_suggestions.length >= 1
         ) {
           setRecoverySuggestions(data.nickname_suggestions.slice(0, 3).map((item) => ({
             choice_id: String(item?.choice_id || ""),

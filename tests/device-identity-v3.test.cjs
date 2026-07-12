@@ -133,6 +133,9 @@ test("recovery ticket keeps ids and scores server-side and is consumed atomicall
   assert.match(recovery, /context_changed: contextChanged/);
   assert.match(recovery, /seenUsers/);
   assert.match(recovery, /seenNames/);
+  assert.match(recovery, /const MIN_CHOICES = 1/);
+  assert.match(read("app/api/login/route.js"), /suggestions\.length >= 1/);
+  assert.match(read("app/login/page.js"), /data\.nickname_suggestions\.length >= 1/);
   assert.match(sql, /for update/);
   assert.match(sql, /used_at is null/);
   assert.match(sql, /foreign key \(parent_decision_id\)[\s\S]+references public\.support_device_identity_decisions/);
